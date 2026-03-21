@@ -1,25 +1,25 @@
 {% extends "base.html" %}
 
-{% block title %}Gastos &mdash; Truficultura{% endblock %}
+{% block title %}{{ _("Gastos") }} &mdash; Truficultura{% endblock %}
 
 {% block content %}
 <div class="container-xl">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h3 mb-0">
-                <i class="bi bi-arrow-down-circle-fill text-danger me-2"></i>Gastos
+                <i class="bi bi-arrow-down-circle-fill text-danger me-2"></i>{{ _("Gastos") }}
             </h1>
-            <p class="text-muted mb-0">{{ gastos|length }} gasto(s) registrado(s){% if selected_year %} en campaña {{ selected_year|campaign_label }}{% endif %}</p>
+            <p class="text-muted mb-0">{{ expenses|length }} {{ _("gasto(s) registrado(s)") }}{% if selected_year %} {{ _("en campaña") }} {{ selected_year|campaign_label }}{% endif %}</p>
         </div>
-        <a href="/gastos/nuevo" class="btn btn-danger">
-            <i class="bi bi-plus-circle me-1"></i> Nuevo Gasto
+        <a href="/expenses/new" class="btn btn-danger">
+            <i class="bi bi-plus-circle me-1"></i> {{ _("Nuevo Gasto") }}
         </a>
     </div>
 
     {% if breakdown %}
     <!-- Desglose por bancal -->
     <h6 class="text-uppercase text-muted fw-semibold mb-2 small">
-        <i class="bi bi-pie-chart me-1"></i>Desglose por bancal{% if selected_year %} &mdash; Campaña {{ selected_year|campaign_label }}{% endif %}
+        <i class="bi bi-pie-chart me-1"></i>{{ _("Desglose por bancal") }}{% if selected_year %} &mdash; {{ _("Campaña") }} {{ selected_year|campaign_label }}{% endif %}
     </h6>
     <div class="card shadow-sm mb-4">
         <div class="card-body p-0">
@@ -27,28 +27,28 @@
                 <table class="table table-hover mb-0">
                     <thead class="table-dark">
                         <tr>
-                            <th>Bancal</th>
-                            <th class="text-end">Porcentaje</th>
-                            <th class="text-end">Gastos directos (&euro;)</th>
-                            <th class="text-end">Gastos generales (&euro;)</th>
-                            <th class="text-end">Total (&euro;)</th>
+                            <th>{{ _("Bancal") }}</th>
+                            <th class="text-end">{{ _("Porcentaje") }}</th>
+                            <th class="text-end">{{ _("Gastos directos (€)") }}</th>
+                            <th class="text-end">{{ _("Gastos generales (€)") }}</th>
+                            <th class="text-end">{{ _("Total (€)") }}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for row in breakdown %}
                         <tr>
-                            <td class="fw-semibold">{{ row.parcela.nombre }}</td>
-                            <td class="text-end text-muted">{{ "%.1f"|format(row.parcela.porcentaje or 0) }}%</td>
+                            <td class="fw-semibold">{{ row.plot.name }}</td>
+                            <td class="text-end text-muted">{{ "%.1f"|format(row.plot.percentage or 0) }}%</td>
                             <td class="text-end">
-                                {% if row.directo > 0 %}
-                                {{ "%.2f"|format(row.directo) }}
+                                {% if row.direct > 0 %}
+                                {{ "%.2f"|format(row.direct) }}
                                 {% else %}
                                 <span class="text-muted">&mdash;</span>
                                 {% endif %}
                             </td>
                             <td class="text-end text-muted small">
                                 {% if general_total > 0 %}
-                                {{ "%.2f"|format(general_total) }} &times; {{ "%.1f"|format(row.parcela.porcentaje or 0) }}%
+                                {{ "%.2f"|format(general_total) }} &times; {{ "%.1f"|format(row.plot.percentage or 0) }}%
                                 = {{ "%.2f"|format(row.general_share) }}
                                 {% else %}
                                 <span class="text-muted">&mdash;</span>
@@ -60,8 +60,8 @@
                     </tbody>
                     <tfoot class="table-warning fw-bold">
                         <tr>
-                            <td colspan="2" class="text-end">TOTAL:</td>
-                            <td class="text-end">{{ "%.2f"|format(breakdown | sum(attribute='directo')) }}</td>
+                            <td colspan="2" class="text-end">{{ _("TOTAL") }}:</td>
+                            <td class="text-end">{{ "%.2f"|format(breakdown | sum(attribute='direct')) }}</td>
                             <td class="text-end">{{ "%.2f"|format(general_total) }}</td>
                             <td class="text-end text-danger">{{ "%.2f"|format(total) }}</td>
                         </tr>
@@ -71,7 +71,7 @@
             {% if general_total > 0 %}
             <p class="text-muted small px-3 py-2 mb-0">
                 <i class="bi bi-info-circle me-1"></i>
-                Los gastos generales (sin bancal asignado) se distribuyen proporcionalmente según el porcentaje de cada bancal.
+                {{ _("Los gastos generales (sin bancal asignado) se distribuyen proporcionalmente según el porcentaje de cada bancal.") }}
             </p>
             {% endif %}
         </div>
@@ -81,20 +81,20 @@
     <!-- Filter bar -->
     <div class="card shadow-sm mb-3">
         <div class="card-body py-2">
-            <form method="get" action="/gastos/" class="d-flex gap-2 align-items-center flex-wrap">
+            <form method="get" action="/expenses/" class="d-flex gap-2 align-items-center flex-wrap">
                 <label for="yearFilter" class="form-label mb-0 fw-semibold text-nowrap">
-                    <i class="bi bi-funnel me-1"></i>Filtrar por campaña:
+                    <i class="bi bi-funnel me-1"></i>{{ _("Filtrar por campaña:") }}
                 </label>
                 <select name="year" id="yearFilter" class="form-select form-select-sm w-auto"
                         onchange="this.form.submit()">
-                    <option value="">Todas las campañas</option>
+                    <option value="">{{ _("Todas las campañas") }}</option>
                     {% for y in years %}
                     <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y|campaign_label }}</option>
                     {% endfor %}
                 </select>
                 {% if selected_year %}
-                <a href="/gastos/" class="btn btn-sm btn-outline-secondary">
-                    <i class="bi bi-x me-1"></i>Limpiar filtro
+                <a href="/expenses/" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-x me-1"></i>{{ _("Limpiar filtro") }}
                 </a>
                 {% endif %}
             </form>
@@ -103,46 +103,46 @@
 
     <div class="card shadow-sm">
         <div class="card-body p-0">
-            {% if gastos %}
+            {% if expenses %}
             <div class="table-responsive">
                 <table class="table table-hover mb-0">
                     <thead class="table-dark">
                         <tr>
-                            <th>Fecha</th>
-                            <th>Concepto</th>
-                            <th>Persona</th>
-                            <th>Bancal</th>
-                            <th class="text-end">Cantidad (&euro;)</th>
-                            <th class="text-center">Acciones</th>
+                            <th>{{ _("Fecha") }}</th>
+                            <th>{{ _("Concepto") }}</th>
+                            <th>{{ _("Persona") }}</th>
+                            <th>{{ _("Bancal") }}</th>
+                            <th class="text-end">{{ _("Cantidad (€)") }}</th>
+                            <th class="text-center">{{ _("Acciones") }}</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for g in gastos %}
+                        {% for g in expenses %}
                         <tr>
-                            <td class="text-nowrap">{{ g.fecha.strftime('%d/%m/%Y') }}</td>
-                            <td>{{ g.concepto }}</td>
-                            <td>{{ g.persona if g.persona else '&mdash;' }}</td>
+                            <td class="text-nowrap">{{ g.date.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ g.description }}</td>
+                            <td>{{ g.person if g.person else '&mdash;' }}</td>
                             <td>
-                                {% if g.parcela %}
-                                <span class="badge bg-secondary">{{ g.parcela.nombre }}</span>
+                                {% if g.plot %}
+                                <span class="badge bg-secondary">{{ g.plot.name }}</span>
                                 {% else %}
                                 <span class="text-muted small">&mdash;</span>
                                 {% endif %}
                             </td>
-                            <td class="text-end fw-semibold text-danger">{{ "%.2f"|format(g.cantidad) }} &euro;</td>
+                            <td class="text-end fw-semibold text-danger">{{ "%.2f"|format(g.amount) }} &euro;</td>
                             <td class="text-center">
                                 <div class="btn-group btn-group-sm" role="group">
-                                    <a href="/gastos/{{ g.id }}/editar"
-                                       class="btn btn-outline-primary" title="Editar">
+                                    <a href="/expenses/{{ g.id }}/edit"
+                                       class="btn btn-outline-primary" title="{{ _('Editar') }}">
                                         <i class="bi bi-pencil-fill"></i>
                                     </a>
-                                    <form action="/gastos/{{ g.id }}/eliminar"
+                                    <form action="/expenses/{{ g.id }}/delete"
                                           method="post"
                                           class="d-inline"
                                           onsubmit="return confirmDelete(this)">
                                         <button type="submit"
                                                 class="btn btn-outline-danger"
-                                                title="Eliminar">
+                                                title="{{ _('Eliminar') }}">
                                             <i class="bi bi-trash-fill"></i>
                                         </button>
                                     </form>
@@ -153,7 +153,7 @@
                     </tbody>
                     <tfoot class="table-warning fw-bold">
                         <tr>
-                            <td colspan="4" class="text-end">TOTAL{% if selected_year %} {{ selected_year|campaign_label }}{% endif %}:</td>
+                            <td colspan="4" class="text-end">{{ _("TOTAL") }}{% if selected_year %} {{ selected_year|campaign_label }}{% endif %}:</td>
                             <td class="text-end text-danger fs-6">{{ "%.2f"|format(total) }} &euro;</td>
                             <td></td>
                         </tr>
@@ -165,13 +165,13 @@
                 <i class="bi bi-inbox fs-1 d-block mb-3"></i>
                 <p class="mb-3">
                     {% if selected_year %}
-                    No hay gastos registrados para la campaña {{ selected_year|campaign_label }}.
+                    {{ _("No hay gastos registrados para la campaña") }} {{ selected_year|campaign_label }}.
                     {% else %}
-                    No hay gastos registrados todavía.
+                    {{ _("No hay gastos registrados todavía.") }}
                     {% endif %}
                 </p>
-                <a href="/gastos/nuevo" class="btn btn-danger">
-                    <i class="bi bi-plus-circle me-1"></i> Registrar primer gasto
+                <a href="/expenses/new" class="btn btn-danger">
+                    <i class="bi bi-plus-circle me-1"></i> {{ _("Registrar primer gasto") }}
                 </a>
             </div>
             {% endif %}

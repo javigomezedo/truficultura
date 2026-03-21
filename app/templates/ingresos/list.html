@@ -1,38 +1,38 @@
 {% extends "base.html" %}
 
-{% block title %}Ingresos &mdash; Truficultura{% endblock %}
+{% block title %}{{ _("Ingresos") }} &mdash; Truficultura{% endblock %}
 
 {% block content %}
 <div class="container-xl">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="h3 mb-0">
-                <i class="bi bi-arrow-up-circle-fill text-success me-2"></i>Ingresos
+                <i class="bi bi-arrow-up-circle-fill text-success me-2"></i>{{ _("Ingresos") }}
             </h1>
-            <p class="text-muted mb-0">{{ ingresos|length }} ingreso(s) registrado(s){% if selected_year %} en campaña {{ selected_year|campaign_label }}{% endif %}</p>
+            <p class="text-muted mb-0">{{ incomes|length }} {{ _("ingreso(s) registrado(s)") }}{% if selected_year %} {{ _("en campaña") }} {{ selected_year|campaign_label }}{% endif %}</p>
         </div>
-        <a href="/ingresos/nuevo" class="btn btn-success">
-            <i class="bi bi-plus-circle me-1"></i> Nuevo Ingreso
+        <a href="/incomes/new" class="btn btn-success">
+            <i class="bi bi-plus-circle me-1"></i> {{ _("Nuevo Ingreso") }}
         </a>
     </div>
 
     <!-- Filter bar -->
     <div class="card shadow-sm mb-3">
         <div class="card-body py-2">
-            <form method="get" action="/ingresos/" class="d-flex gap-2 align-items-center flex-wrap">
+            <form method="get" action="/incomes/" class="d-flex gap-2 align-items-center flex-wrap">
                 <label for="yearFilter" class="form-label mb-0 fw-semibold text-nowrap">
-                    <i class="bi bi-funnel me-1"></i>Filtrar por campaña:
+                    <i class="bi bi-funnel me-1"></i>{{ _("Filtrar por campaña:") }}
                 </label>
                 <select name="year" id="yearFilter" class="form-select form-select-sm w-auto"
                         onchange="this.form.submit()">
-                    <option value="">Todas las campañas</option>
+                    <option value="">{{ _("Todas las campañas") }}</option>
                     {% for y in years %}
                     <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y|campaign_label }}</option>
                     {% endfor %}
                 </select>
                 {% if selected_year %}
-                <a href="/ingresos/" class="btn btn-sm btn-outline-secondary">
-                    <i class="bi bi-x me-1"></i>Limpiar filtro
+                <a href="/incomes/" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-x me-1"></i>{{ _("Limpiar filtro") }}
                 </a>
                 {% endif %}
             </form>
@@ -41,54 +41,54 @@
 
     <div class="card shadow-sm">
         <div class="card-body p-0">
-            {% if ingresos %}
+            {% if incomes %}
             <div class="table-responsive">
                 <table class="table table-hover mb-0">
                     <thead class="table-dark">
                         <tr>
-                            <th>Fecha</th>
-                            <th>Bancal</th>
-                            <th class="text-end">Cantidad (kg)</th>
-                            <th>Categoría</th>
+                            <th>{{ _("Fecha") }}</th>
+                            <th>{{ _("Bancal") }}</th>
+                            <th class="text-end">{{ _("Cantidad (kg)") }}</th>
+                            <th>{{ _("Categoría") }}</th>
                             <th class="text-end">&euro;/kg</th>
-                            <th class="text-end">Total (&euro;)</th>
-                            <th class="text-center">Acciones</th>
+                            <th class="text-end">{{ _("Total (€)") }}</th>
+                            <th class="text-center">{{ _("Acciones") }}</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for i in ingresos %}
+                        {% for i in incomes %}
                         <tr>
-                            <td class="text-nowrap">{{ i.fecha.strftime('%d/%m/%Y') }}</td>
+                            <td class="text-nowrap">{{ i.date.strftime('%d/%m/%Y') }}</td>
                             <td>
-                                {% if i.parcela %}
-                                <span class="badge bg-success">{{ i.parcela.nombre }}</span>
+                                {% if i.plot %}
+                                <span class="badge bg-success">{{ i.plot.name }}</span>
                                 {% else %}
                                 <span class="text-muted small">&mdash;</span>
                                 {% endif %}
                             </td>
-                            <td class="text-end fw-semibold">{{ "%.3f"|format(i.cantidad_kg) }} kg</td>
+                            <td class="text-end fw-semibold">{{ "%.3f"|format(i.amount_kg) }} kg</td>
                             <td>
-                                {% if i.categoria %}
-                                <span class="badge bg-secondary">{{ i.categoria }}</span>
+                                {% if i.category %}
+                                <span class="badge bg-secondary">{{ i.category }}</span>
                                 {% else %}
                                 <span class="text-muted small">&mdash;</span>
                                 {% endif %}
                             </td>
-                            <td class="text-end">{{ "%.2f"|format(i.euros_kg) }} &euro;</td>
+                            <td class="text-end">{{ "%.2f"|format(i.euros_per_kg) }} &euro;</td>
                             <td class="text-end fw-bold text-success">{{ "%.2f"|format(i.total) }} &euro;</td>
                             <td class="text-center">
                                 <div class="btn-group btn-group-sm" role="group">
-                                    <a href="/ingresos/{{ i.id }}/editar"
-                                       class="btn btn-outline-primary" title="Editar">
+                                    <a href="/incomes/{{ i.id }}/edit"
+                                       class="btn btn-outline-primary" title="{{ _('Editar') }}">
                                         <i class="bi bi-pencil-fill"></i>
                                     </a>
-                                    <form action="/ingresos/{{ i.id }}/eliminar"
+                                    <form action="/incomes/{{ i.id }}/delete"
                                           method="post"
                                           class="d-inline"
                                           onsubmit="return confirmDelete(this)">
                                         <button type="submit"
                                                 class="btn btn-outline-danger"
-                                                title="Eliminar">
+                                                title="{{ _('Eliminar') }}">
                                             <i class="bi bi-trash-fill"></i>
                                         </button>
                                     </form>
@@ -99,7 +99,7 @@
                     </tbody>
                     <tfoot class="table-success fw-bold">
                         <tr>
-                            <td colspan="2" class="text-end">TOTAL{% if selected_year %} {{ selected_year|campaign_label }}{% endif %}:</td>
+                            <td colspan="2" class="text-end">{{ _("TOTAL") }}{% if selected_year %} {{ selected_year|campaign_label }}{% endif %}:</td>
                             <td class="text-end">{{ "%.3f"|format(total_kg) }} kg</td>
                             <td colspan="2"></td>
                             <td class="text-end fs-6 text-success">{{ "%.2f"|format(total_euros) }} &euro;</td>
@@ -113,13 +113,13 @@
                 <i class="bi bi-inbox fs-1 d-block mb-3"></i>
                 <p class="mb-3">
                     {% if selected_year %}
-                    No hay ingresos registrados para la campaña {{ selected_year|campaign_label }}.
+                    {{ _("No hay ingresos registrados para la campaña") }} {{ selected_year|campaign_label }}.
                     {% else %}
-                    No hay ingresos registrados todavía.
+                    {{ _("No hay ingresos registrados todavía.") }}
                     {% endif %}
                 </p>
-                <a href="/ingresos/nuevo" class="btn btn-success">
-                    <i class="bi bi-plus-circle me-1"></i> Registrar primer ingreso
+                <a href="/incomes/new" class="btn btn-success">
+                    <i class="bi bi-plus-circle me-1"></i> {{ _("Registrar primer ingreso") }}
                 </a>
             </div>
             {% endif %}

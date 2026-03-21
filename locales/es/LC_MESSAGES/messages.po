@@ -1,0 +1,571 @@
+# Spanish translations for PROJECT.
+# Copyright (C) 2026 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-03-21 17:51+0100\n"
+"PO-Revision-Date: 2026-03-21 17:51+0100\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: es\n"
+"Language-Team: es <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: app/templates/base.html:85
+msgid "Inicio"
+msgstr ""
+
+#: app/templates/base.html:91
+msgid "Parcelas"
+msgstr ""
+
+#: app/templates/base.html:97 app/templates/gastos/list.html:3
+#: app/templates/gastos/list.html:10 app/templates/index.html:178
+#: app/templates/reportes/rentabilidad.html:101
+msgid "Gastos"
+msgstr ""
+
+#: app/templates/base.html:103 app/templates/index.html:178
+#: app/templates/ingresos/list.html:3 app/templates/ingresos/list.html:10
+#: app/templates/reportes/rentabilidad.html:101
+msgid "Ingresos"
+msgstr ""
+
+#: app/templates/base.html:109
+msgid "Rentabilidad"
+msgstr ""
+
+#: app/templates/base.html:115 app/templates/graficas/index.html:3
+#: app/templates/graficas/index.html:19
+msgid "Gráficas"
+msgstr ""
+
+#: app/templates/base.html:127 app/templates/base.html:148
+msgid "Cerrar"
+msgstr ""
+
+#: app/templates/base.html:137
+msgid "Gestión de explotación trufícola"
+msgstr ""
+
+#: app/templates/base.html:146
+msgid "Confirmar eliminación"
+msgstr ""
+
+#: app/templates/base.html:151
+msgid ""
+"¿Está seguro de que desea eliminar este registro? Esta acción no se puede"
+" deshacer."
+msgstr ""
+
+#: app/templates/base.html:154 app/templates/gastos/form.html:106
+#: app/templates/ingresos/form.html:130 app/templates/parcelas/form.html:160
+msgid "Cancelar"
+msgstr ""
+
+#: app/templates/base.html:156 app/templates/gastos/list.html:145
+#: app/templates/ingresos/list.html:91 app/templates/parcelas/list.html:64
+msgid "Eliminar"
+msgstr ""
+
+#: app/templates/index.html:3 app/templates/index.html:18
+msgid "Panel de Control"
+msgstr ""
+
+#: app/templates/index.html:20
+msgid "bancal(es)"
+msgstr ""
+
+#: app/templates/index.html:26
+msgid "Totales históricos (todas las campañas)"
+msgstr ""
+
+#: app/templates/index.html:34
+msgid "Total Gastos"
+msgstr ""
+
+#: app/templates/index.html:42
+msgid "Ver gastos"
+msgstr ""
+
+#: app/templates/index.html:52
+msgid "Total Ingresos"
+msgstr ""
+
+#: app/templates/index.html:60
+msgid "Ver ingresos"
+msgstr ""
+
+#: app/templates/index.html:70
+msgid "Rentabilidad Total"
+msgstr ""
+
+#: app/templates/index.html:80
+msgid "Ver informe"
+msgstr ""
+
+#: app/templates/index.html:89
+msgid "Desglose por campaña"
+msgstr ""
+
+#: app/templates/gastos/list.html:22 app/templates/graficas/index.html:32
+#: app/templates/graficas/index.html:80 app/templates/index.html:98
+#: app/templates/index.html:160 app/templates/reportes/rentabilidad.html:83
+#: app/templates/reportes/rentabilidad.html:161
+msgid "Campaña"
+msgstr ""
+
+#: app/templates/graficas/index.html:361 app/templates/index.html:99
+#: app/templates/reportes/rentabilidad.html:163
+#: app/templates/reportes/rentabilidad.html:217
+msgid "Gastos (€)"
+msgstr ""
+
+#: app/templates/graficas/index.html:356 app/templates/index.html:100
+#: app/templates/reportes/rentabilidad.html:162
+#: app/templates/reportes/rentabilidad.html:216
+msgid "Ingresos (€)"
+msgstr ""
+
+#: app/templates/index.html:101 app/templates/reportes/rentabilidad.html:164
+#: app/templates/reportes/rentabilidad.html:218
+msgid "Rentabilidad (€)"
+msgstr ""
+
+#: app/templates/gastos/list.html:63 app/templates/gastos/list.html:156
+#: app/templates/index.html:130 app/templates/index.html:164
+#: app/templates/index.html:197 app/templates/ingresos/list.html:102
+#: app/templates/reportes/rentabilidad.html:87
+#: app/templates/reportes/rentabilidad.html:120
+#: app/templates/reportes/rentabilidad.html:185
+#: app/templates/reportes/rentabilidad.html:239
+msgid "TOTAL"
+msgstr ""
+
+#: app/templates/index.html:143
+msgid "Sin datos todavía."
+msgstr ""
+
+#: app/templates/gastos/form.html:110 app/templates/index.html:143
+#: app/templates/reportes/rentabilidad.html:65
+msgid "Registrar gasto"
+msgstr ""
+
+#: app/templates/index.html:143
+msgid "o"
+msgstr ""
+
+#: app/templates/index.html:143
+msgid "ingreso"
+msgstr ""
+
+#: app/templates/index.html:151
+msgid "Rentabilidad por bancal y campaña (€)"
+msgstr ""
+
+#: app/templates/index.html:219
+msgid "Pase el ratón sobre cada celda para ver el desglose de ingresos y gastos."
+msgstr ""
+
+#: app/templates/index.html:220
+msgid "Ver informe completo"
+msgstr ""
+
+#: app/templates/index.html:225
+msgid "Sin datos para mostrar la matriz."
+msgstr ""
+
+#: app/templates/gastos/form.html:3 app/templates/gastos/form.html:11
+msgid "Editar Gasto"
+msgstr ""
+
+#: app/templates/gastos/form.html:3 app/templates/gastos/form.html:11
+#: app/templates/gastos/list.html:15
+msgid "Nuevo Gasto"
+msgstr ""
+
+#: app/templates/gastos/form.html:18 app/templates/ingresos/form.html:18
+#: app/templates/parcelas/form.html:18
+msgid "Volver al listado"
+msgstr ""
+
+#: app/templates/gastos/form.html:33 app/templates/gastos/list.html:111
+#: app/templates/ingresos/form.html:33 app/templates/ingresos/list.html:49
+msgid "Fecha"
+msgstr ""
+
+#: app/templates/gastos/form.html:45 app/templates/gastos/list.html:30
+#: app/templates/gastos/list.html:114 app/templates/graficas/index.html:45
+#: app/templates/ingresos/form.html:45 app/templates/ingresos/list.html:50
+#: app/templates/reportes/rentabilidad.html:215
+msgid "Bancal"
+msgstr ""
+
+#: app/templates/gastos/form.html:47 app/templates/ingresos/form.html:47
+msgid "-- Sin bancal asignado --"
+msgstr ""
+
+#: app/templates/gastos/form.html:60 app/templates/gastos/list.html:112
+msgid "Concepto"
+msgstr ""
+
+#: app/templates/gastos/form.html:68
+msgid "Descripción del gasto"
+msgstr ""
+
+#: app/templates/gastos/form.html:73 app/templates/gastos/list.html:113
+msgid "Persona"
+msgstr ""
+
+#: app/templates/gastos/form.html:79
+msgid "Nombre del responsable"
+msgstr ""
+
+#: app/templates/gastos/form.html:85 app/templates/gastos/list.html:115
+msgid "Cantidad (€)"
+msgstr ""
+
+#: app/templates/gastos/form.html:110 app/templates/ingresos/form.html:134
+#: app/templates/parcelas/form.html:164
+msgid "Guardar cambios"
+msgstr ""
+
+#: app/templates/gastos/list.html:12
+msgid "gasto(s) registrado(s)"
+msgstr ""
+
+#: app/templates/gastos/list.html:12 app/templates/ingresos/list.html:12
+msgid "en campaña"
+msgstr ""
+
+#: app/templates/gastos/list.html:22
+msgid "Desglose por bancal"
+msgstr ""
+
+#: app/templates/gastos/list.html:31
+msgid "Porcentaje"
+msgstr ""
+
+#: app/templates/gastos/list.html:32
+msgid "Gastos directos (€)"
+msgstr ""
+
+#: app/templates/gastos/list.html:33
+msgid "Gastos generales (€)"
+msgstr ""
+
+#: app/templates/gastos/list.html:34 app/templates/ingresos/form.html:110
+#: app/templates/ingresos/list.html:54
+msgid "Total (€)"
+msgstr ""
+
+#: app/templates/gastos/list.html:74
+msgid ""
+"Los gastos generales (sin bancal asignado) se distribuyen "
+"proporcionalmente según el porcentaje de cada bancal."
+msgstr ""
+
+#: app/templates/gastos/list.html:86 app/templates/ingresos/list.html:24
+msgid "Filtrar por campaña:"
+msgstr ""
+
+#: app/templates/gastos/list.html:90 app/templates/graficas/index.html:224
+#: app/templates/ingresos/list.html:28
+msgid "Todas las campañas"
+msgstr ""
+
+#: app/templates/gastos/list.html:97 app/templates/ingresos/list.html:35
+msgid "Limpiar filtro"
+msgstr ""
+
+#: app/templates/gastos/list.html:116 app/templates/ingresos/list.html:55
+#: app/templates/parcelas/list.html:36
+msgid "Acciones"
+msgstr ""
+
+#: app/templates/gastos/list.html:136 app/templates/ingresos/list.html:82
+#: app/templates/parcelas/list.html:55
+msgid "Editar"
+msgstr ""
+
+#: app/templates/gastos/list.html:168
+msgid "No hay gastos registrados para la campaña"
+msgstr ""
+
+#: app/templates/gastos/list.html:170
+msgid "No hay gastos registrados todavía."
+msgstr ""
+
+#: app/templates/gastos/list.html:174
+msgid "Registrar primer gasto"
+msgstr ""
+
+#: app/templates/graficas/index.html:20
+msgid "Análisis visual de producción e ingresos"
+msgstr ""
+
+#: app/templates/graficas/index.html:48
+msgid "Todos los bancales"
+msgstr ""
+
+#: app/templates/graficas/index.html:59
+msgid "Aplicar"
+msgstr ""
+
+#: app/templates/graficas/index.html:72
+msgid "Producción por Campaña y Bancal (kg/ha)"
+msgstr ""
+
+#: app/templates/graficas/index.html:111
+msgid "Total"
+msgstr ""
+
+#: app/templates/graficas/index.html:139
+msgid "Gráficas Semanales"
+msgstr ""
+
+#: app/templates/graficas/index.html:152
+msgid "Sin datos para el filtro seleccionado."
+msgstr ""
+
+#: app/templates/graficas/index.html:161
+msgid "Precio Medio €/kg por Semana"
+msgstr ""
+
+#: app/templates/graficas/index.html:173
+msgid "Kg Recogidos por Semana"
+msgstr ""
+
+#: app/templates/graficas/index.html:189
+msgid "Ingresos Acumulados por Semana (€)"
+msgstr ""
+
+#: app/templates/graficas/index.html:201
+msgid "Kg por Categoría por Semana"
+msgstr ""
+
+#: app/templates/graficas/index.html:220
+msgid "Ingresos vs Gastos por Bancal (€)"
+msgstr ""
+
+#: app/templates/graficas/index.html:313
+msgid "Ingresos acumulados (€)"
+msgstr ""
+
+#: app/templates/ingresos/form.html:3 app/templates/ingresos/form.html:11
+msgid "Editar Ingreso"
+msgstr ""
+
+#: app/templates/ingresos/form.html:3 app/templates/ingresos/form.html:11
+#: app/templates/ingresos/list.html:15
+msgid "Nuevo Ingreso"
+msgstr ""
+
+#: app/templates/ingresos/form.html:59 app/templates/ingresos/list.html:52
+msgid "Categoría"
+msgstr ""
+
+#: app/templates/ingresos/form.html:65
+msgid "Ej: Extra, Primera, Segunda"
+msgstr ""
+
+#: app/templates/ingresos/form.html:66
+msgid "Calidad o categoría de la trufa"
+msgstr ""
+
+#: app/templates/ingresos/form.html:72 app/templates/ingresos/list.html:51
+msgid "Cantidad (kg)"
+msgstr ""
+
+#: app/templates/ingresos/form.html:118
+msgid "Calculado automáticamente"
+msgstr ""
+
+#: app/templates/ingresos/form.html:122
+msgid "Calculado automáticamente: cantidad × €/kg"
+msgstr ""
+
+#: app/templates/ingresos/form.html:134
+#: app/templates/reportes/rentabilidad.html:64
+msgid "Registrar ingreso"
+msgstr ""
+
+#: app/templates/ingresos/list.html:12
+msgid "ingreso(s) registrado(s)"
+msgstr ""
+
+#: app/templates/ingresos/list.html:116
+msgid "No hay ingresos registrados para la campaña"
+msgstr ""
+
+#: app/templates/ingresos/list.html:118
+msgid "No hay ingresos registrados todavía."
+msgstr ""
+
+#: app/templates/ingresos/list.html:122
+msgid "Registrar primer ingreso"
+msgstr ""
+
+#: app/templates/parcelas/form.html:3 app/templates/parcelas/form.html:11
+msgid "Editar Parcela"
+msgstr ""
+
+#: app/templates/parcelas/form.html:3 app/templates/parcelas/form.html:11
+#: app/templates/parcelas/list.html:15
+msgid "Nueva Parcela"
+msgstr ""
+
+#: app/templates/parcelas/form.html:33 app/templates/parcelas/list.html:26
+msgid "Nombre"
+msgstr ""
+
+#: app/templates/parcelas/form.html:41
+msgid "Ej: Bancal Norte"
+msgstr ""
+
+#: app/templates/parcelas/form.html:46 app/templates/parcelas/list.html:30
+msgid "Sector"
+msgstr ""
+
+#: app/templates/parcelas/form.html:52
+msgid "Ej: A1"
+msgstr ""
+
+#: app/templates/parcelas/form.html:57 app/templates/parcelas/list.html:27
+msgid "Polígono"
+msgstr ""
+
+#: app/templates/parcelas/form.html:63
+msgid "Ej: 5"
+msgstr ""
+
+#: app/templates/parcelas/form.html:68 app/templates/parcelas/list.html:28
+msgid "Parcela"
+msgstr ""
+
+#: app/templates/parcelas/form.html:74
+msgid "Ej: 42"
+msgstr ""
+
+#: app/templates/parcelas/form.html:79 app/templates/parcelas/list.html:29
+msgid "Hidrante"
+msgstr ""
+
+#: app/templates/parcelas/form.html:85
+msgid "Ej: H-03"
+msgstr ""
+
+#: app/templates/parcelas/form.html:90 app/templates/parcelas/list.html:31
+msgid "N° Carrascas"
+msgstr ""
+
+#: app/templates/parcelas/form.html:102
+msgid "Superficie (Ha)"
+msgstr ""
+
+#: app/templates/parcelas/form.html:111
+msgid "Opcional"
+msgstr ""
+
+#: app/templates/parcelas/form.html:118
+msgid "Porcentaje (%)"
+msgstr ""
+
+#: app/templates/parcelas/form.html:135
+msgid "Fecha Plantación"
+msgstr ""
+
+#: app/templates/parcelas/form.html:147
+msgid "Inicio Producción"
+msgstr ""
+
+#: app/templates/parcelas/form.html:164
+msgid "Crear parcela"
+msgstr ""
+
+#: app/templates/parcelas/list.html:3 app/templates/parcelas/list.html:10
+msgid "Parcelas (Bancales)"
+msgstr ""
+
+#: app/templates/parcelas/list.html:12
+msgid "parcela(s) registrada(s)"
+msgstr ""
+
+#: app/templates/parcelas/list.html:32
+msgid "F. Plantación"
+msgstr ""
+
+#: app/templates/parcelas/list.html:33
+msgid "Sup. (Ha)"
+msgstr ""
+
+#: app/templates/parcelas/list.html:34
+msgid "Inicio Prod."
+msgstr ""
+
+#: app/templates/parcelas/list.html:78
+msgid "No hay parcelas registradas todavía."
+msgstr ""
+
+#: app/templates/parcelas/list.html:80
+msgid "Crear primera parcela"
+msgstr ""
+
+#: app/templates/reportes/rentabilidad.html:3
+#: app/templates/reportes/rentabilidad.html:47
+msgid "Informe de Rentabilidad"
+msgstr ""
+
+#: app/templates/reportes/rentabilidad.html:49
+msgid "Por campaña y bancal"
+msgstr ""
+
+#: app/templates/reportes/rentabilidad.html:53
+msgid "Imprimir"
+msgstr ""
+
+#: app/templates/reportes/rentabilidad.html:62
+msgid "No hay datos suficientes para generar el informe de rentabilidad."
+msgstr ""
+
+#: app/templates/reportes/rentabilidad.html:75
+msgid "Rentabilidad por Campaña y Bancal (€)"
+msgstr ""
+
+#: app/templates/reportes/rentabilidad.html:142
+msgid ""
+"Los valores muestran la rentabilidad neta (ingresos − gastos). Pase el "
+"ratón sobre cada celda para ver el desglose."
+msgstr ""
+
+#: app/templates/reportes/rentabilidad.html:153
+msgid "Resumen por Campaña"
+msgstr ""
+
+#: app/templates/reportes/rentabilidad.html:207
+msgid "Resumen por Bancal"
+msgstr ""
+
+#: app/templates/reportes/rentabilidad.html:259
+msgid "Leyenda:"
+msgstr ""
+
+#: app/templates/reportes/rentabilidad.html:260
+msgid "Rentabilidad positiva"
+msgstr ""
+
+#: app/templates/reportes/rentabilidad.html:261
+msgid "Rentabilidad negativa"
+msgstr ""
+
+#: app/templates/reportes/rentabilidad.html:262
+msgid "Sin datos"
+msgstr ""
+

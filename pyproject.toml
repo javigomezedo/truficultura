@@ -16,6 +16,7 @@ dependencies = [
     "aiofiles>=23.2.1",
     "greenlet>=3.3.2",
     "debugpy>=1.8.20",
+    "babel>=2.18.0",
 ]
 
 [build-system]

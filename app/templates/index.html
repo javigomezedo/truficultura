@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Panel de Control &mdash; Truficultura{% endblock %}
+{% block title %}{{ _("Panel de Control") }} &mdash; Truficultura{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -15,15 +15,15 @@
 {% block content %}
 <div class="container-xl">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0">Panel de Control</h1>
-        <a href="/parcelas/" class="btn btn-sm btn-outline-success">
-            <i class="bi bi-map-fill me-1"></i>{{ total_parcelas }} bancal(es)
+        <h1 class="h3 mb-0">{{ _("Panel de Control") }}</h1>
+        <a href="/plots/" class="btn btn-sm btn-outline-success">
+            <i class="bi bi-map-fill me-1"></i>{{ total_plots }} {{ _("bancal(es)") }}
         </a>
     </div>
 
     <!-- ===== SECCIÓN 1: Totales globales ===== -->
     <h6 class="text-uppercase text-muted fw-semibold mb-2 small">
-        <i class="bi bi-infinity me-1"></i>Totales históricos (todas las campañas)
+        <i class="bi bi-infinity me-1"></i>{{ _("Totales históricos (todas las campañas)") }}
     </h6>
     <div class="row g-3 mb-4">
         <div class="col-sm-4">
@@ -31,15 +31,15 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <p class="text-muted text-uppercase small mb-1">Total Gastos</p>
-                            <h2 class="mb-0 fw-bold text-danger">{{ "%.2f"|format(grand_gastos) }} &euro;</h2>
+                            <p class="text-muted text-uppercase small mb-1">{{ _("Total Gastos") }}</p>
+                            <h2 class="mb-0 fw-bold text-danger">{{ "%.2f"|format(grand_expenses) }} &euro;</h2>
                         </div>
                         <div class="bg-danger bg-opacity-10 rounded p-2">
                             <i class="bi bi-arrow-down-circle-fill text-danger fs-4"></i>
                         </div>
                     </div>
-                    <a href="/gastos/" class="stretched-link text-decoration-none">
-                        <small class="text-muted">Ver gastos &rarr;</small>
+                    <a href="/expenses/" class="stretched-link text-decoration-none">
+                        <small class="text-muted">{{ _("Ver gastos") }} &rarr;</small>
                     </a>
                 </div>
             </div>
@@ -49,15 +49,15 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <p class="text-muted text-uppercase small mb-1">Total Ingresos</p>
-                            <h2 class="mb-0 fw-bold text-primary">{{ "%.2f"|format(grand_ingresos) }} &euro;</h2>
+                            <p class="text-muted text-uppercase small mb-1">{{ _("Total Ingresos") }}</p>
+                            <h2 class="mb-0 fw-bold text-primary">{{ "%.2f"|format(grand_incomes) }} &euro;</h2>
                         </div>
                         <div class="bg-primary bg-opacity-10 rounded p-2">
                             <i class="bi bi-arrow-up-circle-fill text-primary fs-4"></i>
                         </div>
                     </div>
-                    <a href="/ingresos/" class="stretched-link text-decoration-none">
-                        <small class="text-muted">Ver ingresos &rarr;</small>
+                    <a href="/incomes/" class="stretched-link text-decoration-none">
+                        <small class="text-muted">{{ _("Ver ingresos") }} &rarr;</small>
                     </a>
                 </div>
             </div>
@@ -67,17 +67,17 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <p class="text-muted text-uppercase small mb-1">Rentabilidad Total</p>
-                            <h2 class="mb-0 fw-bold {% if grand_rentabilidad >= 0 %}text-success{% else %}text-danger{% endif %}">
-                                {{ "%.2f"|format(grand_rentabilidad) }} &euro;
+                            <p class="text-muted text-uppercase small mb-1">{{ _("Rentabilidad Total") }}</p>
+                            <h2 class="mb-0 fw-bold {% if grand_profitability >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ "%.2f"|format(grand_profitability) }} &euro;
                             </h2>
                         </div>
                         <div class="bg-warning bg-opacity-10 rounded p-2">
                             <i class="bi bi-bar-chart-fill text-warning fs-4"></i>
                         </div>
                     </div>
-                    <a href="/reportes/rentabilidad" class="stretched-link text-decoration-none">
-                        <small class="text-muted">Ver informe &rarr;</small>
+                    <a href="/reports/profitability" class="stretched-link text-decoration-none">
+                        <small class="text-muted">{{ _("Ver informe") }} &rarr;</small>
                     </a>
                 </div>
             </div>
@@ -86,7 +86,7 @@
 
     <!-- ===== SECCIÓN 2: Desglose por campaña ===== -->
     <h6 class="text-uppercase text-muted fw-semibold mb-2 small">
-        <i class="bi bi-calendar3 me-1"></i>Desglose por campaña
+        <i class="bi bi-calendar3 me-1"></i>{{ _("Desglose por campaña") }}
     </h6>
     <div class="card shadow-sm mb-4">
         <div class="card-body p-0">
@@ -95,43 +95,43 @@
                 <table class="table table-hover mb-0">
                     <thead class="table-dark">
                         <tr>
-                            <th>Campaña</th>
-                            <th class="text-end">Gastos (&euro;)</th>
-                            <th class="text-end">Ingresos (&euro;)</th>
-                            <th class="text-end">Rentabilidad (&euro;)</th>
+                            <th>{{ _("Campaña") }}</th>
+                            <th class="text-end">{{ _("Gastos (€)") }}</th>
+                            <th class="text-end">{{ _("Ingresos (€)") }}</th>
+                            <th class="text-end">{{ _("Rentabilidad (€)") }}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for row in campaign_rows %}
                         <tr>
                             <td class="fw-semibold">
-                                <a href="/gastos/?year={{ row.year }}" class="text-decoration-none">
+                                <a href="/expenses/?year={{ row.year }}" class="text-decoration-none">
                                     {{ row.year|campaign_label }}
                                 </a>
                             </td>
                             <td class="text-end text-danger">
-                                <a href="/gastos/?year={{ row.year }}" class="text-decoration-none text-danger">
-                                    {{ "%.2f"|format(row.gastos) }}
+                                <a href="/expenses/?year={{ row.year }}" class="text-decoration-none text-danger">
+                                    {{ "%.2f"|format(row.expenses) }}
                                 </a>
                             </td>
                             <td class="text-end text-primary">
-                                <a href="/ingresos/?year={{ row.year }}" class="text-decoration-none text-primary">
-                                    {{ "%.2f"|format(row.ingresos) }}
+                                <a href="/incomes/?year={{ row.year }}" class="text-decoration-none text-primary">
+                                    {{ "%.2f"|format(row.incomes) }}
                                 </a>
                             </td>
-                            <td class="text-end fw-bold {% if row.rentabilidad >= 0 %}text-positive{% else %}text-negative{% endif %}">
-                                {{ "%.2f"|format(row.rentabilidad) }}
+                            <td class="text-end fw-bold {% if row.profitability >= 0 %}text-positive{% else %}text-negative{% endif %}">
+                                {{ "%.2f"|format(row.profitability) }}
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                     <tfoot class="table-secondary fw-bold">
                         <tr>
-                            <td>TOTAL</td>
-                            <td class="text-end text-danger">{{ "%.2f"|format(grand_gastos) }}</td>
-                            <td class="text-end text-primary">{{ "%.2f"|format(grand_ingresos) }}</td>
-                            <td class="text-end {% if grand_rentabilidad >= 0 %}text-positive{% else %}text-negative{% endif %}">
-                                {{ "%.2f"|format(grand_rentabilidad) }}
+                            <td>{{ _("TOTAL") }}</td>
+                            <td class="text-end text-danger">{{ "%.2f"|format(grand_expenses) }}</td>
+                            <td class="text-end text-primary">{{ "%.2f"|format(grand_incomes) }}</td>
+                            <td class="text-end {% if grand_profitability >= 0 %}text-positive{% else %}text-negative{% endif %}">
+                                {{ "%.2f"|format(grand_profitability) }}
                             </td>
                         </tr>
                     </tfoot>
@@ -140,7 +140,7 @@
             {% else %}
             <div class="text-center py-4 text-muted">
                 <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                <p class="mb-0">Sin datos todavía. <a href="/gastos/nuevo">Registrar gasto</a> o <a href="/ingresos/nuevo">ingreso</a>.</p>
+                <p class="mb-0">{{ _("Sin datos todavía.") }} <a href="/expenses/new">{{ _("Registrar gasto") }}</a> {{ _("o") }} <a href="/incomes/new">{{ _("ingreso") }}</a>.</p>
             </div>
             {% endif %}
         </div>
@@ -148,35 +148,35 @@
 
     <!-- ===== SECCIÓN 3: Matriz campaña x bancal ===== -->
     <h6 class="text-uppercase text-muted fw-semibold mb-2 small">
-        <i class="bi bi-table me-1"></i>Rentabilidad por bancal y campaña (&euro;)
+        <i class="bi bi-table me-1"></i>{{ _("Rentabilidad por bancal y campaña (€)") }}
     </h6>
     <div class="card shadow-sm">
         <div class="card-body p-0">
-            {% if matrix and parcelas %}
+            {% if matrix and plots %}
             <div class="table-responsive">
                 <table class="table table-bordered report-table mb-0">
                     <thead class="table-dark">
                         <tr>
-                            <th class="sticky-col">Campaña</th>
-                            {% for p in parcelas %}
-                            <th class="text-center">{{ p.nombre }}</th>
+                            <th class="sticky-col">{{ _("Campaña") }}</th>
+                            {% for p in plots %}
+                            <th class="text-center">{{ p.name }}</th>
                             {% endfor %}
-                            <th class="text-center table-secondary">TOTAL</th>
+                            <th class="text-center table-secondary">{{ _("TOTAL") }}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for row in matrix %}
                         <tr>
                             <td class="fw-bold sticky-col table-light">{{ row.year|campaign_label }}</td>
-                            {% for p in parcelas %}
-                            {% set cell = row.parcelas[p.id] %}
-                            {% set r = cell.rentabilidad %}
+                            {% for p in plots %}
+                            {% set cell = row.plots[p.id] %}
+                            {% set r = cell.profitability %}
                             <td class="text-end
                                 {% if r > 0 %}cell-positive
                                 {% elif r < 0 %}cell-negative
                                 {% else %}cell-zero{% endif %}"
-                                title="Ingresos: {{ '%.2f'|format(cell.ingresos) }}€ | Gastos: {{ '%.2f'|format(cell.gastos) }}€">
-                                {% if r == 0 and cell.ingresos == 0 and cell.gastos == 0 %}
+                                title="{{ _('Ingresos') }}: {{ '%.2f'|format(cell.incomes) }}€ | {{ _('Gastos') }}: {{ '%.2f'|format(cell.expenses) }}€">
+                                {% if r == 0 and cell.incomes == 0 and cell.expenses == 0 %}
                                 <span class="text-muted">&mdash;</span>
                                 {% else %}
                                 {{ "%.2f"|format(r) }}
@@ -184,31 +184,31 @@
                             </td>
                             {% endfor %}
                             <td class="text-end fw-bold
-                                {% if row.total_rentabilidad > 0 %}cell-positive
-                                {% elif row.total_rentabilidad < 0 %}cell-negative
+                                {% if row.total_profitability > 0 %}cell-positive
+                                {% elif row.total_profitability < 0 %}cell-negative
                                 {% else %}cell-zero{% endif %} table-secondary">
-                                {{ "%.2f"|format(row.total_rentabilidad) }}
+                                {{ "%.2f"|format(row.total_profitability) }}
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                     <tfoot>
                         <tr class="table-dark fw-bold">
-                            <td class="sticky-col">TOTAL</td>
-                            {% for p in parcelas %}
-                            {% set pt = parcela_totals.get(p.id, {'rentabilidad': 0}) %}
+                            <td class="sticky-col">{{ _("TOTAL") }}</td>
+                            {% for p in plots %}
+                            {% set pt = plot_totals.get(p.id, {'profitability': 0}) %}
                             <td class="text-end
-                                {% if pt.rentabilidad > 0 %}cell-positive
-                                {% elif pt.rentabilidad < 0 %}cell-negative
+                                {% if pt.profitability > 0 %}cell-positive
+                                {% elif pt.profitability < 0 %}cell-negative
                                 {% else %}cell-zero{% endif %}">
-                                {{ "%.2f"|format(pt.rentabilidad) }}
+                                {{ "%.2f"|format(pt.profitability) }}
                             </td>
                             {% endfor %}
                             <td class="text-end
-                                {% if grand_rentabilidad > 0 %}cell-positive
-                                {% elif grand_rentabilidad < 0 %}cell-negative
+                                {% if grand_profitability > 0 %}cell-positive
+                                {% elif grand_profitability < 0 %}cell-negative
                                 {% else %}cell-zero{% endif %}">
-                                {{ "%.2f"|format(grand_rentabilidad) }}
+                                {{ "%.2f"|format(grand_profitability) }}
                             </td>
                         </tr>
                     </tfoot>
@@ -216,13 +216,13 @@
             </div>
             <p class="text-muted small px-3 py-2 mb-0">
                 <i class="bi bi-info-circle me-1"></i>
-                Pase el ratón sobre cada celda para ver el desglose de ingresos y gastos.
-                <a href="/reportes/rentabilidad" class="ms-2">Ver informe completo &rarr;</a>
+                {{ _("Pase el ratón sobre cada celda para ver el desglose de ingresos y gastos.") }}
+                <a href="/reports/profitability" class="ms-2">{{ _("Ver informe completo") }} &rarr;</a>
             </p>
             {% else %}
             <div class="text-center py-4 text-muted">
                 <i class="bi bi-bar-chart fs-1 d-block mb-2"></i>
-                <p class="mb-0">Sin datos para mostrar la matriz.</p>
+                <p class="mb-0">{{ _("Sin datos para mostrar la matriz.") }}</p>
             </div>
             {% endif %}
         </div>

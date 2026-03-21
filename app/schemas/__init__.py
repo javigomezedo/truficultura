@@ -1,9 +1,9 @@
-from app.schemas.parcela import ParcelaBase, ParcelaCreate, ParcelaUpdate, ParcelaResponse
-from app.schemas.gasto import GastoBase, GastoCreate, GastoUpdate, GastoResponse
-from app.schemas.ingreso import IngresoBase, IngresoCreate, IngresoUpdate, IngresoResponse
+from app.schemas.plot import PlotBase, PlotCreate, PlotUpdate, PlotResponse
+from app.schemas.expense import ExpenseBase, ExpenseCreate, ExpenseUpdate, ExpenseResponse
+from app.schemas.income import IncomeBase, IncomeCreate, IncomeUpdate, IncomeResponse
 
 __all__ = [
-    "ParcelaBase", "ParcelaCreate", "ParcelaUpdate", "ParcelaResponse",
-    "GastoBase", "GastoCreate", "GastoUpdate", "GastoResponse",
-    "IngresoBase", "IngresoCreate", "IngresoUpdate", "IngresoResponse",
+    "PlotBase", "PlotCreate", "PlotUpdate", "PlotResponse",
+    "ExpenseBase", "ExpenseCreate", "ExpenseUpdate", "ExpenseResponse",
+    "IncomeBase", "IncomeCreate", "IncomeUpdate", "IncomeResponse",
 ]

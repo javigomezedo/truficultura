@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{% if parcela %}Editar Parcela{% else %}Nueva Parcela{% endif %} &mdash; Truficultura{% endblock %}
+{% block title %}{% if plot %}{{ _("Editar Parcela") }}{% else %}{{ _("Nueva Parcela") }}{% endif %} &mdash; Truficultura{% endblock %}
 
 {% block content %}
 <div class="container-xl">
@@ -8,120 +8,120 @@
         <div>
             <h1 class="h3 mb-0">
                 <i class="bi bi-map-fill text-success me-2"></i>
-                {% if parcela %}Editar Parcela{% else %}Nueva Parcela{% endif %}
+                {% if plot %}{{ _("Editar Parcela") }}{% else %}{{ _("Nueva Parcela") }}{% endif %}
             </h1>
-            {% if parcela %}
-            <p class="text-muted mb-0">{{ parcela.nombre }}</p>
+            {% if plot %}
+            <p class="text-muted mb-0">{{ plot.name }}</p>
             {% endif %}
         </div>
-        <a href="/parcelas/" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-1"></i> Volver al listado
+        <a href="/plots/" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> {{ _("Volver al listado") }}
         </a>
     </div>
 
     <div class="card shadow-sm">
         <div class="card-body">
             <form action="{{ action }}" method="{{ method }}" novalidate>
-                {% if parcela %}
+                {% if plot %}
                 <input type="hidden" name="_method" value="POST">
                 {% endif %}
 
                 <div class="row g-3">
                     <!-- Nombre -->
                     <div class="col-md-6">
-                        <label for="nombre" class="form-label fw-semibold">
-                            Nombre <span class="text-danger">*</span>
+                        <label for="name" class="form-label fw-semibold">
+                            {{ _("Nombre") }} <span class="text-danger">*</span>
                         </label>
                         <input type="text"
                                class="form-control"
-                               id="nombre"
-                               name="nombre"
-                               value="{{ parcela.nombre if parcela else '' }}"
+                               id="name"
+                               name="name"
+                               value="{{ plot.name if plot else '' }}"
                                required
-                               placeholder="Ej: Bancal Norte">
+                               placeholder="{{ _('Ej: Bancal Norte') }}">
                     </div>
 
                     <!-- Sector -->
                     <div class="col-md-6">
-                        <label for="sector" class="form-label fw-semibold">Sector</label>
+                        <label for="sector" class="form-label fw-semibold">{{ _("Sector") }}</label>
                         <input type="text"
                                class="form-control"
                                id="sector"
                                name="sector"
-                               value="{{ parcela.sector if parcela else '' }}"
-                               placeholder="Ej: A1">
+                               value="{{ plot.sector if plot else '' }}"
+                               placeholder="{{ _('Ej: A1') }}">
                     </div>
 
                     <!-- Polígono -->
                     <div class="col-md-4">
-                        <label for="poligono" class="form-label fw-semibold">Polígono</label>
+                        <label for="polygon" class="form-label fw-semibold">{{ _("Polígono") }}</label>
                         <input type="text"
                                class="form-control"
-                               id="poligono"
-                               name="poligono"
-                               value="{{ parcela.poligono if parcela else '' }}"
-                               placeholder="Ej: 5">
+                               id="polygon"
+                               name="polygon"
+                               value="{{ plot.polygon if plot else '' }}"
+                               placeholder="{{ _('Ej: 5') }}">
                     </div>
 
                     <!-- Parcela (catastro) -->
                     <div class="col-md-4">
-                        <label for="parcela" class="form-label fw-semibold">Parcela</label>
+                        <label for="cadastral_ref" class="form-label fw-semibold">{{ _("Parcela") }}</label>
                         <input type="text"
                                class="form-control"
-                               id="parcela"
-                               name="parcela"
-                               value="{{ parcela.parcela if parcela else '' }}"
-                               placeholder="Ej: 42">
+                               id="cadastral_ref"
+                               name="cadastral_ref"
+                               value="{{ plot.cadastral_ref if plot else '' }}"
+                               placeholder="{{ _('Ej: 42') }}">
                     </div>
 
                     <!-- Hidrante -->
                     <div class="col-md-4">
-                        <label for="hidrante" class="form-label fw-semibold">Hidrante</label>
+                        <label for="hydrant" class="form-label fw-semibold">{{ _("Hidrante") }}</label>
                         <input type="text"
                                class="form-control"
-                               id="hidrante"
-                               name="hidrante"
-                               value="{{ parcela.hidrante if parcela else '' }}"
-                               placeholder="Ej: H-03">
+                               id="hydrant"
+                               name="hydrant"
+                               value="{{ plot.hydrant if plot else '' }}"
+                               placeholder="{{ _('Ej: H-03') }}">
                     </div>
 
                     <!-- N. Carrascas -->
                     <div class="col-md-4">
-                        <label for="n_carrascas" class="form-label fw-semibold">N&ordm; Carrascas</label>
+                        <label for="num_holm_oaks" class="form-label fw-semibold">{{ _("N° Carrascas") }}</label>
                         <input type="number"
                                class="form-control"
-                               id="n_carrascas"
-                               name="n_carrascas"
-                               value="{{ parcela.n_carrascas if parcela else 0 }}"
+                               id="num_holm_oaks"
+                               name="num_holm_oaks"
+                               value="{{ plot.num_holm_oaks if plot else 0 }}"
                                min="0"
                                step="1">
                     </div>
 
                     <!-- Superficie -->
                     <div class="col-md-4">
-                        <label for="superficie_ha" class="form-label fw-semibold">Superficie (Ha)</label>
+                        <label for="area_ha" class="form-label fw-semibold">{{ _("Superficie (Ha)") }}</label>
                         <div class="input-group">
                             <input type="number"
                                    class="form-control"
-                                   id="superficie_ha"
-                                   name="superficie_ha"
-                                   value="{{ parcela.superficie_ha if parcela and parcela.superficie_ha is not none else '' }}"
+                                   id="area_ha"
+                                   name="area_ha"
+                                   value="{{ plot.area_ha if plot and plot.area_ha is not none else '' }}"
                                    min="0"
                                    step="0.0001"
-                                   placeholder="Opcional">
+                                   placeholder="{{ _('Opcional') }}">
                             <span class="input-group-text">ha</span>
                         </div>
                     </div>
 
                     <!-- Porcentaje -->
                     <div class="col-md-4">
-                        <label for="porcentaje" class="form-label fw-semibold">Porcentaje (%)</label>
+                        <label for="percentage" class="form-label fw-semibold">{{ _("Porcentaje (%)") }}</label>
                         <div class="input-group">
                             <input type="number"
                                    class="form-control"
-                                   id="porcentaje"
-                                   name="porcentaje"
-                                   value="{{ parcela.porcentaje if parcela else 0.0 }}"
+                                   id="percentage"
+                                   name="percentage"
+                                   value="{{ plot.percentage if plot else 0.0 }}"
                                    min="0"
                                    max="100"
                                    step="0.01">
@@ -131,37 +131,37 @@
 
                     <!-- Fecha Plantación -->
                     <div class="col-md-6">
-                        <label for="fecha_plantacion" class="form-label fw-semibold">
-                            Fecha Plantación <span class="text-danger">*</span>
+                        <label for="planting_date" class="form-label fw-semibold">
+                            {{ _("Fecha Plantación") }} <span class="text-danger">*</span>
                         </label>
                         <input type="date"
                                class="form-control"
-                               id="fecha_plantacion"
-                               name="fecha_plantacion"
-                               value="{{ parcela.fecha_plantacion.isoformat() if parcela else '' }}"
+                               id="planting_date"
+                               name="planting_date"
+                               value="{{ plot.planting_date.isoformat() if plot else '' }}"
                                required>
                     </div>
 
                     <!-- Inicio Producción -->
                     <div class="col-md-6">
-                        <label for="inicio_produccion" class="form-label fw-semibold">Inicio Producción</label>
+                        <label for="production_start" class="form-label fw-semibold">{{ _("Inicio Producción") }}</label>
                         <input type="date"
                                class="form-control"
-                               id="inicio_produccion"
-                               name="inicio_produccion"
-                               value="{{ parcela.inicio_produccion.isoformat() if parcela and parcela.inicio_produccion else '' }}">
+                               id="production_start"
+                               name="production_start"
+                               value="{{ plot.production_start.isoformat() if plot and plot.production_start else '' }}">
                     </div>
                 </div>
 
                 <hr class="my-4">
 
                 <div class="d-flex gap-2 justify-content-end">
-                    <a href="/parcelas/" class="btn btn-outline-secondary">
-                        <i class="bi bi-x-circle me-1"></i> Cancelar
+                    <a href="/plots/" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle me-1"></i> {{ _("Cancelar") }}
                     </a>
                     <button type="submit" class="btn btn-success">
                         <i class="bi bi-check-circle me-1"></i>
-                        {% if parcela %}Guardar cambios{% else %}Crear parcela{% endif %}
+                        {% if plot %}{{ _("Guardar cambios") }}{% else %}{{ _("Crear parcela") }}{% endif %}
                     </button>
                 </div>
             </form>

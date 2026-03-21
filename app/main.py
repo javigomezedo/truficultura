@@ -6,8 +6,9 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import Base, engine, get_db
-from app.models import Parcela, Gasto, Ingreso  # noqa: F401 - ensure models are registered
-from app.routers import parcelas, gastos, ingresos, reportes, graficas
+from app.i18n import get_locale, load_translations
+from app.models import Plot, Expense, Income  # noqa: F401 - ensure models are registered
+from app.routers import plots, expenses, incomes, reports, charts
 from app.services.dashboard_service import build_dashboard_context
 from app.utils import campaign_label
 
@@ -30,20 +31,36 @@ app = FastAPI(
 
 templates = Jinja2Templates(directory="app/templates")
 templates.env.filters["campaign_label"] = campaign_label
+templates.env.add_extension("jinja2.ext.i18n")
+
+# Install default (Spanish) translations at startup
+_default_translations = load_translations("es")
+templates.env.install_gettext_translations(_default_translations, newstyle=True)
 
 # Share the templates instance (with filters) across all routers
-parcelas.templates = templates
-gastos.templates = templates
-ingresos.templates = templates
-reportes.templates = templates
-graficas.templates = templates
+plots.templates = templates
+expenses.templates = templates
+incomes.templates = templates
+reports.templates = templates
+charts.templates = templates
 
 # Include routers
-app.include_router(parcelas.router)
-app.include_router(gastos.router)
-app.include_router(ingresos.router)
-app.include_router(reportes.router)
-app.include_router(graficas.router)
+app.include_router(plots.router)
+app.include_router(expenses.router)
+app.include_router(incomes.router)
+app.include_router(reports.router)
+app.include_router(charts.router)
+
+
+@app.middleware("http")
+async def i18n_middleware(request: Request, call_next):
+    """Detect browser language and install appropriate translations."""
+    accept_language = request.headers.get("accept-language")
+    locale = get_locale(accept_language)
+    translations = load_translations(locale)
+    templates.env.install_gettext_translations(translations, newstyle=True)
+    response = await call_next(request)
+    return response
 
 
 @app.get("/", response_class=HTMLResponse)

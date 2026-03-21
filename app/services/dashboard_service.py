@@ -5,88 +5,88 @@ from collections import defaultdict
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Gasto, Ingreso, Parcela
-from app.utils import campaign_year, distribute_unassigned_gastos
+from app.models import Expense, Income, Plot
+from app.utils import campaign_year, distribute_unassigned_expenses
 
 
 async def build_dashboard_context(db: AsyncSession) -> dict:
-    parcelas_result = await db.execute(select(Parcela).order_by(Parcela.nombre))
-    all_parcelas = parcelas_result.scalars().all()
+    plots_result = await db.execute(select(Plot).order_by(Plot.name))
+    all_plots = plots_result.scalars().all()
 
-    gastos_result = await db.execute(select(Gasto))
-    all_gastos = gastos_result.scalars().all()
+    expenses_result = await db.execute(select(Expense))
+    all_expenses = expenses_result.scalars().all()
 
-    ingresos_result = await db.execute(select(Ingreso))
-    all_ingresos = ingresos_result.scalars().all()
+    incomes_result = await db.execute(select(Income))
+    all_incomes = incomes_result.scalars().all()
 
-    grand_gastos = sum(g.cantidad for g in all_gastos)
-    grand_ingresos = sum(i.total for i in all_ingresos)
-    grand_rentabilidad = grand_ingresos - grand_gastos
+    grand_expenses = sum(e.amount for e in all_expenses)
+    grand_incomes = sum(i.total for i in all_incomes)
+    grand_profitability = grand_incomes - grand_expenses
 
-    gastos_raw: dict = defaultdict(lambda: defaultdict(float))
-    for gasto in all_gastos:
-        gastos_raw[campaign_year(gasto.fecha)][gasto.parcela_id] += gasto.cantidad
+    expenses_raw: dict = defaultdict(lambda: defaultdict(float))
+    for expense in all_expenses:
+        expenses_raw[campaign_year(expense.date)][expense.plot_id] += expense.amount
 
-    gas_by_cy_p = distribute_unassigned_gastos(gastos_raw, all_parcelas)
+    expenses_by_cy_plot = distribute_unassigned_expenses(expenses_raw, all_plots)
 
-    by_campaign: dict = defaultdict(lambda: {"gastos": 0.0, "ingresos": 0.0})
-    for cy, by_parcela in gas_by_cy_p.items():
-        by_campaign[cy]["gastos"] += sum(by_parcela.values())
+    by_campaign: dict = defaultdict(lambda: {"expenses": 0.0, "incomes": 0.0})
+    for cy, by_plot in expenses_by_cy_plot.items():
+        by_campaign[cy]["expenses"] += sum(by_plot.values())
 
-    for ingreso in all_ingresos:
-        by_campaign[campaign_year(ingreso.fecha)]["ingresos"] += ingreso.total
+    for income in all_incomes:
+        by_campaign[campaign_year(income.date)]["incomes"] += income.total
 
     campaigns = sorted(by_campaign.keys(), reverse=True)
     campaign_rows = [
         {
             "year": cy,
-            "gastos": by_campaign[cy]["gastos"],
-            "ingresos": by_campaign[cy]["ingresos"],
-            "rentabilidad": by_campaign[cy]["ingresos"] - by_campaign[cy]["gastos"],
+            "expenses": by_campaign[cy]["expenses"],
+            "incomes": by_campaign[cy]["incomes"],
+            "profitability": by_campaign[cy]["incomes"] - by_campaign[cy]["expenses"],
         }
         for cy in campaigns
     ]
 
-    ing_by_cy_p: dict = defaultdict(lambda: defaultdict(float))
-    for ingreso in all_ingresos:
-        ing_by_cy_p[campaign_year(ingreso.fecha)][ingreso.parcela_id] += ingreso.total
+    incomes_by_cy_plot: dict = defaultdict(lambda: defaultdict(float))
+    for income in all_incomes:
+        incomes_by_cy_plot[campaign_year(income.date)][income.plot_id] += income.total
 
     matrix = []
-    parcela_totals: dict = defaultdict(
-        lambda: {"ingresos": 0.0, "gastos": 0.0, "rentabilidad": 0.0}
+    plot_totals: dict = defaultdict(
+        lambda: {"incomes": 0.0, "expenses": 0.0, "profitability": 0.0}
     )
     for cy in campaigns:
-        row = {"year": cy, "parcelas": {}}
-        for parcela in all_parcelas:
-            ing = ing_by_cy_p[cy][parcela.id]
-            gas = gas_by_cy_p[cy][parcela.id]
-            row["parcelas"][parcela.id] = {
-                "ingresos": ing,
-                "gastos": gas,
-                "rentabilidad": ing - gas,
+        row = {"year": cy, "plots": {}}
+        for plot in all_plots:
+            ing = incomes_by_cy_plot[cy][plot.id]
+            exp = expenses_by_cy_plot[cy][plot.id]
+            row["plots"][plot.id] = {
+                "incomes": ing,
+                "expenses": exp,
+                "profitability": ing - exp,
             }
-            parcela_totals[parcela.id]["ingresos"] += ing
-            parcela_totals[parcela.id]["gastos"] += gas
+            plot_totals[plot.id]["incomes"] += ing
+            plot_totals[plot.id]["expenses"] += exp
 
-        row["total_ingresos"] = by_campaign[cy]["ingresos"]
-        row["total_gastos"] = by_campaign[cy]["gastos"]
-        row["total_rentabilidad"] = (
-            by_campaign[cy]["ingresos"] - by_campaign[cy]["gastos"]
+        row["total_incomes"] = by_campaign[cy]["incomes"]
+        row["total_expenses"] = by_campaign[cy]["expenses"]
+        row["total_profitability"] = (
+            by_campaign[cy]["incomes"] - by_campaign[cy]["expenses"]
         )
         matrix.append(row)
 
-    for pid in parcela_totals:
-        parcela_totals[pid]["rentabilidad"] = (
-            parcela_totals[pid]["ingresos"] - parcela_totals[pid]["gastos"]
+    for pid in plot_totals:
+        plot_totals[pid]["profitability"] = (
+            plot_totals[pid]["incomes"] - plot_totals[pid]["expenses"]
         )
 
     return {
-        "total_parcelas": len(all_parcelas),
-        "grand_gastos": grand_gastos,
-        "grand_ingresos": grand_ingresos,
-        "grand_rentabilidad": grand_rentabilidad,
+        "total_plots": len(all_plots),
+        "grand_expenses": grand_expenses,
+        "grand_incomes": grand_incomes,
+        "grand_profitability": grand_profitability,
         "campaign_rows": campaign_rows,
-        "parcelas": all_parcelas,
+        "plots": all_plots,
         "matrix": matrix,
-        "parcela_totals": dict(parcela_totals),
+        "plot_totals": dict(plot_totals),
     }

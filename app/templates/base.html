@@ -82,37 +82,37 @@
                     <li class="nav-item">
                         <a class="nav-link {% if request.url.path == '/' %}active{% endif %}"
                            href="/">
-                            <i class="bi bi-house-fill"></i> Inicio
+                            <i class="bi bi-house-fill"></i> {{ _("Inicio") }}
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if '/parcelas' in request.url.path %}active{% endif %}"
-                           href="/parcelas/">
-                            <i class="bi bi-map-fill"></i> Parcelas
+                        <a class="nav-link {% if '/plots' in request.url.path %}active{% endif %}"
+                           href="/plots/">
+                            <i class="bi bi-map-fill"></i> {{ _("Parcelas") }}
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if '/gastos' in request.url.path %}active{% endif %}"
-                           href="/gastos/">
-                            <i class="bi bi-arrow-down-circle-fill text-danger"></i> Gastos
+                        <a class="nav-link {% if '/expenses' in request.url.path %}active{% endif %}"
+                           href="/expenses/">
+                            <i class="bi bi-arrow-down-circle-fill text-danger"></i> {{ _("Gastos") }}
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if '/ingresos' in request.url.path %}active{% endif %}"
-                           href="/ingresos/">
-                            <i class="bi bi-arrow-up-circle-fill text-success"></i> Ingresos
+                        <a class="nav-link {% if '/incomes' in request.url.path %}active{% endif %}"
+                           href="/incomes/">
+                            <i class="bi bi-arrow-up-circle-fill text-success"></i> {{ _("Ingresos") }}
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if '/reportes' in request.url.path %}active{% endif %}"
-                           href="/reportes/rentabilidad">
-                            <i class="bi bi-bar-chart-fill"></i> Rentabilidad
+                        <a class="nav-link {% if '/reports' in request.url.path %}active{% endif %}"
+                           href="/reports/profitability">
+                            <i class="bi bi-bar-chart-fill"></i> {{ _("Rentabilidad") }}
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if '/graficas' in request.url.path %}active{% endif %}"
-                           href="/graficas/">
-                            <i class="bi bi-graph-up me-1"></i> Gráficas
+                        <a class="nav-link {% if '/charts' in request.url.path %}active{% endif %}"
+                           href="/charts/">
+                            <i class="bi bi-graph-up me-1"></i> {{ _("Gráficas") }}
                         </a>
                     </li>
                 </ul>
@@ -124,7 +124,7 @@
     {% if msg %}
     <div class="alert alert-success alert-dismissible fade show alert-flash" role="alert" id="flashMsg">
         <i class="bi bi-check-circle-fill me-2"></i>{{ msg | replace('+', ' ') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ _('Cerrar') }}"></button>
     </div>
     {% endif %}
 
@@ -134,7 +134,7 @@
     </main>
 
     <footer class="container-fluid text-center">
-        <span>Truficultura &mdash; Gestión de explotación trufícola</span>
+        <span>Truficultura &mdash; {{ _("Gestión de explotación trufícola") }}</span>
     </footer>
 
     <!-- Modal de confirmación de borrado -->
@@ -143,17 +143,17 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="deleteModalLabel">
-                        <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Confirmar eliminación
+                        <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>{{ _("Confirmar eliminación") }}
                     </h5>
-                    <button type="button" class="btn-close" id="deleteModalClose" aria-label="Cerrar"></button>
+                    <button type="button" class="btn-close" id="deleteModalClose" aria-label="{{ _('Cerrar') }}"></button>
                 </div>
                 <div class="modal-body">
-                    ¿Está seguro de que desea eliminar este registro? Esta acción no se puede deshacer.
+                    {{ _("¿Está seguro de que desea eliminar este registro? Esta acción no se puede deshacer.") }}
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" id="deleteModalCancel">Cancelar</button>
+                    <button type="button" class="btn btn-secondary" id="deleteModalCancel">{{ _("Cancelar") }}</button>
                     <button type="button" class="btn btn-danger" id="deleteConfirmBtn">
-                        <i class="bi bi-trash-fill me-1"></i>Eliminar
+                        <i class="bi bi-trash-fill me-1"></i>{{ _("Eliminar") }}
                     </button>
                 </div>
             </div>

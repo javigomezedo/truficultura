@@ -1,5 +1,5 @@
-from app.models.parcela import Parcela
-from app.models.gasto import Gasto
-from app.models.ingreso import Ingreso
+from app.models.plot import Plot
+from app.models.expense import Expense
+from app.models.income import Income
 
-__all__ = ["Parcela", "Gasto", "Ingreso"]
+__all__ = ["Plot", "Expense", "Income"]

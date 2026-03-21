@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Gráficas — Truficultura{% endblock %}
+{% block title %}{{ _("Gráficas") }} — Truficultura{% endblock %}
 
 {% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -16,8 +16,8 @@
 <div class="d-flex align-items-center mb-4">
     <i class="bi bi-graph-up fs-3 text-primary me-3"></i>
     <div>
-        <h1 class="h3 mb-0">Gráficas</h1>
-        <p class="text-muted mb-0">Análisis visual de producción e ingresos</p>
+        <h1 class="h3 mb-0">{{ _("Gráficas") }}</h1>
+        <p class="text-muted mb-0">{{ _("Análisis visual de producción e ingresos") }}</p>
     </div>
 </div>
 
@@ -26,10 +26,10 @@
 {# ------------------------------------------------------------------ #}
 <div class="card shadow-sm mb-4">
     <div class="card-body py-3">
-        <form method="get" action="/graficas/" class="row g-3 align-items-end">
+        <form method="get" action="/charts/" class="row g-3 align-items-end">
             <div class="col-auto">
                 <label class="form-label mb-1 fw-semibold">
-                    <i class="bi bi-calendar3 me-1"></i>Campaña
+                    <i class="bi bi-calendar3 me-1"></i>{{ _("Campaña") }}
                 </label>
                 <select name="campaign" class="form-select form-select-sm" onchange="this.form.submit()">
                     {% for cy in all_campaigns %}
@@ -42,21 +42,21 @@
             </div>
             <div class="col-auto">
                 <label class="form-label mb-1 fw-semibold">
-                    <i class="bi bi-map me-1"></i>Bancal
+                    <i class="bi bi-map me-1"></i>{{ _("Bancal") }}
                 </label>
-                <select name="bancal_id" class="form-select form-select-sm">
-                    <option value="">Todos los bancales</option>
-                    {% for p in all_parcelas %}
+                <select name="plot_id" class="form-select form-select-sm">
+                    <option value="">{{ _("Todos los bancales") }}</option>
+                    {% for p in all_plots %}
                     <option value="{{ p.id }}"
-                        {% if p.id == selected_bancal %}selected{% endif %}>
-                        {{ p.nombre }}
+                        {% if p.id == selected_plot_id %}selected{% endif %}>
+                        {{ p.name }}
                     </option>
                     {% endfor %}
                 </select>
             </div>
             <div class="col-auto">
                 <button type="submit" class="btn btn-primary btn-sm">
-                    <i class="bi bi-funnel-fill me-1"></i>Aplicar
+                    <i class="bi bi-funnel-fill me-1"></i>{{ _("Aplicar") }}
                 </button>
             </div>
         </form>
@@ -69,7 +69,7 @@
 <div class="card shadow-sm mb-4">
     <div class="card-header bg-white">
         <h5 class="mb-0">
-            <i class="bi bi-table me-2 text-success"></i>Producción por Campaña y Bancal (kg/ha)
+            <i class="bi bi-table me-2 text-success"></i>{{ _("Producción por Campaña y Bancal (kg/ha)") }}
         </h5>
     </div>
     <div class="card-body p-0">
@@ -77,9 +77,9 @@
             <table class="table table-sm table-hover table-bordered mb-0">
                 <thead class="table-dark">
                     <tr>
-                        <th class="text-nowrap">Campaña</th>
-                        {% for p in all_parcelas %}
-                        <th class="text-center text-nowrap">{{ p.nombre }}</th>
+                        <th class="text-nowrap">{{ _("Campaña") }}</th>
+                        {% for p in all_plots %}
+                        <th class="text-center text-nowrap">{{ p.name }}</th>
                         {% endfor %}
                     </tr>
                 </thead>
@@ -87,8 +87,8 @@
                     {% for row in kg_ha_table %}
                     <tr>
                         <td class="fw-semibold text-nowrap">{{ row.year | campaign_label }}</td>
-                        {% for p in all_parcelas %}
-                        {% set cell = row.parcelas[p.id] %}
+                        {% for p in all_plots %}
+                        {% set cell = row.plots[p.id] %}
                         <td class="text-center">
                             {% if cell.kg > 0 %}
                                 {% if cell.kg_ha is not none %}
@@ -108,8 +108,8 @@
                 </tbody>
                 <tfoot class="table-secondary fw-semibold">
                     <tr>
-                        <td>Total</td>
-                        {% for p in all_parcelas %}
+                        <td>{{ _("Total") }}</td>
+                        {% for p in all_plots %}
                         {% set tot = kg_ha_totals[p.id] %}
                         <td class="text-center">
                             {% if tot.kg > 0 %}
@@ -136,12 +136,12 @@
 {# Section 2: Gráficas semanales                                       #}
 {# ------------------------------------------------------------------ #}
 <h5 class="mb-3">
-    <i class="bi bi-calendar-week me-2 text-primary"></i>Gráficas Semanales
+    <i class="bi bi-calendar-week me-2 text-primary"></i>{{ _("Gráficas Semanales") }}
     {% if selected_campaign %}
     <span class="badge bg-primary ms-2">{{ selected_campaign | campaign_label }}</span>
     {% endif %}
-    {% if selected_bancal %}
-    {% for p in all_parcelas %}{% if p.id == selected_bancal %}<span class="badge bg-secondary ms-1">{{ p.nombre }}</span>{% endif %}{% endfor %}
+    {% if selected_plot_id %}
+    {% for p in all_plots %}{% if p.id == selected_plot_id %}<span class="badge bg-secondary ms-1">{{ p.name }}</span>{% endif %}{% endfor %}
     {% endif %}
 </h5>
 
@@ -149,7 +149,7 @@
 {% if week_labels == '[]' %}
 <div class="alert alert-info d-flex align-items-center mb-4">
     <i class="bi bi-info-circle-fill me-2"></i>
-    Sin datos para el filtro seleccionado.
+    {{ _("Sin datos para el filtro seleccionado.") }}
 </div>
 {% else %}
 
@@ -158,7 +158,7 @@
     <div class="col-lg-6">
         <div class="card shadow-sm h-100">
             <div class="card-header bg-white">
-                <h6 class="mb-0"><i class="bi bi-currency-euro me-1 text-warning"></i>Precio Medio €/kg por Semana</h6>
+                <h6 class="mb-0"><i class="bi bi-currency-euro me-1 text-warning"></i>{{ _("Precio Medio €/kg por Semana") }}</h6>
             </div>
             <div class="card-body">
                 <div class="chart-container">
@@ -170,7 +170,7 @@
     <div class="col-lg-6">
         <div class="card shadow-sm h-100">
             <div class="card-header bg-white">
-                <h6 class="mb-0"><i class="bi bi-box-seam me-1 text-success"></i>Kg Recogidos por Semana</h6>
+                <h6 class="mb-0"><i class="bi bi-box-seam me-1 text-success"></i>{{ _("Kg Recogidos por Semana") }}</h6>
             </div>
             <div class="card-body">
                 <div class="chart-container">
@@ -186,7 +186,7 @@
     <div class="col-lg-6">
         <div class="card shadow-sm h-100">
             <div class="card-header bg-white">
-                <h6 class="mb-0"><i class="bi bi-graph-up-arrow me-1 text-primary"></i>Ingresos Acumulados por Semana (€)</h6>
+                <h6 class="mb-0"><i class="bi bi-graph-up-arrow me-1 text-primary"></i>{{ _("Ingresos Acumulados por Semana (€)") }}</h6>
             </div>
             <div class="card-body">
                 <div class="chart-container">
@@ -198,7 +198,7 @@
     <div class="col-lg-6">
         <div class="card shadow-sm h-100">
             <div class="card-header bg-white">
-                <h6 class="mb-0"><i class="bi bi-stack me-1 text-success"></i>Kg por Categoría por Semana</h6>
+                <h6 class="mb-0"><i class="bi bi-stack me-1 text-success"></i>{{ _("Kg por Categoría por Semana") }}</h6>
             </div>
             <div class="card-body">
                 <div class="chart-container">
@@ -217,11 +217,11 @@
         <div class="card shadow-sm">
             <div class="card-header bg-white">
                 <h6 class="mb-0">
-                    <i class="bi bi-bar-chart-grouped me-1 text-primary"></i>Ingresos vs Gastos por Bancal (€)
+                    <i class="bi bi-bar-chart-grouped me-1 text-primary"></i>{{ _("Ingresos vs Gastos por Bancal (€)") }}
                     {% if selected_campaign %}
                     <span class="badge bg-secondary ms-2 fw-normal">{{ selected_campaign | campaign_label }}</span>
                     {% else %}
-                    <span class="badge bg-secondary ms-2 fw-normal">Todas las campañas</span>
+                    <span class="badge bg-secondary ms-2 fw-normal">{{ _("Todas las campañas") }}</span>
                     {% endif %}
                 </h6>
             </div>
@@ -242,13 +242,13 @@
     'use strict';
 
     const weekLabels      = {{ week_labels | safe }};
-    const precioSemanal   = {{ precio_semanal | safe }};
-    const kgSemanal       = {{ kg_semanal | safe }};
-    const ingAcumulados   = {{ ingresos_acumulados | safe }};
+    const weeklyPrice     = {{ weekly_price | safe }};
+    const weeklyKg        = {{ weekly_kg | safe }};
+    const cumulativeIncome = {{ cumulative_income | safe }};
     const catDatasets     = {{ cat_datasets | safe }};
-    const parcelaLabels   = {{ parcela_labels | safe }};
-    const ingValues       = {{ ing_values | safe }};
-    const gasValues       = {{ gas_values | safe }};
+    const plotLabels      = {{ plot_labels | safe }};
+    const incomeValues    = {{ income_values | safe }};
+    const expenseValues   = {{ expense_values | safe }};
 
     const defaultOptions = {
         responsive: true,
@@ -267,7 +267,7 @@
             labels: weekLabels,
             datasets: [{
                 label: '€/kg',
-                data: precioSemanal,
+                data: weeklyPrice,
                 borderColor: '#fd7e14',
                 backgroundColor: 'rgba(253,126,20,0.15)',
                 pointBackgroundColor: '#fd7e14',
@@ -291,7 +291,7 @@
             labels: weekLabels,
             datasets: [{
                 label: 'Kg',
-                data: kgSemanal,
+                data: weeklyKg,
                 backgroundColor: '#198754',
             }]
         },
@@ -310,8 +310,8 @@
         data: {
             labels: weekLabels,
             datasets: [{
-                label: 'Ingresos acumulados (€)',
-                data: ingAcumulados,
+                label: '{{ _("Ingresos acumulados (€)") }}',
+                data: cumulativeIncome,
                 borderColor: '#0d6efd',
                 backgroundColor: 'rgba(13,110,253,0.15)',
                 pointBackgroundColor: '#0d6efd',
@@ -350,16 +350,16 @@
     new Chart(document.getElementById('chartIngGas'), {
         type: 'bar',
         data: {
-            labels: parcelaLabels,
+            labels: plotLabels,
             datasets: [
                 {
-                    label: 'Ingresos (€)',
-                    data: ingValues,
+                    label: '{{ _("Ingresos (€)") }}',
+                    data: incomeValues,
                     backgroundColor: '#0d6efd',
                 },
                 {
-                    label: 'Gastos (€)',
-                    data: gasValues,
+                    label: '{{ _("Gastos (€)") }}',
+                    data: expenseValues,
                     backgroundColor: '#dc3545',
                 }
             ]

@@ -2,30 +2,30 @@ import datetime
 from collections import defaultdict
 
 
-def campaign_year(fecha: datetime.date) -> int:
-    """Devuelve el año de campaña (Abril-Marzo). Ej: feb-2023 -> 2022, nov-2022 -> 2022."""
-    return fecha.year if fecha.month >= 4 else fecha.year - 1
+def campaign_year(date: datetime.date) -> int:
+    """Return the campaign year (April-March). E.g.: Feb-2023 -> 2022, Nov-2022 -> 2022."""
+    return date.year if date.month >= 4 else date.year - 1
 
 
 def campaign_label(year: int) -> str:
-    """Formatea el año de campaña. Ej: 2022 -> '2022/23'."""
+    """Format the campaign year. E.g.: 2022 -> '2022/23'."""
     return f"{year}/{str(year + 1)[-2:]}"
 
 
-def distribute_unassigned_gastos(
-    gastos_by_cy_p: dict,
-    parcelas: list,
+def distribute_unassigned_expenses(
+    expenses_by_cy_plot: dict,
+    plots: list,
 ) -> dict:
     """
-    Distribuye los gastos sin bancal (parcela_id=None) entre las parcelas
-    proporcionalmente a su campo 'porcentaje'.
+    Distribute expenses with no plot (plot_id=None) among plots
+    proportionally according to the 'percentage' field.
 
-    Devuelve un nuevo dict con la misma estructura pero sin la clave None.
+    Returns a new dict with the same structure but without the None key.
     """
     total_pct = 100.0
     result: dict = defaultdict(lambda: defaultdict(float))
 
-    for cy, by_p in gastos_by_cy_p.items():
+    for cy, by_p in expenses_by_cy_plot.items():
         unassigned = by_p.get(None, 0.0)
         for pid, amount in by_p.items():
             if pid is None:
@@ -33,8 +33,8 @@ def distribute_unassigned_gastos(
             result[cy][pid] += amount
         # Distribute unassigned proportionally
         if unassigned > 0:
-            for p in parcelas:
-                pct = p.porcentaje or 0.0
+            for p in plots:
+                pct = p.percentage or 0.0
                 result[cy][p.id] += unassigned * (pct / total_pct)
 
     return result
