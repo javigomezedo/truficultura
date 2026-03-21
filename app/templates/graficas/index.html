@@ -1,0 +1,372 @@
+{% extends "base.html" %}
+
+{% block title %}Gráficas — Truficultura{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+    .chart-container {
+        position: relative;
+        height: 300px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+    <i class="bi bi-graph-up fs-3 text-primary me-3"></i>
+    <div>
+        <h1 class="h3 mb-0">Gráficas</h1>
+        <p class="text-muted mb-0">Análisis visual de producción e ingresos</p>
+    </div>
+</div>
+
+{# ------------------------------------------------------------------ #}
+{# Filter bar                                                          #}
+{# ------------------------------------------------------------------ #}
+<div class="card shadow-sm mb-4">
+    <div class="card-body py-3">
+        <form method="get" action="/graficas/" class="row g-3 align-items-end">
+            <div class="col-auto">
+                <label class="form-label mb-1 fw-semibold">
+                    <i class="bi bi-calendar3 me-1"></i>Campaña
+                </label>
+                <select name="campaign" class="form-select form-select-sm" onchange="this.form.submit()">
+                    {% for cy in all_campaigns %}
+                    <option value="{{ cy }}"
+                        {% if cy == selected_campaign %}selected{% endif %}>
+                        {{ cy | campaign_label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label mb-1 fw-semibold">
+                    <i class="bi bi-map me-1"></i>Bancal
+                </label>
+                <select name="bancal_id" class="form-select form-select-sm">
+                    <option value="">Todos los bancales</option>
+                    {% for p in all_parcelas %}
+                    <option value="{{ p.id }}"
+                        {% if p.id == selected_bancal %}selected{% endif %}>
+                        {{ p.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-funnel-fill me-1"></i>Aplicar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{# ------------------------------------------------------------------ #}
+{# Section 1: Tabla kg/ha                                              #}
+{# ------------------------------------------------------------------ #}
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">
+            <i class="bi bi-table me-2 text-success"></i>Producción por Campaña y Bancal (kg/ha)
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover table-bordered mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th class="text-nowrap">Campaña</th>
+                        {% for p in all_parcelas %}
+                        <th class="text-center text-nowrap">{{ p.nombre }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in kg_ha_table %}
+                    <tr>
+                        <td class="fw-semibold text-nowrap">{{ row.year | campaign_label }}</td>
+                        {% for p in all_parcelas %}
+                        {% set cell = row.parcelas[p.id] %}
+                        <td class="text-center">
+                            {% if cell.kg > 0 %}
+                                {% if cell.kg_ha is not none %}
+                                <span class="fw-bold">{{ "%.1f"|format(cell.kg_ha) }}</span><br>
+                                <small class="text-muted">{{ "%.1f"|format(cell.kg) }} kg</small>
+                                {% else %}
+                                <small class="text-muted">{{ "%.1f"|format(cell.kg) }} kg</small><br>
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-secondary fw-semibold">
+                    <tr>
+                        <td>Total</td>
+                        {% for p in all_parcelas %}
+                        {% set tot = kg_ha_totals[p.id] %}
+                        <td class="text-center">
+                            {% if tot.kg > 0 %}
+                                {% if tot.kg_ha is not none %}
+                                <span class="fw-bold">{{ "%.1f"|format(tot.kg_ha) }}</span><br>
+                                <small>{{ "%.1f"|format(tot.kg) }} kg</small>
+                                {% else %}
+                                <small>{{ "%.1f"|format(tot.kg) }} kg</small><br>
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+{# ------------------------------------------------------------------ #}
+{# Section 2: Gráficas semanales                                       #}
+{# ------------------------------------------------------------------ #}
+<h5 class="mb-3">
+    <i class="bi bi-calendar-week me-2 text-primary"></i>Gráficas Semanales
+    {% if selected_campaign %}
+    <span class="badge bg-primary ms-2">{{ selected_campaign | campaign_label }}</span>
+    {% endif %}
+    {% if selected_bancal %}
+    {% for p in all_parcelas %}{% if p.id == selected_bancal %}<span class="badge bg-secondary ms-1">{{ p.nombre }}</span>{% endif %}{% endfor %}
+    {% endif %}
+</h5>
+
+{% set _wl = week_labels | safe %}
+{% if week_labels == '[]' %}
+<div class="alert alert-info d-flex align-items-center mb-4">
+    <i class="bi bi-info-circle-fill me-2"></i>
+    Sin datos para el filtro seleccionado.
+</div>
+{% else %}
+
+{# Row 1: Precio y Kg semanales #}
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-currency-euro me-1 text-warning"></i>Precio Medio €/kg por Semana</h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="chartPrecio"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-box-seam me-1 text-success"></i>Kg Recogidos por Semana</h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="chartKg"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Row 2: Acumulados y por categoría #}
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-graph-up-arrow me-1 text-primary"></i>Ingresos Acumulados por Semana (€)</h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="chartAcumulados"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-stack me-1 text-success"></i>Kg por Categoría por Semana</h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="chartCats"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endif %}
+
+{# Row 3: Ingresos vs Gastos por bancal (always shown) #}
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h6 class="mb-0">
+                    <i class="bi bi-bar-chart-grouped me-1 text-primary"></i>Ingresos vs Gastos por Bancal (€)
+                    {% if selected_campaign %}
+                    <span class="badge bg-secondary ms-2 fw-normal">{{ selected_campaign | campaign_label }}</span>
+                    {% else %}
+                    <span class="badge bg-secondary ms-2 fw-normal">Todas las campañas</span>
+                    {% endif %}
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="chartIngGas"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+    'use strict';
+
+    const weekLabels      = {{ week_labels | safe }};
+    const precioSemanal   = {{ precio_semanal | safe }};
+    const kgSemanal       = {{ kg_semanal | safe }};
+    const ingAcumulados   = {{ ingresos_acumulados | safe }};
+    const catDatasets     = {{ cat_datasets | safe }};
+    const parcelaLabels   = {{ parcela_labels | safe }};
+    const ingValues       = {{ ing_values | safe }};
+    const gasValues       = {{ gas_values | safe }};
+
+    const defaultOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: true }
+        }
+    };
+
+    {% if week_labels != '[]' %}
+
+    // Chart 1: Precio medio €/kg por semana (line)
+    new Chart(document.getElementById('chartPrecio'), {
+        type: 'line',
+        data: {
+            labels: weekLabels,
+            datasets: [{
+                label: '€/kg',
+                data: precioSemanal,
+                borderColor: '#fd7e14',
+                backgroundColor: 'rgba(253,126,20,0.15)',
+                pointBackgroundColor: '#fd7e14',
+                tension: 0.3,
+                fill: false,
+            }]
+        },
+        options: {
+            ...defaultOptions,
+            plugins: {
+                ...defaultOptions.plugins,
+                legend: { display: false }
+            }
+        }
+    });
+
+    // Chart 2: Kg recogidos por semana (bar)
+    new Chart(document.getElementById('chartKg'), {
+        type: 'bar',
+        data: {
+            labels: weekLabels,
+            datasets: [{
+                label: 'Kg',
+                data: kgSemanal,
+                backgroundColor: '#198754',
+            }]
+        },
+        options: {
+            ...defaultOptions,
+            plugins: {
+                ...defaultOptions.plugins,
+                legend: { display: false }
+            }
+        }
+    });
+
+    // Chart 3: Ingresos acumulados (line with fill)
+    new Chart(document.getElementById('chartAcumulados'), {
+        type: 'line',
+        data: {
+            labels: weekLabels,
+            datasets: [{
+                label: 'Ingresos acumulados (€)',
+                data: ingAcumulados,
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13,110,253,0.15)',
+                pointBackgroundColor: '#0d6efd',
+                tension: 0.3,
+                fill: true,
+            }]
+        },
+        options: {
+            ...defaultOptions,
+            plugins: {
+                ...defaultOptions.plugins,
+                legend: { display: false }
+            }
+        }
+    });
+
+    // Chart 4: Kg por categoría por semana (stacked bar)
+    new Chart(document.getElementById('chartCats'), {
+        type: 'bar',
+        data: {
+            labels: weekLabels,
+            datasets: catDatasets
+        },
+        options: {
+            ...defaultOptions,
+            scales: {
+                x: { stacked: true },
+                y: { stacked: true }
+            }
+        }
+    });
+
+    {% endif %}
+
+    // Chart 5: Ingresos vs Gastos por bancal (grouped bar) — always rendered
+    new Chart(document.getElementById('chartIngGas'), {
+        type: 'bar',
+        data: {
+            labels: parcelaLabels,
+            datasets: [
+                {
+                    label: 'Ingresos (€)',
+                    data: ingValues,
+                    backgroundColor: '#0d6efd',
+                },
+                {
+                    label: 'Gastos (€)',
+                    data: gasValues,
+                    backgroundColor: '#dc3545',
+                }
+            ]
+        },
+        options: defaultOptions
+    });
+
+})();
+</script>
+{% endblock %}

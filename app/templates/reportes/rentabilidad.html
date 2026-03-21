@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+
+{% block title %}Informe de Rentabilidad &mdash; Truficultura{% endblock %}
+
+{% block extra_head %}
+<style>
+    .report-table th, .report-table td {
+        font-size: 0.85rem;
+        white-space: nowrap;
+    }
+    .cell-positive {
+        background-color: #d1e7dd;
+        color: #0a3622;
+        font-weight: 600;
+    }
+    .cell-negative {
+        background-color: #f8d7da;
+        color: #58151c;
+        font-weight: 600;
+    }
+    .cell-zero {
+        color: #6c757d;
+    }
+    .sticky-col {
+        position: sticky;
+        left: 0;
+        background: inherit;
+        z-index: 1;
+    }
+    .table-responsive {
+        max-height: 600px;
+        overflow: auto;
+    }
+    .section-divider {
+        border-top: 3px solid #dee2e6;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="bi bi-bar-chart-fill text-warning me-2"></i>Informe de Rentabilidad
+            </h1>
+            <p class="text-muted mb-0">Por campaña y bancal</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-printer me-1"></i> Imprimir
+            </button>
+        </div>
+    </div>
+
+    {% if not all_years %}
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5 text-muted">
+            <i class="bi bi-bar-chart fs-1 d-block mb-3"></i>
+            <p class="mb-3">No hay datos suficientes para generar el informe de rentabilidad.</p>
+            <div class="d-flex gap-2 justify-content-center">
+                <a href="/ingresos/nuevo" class="btn btn-success btn-sm">Registrar ingreso</a>
+                <a href="/gastos/nuevo" class="btn btn-outline-secondary btn-sm">Registrar gasto</a>
+            </div>
+        </div>
+    </div>
+    {% else %}
+
+    <!-- ===== Main matrix: year x parcela ===== -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">
+                <i class="bi bi-table me-2"></i>Rentabilidad por Campaña y Bancal (&euro;)
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered report-table mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="sticky-col">Campaña</th>
+                            {% for p in parcelas %}
+                            <th class="text-center" title="{{ p.nombre }}">{{ p.nombre }}</th>
+                            {% endfor %}
+                            <th class="text-center table-secondary">TOTAL</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in matrix %}
+                        <tr>
+                            <td class="fw-bold sticky-col table-light">{{ row.year|campaign_label }}</td>
+                            {% for p in parcelas %}
+                            {% set cell = row.parcelas[p.id] %}
+                            {% set r = cell.rentabilidad %}
+                            <td class="text-end
+                                {% if r > 0 %}cell-positive
+                                {% elif r < 0 %}cell-negative
+                                {% else %}cell-zero{% endif %}"
+                                title="Ingresos: {{ '%.2f'|format(cell.ingresos) }}€ | Gastos: {{ '%.2f'|format(cell.gastos) }}€">
+                                {% if r == 0 and cell.ingresos == 0 and cell.gastos == 0 %}
+                                <span class="text-muted">&mdash;</span>
+                                {% else %}
+                                {{ "%.2f"|format(r) }}
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                            <td class="text-end fw-bold
+                                {% if row.total_rentabilidad > 0 %}cell-positive
+                                {% elif row.total_rentabilidad < 0 %}cell-negative
+                                {% else %}cell-zero{% endif %} table-secondary">
+                                {{ "%.2f"|format(row.total_rentabilidad) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-dark fw-bold">
+                            <td class="sticky-col">TOTAL</td>
+                            {% for p in parcelas %}
+                            {% set pt = parcela_totals.get(p.id, {'rentabilidad': 0}) %}
+                            <td class="text-end
+                                {% if pt.rentabilidad > 0 %}cell-positive
+                                {% elif pt.rentabilidad < 0 %}cell-negative
+                                {% else %}cell-zero{% endif %}">
+                                {{ "%.2f"|format(pt.rentabilidad) }}
+                            </td>
+                            {% endfor %}
+                            <td class="text-end
+                                {% if grand_total_rentabilidad > 0 %}cell-positive
+                                {% elif grand_total_rentabilidad < 0 %}cell-negative
+                                {% else %}cell-zero{% endif %}">
+                                {{ "%.2f"|format(grand_total_rentabilidad) }}
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <p class="text-muted small px-3 py-2 mb-0">
+                <i class="bi bi-info-circle me-1"></i>
+                Los valores muestran la rentabilidad neta (ingresos &minus; gastos). Pase el ratón sobre cada celda para ver el desglose.
+            </p>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- ===== Summary by year ===== -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-calendar3 me-2"></i>Resumen por Campaña
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover report-table mb-0">
+                            <thead class="table-secondary">
+                                <tr>
+                                    <th>Campaña</th>
+                                    <th class="text-end">Ingresos (&euro;)</th>
+                                    <th class="text-end">Gastos (&euro;)</th>
+                                    <th class="text-end">Rentabilidad (&euro;)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for year in all_years %}
+                                {% set yt = year_totals[year] %}
+                                <tr>
+                                    <td class="fw-semibold">{{ year|campaign_label }}</td>
+                                    <td class="text-end text-primary">{{ "%.2f"|format(yt.ingresos) }}</td>
+                                    <td class="text-end text-danger">{{ "%.2f"|format(yt.gastos) }}</td>
+                                    <td class="text-end fw-bold
+                                        {% if yt.rentabilidad > 0 %}text-positive
+                                        {% elif yt.rentabilidad < 0 %}text-negative
+                                        {% else %}text-muted{% endif %}">
+                                        {{ "%.2f"|format(yt.rentabilidad) }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-dark fw-bold">
+                                <tr>
+                                    <td>TOTAL</td>
+                                    <td class="text-end text-primary">{{ "%.2f"|format(grand_total_ingresos) }}</td>
+                                    <td class="text-end text-danger">{{ "%.2f"|format(grand_total_gastos) }}</td>
+                                    <td class="text-end
+                                        {% if grand_total_rentabilidad > 0 %}text-positive
+                                        {% elif grand_total_rentabilidad < 0 %}text-negative
+                                        {% else %}{% endif %}">
+                                        {{ "%.2f"|format(grand_total_rentabilidad) }}
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Summary by parcela ===== -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-map me-2"></i>Resumen por Bancal
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover report-table mb-0">
+                            <thead class="table-secondary">
+                                <tr>
+                                    <th>Bancal</th>
+                                    <th class="text-end">Ingresos (&euro;)</th>
+                                    <th class="text-end">Gastos (&euro;)</th>
+                                    <th class="text-end">Rentabilidad (&euro;)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for p in parcelas %}
+                                {% set pt = parcela_totals.get(p.id, {'ingresos': 0, 'gastos': 0, 'rentabilidad': 0}) %}
+                                <tr>
+                                    <td class="fw-semibold">{{ p.nombre }}</td>
+                                    <td class="text-end text-primary">{{ "%.2f"|format(pt.ingresos) }}</td>
+                                    <td class="text-end text-danger">{{ "%.2f"|format(pt.gastos) }}</td>
+                                    <td class="text-end fw-bold
+                                        {% if pt.rentabilidad > 0 %}text-positive
+                                        {% elif pt.rentabilidad < 0 %}text-negative
+                                        {% else %}text-muted{% endif %}">
+                                        {{ "%.2f"|format(pt.rentabilidad) }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-dark fw-bold">
+                                <tr>
+                                    <td>TOTAL</td>
+                                    <td class="text-end text-primary">{{ "%.2f"|format(grand_total_ingresos) }}</td>
+                                    <td class="text-end text-danger">{{ "%.2f"|format(grand_total_gastos) }}</td>
+                                    <td class="text-end
+                                        {% if grand_total_rentabilidad > 0 %}text-positive
+                                        {% elif grand_total_rentabilidad < 0 %}text-negative
+                                        {% else %}{% endif %}">
+                                        {{ "%.2f"|format(grand_total_rentabilidad) }}
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="mt-3 d-flex gap-3 align-items-center flex-wrap">
+        <small class="text-muted fw-semibold">Leyenda:</small>
+        <span class="badge px-3 py-2" style="background-color:#d1e7dd;color:#0a3622;">Rentabilidad positiva</span>
+        <span class="badge px-3 py-2" style="background-color:#f8d7da;color:#58151c;">Rentabilidad negativa</span>
+        <span class="badge bg-light text-muted border px-3 py-2">&mdash; Sin datos</span>
+    </div>
+
+    {% endif %}
+</div>
+{% endblock %}

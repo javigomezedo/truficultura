@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}{% if ingreso %}Editar Ingreso{% else %}Nuevo Ingreso{% endif %} &mdash; Truficultura{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="bi bi-arrow-up-circle-fill text-success me-2"></i>
+                {% if ingreso %}Editar Ingreso{% else %}Nuevo Ingreso{% endif %}
+            </h1>
+            {% if ingreso %}
+            <p class="text-muted mb-0">{{ ingreso.fecha.strftime('%d/%m/%Y') }}{% if ingreso.parcela %} &mdash; {{ ingreso.parcela.nombre }}{% endif %}</p>
+            {% endif %}
+        </div>
+        <a href="/ingresos/" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Volver al listado
+        </a>
+    </div>
+
+    <div class="card shadow-sm" style="max-width: 700px;">
+        <div class="card-body">
+            <form action="{{ action }}" method="{{ method }}" novalidate id="ingresoForm">
+                {% if ingreso %}
+                <input type="hidden" name="_method" value="POST">
+                {% endif %}
+
+                <div class="row g-3">
+                    <!-- Fecha -->
+                    <div class="col-md-6">
+                        <label for="fecha" class="form-label fw-semibold">
+                            Fecha <span class="text-danger">*</span>
+                        </label>
+                        <input type="date"
+                               class="form-control"
+                               id="fecha"
+                               name="fecha"
+                               value="{{ ingreso.fecha.isoformat() if ingreso else '' }}"
+                               required>
+                    </div>
+
+                    <!-- Bancal (parcela) -->
+                    <div class="col-md-6">
+                        <label for="parcela_id" class="form-label fw-semibold">Bancal</label>
+                        <select class="form-select" id="parcela_id" name="parcela_id">
+                            <option value="">-- Sin bancal asignado --</option>
+                            {% for p in parcelas %}
+                            <option value="{{ p.id }}"
+                                    {% if ingreso and ingreso.parcela_id == p.id %}selected{% endif %}>
+                                {{ p.nombre }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Categoría -->
+                    <div class="col-md-6">
+                        <label for="categoria" class="form-label fw-semibold">Categoría</label>
+                        <input type="text"
+                               class="form-control"
+                               id="categoria"
+                               name="categoria"
+                               value="{{ ingreso.categoria if ingreso else '' }}"
+                               placeholder="Ej: Extra, Primera, Segunda">
+                        <div class="form-text">Calidad o categoría de la trufa</div>
+                    </div>
+
+                    <!-- Cantidad kg -->
+                    <div class="col-md-6">
+                        <label for="cantidad_kg" class="form-label fw-semibold">
+                            Cantidad (kg) <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <input type="number"
+                                   class="form-control"
+                                   id="cantidad_kg"
+                                   name="cantidad_kg"
+                                   value="{{ ingreso.cantidad_kg if ingreso else '' }}"
+                                   min="0"
+                                   step="0.001"
+                                   required
+                                   placeholder="0.000">
+                            <span class="input-group-text">kg</span>
+                        </div>
+                    </div>
+
+                    <!-- Euros/kg -->
+                    <div class="col-md-6">
+                        <label for="euros_kg" class="form-label fw-semibold">
+                            &euro;/kg <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <input type="number"
+                                   class="form-control"
+                                   id="euros_kg"
+                                   name="euros_kg"
+                                   value="{{ ingreso.euros_kg if ingreso else '' }}"
+                                   min="0"
+                                   step="0.01"
+                                   required
+                                   placeholder="0.00">
+                            <span class="input-group-text">&euro;/kg</span>
+                        </div>
+                    </div>
+
+                    <!-- Total (calculado automáticamente) -->
+                    <div class="col-md-6">
+                        <label for="total_display" class="form-label fw-semibold">
+                            Total (&euro;)
+                            <span class="badge bg-info text-dark ms-1" style="font-size:0.65em;">auto</span>
+                        </label>
+                        <div class="input-group">
+                            <input type="text"
+                                   class="form-control bg-light fw-bold text-success"
+                                   id="total_display"
+                                   readonly
+                                   placeholder="Calculado automáticamente"
+                                   value="{{ '%.2f'|format(ingreso.total) if ingreso else '' }}">
+                            <span class="input-group-text">&euro;</span>
+                        </div>
+                        <div class="form-text">Calculado automáticamente: cantidad &times; &euro;/kg</div>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <div class="d-flex gap-2 justify-content-end">
+                    <a href="/ingresos/" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle me-1"></i> Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle me-1"></i>
+                        {% if ingreso %}Guardar cambios{% else %}Registrar ingreso{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Auto-calculate total when cantidad_kg or euros_kg changes
+    const cantidadInput = document.getElementById('cantidad_kg');
+    const eurosKgInput = document.getElementById('euros_kg');
+    const totalDisplay = document.getElementById('total_display');
+
+    function updateTotal() {
+        const cantidad = parseFloat(cantidadInput.value) || 0;
+        const euros = parseFloat(eurosKgInput.value) || 0;
+        const total = cantidad * euros;
+        totalDisplay.value = total.toFixed(2);
+    }
+
+    cantidadInput.addEventListener('input', updateTotal);
+    eurosKgInput.addEventListener('input', updateTotal);
+
+    // Calculate on load if editing
+    if (cantidadInput.value && eurosKgInput.value) {
+        updateTotal();
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Truficultura{% endblock %}</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+          crossorigin="anonymous">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.3rem;
+        }
+        .navbar-brand .truffle-icon {
+            margin-right: 0.3rem;
+        }
+        .card-stat {
+            border-left: 4px solid;
+            transition: transform 0.15s ease;
+        }
+        .card-stat:hover {
+            transform: translateY(-2px);
+        }
+        .card-stat-parcelas { border-left-color: #198754; }
+        .card-stat-gastos   { border-left-color: #dc3545; }
+        .card-stat-ingresos { border-left-color: #0d6efd; }
+        .card-stat-rentabilidad { border-left-color: #fd7e14; }
+
+        .table-hover tbody tr:hover {
+            background-color: rgba(0, 0, 0, 0.04);
+        }
+        .text-positive { color: #198754; font-weight: 600; }
+        .text-negative { color: #dc3545; font-weight: 600; }
+        .bg-positive-light { background-color: #d1e7dd !important; }
+        .bg-negative-light { background-color: #f8d7da !important; }
+
+        footer {
+            margin-top: 3rem;
+            padding: 1rem 0;
+            border-top: 1px solid #dee2e6;
+            color: #6c757d;
+            font-size: 0.875rem;
+        }
+        .alert-flash {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            z-index: 1055;
+            min-width: 300px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+    </style>
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <span class="truffle-icon">&#127811;</span>Truficultura
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarMain" aria-controls="navbarMain"
+                    aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarMain">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.url.path == '/' %}active{% endif %}"
+                           href="/">
+                            <i class="bi bi-house-fill"></i> Inicio
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if '/parcelas' in request.url.path %}active{% endif %}"
+                           href="/parcelas/">
+                            <i class="bi bi-map-fill"></i> Parcelas
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if '/gastos' in request.url.path %}active{% endif %}"
+                           href="/gastos/">
+                            <i class="bi bi-arrow-down-circle-fill text-danger"></i> Gastos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if '/ingresos' in request.url.path %}active{% endif %}"
+                           href="/ingresos/">
+                            <i class="bi bi-arrow-up-circle-fill text-success"></i> Ingresos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if '/reportes' in request.url.path %}active{% endif %}"
+                           href="/reportes/rentabilidad">
+                            <i class="bi bi-bar-chart-fill"></i> Rentabilidad
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if '/graficas' in request.url.path %}active{% endif %}"
+                           href="/graficas/">
+                            <i class="bi bi-graph-up me-1"></i> Gráficas
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash message -->
+    {% if msg %}
+    <div class="alert alert-success alert-dismissible fade show alert-flash" role="alert" id="flashMsg">
+        <i class="bi bi-check-circle-fill me-2"></i>{{ msg | replace('+', ' ') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+    </div>
+    {% endif %}
+
+    <!-- Main content -->
+    <main class="container-fluid py-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="container-fluid text-center">
+        <span>Truficultura &mdash; Gestión de explotación trufícola</span>
+    </footer>
+
+    <!-- Modal de confirmación de borrado -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">
+                        <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Confirmar eliminación
+                    </h5>
+                    <button type="button" class="btn-close" id="deleteModalClose" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    ¿Está seguro de que desea eliminar este registro? Esta acción no se puede deshacer.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="deleteModalCancel">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="deleteConfirmBtn">
+                        <i class="bi bi-trash-fill me-1"></i>Eliminar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc4s9bIOgUxi8T/jzmRMgqe4sOZiW1w0XITQ0u6HVaH"
+            crossorigin="anonymous"></script>
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.12"
+            integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2uH8K2Ja/OIkSGPnHnVfkRvHzr5XeXWRwT"
+            crossorigin="anonymous"></script>
+
+    <script>
+        // Auto-dismiss flash messages after 4 seconds
+        (function () {
+            const flash = document.getElementById('flashMsg');
+            if (flash) {
+                setTimeout(function () {
+                    const alert = bootstrap.Alert.getOrCreateInstance(flash);
+                    alert.close();
+                }, 4000);
+            }
+        })();
+
+        // Confirm delete actions via Bootstrap modal
+        let _deleteForm = null;
+        let _deleteModal = null;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            _deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+
+            document.getElementById('deleteModalClose').addEventListener('click', function () {
+                _deleteModal.hide();
+            });
+            document.getElementById('deleteModalCancel').addEventListener('click', function () {
+                _deleteModal.hide();
+            });
+            document.getElementById('deleteConfirmBtn').addEventListener('click', function () {
+                _deleteModal.hide();
+                if (_deleteForm) _deleteForm.submit();
+            });
+        });
+
+        function confirmDelete(form) {
+            _deleteForm = form;
+            _deleteModal.show();
+            return false;
+        }
+    </script>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

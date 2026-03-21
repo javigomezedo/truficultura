@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}{% if parcela %}Editar Parcela{% else %}Nueva Parcela{% endif %} &mdash; Truficultura{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="bi bi-map-fill text-success me-2"></i>
+                {% if parcela %}Editar Parcela{% else %}Nueva Parcela{% endif %}
+            </h1>
+            {% if parcela %}
+            <p class="text-muted mb-0">{{ parcela.nombre }}</p>
+            {% endif %}
+        </div>
+        <a href="/parcelas/" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Volver al listado
+        </a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form action="{{ action }}" method="{{ method }}" novalidate>
+                {% if parcela %}
+                <input type="hidden" name="_method" value="POST">
+                {% endif %}
+
+                <div class="row g-3">
+                    <!-- Nombre -->
+                    <div class="col-md-6">
+                        <label for="nombre" class="form-label fw-semibold">
+                            Nombre <span class="text-danger">*</span>
+                        </label>
+                        <input type="text"
+                               class="form-control"
+                               id="nombre"
+                               name="nombre"
+                               value="{{ parcela.nombre if parcela else '' }}"
+                               required
+                               placeholder="Ej: Bancal Norte">
+                    </div>
+
+                    <!-- Sector -->
+                    <div class="col-md-6">
+                        <label for="sector" class="form-label fw-semibold">Sector</label>
+                        <input type="text"
+                               class="form-control"
+                               id="sector"
+                               name="sector"
+                               value="{{ parcela.sector if parcela else '' }}"
+                               placeholder="Ej: A1">
+                    </div>
+
+                    <!-- Polígono -->
+                    <div class="col-md-4">
+                        <label for="poligono" class="form-label fw-semibold">Polígono</label>
+                        <input type="text"
+                               class="form-control"
+                               id="poligono"
+                               name="poligono"
+                               value="{{ parcela.poligono if parcela else '' }}"
+                               placeholder="Ej: 5">
+                    </div>
+
+                    <!-- Parcela (catastro) -->
+                    <div class="col-md-4">
+                        <label for="parcela" class="form-label fw-semibold">Parcela</label>
+                        <input type="text"
+                               class="form-control"
+                               id="parcela"
+                               name="parcela"
+                               value="{{ parcela.parcela if parcela else '' }}"
+                               placeholder="Ej: 42">
+                    </div>
+
+                    <!-- Hidrante -->
+                    <div class="col-md-4">
+                        <label for="hidrante" class="form-label fw-semibold">Hidrante</label>
+                        <input type="text"
+                               class="form-control"
+                               id="hidrante"
+                               name="hidrante"
+                               value="{{ parcela.hidrante if parcela else '' }}"
+                               placeholder="Ej: H-03">
+                    </div>
+
+                    <!-- N. Carrascas -->
+                    <div class="col-md-4">
+                        <label for="n_carrascas" class="form-label fw-semibold">N&ordm; Carrascas</label>
+                        <input type="number"
+                               class="form-control"
+                               id="n_carrascas"
+                               name="n_carrascas"
+                               value="{{ parcela.n_carrascas if parcela else 0 }}"
+                               min="0"
+                               step="1">
+                    </div>
+
+                    <!-- Superficie -->
+                    <div class="col-md-4">
+                        <label for="superficie_ha" class="form-label fw-semibold">Superficie (Ha)</label>
+                        <div class="input-group">
+                            <input type="number"
+                                   class="form-control"
+                                   id="superficie_ha"
+                                   name="superficie_ha"
+                                   value="{{ parcela.superficie_ha if parcela and parcela.superficie_ha is not none else '' }}"
+                                   min="0"
+                                   step="0.0001"
+                                   placeholder="Opcional">
+                            <span class="input-group-text">ha</span>
+                        </div>
+                    </div>
+
+                    <!-- Porcentaje -->
+                    <div class="col-md-4">
+                        <label for="porcentaje" class="form-label fw-semibold">Porcentaje (%)</label>
+                        <div class="input-group">
+                            <input type="number"
+                                   class="form-control"
+                                   id="porcentaje"
+                                   name="porcentaje"
+                                   value="{{ parcela.porcentaje if parcela else 0.0 }}"
+                                   min="0"
+                                   max="100"
+                                   step="0.01">
+                            <span class="input-group-text">%</span>
+                        </div>
+                    </div>
+
+                    <!-- Fecha Plantación -->
+                    <div class="col-md-6">
+                        <label for="fecha_plantacion" class="form-label fw-semibold">
+                            Fecha Plantación <span class="text-danger">*</span>
+                        </label>
+                        <input type="date"
+                               class="form-control"
+                               id="fecha_plantacion"
+                               name="fecha_plantacion"
+                               value="{{ parcela.fecha_plantacion.isoformat() if parcela else '' }}"
+                               required>
+                    </div>
+
+                    <!-- Inicio Producción -->
+                    <div class="col-md-6">
+                        <label for="inicio_produccion" class="form-label fw-semibold">Inicio Producción</label>
+                        <input type="date"
+                               class="form-control"
+                               id="inicio_produccion"
+                               name="inicio_produccion"
+                               value="{{ parcela.inicio_produccion.isoformat() if parcela and parcela.inicio_produccion else '' }}">
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <div class="d-flex gap-2 justify-content-end">
+                    <a href="/parcelas/" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle me-1"></i> Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle me-1"></i>
+                        {% if parcela %}Guardar cambios{% else %}Crear parcela{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

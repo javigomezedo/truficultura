@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}{% if gasto %}Editar Gasto{% else %}Nuevo Gasto{% endif %} &mdash; Truficultura{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="bi bi-arrow-down-circle-fill text-danger me-2"></i>
+                {% if gasto %}Editar Gasto{% else %}Nuevo Gasto{% endif %}
+            </h1>
+            {% if gasto %}
+            <p class="text-muted mb-0">{{ gasto.concepto }}</p>
+            {% endif %}
+        </div>
+        <a href="/gastos/" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Volver al listado
+        </a>
+    </div>
+
+    <div class="card shadow-sm" style="max-width: 700px;">
+        <div class="card-body">
+            <form action="{{ action }}" method="{{ method }}" novalidate>
+                {% if gasto %}
+                <input type="hidden" name="_method" value="POST">
+                {% endif %}
+
+                <div class="row g-3">
+                    <!-- Fecha -->
+                    <div class="col-md-6">
+                        <label for="fecha" class="form-label fw-semibold">
+                            Fecha <span class="text-danger">*</span>
+                        </label>
+                        <input type="date"
+                               class="form-control"
+                               id="fecha"
+                               name="fecha"
+                               value="{{ gasto.fecha.isoformat() if gasto else '' }}"
+                               required>
+                    </div>
+
+                    <!-- Bancal (parcela) -->
+                    <div class="col-md-6">
+                        <label for="parcela_id" class="form-label fw-semibold">Bancal</label>
+                        <select class="form-select" id="parcela_id" name="parcela_id">
+                            <option value="">-- Sin bancal asignado --</option>
+                            {% for p in parcelas %}
+                            <option value="{{ p.id }}"
+                                    {% if gasto and gasto.parcela_id == p.id %}selected{% endif %}>
+                                {{ p.nombre }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Concepto -->
+                    <div class="col-12">
+                        <label for="concepto" class="form-label fw-semibold">
+                            Concepto <span class="text-danger">*</span>
+                        </label>
+                        <input type="text"
+                               class="form-control"
+                               id="concepto"
+                               name="concepto"
+                               value="{{ gasto.concepto if gasto else '' }}"
+                               required
+                               placeholder="Descripción del gasto">
+                    </div>
+
+                    <!-- Persona -->
+                    <div class="col-md-6">
+                        <label for="persona" class="form-label fw-semibold">Persona</label>
+                        <input type="text"
+                               class="form-control"
+                               id="persona"
+                               name="persona"
+                               value="{{ gasto.persona if gasto else '' }}"
+                               placeholder="Nombre del responsable">
+                    </div>
+
+                    <!-- Cantidad -->
+                    <div class="col-md-6">
+                        <label for="cantidad" class="form-label fw-semibold">
+                            Cantidad (&euro;) <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <input type="number"
+                                   class="form-control"
+                                   id="cantidad"
+                                   name="cantidad"
+                                   value="{{ gasto.cantidad if gasto else '' }}"
+                                   min="0"
+                                   step="0.01"
+                                   required
+                                   placeholder="0.00">
+                            <span class="input-group-text">&euro;</span>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <div class="d-flex gap-2 justify-content-end">
+                    <a href="/gastos/" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle me-1"></i> Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-check-circle me-1"></i>
+                        {% if gasto %}Guardar cambios{% else %}Registrar gasto{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

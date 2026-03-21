@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Ingresos &mdash; Truficultura{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="bi bi-arrow-up-circle-fill text-success me-2"></i>Ingresos
+            </h1>
+            <p class="text-muted mb-0">{{ ingresos|length }} ingreso(s) registrado(s){% if selected_year %} en campaña {{ selected_year|campaign_label }}{% endif %}</p>
+        </div>
+        <a href="/ingresos/nuevo" class="btn btn-success">
+            <i class="bi bi-plus-circle me-1"></i> Nuevo Ingreso
+        </a>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-body py-2">
+            <form method="get" action="/ingresos/" class="d-flex gap-2 align-items-center flex-wrap">
+                <label for="yearFilter" class="form-label mb-0 fw-semibold text-nowrap">
+                    <i class="bi bi-funnel me-1"></i>Filtrar por campaña:
+                </label>
+                <select name="year" id="yearFilter" class="form-select form-select-sm w-auto"
+                        onchange="this.form.submit()">
+                    <option value="">Todas las campañas</option>
+                    {% for y in years %}
+                    <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y|campaign_label }}</option>
+                    {% endfor %}
+                </select>
+                {% if selected_year %}
+                <a href="/ingresos/" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-x me-1"></i>Limpiar filtro
+                </a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            {% if ingresos %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Bancal</th>
+                            <th class="text-end">Cantidad (kg)</th>
+                            <th>Categoría</th>
+                            <th class="text-end">&euro;/kg</th>
+                            <th class="text-end">Total (&euro;)</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in ingresos %}
+                        <tr>
+                            <td class="text-nowrap">{{ i.fecha.strftime('%d/%m/%Y') }}</td>
+                            <td>
+                                {% if i.parcela %}
+                                <span class="badge bg-success">{{ i.parcela.nombre }}</span>
+                                {% else %}
+                                <span class="text-muted small">&mdash;</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end fw-semibold">{{ "%.3f"|format(i.cantidad_kg) }} kg</td>
+                            <td>
+                                {% if i.categoria %}
+                                <span class="badge bg-secondary">{{ i.categoria }}</span>
+                                {% else %}
+                                <span class="text-muted small">&mdash;</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">{{ "%.2f"|format(i.euros_kg) }} &euro;</td>
+                            <td class="text-end fw-bold text-success">{{ "%.2f"|format(i.total) }} &euro;</td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="/ingresos/{{ i.id }}/editar"
+                                       class="btn btn-outline-primary" title="Editar">
+                                        <i class="bi bi-pencil-fill"></i>
+                                    </a>
+                                    <form action="/ingresos/{{ i.id }}/eliminar"
+                                          method="post"
+                                          class="d-inline"
+                                          onsubmit="return confirmDelete(this)">
+                                        <button type="submit"
+                                                class="btn btn-outline-danger"
+                                                title="Eliminar">
+                                            <i class="bi bi-trash-fill"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-success fw-bold">
+                        <tr>
+                            <td colspan="2" class="text-end">TOTAL{% if selected_year %} {{ selected_year|campaign_label }}{% endif %}:</td>
+                            <td class="text-end">{{ "%.3f"|format(total_kg) }} kg</td>
+                            <td colspan="2"></td>
+                            <td class="text-end fs-6 text-success">{{ "%.2f"|format(total_euros) }} &euro;</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                <p class="mb-3">
+                    {% if selected_year %}
+                    No hay ingresos registrados para la campaña {{ selected_year|campaign_label }}.
+                    {% else %}
+                    No hay ingresos registrados todavía.
+                    {% endif %}
+                </p>
+                <a href="/ingresos/nuevo" class="btn btn-success">
+                    <i class="bi bi-plus-circle me-1"></i> Registrar primer ingreso
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
