@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-22 10:02+0100\n"
+"POT-Creation-Date: 2026-03-22 15:16+0100\n"
 "PO-Revision-Date: 2026-03-21 17:51+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -71,12 +71,12 @@ msgid ""
 " deshacer."
 msgstr ""
 
-#: app/templates/base.html:160 app/templates/gastos/form.html:106
+#: app/templates/base.html:160 app/templates/gastos/form.html:120
 #: app/templates/ingresos/form.html:130 app/templates/parcelas/form.html:160
 msgid "Cancelar"
 msgstr ""
 
-#: app/templates/base.html:162 app/templates/gastos/list.html:145
+#: app/templates/base.html:162 app/templates/gastos/list.html:153
 #: app/templates/ingresos/list.html:91 app/templates/parcelas/list.html:64
 msgid "Eliminar"
 msgstr ""
@@ -145,7 +145,7 @@ msgstr ""
 msgid "Rentabilidad (€)"
 msgstr ""
 
-#: app/templates/gastos/list.html:63 app/templates/gastos/list.html:156
+#: app/templates/gastos/list.html:63 app/templates/gastos/list.html:164
 #: app/templates/index.html:130 app/templates/index.html:164
 #: app/templates/index.html:197 app/templates/ingresos/list.html:102
 #: app/templates/reportes/rentabilidad.html:87
@@ -159,7 +159,7 @@ msgstr ""
 msgid "Sin datos todavía."
 msgstr ""
 
-#: app/templates/gastos/form.html:110 app/templates/index.html:143
+#: app/templates/gastos/form.html:124 app/templates/index.html:143
 #: app/templates/reportes/rentabilidad.html:65
 msgid "Registrar gasto"
 msgstr ""
@@ -208,7 +208,7 @@ msgid "Fecha"
 msgstr ""
 
 #: app/templates/gastos/form.html:45 app/templates/gastos/list.html:30
-#: app/templates/gastos/list.html:114 app/templates/graficas/index.html:45
+#: app/templates/gastos/list.html:115 app/templates/graficas/index.html:45
 #: app/templates/ingresos/form.html:45 app/templates/ingresos/list.html:50
 #: app/templates/reportes/rentabilidad.html:215
 msgid "Bancal"
@@ -226,7 +226,7 @@ msgstr ""
 msgid "Descripción del gasto"
 msgstr ""
 
-#: app/templates/gastos/form.html:73 app/templates/gastos/list.html:113
+#: app/templates/gastos/form.html:73 app/templates/gastos/list.html:114
 msgid "Persona"
 msgstr ""
 
@@ -234,11 +234,20 @@ msgstr ""
 msgid "Nombre del responsable"
 msgstr ""
 
-#: app/templates/gastos/form.html:85 app/templates/gastos/list.html:115
+#: app/templates/gastos/form.html:84 app/templates/gastos/list.html:113
+#: app/templates/ingresos/form.html:59 app/templates/ingresos/list.html:52
+msgid "Categoría"
+msgstr ""
+
+#: app/templates/gastos/form.html:86
+msgid "-- Sin categoría --"
+msgstr ""
+
+#: app/templates/gastos/form.html:99 app/templates/gastos/list.html:116
 msgid "Cantidad (€)"
 msgstr ""
 
-#: app/templates/gastos/form.html:110 app/templates/ingresos/form.html:134
+#: app/templates/gastos/form.html:124 app/templates/ingresos/form.html:134
 #: app/templates/parcelas/form.html:164
 msgid "Guardar cambios"
 msgstr ""
@@ -291,25 +300,25 @@ msgstr ""
 msgid "Limpiar filtro"
 msgstr ""
 
-#: app/templates/gastos/list.html:116 app/templates/ingresos/list.html:55
+#: app/templates/gastos/list.html:117 app/templates/ingresos/list.html:55
 #: app/templates/parcelas/list.html:36
 msgid "Acciones"
 msgstr ""
 
-#: app/templates/gastos/list.html:136 app/templates/ingresos/list.html:82
+#: app/templates/gastos/list.html:144 app/templates/ingresos/list.html:82
 #: app/templates/parcelas/list.html:55
 msgid "Editar"
 msgstr ""
 
-#: app/templates/gastos/list.html:168
+#: app/templates/gastos/list.html:176
 msgid "No hay gastos registrados para la campaña"
 msgstr ""
 
-#: app/templates/gastos/list.html:170
+#: app/templates/gastos/list.html:178
 msgid "No hay gastos registrados todavía."
 msgstr ""
 
-#: app/templates/gastos/list.html:174
+#: app/templates/gastos/list.html:182
 msgid "Registrar primer gasto"
 msgstr ""
 
@@ -399,29 +408,29 @@ msgstr ""
 msgid "aviso(s)"
 msgstr ""
 
-#: app/templates/imports/index.html:64 app/templates/imports/index.html:133
+#: app/templates/imports/index.html:64 app/templates/imports/index.html:134
 msgid "Formato del archivo"
 msgstr ""
 
-#: app/templates/imports/index.html:68 app/templates/imports/index.html:137
+#: app/templates/imports/index.html:68 app/templates/imports/index.html:138
 msgid ""
 "Archivo CSV delimitado por <code>;</code>, sin cabecera, codificación "
 "UTF-8."
 msgstr ""
 
-#: app/templates/imports/index.html:73 app/templates/imports/index.html:142
+#: app/templates/imports/index.html:73 app/templates/imports/index.html:143
 msgid "Columna"
 msgstr ""
 
-#: app/templates/imports/index.html:74 app/templates/imports/index.html:143
+#: app/templates/imports/index.html:74 app/templates/imports/index.html:144
 msgid "Descripción"
 msgstr ""
 
-#: app/templates/imports/index.html:75 app/templates/imports/index.html:144
+#: app/templates/imports/index.html:75 app/templates/imports/index.html:145
 msgid "Ejemplo"
 msgstr ""
 
-#: app/templates/imports/index.html:79 app/templates/imports/index.html:148
+#: app/templates/imports/index.html:79 app/templates/imports/index.html:149
 msgid "Fecha (DD/MM/AAAA)"
 msgstr ""
 
@@ -429,7 +438,7 @@ msgstr ""
 msgid "Persona responsable"
 msgstr ""
 
-#: app/templates/imports/index.html:82 app/templates/imports/index.html:149
+#: app/templates/imports/index.html:82 app/templates/imports/index.html:150
 msgid "Nombre del bancal (opcional)"
 msgstr ""
 
@@ -437,59 +446,59 @@ msgstr ""
 msgid "Importe en €"
 msgstr ""
 
-#: app/templates/imports/index.html:88
+#: app/templates/imports/index.html:84 app/templates/imports/index.html:152
+msgid "Categoría (opcional)"
+msgstr ""
+
+#: app/templates/imports/index.html:89
 msgid ""
 "Si el bancal está vacío, el gasto se registra como gasto general (sin "
 "bancal asignado)."
 msgstr ""
 
-#: app/templates/imports/index.html:91 app/templates/imports/index.html:160
+#: app/templates/imports/index.html:92 app/templates/imports/index.html:161
 msgid "Ejemplo de línea:"
 msgstr ""
 
-#: app/templates/imports/index.html:100 app/templates/imports/index.html:169
+#: app/templates/imports/index.html:101 app/templates/imports/index.html:170
 msgid "Subir archivo"
 msgstr ""
 
-#: app/templates/imports/index.html:106
+#: app/templates/imports/index.html:107
 msgid "Archivo CSV de gastos"
 msgstr ""
 
-#: app/templates/imports/index.html:110 app/templates/imports/index.html:179
+#: app/templates/imports/index.html:111 app/templates/imports/index.html:180
 msgid "Solo archivos .csv codificados en UTF-8."
 msgstr ""
 
-#: app/templates/imports/index.html:114 app/templates/imports/index.html:183
+#: app/templates/imports/index.html:115 app/templates/imports/index.html:184
 msgid ""
 "Esta acción insertará todos los registros del archivo en la base de "
 "datos. Asegúrate de que el archivo no contiene duplicados."
 msgstr ""
 
-#: app/templates/imports/index.html:117
+#: app/templates/imports/index.html:118
 msgid "Importar gastos"
 msgstr ""
 
-#: app/templates/imports/index.html:150
+#: app/templates/imports/index.html:151
 msgid "Kilogramos recolectados"
 msgstr ""
 
-#: app/templates/imports/index.html:151
-msgid "Categoría (opcional)"
-msgstr ""
-
-#: app/templates/imports/index.html:152
+#: app/templates/imports/index.html:153
 msgid "Precio por kg en €"
 msgstr ""
 
-#: app/templates/imports/index.html:157
+#: app/templates/imports/index.html:158
 msgid "El total (€) se calcula automáticamente como kg × euros/kg."
 msgstr ""
 
-#: app/templates/imports/index.html:175
+#: app/templates/imports/index.html:176
 msgid "Archivo CSV de ingresos"
 msgstr ""
 
-#: app/templates/imports/index.html:186
+#: app/templates/imports/index.html:187
 msgid "Importar ingresos"
 msgstr ""
 
@@ -500,10 +509,6 @@ msgstr ""
 #: app/templates/ingresos/form.html:3 app/templates/ingresos/form.html:11
 #: app/templates/ingresos/list.html:15
 msgid "Nuevo Ingreso"
-msgstr ""
-
-#: app/templates/ingresos/form.html:59 app/templates/ingresos/list.html:52
-msgid "Categoría"
 msgstr ""
 
 #: app/templates/ingresos/form.html:65

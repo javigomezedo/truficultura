@@ -11,6 +11,16 @@ from app.database import Base
 if TYPE_CHECKING:
     from app.models.plot import Plot
 
+EXPENSE_CATEGORIES = [
+    "Pozos",
+    "Vallado",
+    "Instalación riego",
+    "Perros",
+    "Riego",
+    "Regadío Social",
+    "Otros",
+]
+
 
 class Expense(Base):
     __tablename__ = "expenses"
@@ -23,6 +33,7 @@ class Expense(Base):
         Integer, ForeignKey("plots.id", ondelete="SET NULL"), nullable=True, index=True
     )
     amount: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    category: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
     # Relationship
     plot: Mapped[Optional["Plot"]] = relationship(

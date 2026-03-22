@@ -110,6 +110,7 @@
                         <tr>
                             <th>{{ _("Fecha") }}</th>
                             <th>{{ _("Concepto") }}</th>
+                            <th>{{ _("Categoría") }}</th>
                             <th>{{ _("Persona") }}</th>
                             <th>{{ _("Bancal") }}</th>
                             <th class="text-end">{{ _("Cantidad (€)") }}</th>
@@ -121,6 +122,13 @@
                         <tr>
                             <td class="text-nowrap">{{ g.date.strftime('%d/%m/%Y') }}</td>
                             <td>{{ g.description }}</td>
+                            <td>
+                                {% if g.category %}
+                                <span class="badge bg-secondary">{{ g.category }}</span>
+                                {% else %}
+                                <span class="text-muted small">&mdash;</span>
+                                {% endif %}
+                            </td>
                             <td>{{ g.person if g.person else '&mdash;' }}</td>
                             <td>
                                 {% if g.plot %}
@@ -153,7 +161,7 @@
                     </tbody>
                     <tfoot class="table-warning fw-bold">
                         <tr>
-                            <td colspan="4" class="text-end">{{ _("TOTAL") }}{% if selected_year %} {{ selected_year|campaign_label }}{% endif %}:</td>
+                            <td colspan="5" class="text-end">{{ _("TOTAL") }}{% if selected_year %} {{ selected_year|campaign_label }}{% endif %}:</td>
                             <td class="text-end text-danger fs-6">{{ "%.2f"|format(total) }} &euro;</td>
                             <td></td>
                         </tr>

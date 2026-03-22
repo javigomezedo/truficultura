@@ -69,7 +69,7 @@
                     </div>
 
                     <!-- Persona -->
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label for="person" class="form-label fw-semibold">{{ _("Persona") }}</label>
                         <input type="text"
                                class="form-control"
@@ -79,8 +79,22 @@
                                placeholder="{{ _('Nombre del responsable') }}">
                     </div>
 
+                    <!-- Categoría -->
+                    <div class="col-md-4">
+                        <label for="category" class="form-label fw-semibold">{{ _("Categoría") }}</label>
+                        <select class="form-select" id="category" name="category">
+                            <option value="">{{ _("-- Sin categoría --") }}</option>
+                            {% for cat in categories %}
+                            <option value="{{ cat }}"
+                                    {% if expense and expense.category == cat %}selected{% endif %}>
+                                {{ cat }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
                     <!-- Cantidad -->
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label for="amount" class="form-label fw-semibold">
                             {{ _("Cantidad (€)") }} <span class="text-danger">*</span>
                         </label>

@@ -7,6 +7,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.models.expense import EXPENSE_CATEGORIES
 from app.services.expenses_service import (
     create_expense as create_expense_service,
     delete_expense as delete_expense_service,
@@ -51,6 +52,7 @@ async def new_expense_form(
             "request": request,
             "expense": None,
             "plots": plots,
+            "categories": EXPENSE_CATEGORIES,
             "action": "/expenses/",
             "method": "post",
         },
@@ -64,6 +66,7 @@ async def create_expense(
     person: str = Form(""),
     plot_id: Optional[int] = Form(None),
     amount: float = Form(0.0),
+    category: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
 ):
     await create_expense_service(
@@ -73,6 +76,7 @@ async def create_expense(
         person=person,
         plot_id=plot_id,
         amount=amount,
+        category=category,
     )
     return RedirectResponse(
         url="/expenses/?msg=Gasto+registrado+correctamente", status_code=303
@@ -87,7 +91,9 @@ async def edit_expense_form(
 ):
     expense = await get_expense(db, expense_id)
     if expense is None:
-        return RedirectResponse(url="/expenses/?msg=Gasto+no+encontrado", status_code=303)
+        return RedirectResponse(
+            url="/expenses/?msg=Gasto+no+encontrado", status_code=303
+        )
 
     plots = await list_plots(db)
 
@@ -97,6 +103,7 @@ async def edit_expense_form(
             "request": request,
             "expense": expense,
             "plots": plots,
+            "categories": EXPENSE_CATEGORIES,
             "action": f"/expenses/{expense_id}",
             "method": "post",
         },
@@ -111,11 +118,14 @@ async def update_expense(
     person: str = Form(""),
     plot_id: Optional[int] = Form(None),
     amount: float = Form(0.0),
+    category: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
 ):
     obj = await get_expense(db, expense_id)
     if obj is None:
-        return RedirectResponse(url="/expenses/?msg=Gasto+no+encontrado", status_code=303)
+        return RedirectResponse(
+            url="/expenses/?msg=Gasto+no+encontrado", status_code=303
+        )
 
     await update_expense_service(
         db,
@@ -125,6 +135,7 @@ async def update_expense(
         person=person,
         plot_id=plot_id,
         amount=amount,
+        category=category,
     )
     return RedirectResponse(
         url="/expenses/?msg=Gasto+actualizado+correctamente", status_code=303

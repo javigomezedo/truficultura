@@ -10,6 +10,7 @@ class ExpenseBase(BaseModel):
     person: str = ""
     plot_id: Optional[int] = None
     amount: float = 0.0
+    category: Optional[str] = None
 
 
 class ExpenseCreate(ExpenseBase):
@@ -22,6 +23,7 @@ class ExpenseUpdate(BaseModel):
     person: Optional[str] = None
     plot_id: Optional[int] = None
     amount: Optional[float] = None
+    category: Optional[str] = None
 
 
 class ExpenseResponse(ExpenseBase):

@@ -35,13 +35,14 @@ async def import_expenses_csv(
     """Parse expenses CSV and persist rows.
 
     Expected format (semicolon-delimited, no header):
-        fecha;concepto;persona;bancal;cantidad
+        fecha;concepto;persona;bancal;cantidad[;categoria]
 
     - fecha:    DD/MM/YYYY
     - concepto: description text
     - persona:  person name
     - bancal:   plot name (optional — leave empty for general expenses)
     - cantidad: amount in European format (e.g. 1.250,00)
+    - categoria: expense category (optional, e.g. Riego)
     """
     plots = await _load_plots(db)
     rows: list[Expense] = []
@@ -58,6 +59,7 @@ async def import_expenses_csv(
             continue
 
         fecha_s, concepto, persona, bancal, cantidad_s = line[:5]
+        categoria = line[5].strip() if len(line) > 5 else None
         bancal = bancal.strip()
         plot_id: Optional[int] = None
 
@@ -75,6 +77,7 @@ async def import_expenses_csv(
                 person=persona.strip(),
                 plot_id=plot_id,
                 amount=_parse_num(cantidad_s),
+                category=categoria or None,
             )
             rows.append(row)
         except (ValueError, KeyError) as exc:

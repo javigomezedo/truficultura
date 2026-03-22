@@ -6,7 +6,7 @@ from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.expense import Expense
+from app.models.expense import Expense, EXPENSE_CATEGORIES
 from app.models.plot import Plot
 from app.utils import campaign_year, distribute_unassigned_expenses
 
@@ -73,6 +73,7 @@ async def get_expenses_list_context(db: AsyncSession, year: Optional[int]) -> di
         "current_year": current_year,
         "breakdown": breakdown,
         "general_total": general_total,
+        "categories": EXPENSE_CATEGORIES,
     }
 
 
@@ -84,6 +85,7 @@ async def create_expense(
     person: str,
     plot_id: Optional[int],
     amount: float,
+    category: Optional[str] = None,
 ) -> Expense:
     new_expense = Expense(
         date=date,
@@ -91,6 +93,7 @@ async def create_expense(
         person=person,
         plot_id=plot_id if plot_id else None,
         amount=amount,
+        category=category or None,
     )
     db.add(new_expense)
     await db.flush()
@@ -106,12 +109,14 @@ async def update_expense(
     person: str,
     plot_id: Optional[int],
     amount: float,
+    category: Optional[str] = None,
 ) -> Expense:
     expense.date = date
     expense.description = description
     expense.person = person
     expense.plot_id = plot_id if plot_id else None
     expense.amount = amount
+    expense.category = category or None
     await db.flush()
     return expense
 
