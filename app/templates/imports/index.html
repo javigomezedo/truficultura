@@ -6,7 +6,7 @@
 <div class="row mb-3">
     <div class="col">
         <h2><i class="bi bi-upload me-2"></i>{{ _("Importar datos CSV") }}</h2>
-        <p class="text-muted">{{ _("Sube un archivo CSV para importar gastos o ingresos masivamente. Los archivos no se almacenan en el servidor.") }}</p>
+        <p class="text-muted">{{ _("Sube un archivo CSV para importar parcelas, gastos o ingresos masivamente. Los archivos no se almacenan en el servidor.") }}</p>
     </div>
 </div>
 
@@ -16,7 +16,7 @@
     <div class="d-flex align-items-center mb-1">
         <i class="bi {% if result.warnings %}bi-exclamation-triangle-fill{% else %}bi-check-circle-fill{% endif %} me-2 fs-5"></i>
         <strong>
-            {% if result.type == "expenses" %}{{ _("Importación de gastos completada") }}{% else %}{{ _("Importación de ingresos completada") }}{% endif %}
+            {% if result.type == "expenses" %}{{ _("Importación de gastos completada") }}{% elif result.type == "incomes" %}{{ _("Importación de ingresos completada") }}{% else %}{{ _("Importación de parcelas completada") }}{% endif %}
         </strong>
     </div>
     <div>
@@ -48,6 +48,13 @@
                 id="tab-incomes" data-bs-target="#panel-incomes"
                 type="button" role="tab">
             <i class="bi bi-arrow-up-circle-fill text-success me-1"></i>{{ _("Ingresos") }}
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link {% if active_tab == 'plots' %}active{% endif %}"
+                id="tab-plots" data-bs-target="#panel-plots"
+                type="button" role="tab">
+            <i class="bi bi-grid-fill text-primary me-1"></i>{{ _("Parcelas") }}
         </button>
     </li>
 </ul>
@@ -185,6 +192,80 @@
                             </div>
                             <button type="submit" class="btn btn-success mt-auto">
                                 <i class="bi bi-upload me-1"></i>{{ _("Importar ingresos") }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── PARCELAS ── -->
+    <div class="tab-pane fade {% if active_tab == 'plots' %}show active{% endif %}"
+         id="panel-plots" role="tabpanel">
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header fw-semibold">
+                        <i class="bi bi-filetype-csv me-1"></i>{{ _("Formato del archivo") }}
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-2">
+                            {{ _("Archivo CSV delimitado por <code>;</code>, sin cabecera, codificación UTF-8.") }}
+                        </p>
+                        <table class="table table-sm table-bordered small">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>{{ _("Columna") }}</th>
+                                    <th>{{ _("Descripción") }}</th>
+                                    <th>{{ _("Ejemplo") }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><code>nombre</code></td><td>{{ _("Nombre de la parcela") }} <span class="text-danger">*</span></td><td><code>Bancal Sur</code></td></tr>
+                                <tr><td><code>fecha_plantacion</code></td><td>{{ _("Fecha plantación (DD/MM/AAAA)") }} <span class="text-danger">*</span></td><td><code>15/03/2018</code></td></tr>
+                                <tr><td><code>poligono</code></td><td>{{ _("Polígono (opcional)") }}</td><td><code>12</code></td></tr>
+                                <tr><td><code>ref_catastral</code></td><td>{{ _("Ref. catastral (opcional)") }}</td><td><code>45A</code></td></tr>
+                                <tr><td><code>hidrante</code></td><td>{{ _("Hidrante (opcional)") }}</td><td><code>H-3</code></td></tr>
+                                <tr><td><code>sector</code></td><td>{{ _("Sector (opcional)") }}</td><td><code>S2</code></td></tr>
+                                <tr><td><code>n_carrascas</code></td><td>{{ _("Nº carrascas (opcional)") }}</td><td><code>120</code></td></tr>
+                                <tr><td><code>superficie_ha</code></td><td>{{ _("Superficie en ha (opcional)") }}</td><td><code>1,25</code></td></tr>
+                                <tr><td><code>inicio_produccion</code></td><td>{{ _("Inicio producción DD/MM/AAAA (opcional)") }}</td><td><code>01/11/2023</code></td></tr>
+                                <tr><td><code>porcentaje</code></td><td>{{ _("% reparto costes (opcional)") }}</td><td><code>35,0</code></td></tr>
+                            </tbody>
+                        </table>
+                        <p class="text-muted small mb-0">
+                            <i class="bi bi-info-circle me-1"></i>
+                            {{ _("Solo son obligatorios nombre y fecha de plantación. El resto de columnas pueden omitirse o dejarse vacías.") }}
+                        </p>
+                        <div class="mt-3 bg-light rounded p-2">
+                            <small class="text-muted d-block mb-1 fw-semibold">{{ _("Ejemplo de línea:") }}</small>
+                            <code class="small">Bancal Sur;15/03/2018;12;45A;H-3;S2;120;1,25;01/11/2023;35,0</code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header fw-semibold">
+                        <i class="bi bi-cloud-upload me-1"></i>{{ _("Subir archivo") }}
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <form method="post" action="/import/plots" enctype="multipart/form-data" class="d-flex flex-column flex-grow-1">
+                            <div class="mb-3 flex-grow-1">
+                                <label for="plots-file" class="form-label fw-semibold">
+                                    {{ _("Archivo CSV de parcelas") }}
+                                </label>
+                                <input type="file" class="form-control" id="plots-file"
+                                       name="file" accept=".csv,text/csv" required>
+                                <div class="form-text">{{ _("Solo archivos .csv codificados en UTF-8.") }}</div>
+                            </div>
+                            <div class="alert alert-warning small py-2 mb-3">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                {{ _("Esta acción insertará todos los registros del archivo en la base de datos. Asegúrate de que el archivo no contiene duplicados.") }}
+                            </div>
+                            <button type="submit" class="btn btn-primary mt-auto">
+                                <i class="bi bi-upload me-1"></i>{{ _("Importar parcelas") }}
                             </button>
                         </form>
                     </div>

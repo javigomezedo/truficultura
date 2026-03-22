@@ -21,7 +21,12 @@ async def get_expense(db: AsyncSession, expense_id: int) -> Optional[Expense]:
     return result.scalar_one_or_none()
 
 
-async def get_expenses_list_context(db: AsyncSession, year: Optional[int]) -> dict:
+async def get_expenses_list_context(
+    db: AsyncSession,
+    year: Optional[int],
+    category: Optional[str] = None,
+    person: Optional[str] = None,
+) -> dict:
     result = await db.execute(select(Expense).order_by(Expense.date.desc()))
     all_expenses = result.scalars().all()
 
@@ -29,11 +34,17 @@ async def get_expenses_list_context(db: AsyncSession, year: Optional[int]) -> di
     all_plots = plots_result.scalars().all()
 
     years = sorted(set(campaign_year(e.date) for e in all_expenses), reverse=True)
+    people = sorted({e.person for e in all_expenses if e.person})
+
     expenses = (
         [e for e in all_expenses if campaign_year(e.date) == year]
         if year
-        else all_expenses
+        else list(all_expenses)
     )
+    if category:
+        expenses = [e for e in expenses if e.category == category]
+    if person:
+        expenses = [e for e in expenses if e.person == person]
 
     total = sum(e.amount for e in expenses)
     current_year = year or (
@@ -69,7 +80,10 @@ async def get_expenses_list_context(db: AsyncSession, year: Optional[int]) -> di
         "plots": all_plots,
         "total": total,
         "years": years,
+        "people": people,
         "selected_year": year,
+        "selected_category": category,
+        "selected_person": person,
         "current_year": current_year,
         "breakdown": breakdown,
         "general_total": general_total,

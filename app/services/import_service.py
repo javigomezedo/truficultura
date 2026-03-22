@@ -13,6 +13,20 @@ from app.models.income import Income
 from app.models.plot import Plot
 
 
+def _parse_date_opt(s: str) -> Optional[datetime.date]:
+    s = s.strip()
+    if not s:
+        return None
+    return _parse_date(s)
+
+
+def _parse_int(s: str) -> int:
+    s = s.strip()
+    if not s:
+        return 0
+    return int(s.replace(".", "").replace(",", "."))
+
+
 def _parse_date(s: str) -> datetime.date:
     return datetime.datetime.strptime(s.strip(), "%d/%m/%Y").date()
 
@@ -134,6 +148,62 @@ async def import_incomes_csv(
                 category=categoria.strip() or None,
                 euros_per_kg=euros_per_kg,
                 total=round(kg * euros_per_kg, 2),
+            )
+            rows.append(row)
+        except (ValueError, KeyError) as exc:
+            warnings.append(f"Línea {i}: error al parsear — {exc} — omitida")
+
+    db.add_all(rows)
+    return rows, warnings
+
+
+async def import_plots_csv(
+    db: AsyncSession, content: bytes
+) -> tuple[list[Plot], list[str]]:
+    """Parse plots CSV and persist rows.
+
+    Expected format (semicolon-delimited, no header, min 2 columns):
+        nombre;fecha_plantacion[;poligono;ref_catastral;hidrante;sector;n_carrascas;superficie_ha;inicio_produccion;porcentaje]
+
+    - nombre:            plot name (required)
+    - fecha_plantacion:  planting date DD/MM/YYYY (required)
+    - poligono:          polygon reference (optional)
+    - ref_catastral:     cadastral reference (optional)
+    - hidrante:          hydrant identifier (optional)
+    - sector:            sector (optional)
+    - n_carrascas:       number of holm oaks (optional, integer)
+    - superficie_ha:     area in hectares (optional, decimal)
+    - inicio_produccion: production start date DD/MM/YYYY (optional)
+    - porcentaje:        cost-share percentage (optional, decimal)
+    """
+    rows: list[Plot] = []
+    warnings: list[str] = []
+
+    reader = csv.reader(io.StringIO(content.decode("utf-8")), delimiter=";")
+    for i, line in enumerate(reader, 1):
+        if not any(line):
+            continue
+        if len(line) < 2:
+            warnings.append(
+                f"Línea {i}: se esperaban al menos 2 columnas, se encontraron {len(line)} — omitida"
+            )
+            continue
+
+        def col(n: int) -> str:
+            return line[n].strip() if len(line) > n else ""
+
+        try:
+            row = Plot(
+                name=col(0),
+                planting_date=_parse_date(col(1)),
+                polygon=col(2),
+                cadastral_ref=col(3),
+                hydrant=col(4),
+                sector=col(5),
+                num_holm_oaks=_parse_int(col(6)),
+                area_ha=_parse_num(col(7)) or None,
+                production_start=_parse_date_opt(col(8)),
+                percentage=_parse_num(col(9)),
             )
             rows.append(row)
         except (ValueError, KeyError) as exc:

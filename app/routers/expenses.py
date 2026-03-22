@@ -26,9 +26,11 @@ async def list_expenses(
     request: Request,
     db: AsyncSession = Depends(get_db),
     year: Optional[int] = None,
+    category: Optional[str] = None,
+    person: Optional[str] = None,
     msg: Optional[str] = None,
 ):
-    context = await get_expenses_list_context(db, year)
+    context = await get_expenses_list_context(db, year, category=category, person=person)
 
     return templates.TemplateResponse(
         "gastos/list.html",

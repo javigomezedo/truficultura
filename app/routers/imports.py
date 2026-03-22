@@ -6,7 +6,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.services.import_service import import_expenses_csv, import_incomes_csv
+from app.services.import_service import import_expenses_csv, import_incomes_csv, import_plots_csv
 
 router = APIRouter(prefix="/import", tags=["import"])
 templates = Jinja2Templates(directory="app/templates")
@@ -66,5 +66,30 @@ async def upload_incomes(
                 "warnings": warnings,
             },
             "active_tab": "incomes",
+        },
+    )
+
+
+@router.post("/plots", response_class=HTMLResponse)
+async def upload_plots(
+    request: Request,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
+    content = await file.read()
+    rows, warnings = await import_plots_csv(db, content)
+    await db.commit()
+
+    return templates.TemplateResponse(
+        "imports/index.html",
+        {
+            "request": request,
+            "result": {
+                "type": "plots",
+                "filename": file.filename,
+                "imported": len(rows),
+                "warnings": warnings,
+            },
+            "active_tab": "plots",
         },
     )

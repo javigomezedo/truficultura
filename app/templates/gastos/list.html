@@ -82,8 +82,8 @@
     <div class="card shadow-sm mb-3">
         <div class="card-body py-2">
             <form method="get" action="/expenses/" class="d-flex gap-2 align-items-center flex-wrap">
-                <label for="yearFilter" class="form-label mb-0 fw-semibold text-nowrap">
-                    <i class="bi bi-funnel me-1"></i>{{ _("Filtrar por campaña:") }}
+                <label class="form-label mb-0 fw-semibold text-nowrap">
+                    <i class="bi bi-funnel me-1"></i>{{ _("Filtrar:") }}
                 </label>
                 <select name="year" id="yearFilter" class="form-select form-select-sm w-auto"
                         onchange="this.form.submit()">
@@ -92,9 +92,23 @@
                     <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y|campaign_label }}</option>
                     {% endfor %}
                 </select>
-                {% if selected_year %}
+                <select name="category" id="categoryFilter" class="form-select form-select-sm w-auto"
+                        onchange="this.form.submit()">
+                    <option value="">{{ _("Todas las categorías") }}</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+                <select name="person" id="personFilter" class="form-select form-select-sm w-auto"
+                        onchange="this.form.submit()">
+                    <option value="">{{ _("Todas las personas") }}</option>
+                    {% for p in people %}
+                    <option value="{{ p }}" {% if selected_person == p %}selected{% endif %}>{{ p }}</option>
+                    {% endfor %}
+                </select>
+                {% if selected_year or selected_category or selected_person %}
                 <a href="/expenses/" class="btn btn-sm btn-outline-secondary">
-                    <i class="bi bi-x me-1"></i>{{ _("Limpiar filtro") }}
+                    <i class="bi bi-x me-1"></i>{{ _("Limpiar filtros") }}
                 </a>
                 {% endif %}
             </form>
@@ -172,8 +186,8 @@
             <div class="text-center py-5 text-muted">
                 <i class="bi bi-inbox fs-1 d-block mb-3"></i>
                 <p class="mb-3">
-                    {% if selected_year %}
-                    {{ _("No hay gastos registrados para la campaña") }} {{ selected_year|campaign_label }}.
+                    {% if selected_year or selected_category or selected_person %}
+                    {{ _("No hay gastos que coincidan con los filtros seleccionados.") }}
                     {% else %}
                     {{ _("No hay gastos registrados todavía.") }}
                     {% endif %}

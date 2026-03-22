@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: truficultura_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: trufi
+      POSTGRES_PASSWORD: trufi
+      POSTGRES_DB: truficultura
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

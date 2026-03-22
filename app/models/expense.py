@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 EXPENSE_CATEGORIES = [
     "Pozos",
     "Vallado",
+    "Labrar",
     "Instalación riego",
     "Perros",
     "Riego",
