@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import Base, engine, get_db
 from app.i18n import get_locale, load_translations
 from app.models import Plot, Expense, Income  # noqa: F401 - ensure models are registered
-from app.routers import plots, expenses, incomes, reports, charts
+from app.routers import plots, expenses, incomes, reports, charts, imports
 from app.services.dashboard_service import build_dashboard_context
 from app.utils import campaign_label
 
@@ -43,6 +43,7 @@ expenses.templates = templates
 incomes.templates = templates
 reports.templates = templates
 charts.templates = templates
+imports.templates = templates
 
 # Include routers
 app.include_router(plots.router)
@@ -50,6 +51,7 @@ app.include_router(expenses.router)
 app.include_router(incomes.router)
 app.include_router(reports.router)
 app.include_router(charts.router)
+app.include_router(imports.router)
 
 
 @app.middleware("http")

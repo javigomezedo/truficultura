@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-21 17:51+0100\n"
+"POT-Creation-Date: 2026-03-22 10:02+0100\n"
 "PO-Revision-Date: 2026-03-21 17:51+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -27,13 +27,14 @@ msgid "Parcelas"
 msgstr ""
 
 #: app/templates/base.html:97 app/templates/gastos/list.html:3
-#: app/templates/gastos/list.html:10 app/templates/index.html:178
-#: app/templates/reportes/rentabilidad.html:101
+#: app/templates/gastos/list.html:10 app/templates/imports/index.html:43
+#: app/templates/index.html:178 app/templates/reportes/rentabilidad.html:101
 msgid "Gastos"
 msgstr ""
 
-#: app/templates/base.html:103 app/templates/index.html:178
-#: app/templates/ingresos/list.html:3 app/templates/ingresos/list.html:10
+#: app/templates/base.html:103 app/templates/imports/index.html:50
+#: app/templates/index.html:178 app/templates/ingresos/list.html:3
+#: app/templates/ingresos/list.html:10
 #: app/templates/reportes/rentabilidad.html:101
 msgid "Ingresos"
 msgstr ""
@@ -47,30 +48,35 @@ msgstr ""
 msgid "Gráficas"
 msgstr ""
 
-#: app/templates/base.html:127 app/templates/base.html:148
+#: app/templates/base.html:121
+msgid "Importar"
+msgstr ""
+
+#: app/templates/base.html:133 app/templates/base.html:154
+#: app/templates/imports/index.html:33
 msgid "Cerrar"
 msgstr ""
 
-#: app/templates/base.html:137
+#: app/templates/base.html:143
 msgid "Gestión de explotación trufícola"
 msgstr ""
 
-#: app/templates/base.html:146
+#: app/templates/base.html:152
 msgid "Confirmar eliminación"
 msgstr ""
 
-#: app/templates/base.html:151
+#: app/templates/base.html:157
 msgid ""
 "¿Está seguro de que desea eliminar este registro? Esta acción no se puede"
 " deshacer."
 msgstr ""
 
-#: app/templates/base.html:154 app/templates/gastos/form.html:106
+#: app/templates/base.html:160 app/templates/gastos/form.html:106
 #: app/templates/ingresos/form.html:130 app/templates/parcelas/form.html:160
 msgid "Cancelar"
 msgstr ""
 
-#: app/templates/base.html:156 app/templates/gastos/list.html:145
+#: app/templates/base.html:162 app/templates/gastos/list.html:145
 #: app/templates/ingresos/list.html:91 app/templates/parcelas/list.html:64
 msgid "Eliminar"
 msgstr ""
@@ -216,7 +222,7 @@ msgstr ""
 msgid "Concepto"
 msgstr ""
 
-#: app/templates/gastos/form.html:68
+#: app/templates/gastos/form.html:68 app/templates/imports/index.html:80
 msgid "Descripción del gasto"
 msgstr ""
 
@@ -357,6 +363,134 @@ msgstr ""
 
 #: app/templates/graficas/index.html:313
 msgid "Ingresos acumulados (€)"
+msgstr ""
+
+#: app/templates/imports/index.html:3
+msgid "Importar datos"
+msgstr ""
+
+#: app/templates/imports/index.html:8
+msgid "Importar datos CSV"
+msgstr ""
+
+#: app/templates/imports/index.html:9
+msgid ""
+"Sube un archivo CSV para importar gastos o ingresos masivamente. Los "
+"archivos no se almacenan en el servidor."
+msgstr ""
+
+#: app/templates/imports/index.html:19
+msgid "Importación de gastos completada"
+msgstr ""
+
+#: app/templates/imports/index.html:19
+msgid "Importación de ingresos completada"
+msgstr ""
+
+#: app/templates/imports/index.html:23
+msgid "Archivo:"
+msgstr ""
+
+#: app/templates/imports/index.html:24
+msgid "registros importados"
+msgstr ""
+
+#: app/templates/imports/index.html:25
+msgid "aviso(s)"
+msgstr ""
+
+#: app/templates/imports/index.html:64 app/templates/imports/index.html:133
+msgid "Formato del archivo"
+msgstr ""
+
+#: app/templates/imports/index.html:68 app/templates/imports/index.html:137
+msgid ""
+"Archivo CSV delimitado por <code>;</code>, sin cabecera, codificación "
+"UTF-8."
+msgstr ""
+
+#: app/templates/imports/index.html:73 app/templates/imports/index.html:142
+msgid "Columna"
+msgstr ""
+
+#: app/templates/imports/index.html:74 app/templates/imports/index.html:143
+msgid "Descripción"
+msgstr ""
+
+#: app/templates/imports/index.html:75 app/templates/imports/index.html:144
+msgid "Ejemplo"
+msgstr ""
+
+#: app/templates/imports/index.html:79 app/templates/imports/index.html:148
+msgid "Fecha (DD/MM/AAAA)"
+msgstr ""
+
+#: app/templates/imports/index.html:81
+msgid "Persona responsable"
+msgstr ""
+
+#: app/templates/imports/index.html:82 app/templates/imports/index.html:149
+msgid "Nombre del bancal (opcional)"
+msgstr ""
+
+#: app/templates/imports/index.html:83
+msgid "Importe en €"
+msgstr ""
+
+#: app/templates/imports/index.html:88
+msgid ""
+"Si el bancal está vacío, el gasto se registra como gasto general (sin "
+"bancal asignado)."
+msgstr ""
+
+#: app/templates/imports/index.html:91 app/templates/imports/index.html:160
+msgid "Ejemplo de línea:"
+msgstr ""
+
+#: app/templates/imports/index.html:100 app/templates/imports/index.html:169
+msgid "Subir archivo"
+msgstr ""
+
+#: app/templates/imports/index.html:106
+msgid "Archivo CSV de gastos"
+msgstr ""
+
+#: app/templates/imports/index.html:110 app/templates/imports/index.html:179
+msgid "Solo archivos .csv codificados en UTF-8."
+msgstr ""
+
+#: app/templates/imports/index.html:114 app/templates/imports/index.html:183
+msgid ""
+"Esta acción insertará todos los registros del archivo en la base de "
+"datos. Asegúrate de que el archivo no contiene duplicados."
+msgstr ""
+
+#: app/templates/imports/index.html:117
+msgid "Importar gastos"
+msgstr ""
+
+#: app/templates/imports/index.html:150
+msgid "Kilogramos recolectados"
+msgstr ""
+
+#: app/templates/imports/index.html:151
+msgid "Categoría (opcional)"
+msgstr ""
+
+#: app/templates/imports/index.html:152
+msgid "Precio por kg en €"
+msgstr ""
+
+#: app/templates/imports/index.html:157
+msgid "El total (€) se calcula automáticamente como kg × euros/kg."
+msgstr ""
+
+#: app/templates/imports/index.html:175
+msgid "Archivo CSV de ingresos"
+msgstr ""
+
+#: app/templates/imports/index.html:186
+msgid "Importar ingresos"
 msgstr ""
 
 #: app/templates/ingresos/form.html:3 app/templates/ingresos/form.html:11

@@ -115,6 +115,12 @@
                             <i class="bi bi-graph-up me-1"></i> {{ _("Gráficas") }}
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if '/import' in request.url.path %}active{% endif %}"
+                           href="/import/">
+                            <i class="bi bi-upload me-1"></i> {{ _("Importar") }}
+                        </a>
+                    </li>
                 </ul>
             </div>
         </div>
