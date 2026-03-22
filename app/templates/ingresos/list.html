@@ -54,6 +54,13 @@
                             <th class="text-end">{{ _("Total (€)") }}</th>
                             <th class="text-center">{{ _("Acciones") }}</th>
                         </tr>
+                        <tr class="table-success fw-bold">
+                            <td colspan="2" class="text-end">{{ _("TOTAL") }}{% if selected_year %} {{ selected_year|campaign_label }}{% endif %}:</td>
+                            <td class="text-end">{{ "%.3f"|format(total_kg) }} kg</td>
+                            <td colspan="2"></td>
+                            <td class="text-end fs-6 text-success">{{ "%.2f"|format(total_euros) }} &euro;</td>
+                            <td></td>
+                        </tr>
                     </thead>
                     <tbody>
                         {% for i in incomes %}
@@ -97,15 +104,6 @@
                         </tr>
                         {% endfor %}
                     </tbody>
-                    <tfoot class="table-success fw-bold">
-                        <tr>
-                            <td colspan="2" class="text-end">{{ _("TOTAL") }}{% if selected_year %} {{ selected_year|campaign_label }}{% endif %}:</td>
-                            <td class="text-end">{{ "%.3f"|format(total_kg) }} kg</td>
-                            <td colspan="2"></td>
-                            <td class="text-end fs-6 text-success">{{ "%.2f"|format(total_euros) }} &euro;</td>
-                            <td></td>
-                        </tr>
-                    </tfoot>
                 </table>
             </div>
             {% else %}

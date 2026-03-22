@@ -1,7 +1,7 @@
 import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,10 +24,11 @@ templates = Jinja2Templates(directory="app/templates")
 async def list_incomes(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    year: Optional[int] = None,
+    year: Optional[str] = Query(default=None),
     msg: Optional[str] = None,
 ):
-    context = await get_incomes_list_context(db, year)
+    year_int = int(year) if year else None
+    context = await get_incomes_list_context(db, year_int)
 
     return templates.TemplateResponse(
         "ingresos/list.html",

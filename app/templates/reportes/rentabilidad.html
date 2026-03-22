@@ -9,13 +9,13 @@
         white-space: nowrap;
     }
     .cell-positive {
-        background-color: #d1e7dd;
-        color: #0a3622;
+        --bs-table-bg: #d1e7dd;
+        --bs-table-color: #0a3622;
         font-weight: 600;
     }
     .cell-negative {
-        background-color: #f8d7da;
-        color: #58151c;
+        --bs-table-bg: #f8d7da;
+        --bs-table-color: #58151c;
         font-weight: 600;
     }
     .cell-zero {
@@ -94,10 +94,7 @@
                             {% for p in plots %}
                             {% set cell = row.plots[p.id] %}
                             {% set r = cell.profitability %}
-                            <td class="text-end
-                                {% if r > 0 %}cell-positive
-                                {% elif r < 0 %}cell-negative
-                                {% else %}cell-zero{% endif %}"
+                            <td class="text-end"
                                 title="{{ _('Ingresos') }}: {{ '%.2f'|format(cell.incomes) }}€ | {{ _('Gastos') }}: {{ '%.2f'|format(cell.expenses) }}€">
                                 {% if r == 0 and cell.incomes == 0 and cell.expenses == 0 %}
                                 <span class="text-muted">&mdash;</span>
@@ -106,10 +103,10 @@
                                 {% endif %}
                             </td>
                             {% endfor %}
-                            <td class="text-end fw-bold
+                            <td class="text-end fw-bold table-secondary
                                 {% if row.total_profitability > 0 %}cell-positive
                                 {% elif row.total_profitability < 0 %}cell-negative
-                                {% else %}cell-zero{% endif %} table-secondary">
+                                {% endif %}">
                                 {{ "%.2f"|format(row.total_profitability) }}
                             </td>
                         </tr>
@@ -171,10 +168,7 @@
                                     <td class="fw-semibold">{{ year|campaign_label }}</td>
                                     <td class="text-end text-primary">{{ "%.2f"|format(yt.incomes) }}</td>
                                     <td class="text-end text-danger">{{ "%.2f"|format(yt.expenses) }}</td>
-                                    <td class="text-end fw-bold
-                                        {% if yt.profitability > 0 %}text-positive
-                                        {% elif yt.profitability < 0 %}text-negative
-                                        {% else %}text-muted{% endif %}">
+                                    <td class="text-end fw-bold">
                                         {{ "%.2f"|format(yt.profitability) }}
                                     </td>
                                 </tr>
@@ -186,8 +180,8 @@
                                     <td class="text-end text-primary">{{ "%.2f"|format(grand_total_incomes) }}</td>
                                     <td class="text-end text-danger">{{ "%.2f"|format(grand_total_expenses) }}</td>
                                     <td class="text-end
-                                        {% if grand_total_profitability > 0 %}text-positive
-                                        {% elif grand_total_profitability < 0 %}text-negative
+                                        {% if grand_total_profitability > 0 %}cell-positive
+                                        {% elif grand_total_profitability < 0 %}cell-negative
                                         {% else %}{% endif %}">
                                         {{ "%.2f"|format(grand_total_profitability) }}
                                     </td>
@@ -225,10 +219,7 @@
                                     <td class="fw-semibold">{{ p.name }}</td>
                                     <td class="text-end text-primary">{{ "%.2f"|format(pt.incomes) }}</td>
                                     <td class="text-end text-danger">{{ "%.2f"|format(pt.expenses) }}</td>
-                                    <td class="text-end fw-bold
-                                        {% if pt.profitability > 0 %}text-positive
-                                        {% elif pt.profitability < 0 %}text-negative
-                                        {% else %}text-muted{% endif %}">
+                                    <td class="text-end fw-bold">
                                         {{ "%.2f"|format(pt.profitability) }}
                                     </td>
                                 </tr>
@@ -240,8 +231,8 @@
                                     <td class="text-end text-primary">{{ "%.2f"|format(grand_total_incomes) }}</td>
                                     <td class="text-end text-danger">{{ "%.2f"|format(grand_total_expenses) }}</td>
                                     <td class="text-end
-                                        {% if grand_total_profitability > 0 %}text-positive
-                                        {% elif grand_total_profitability < 0 %}text-negative
+                                        {% if grand_total_profitability > 0 %}cell-positive
+                                        {% elif grand_total_profitability < 0 %}cell-negative
                                         {% else %}{% endif %}">
                                         {{ "%.2f"|format(grand_total_profitability) }}
                                     </td>
