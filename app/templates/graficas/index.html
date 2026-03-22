@@ -243,6 +243,7 @@
 
     const weekLabels      = {{ week_labels | safe }};
     const weeklyPrice     = {{ weekly_price | safe }};
+    const priceWeekLabels = {{ price_week_labels | safe }};
     const weeklyKg        = {{ weekly_kg | safe }};
     const cumulativeIncome = {{ cumulative_income | safe }};
     const catDatasets     = {{ cat_datasets | safe }};
@@ -264,7 +265,7 @@
     new Chart(document.getElementById('chartPrecio'), {
         type: 'line',
         data: {
-            labels: weekLabels,
+            labels: priceWeekLabels,
             datasets: [{
                 label: '€/kg',
                 data: weeklyPrice,

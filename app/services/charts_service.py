@@ -114,10 +114,12 @@ async def build_charts_context(
     week_labels = [w.strftime("%d/%m/%Y") for w in sorted_weeks]
 
     weekly_price = []
+    price_week_labels = []
     for week in sorted_weeks:
         cnt = precio_kg_cnt.get(week, 0.0)
-        total = precio_kg_sum.get(week, 0.0)
-        weekly_price.append(round(total / cnt, 2) if cnt > 0 else 0)
+        if cnt > 0:
+            price_week_labels.append(week.strftime("%d/%m/%Y"))
+            weekly_price.append(round(precio_kg_sum[week] / cnt, 2))
 
     weekly_kg = [round(kg_by_week.get(w, 0.0), 3) for w in sorted_weeks]
 
@@ -175,6 +177,7 @@ async def build_charts_context(
         "kg_ha_totals": kg_ha_totals,
         "week_labels": json.dumps(week_labels),
         "weekly_price": json.dumps(weekly_price),
+        "price_week_labels": json.dumps(price_week_labels),
         "weekly_kg": json.dumps(weekly_kg),
         "cumulative_income": json.dumps(cumulative_income),
         "cat_datasets": json.dumps(cat_datasets),
