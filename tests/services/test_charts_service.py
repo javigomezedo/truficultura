@@ -49,7 +49,7 @@ async def test_build_charts_context_generates_serialized_series() -> None:
         side_effect=[result(plots), result(expenses), result(incomes)]
     )
 
-    context = await build_charts_context(db, campaign=2025, plot_id=None)
+    context = await build_charts_context(db, campaign=2025, plot_id=None, user_id=1)
 
     assert context["selected_campaign"] == 2025
     assert context["selected_plot_id"] is None

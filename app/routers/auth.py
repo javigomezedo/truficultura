@@ -41,7 +41,11 @@ async def login_post(
     result = await db.execute(select(User).where(User.username == username))
     user = result.scalar_one_or_none()
 
-    if user is None or not verify_password(password, user.hashed_password):
+    if (
+        user is None
+        or not user.is_active
+        or not verify_password(password, user.hashed_password)
+    ):
         return templates.TemplateResponse(
             "auth/login.html",
             {"request": request, "error": "Usuario o contraseña incorrectos."},
@@ -50,6 +54,7 @@ async def login_post(
 
     request.session["user_id"] = user.id
     request.session["username"] = user.username
+    request.session["role"] = user.role
     return RedirectResponse("/", status_code=303)
 
 
@@ -70,6 +75,8 @@ async def register_post(
     password_confirm: str = Form(...),
     db: AsyncSession = Depends(get_db),
 ):
+    count = await _user_count(db)
+
     password = password.strip()
     password_confirm = password_confirm.strip()
 
@@ -100,7 +107,11 @@ async def register_post(
             status_code=400,
         )
 
-    new_user = User(username=username, hashed_password=hash_password(password))
+    new_user = User(
+        username=username,
+        hashed_password=hash_password(password),
+        role="admin" if count == 0 else "user",
+    )
     db.add(new_user)
     await db.flush()
 

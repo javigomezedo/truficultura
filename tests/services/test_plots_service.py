@@ -25,7 +25,7 @@ async def test_list_plots_returns_ordered_items() -> None:
         )
     )
 
-    plots = await list_plots(db)
+    plots = await list_plots(db, user_id=1)
 
     assert len(plots) == 1
     assert plots[0].name == "A"
@@ -37,11 +37,11 @@ async def test_get_plot_found_and_not_found() -> None:
 
     db_found = MagicMock()
     db_found.execute = AsyncMock(return_value=result([plot]))
-    assert await get_plot(db_found, 7) is plot
+    assert await get_plot(db_found, 7, user_id=1) is plot
 
     db_missing = MagicMock()
     db_missing.execute = AsyncMock(return_value=result([]))
-    assert await get_plot(db_missing, 8) is None
+    assert await get_plot(db_missing, 8, user_id=1) is None
 
 
 @pytest.mark.asyncio
@@ -62,6 +62,7 @@ async def test_create_update_delete_plot() -> None:
         area_ha=1.5,
         production_start=datetime.date(2024, 1, 1),
         percentage=40.0,
+        user_id=1,
     )
 
     db.add.assert_called_once()

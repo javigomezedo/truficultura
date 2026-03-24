@@ -46,10 +46,11 @@ async def test_services_crud_flow_with_real_db(tmp_path: Path) -> None:
                 area_ha=2.0,
                 production_start=datetime.date(2024, 1, 1),
                 percentage=100.0,
+                user_id=1,
             )
             await db.commit()
 
-            fetched = await get_plot(db, plot.id)
+            fetched = await get_plot(db, plot.id, user_id=1)
             assert fetched is not None
             assert fetched.name == "Bancal Test"
 
@@ -60,6 +61,7 @@ async def test_services_crud_flow_with_real_db(tmp_path: Path) -> None:
                 person="Javi",
                 plot_id=plot.id,
                 amount=25.0,
+                user_id=1,
             )
             await create_income(
                 db,
@@ -68,11 +70,12 @@ async def test_services_crud_flow_with_real_db(tmp_path: Path) -> None:
                 amount_kg=2.0,
                 category="A",
                 euros_per_kg=50.0,
+                user_id=1,
             )
             await db.commit()
 
-            expenses_ctx = await get_expenses_list_context(db, 2025)
-            incomes_ctx = await get_incomes_list_context(db, 2025)
+            expenses_ctx = await get_expenses_list_context(db, 2025, user_id=1)
+            incomes_ctx = await get_incomes_list_context(db, 2025, user_id=1)
 
             assert len(expenses_ctx["expenses"]) == 1
             assert expenses_ctx["total"] == 25.0
@@ -82,7 +85,7 @@ async def test_services_crud_flow_with_real_db(tmp_path: Path) -> None:
             await delete_plot(db, plot)
             await db.commit()
 
-            assert await get_plot(db, plot.id) is None
+            assert await get_plot(db, plot.id, user_id=1) is None
     finally:
         await engine.dispose()
 
@@ -105,6 +108,7 @@ async def test_dashboard_and_reports_context_with_real_db(tmp_path: Path) -> Non
                 area_ha=1.0,
                 production_start=datetime.date(2023, 1, 1),
                 percentage=60.0,
+                user_id=1,
             )
             p2 = await create_plot(
                 db,
@@ -118,6 +122,7 @@ async def test_dashboard_and_reports_context_with_real_db(tmp_path: Path) -> Non
                 area_ha=1.0,
                 production_start=datetime.date(2023, 1, 1),
                 percentage=40.0,
+                user_id=1,
             )
 
             await create_expense(
@@ -127,6 +132,7 @@ async def test_dashboard_and_reports_context_with_real_db(tmp_path: Path) -> Non
                 person="A",
                 plot_id=p1.id,
                 amount=100.0,
+                user_id=1,
             )
             await create_expense(
                 db,
@@ -135,6 +141,7 @@ async def test_dashboard_and_reports_context_with_real_db(tmp_path: Path) -> Non
                 person="A",
                 plot_id=None,
                 amount=50.0,
+                user_id=1,
             )
 
             await create_income(
@@ -144,6 +151,7 @@ async def test_dashboard_and_reports_context_with_real_db(tmp_path: Path) -> Non
                 amount_kg=1.0,
                 category="A",
                 euros_per_kg=40.0,
+                user_id=1,
             )
             await create_income(
                 db,
@@ -152,11 +160,12 @@ async def test_dashboard_and_reports_context_with_real_db(tmp_path: Path) -> Non
                 amount_kg=1.0,
                 category="A",
                 euros_per_kg=30.0,
+                user_id=1,
             )
             await db.commit()
 
-            dashboard_ctx = await build_dashboard_context(db)
-            report_ctx = await build_profitability_context(db)
+            dashboard_ctx = await build_dashboard_context(db, user_id=1)
+            report_ctx = await build_profitability_context(db, user_id=1)
 
             assert dashboard_ctx["grand_expenses"] == 150.0
             assert dashboard_ctx["grand_incomes"] == 70.0
@@ -189,6 +198,7 @@ async def test_charts_context_with_real_db(tmp_path: Path) -> None:
                 area_ha=2.0,
                 production_start=datetime.date(2023, 1, 1),
                 percentage=100.0,
+                user_id=1,
             )
             await create_expense(
                 db,
@@ -197,6 +207,7 @@ async def test_charts_context_with_real_db(tmp_path: Path) -> None:
                 person="X",
                 plot_id=plot.id,
                 amount=10.0,
+                user_id=1,
             )
             await create_income(
                 db,
@@ -205,10 +216,13 @@ async def test_charts_context_with_real_db(tmp_path: Path) -> None:
                 amount_kg=4.0,
                 category="A",
                 euros_per_kg=20.0,
+                user_id=1,
             )
             await db.commit()
 
-            ctx = await build_charts_context(db, campaign=2025, plot_id=plot.id)
+            ctx = await build_charts_context(
+                db, campaign=2025, plot_id=plot.id, user_id=1
+            )
 
             assert ctx["selected_campaign"] == 2025
             assert ctx["selected_plot_id"] == plot.id

@@ -36,6 +36,20 @@ class NotAuthenticatedException(Exception):
     """Raised by require_user when no valid session exists."""
 
 
+class NotAdminException(Exception):
+    """Raised by require_admin when user is not an admin."""
+
+
+async def require_admin(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    user = await get_current_user(request, db)
+    if user is None or user.role != "admin":
+        raise NotAdminException()
+    return user
+
+
 async def require_user(
     request: Request,
     db: AsyncSession = Depends(get_db),

@@ -1,0 +1,179 @@
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends, Form, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.auth import hash_password, require_admin
+from app.database import get_db
+from app.jinja import templates
+from app.models.user import User
+
+router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+@router.get("/users", response_class=HTMLResponse)
+async def list_users(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    result = await db.execute(select(User).order_by(User.username))
+    users = result.scalars().all()
+    return templates.TemplateResponse(
+        "admin/users_list.html",
+        {"request": request, "users": users, "current_user": current_user},
+    )
+
+
+@router.get("/users/create", response_class=HTMLResponse)
+async def create_user_page(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    return templates.TemplateResponse(
+        "admin/user_create.html", {"request": request, "current_user": current_user}
+    )
+
+
+@router.post("/users")
+async def create_user(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    role: str = Form(default="user"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    password = password.strip()
+
+    # Check if username already exists
+    result = await db.execute(select(User).where(User.username == username))
+    existing = result.scalar_one_or_none()
+    if existing:
+        return templates.TemplateResponse(
+            "admin/user_create.html",
+            {
+                "request": request,
+                "error": "El usuario ya existe.",
+                "current_user": current_user,
+            },
+            status_code=400,
+        )
+
+    # Validate role
+    if role not in ["user", "admin"]:
+        role = "user"
+
+    new_user = User(
+        username=username,
+        hashed_password=hash_password(password),
+        role=role,
+        is_active=True,
+    )
+    db.add(new_user)
+    await db.commit()
+
+    return RedirectResponse("/admin/users", status_code=303)
+
+
+@router.get("/users/{user_id}/edit", response_class=HTMLResponse)
+async def edit_user_page(
+    user_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+
+    if user is None:
+        return RedirectResponse("/admin/users", status_code=303)
+
+    return templates.TemplateResponse(
+        "admin/user_edit.html",
+        {"request": request, "user": user, "current_user": current_user},
+    )
+
+
+@router.post("/users/{user_id}")
+async def update_user(
+    user_id: int,
+    request: Request,
+    username: str = Form(...),
+    role: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+
+    if user is None:
+        return RedirectResponse("/admin/users", status_code=303)
+
+    # Check if username is taken by another user
+    if username != user.username:
+        result = await db.execute(select(User).where(User.username == username))
+        existing = result.scalar_one_or_none()
+        if existing:
+            return templates.TemplateResponse(
+                "admin/user_edit.html",
+                {
+                    "request": request,
+                    "user": user,
+                    "error": "El usuario ya existe.",
+                    "current_user": current_user,
+                },
+                status_code=400,
+            )
+
+    # Validate role
+    if role not in ["user", "admin"]:
+        role = "user"
+
+    user.username = username
+    user.role = role
+    await db.commit()
+
+    return RedirectResponse("/admin/users", status_code=303)
+
+
+@router.post("/users/{user_id}/deactivate")
+async def deactivate_user(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    if user_id == current_user.id:
+        return RedirectResponse("/admin/users?error=no-self-delete", status_code=303)
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+
+    if user is None:
+        return RedirectResponse("/admin/users", status_code=303)
+
+    user.is_active = False
+    await db.commit()
+
+    return RedirectResponse("/admin/users", status_code=303)
+
+
+@router.post("/users/{user_id}/activate")
+async def activate_user(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+
+    if user is None:
+        return RedirectResponse("/admin/users", status_code=303)
+
+    user.is_active = True
+    await db.commit()
+
+    return RedirectResponse("/admin/users", status_code=303)
