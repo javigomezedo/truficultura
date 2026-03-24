@@ -253,3 +253,148 @@ async def test_admin_can_manage_multiple_users(tmp_path: Path) -> None:
             assert len(users) == 3
     finally:
         await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_user_profile_fields_are_stored(tmp_path: Path) -> None:
+    """Test that profile fields (first_name, last_name, email) are correctly stored"""
+    engine, session_maker = await _build_sessionmaker(tmp_path / "profile_fields.sqlite3")
+
+    try:
+        async with session_maker() as db:
+            user = User(
+                username="javier",
+                first_name="Javier",
+                last_name="Gómez",
+                email="javier@example.com",
+                hashed_password=hash_password("password123"),
+                role="user",
+                is_active=True,
+            )
+            db.add(user)
+            await db.commit()
+
+            # Retrieve and verify
+            from sqlalchemy import select
+
+            result = await db.execute(select(User).where(User.username == "javier"))
+            retrieved_user = result.scalar_one()
+
+            assert retrieved_user.first_name == "Javier"
+            assert retrieved_user.last_name == "Gómez"
+            assert retrieved_user.email == "javier@example.com"
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_email_uniqueness_enforced(tmp_path: Path) -> None:
+    """Test that email uniqueness is enforced at the database level"""
+    engine, session_maker = await _build_sessionmaker(
+        tmp_path / "email_unique.sqlite3"
+    )
+
+    try:
+        async with session_maker() as db:
+            # Create first user
+            user1 = User(
+                username="user1",
+                first_name="User",
+                last_name="One",
+                email="shared@example.com",
+                hashed_password=hash_password("password123"),
+                role="user",
+                is_active=True,
+            )
+            db.add(user1)
+            await db.commit()
+
+            # Try to create second user with same email
+            user2 = User(
+                username="user2",
+                first_name="User",
+                last_name="Two",
+                email="shared@example.com",
+                hashed_password=hash_password("password123"),
+                role="user",
+                is_active=True,
+            )
+            db.add(user2)
+
+            # Should raise IntegrityError due to unique constraint
+            from sqlalchemy.exc import IntegrityError
+
+            with pytest.raises(IntegrityError):
+                await db.commit()
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_admin_can_edit_user_profile(tmp_path: Path) -> None:
+    """Test that admin can edit user profile fields"""
+    engine, session_maker = await _build_sessionmaker(tmp_path / "edit_profile.sqlite3")
+
+    try:
+        async with session_maker() as db:
+            # Create user
+            user = User(
+                username="carlos",
+                first_name="Carlos",
+                last_name="Martinez",
+                email="carlos@example.com",
+                hashed_password=hash_password("password123"),
+                role="user",
+                is_active=True,
+            )
+            db.add(user)
+            await db.commit()
+
+            # Edit profile
+            user.first_name = "Charles"
+            user.last_name = "Martin"
+            user.email = "charles@example.com"
+            await db.commit()
+
+            # Verify changes
+            from sqlalchemy import select
+
+            result = await db.execute(select(User).where(User.id == user.id))
+            updated_user = result.scalar_one()
+
+            assert updated_user.first_name == "Charles"
+            assert updated_user.last_name == "Martin"
+            assert updated_user.email == "charles@example.com"
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_user_profile_display_format(tmp_path: Path) -> None:
+    """Test that user profile can be displayed in correct format"""
+    engine, session_maker = await _build_sessionmaker(tmp_path / "profile_format.sqlite3")
+
+    try:
+        async with session_maker() as db:
+            user = User(
+                username="ana",
+                first_name="Ana",
+                last_name="García",
+                email="ana@example.com",
+                hashed_password=hash_password("password123"),
+                role="user",
+                is_active=True,
+            )
+            db.add(user)
+            await db.commit()
+
+            # Retrieve and format
+            from sqlalchemy import select
+
+            result = await db.execute(select(User).where(User.username == "ana"))
+            retrieved_user = result.scalar_one()
+
+            display_format = f"{retrieved_user.first_name} {retrieved_user.last_name} ({retrieved_user.email})"
+            assert display_format == "Ana García (ana@example.com)"
+    finally:
+        await engine.dispose()

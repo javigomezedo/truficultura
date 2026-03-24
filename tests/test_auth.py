@@ -176,3 +176,49 @@ class TestUserModel:
                     email="inactive@example.com", hashed_password="hash", is_active=False)
 
         assert user.is_active is False
+
+
+class TestUserProfileFields:
+    """Tests for user profile fields (first_name, last_name, email)"""
+
+    def test_user_stores_first_name(self):
+        """Test that User stores first_name correctly"""
+        user = User(
+            id=1, username="javier", first_name="Javier", last_name="Gómez",
+            email="javier@example.com", hashed_password="hash"
+        )
+        assert user.first_name == "Javier"
+
+    def test_user_stores_last_name(self):
+        """Test that User stores last_name correctly"""
+        user = User(
+            id=1, username="javier", first_name="Javier", last_name="Gómez",
+            email="javier@example.com", hashed_password="hash"
+        )
+        assert user.last_name == "Gómez"
+
+    def test_user_stores_email(self):
+        """Test that User stores email correctly"""
+        user = User(
+            id=1, username="javier", first_name="Javier", last_name="Gómez",
+            email="javier@example.com", hashed_password="hash"
+        )
+        assert user.email == "javier@example.com"
+
+    def test_user_with_unicode_names(self):
+        """Test that User handles unicode characters in names"""
+        user = User(
+            id=1, username="juan", first_name="Juan", last_name="García López",
+            email="juan@example.com", hashed_password="hash"
+        )
+        assert user.first_name == "Juan"
+        assert user.last_name == "García López"
+
+    def test_user_profile_display_format(self):
+        """Test user profile can be displayed as 'FirstName LastName (email)'"""
+        user = User(
+            id=1, username="carlos", first_name="Carlos", last_name="Martinez",
+            email="carlos@example.com", hashed_password="hash"
+        )
+        profile_display = f"{user.first_name} {user.last_name} ({user.email})"
+        assert profile_display == "Carlos Martinez (carlos@example.com)"
