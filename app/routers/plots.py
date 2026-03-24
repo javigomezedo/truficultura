@@ -6,7 +6,9 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth import require_user
 from app.database import get_db
+from app.models.user import User
 from app.services.plots_service import (
     create_plot as create_plot_service,
     delete_plot as delete_plot_service,
@@ -23,9 +25,10 @@ templates = Jinja2Templates(directory="app/templates")
 async def list_plots(
     request: Request,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
     msg: Optional[str] = None,
 ):
-    plots = await list_plots_service(db)
+    plots = await list_plots_service(db, current_user.id)
     return templates.TemplateResponse(
         "parcelas/list.html",
         {"request": request, "plots": plots, "msg": msg},
@@ -33,7 +36,10 @@ async def list_plots(
 
 
 @router.get("/new", response_class=HTMLResponse)
-async def new_plot_form(request: Request):
+async def new_plot_form(
+    request: Request,
+    current_user: User = Depends(require_user),
+):
     return templates.TemplateResponse(
         "parcelas/form.html",
         {"request": request, "plot": None, "action": "/plots/", "method": "post"},
@@ -42,6 +48,7 @@ async def new_plot_form(request: Request):
 
 @router.post("/", response_class=RedirectResponse)
 async def create_plot(
+    request: Request,
     name: str = Form(...),
     polygon: str = Form(""),
     cadastral_ref: str = Form(""),
@@ -53,9 +60,11 @@ async def create_plot(
     production_start: Optional[datetime.date] = Form(None),
     percentage: float = Form(0.0),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
 ):
     await create_plot_service(
         db,
+        user_id=current_user.id,
         name=name,
         polygon=polygon,
         cadastral_ref=cadastral_ref,
@@ -77,8 +86,9 @@ async def edit_plot_form(
     request: Request,
     plot_id: int,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
 ):
-    obj = await get_plot(db, plot_id)
+    obj = await get_plot(db, plot_id, current_user.id)
     if obj is None:
         return RedirectResponse(
             url="/plots/?msg=Parcela+no+encontrada", status_code=303
@@ -96,6 +106,7 @@ async def edit_plot_form(
 
 @router.post("/{plot_id}", response_class=RedirectResponse)
 async def update_plot(
+    request: Request,
     plot_id: int,
     name: str = Form(...),
     polygon: str = Form(""),
@@ -108,8 +119,9 @@ async def update_plot(
     production_start: Optional[datetime.date] = Form(None),
     percentage: float = Form(0.0),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
 ):
-    obj = await get_plot(db, plot_id)
+    obj = await get_plot(db, plot_id, current_user.id)
     if obj is None:
         return RedirectResponse(
             url="/plots/?msg=Parcela+no+encontrada", status_code=303
@@ -136,10 +148,12 @@ async def update_plot(
 
 @router.post("/{plot_id}/delete", response_class=RedirectResponse)
 async def delete_plot(
+    request: Request,
     plot_id: int,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
 ):
-    obj = await get_plot(db, plot_id)
+    obj = await get_plot(db, plot_id, current_user.id)
     if obj:
         await delete_plot_service(db, obj)
     return RedirectResponse(

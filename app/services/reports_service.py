@@ -11,14 +11,18 @@ from app.models.plot import Plot
 from app.utils import campaign_year, distribute_unassigned_expenses
 
 
-async def build_profitability_context(db: AsyncSession) -> dict:
-    plots_result = await db.execute(select(Plot).order_by(Plot.name))
+async def build_profitability_context(db: AsyncSession, user_id: int) -> dict:
+    plots_result = await db.execute(
+        select(Plot).where(Plot.user_id == user_id).order_by(Plot.name)
+    )
     plots = plots_result.scalars().all()
 
-    incomes_result = await db.execute(select(Income))
+    incomes_result = await db.execute(select(Income).where(Income.user_id == user_id))
     incomes = incomes_result.scalars().all()
 
-    expenses_result = await db.execute(select(Expense))
+    expenses_result = await db.execute(
+        select(Expense).where(Expense.user_id == user_id)
+    )
     expenses = expenses_result.scalars().all()
 
     incomes_by_year_plot: dict = defaultdict(lambda: defaultdict(float))
@@ -34,9 +38,7 @@ async def build_profitability_context(db: AsyncSession) -> dict:
     expenses_by_year_plot = distribute_unassigned_expenses(expenses_raw, plots)
 
     all_years = sorted(
-        set(
-            list(incomes_by_year_plot.keys()) + list(expenses_by_year_plot.keys())
-        ),
+        set(list(incomes_by_year_plot.keys()) + list(expenses_by_year_plot.keys())),
         reverse=True,
     )
 

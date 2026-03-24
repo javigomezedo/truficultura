@@ -9,19 +9,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.plot import Plot
 
 
-async def list_plots(db: AsyncSession) -> list[Plot]:
-    result = await db.execute(select(Plot).order_by(Plot.name))
+async def list_plots(db: AsyncSession, user_id: int) -> list[Plot]:
+    result = await db.execute(
+        select(Plot).where(Plot.user_id == user_id).order_by(Plot.name)
+    )
     return result.scalars().all()
 
 
-async def get_plot(db: AsyncSession, plot_id: int) -> Optional[Plot]:
-    result = await db.execute(select(Plot).where(Plot.id == plot_id))
+async def get_plot(db: AsyncSession, plot_id: int, user_id: int) -> Optional[Plot]:
+    result = await db.execute(
+        select(Plot).where(Plot.id == plot_id, Plot.user_id == user_id)
+    )
     return result.scalar_one_or_none()
 
 
 async def create_plot(
     db: AsyncSession,
     *,
+    user_id: int,
     name: str,
     polygon: str,
     cadastral_ref: str,
@@ -34,6 +39,7 @@ async def create_plot(
     percentage: float,
 ) -> Plot:
     new_plot = Plot(
+        user_id=user_id,
         name=name,
         polygon=polygon,
         cadastral_ref=cadastral_ref,

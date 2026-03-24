@@ -28,14 +28,21 @@ async def build_charts_context(
     db: AsyncSession,
     campaign: Optional[int],
     plot_id: Optional[int],
+    user_id: int,
 ) -> dict:
-    plots_result = await db.execute(select(Plot).order_by(Plot.name))
+    plots_result = await db.execute(
+        select(Plot).where(Plot.user_id == user_id).order_by(Plot.name)
+    )
     all_plots = plots_result.scalars().all()
 
-    expenses_result = await db.execute(select(Expense))
+    expenses_result = await db.execute(
+        select(Expense).where(Expense.user_id == user_id)
+    )
     all_expenses = expenses_result.scalars().all()
 
-    incomes_result = await db.execute(select(Income))
+    incomes_result = await db.execute(
+        select(Income).where(Income.user_id == user_id)
+    )
     all_incomes = incomes_result.scalars().all()
 
     all_campaigns = sorted({campaign_year(i.date) for i in all_incomes}, reverse=True)

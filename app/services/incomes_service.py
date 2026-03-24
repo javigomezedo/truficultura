@@ -11,19 +11,29 @@ from app.models.plot import Plot
 from app.utils import campaign_year
 
 
-async def list_plots(db: AsyncSession) -> list[Plot]:
-    result = await db.execute(select(Plot).order_by(Plot.name))
+async def list_plots(db: AsyncSession, user_id: int) -> list[Plot]:
+    result = await db.execute(
+        select(Plot).where(Plot.user_id == user_id).order_by(Plot.name)
+    )
     return result.scalars().all()
 
 
-async def get_income(db: AsyncSession, income_id: int) -> Optional[Income]:
-    result = await db.execute(select(Income).where(Income.id == income_id))
+async def get_income(
+    db: AsyncSession, income_id: int, user_id: int
+) -> Optional[Income]:
+    result = await db.execute(
+        select(Income).where(Income.id == income_id, Income.user_id == user_id)
+    )
     return result.scalar_one_or_none()
 
 
-async def get_incomes_list_context(db: AsyncSession, year: Optional[int]) -> dict:
+async def get_incomes_list_context(
+    db: AsyncSession, year: Optional[int], user_id: int
+) -> dict:
     result = await db.execute(
-        select(Income).order_by(Income.date.desc(), Income.category)
+        select(Income)
+        .where(Income.user_id == user_id)
+        .order_by(Income.date.desc(), Income.category)
     )
     all_incomes = result.scalars().all()
 
@@ -55,6 +65,7 @@ async def get_incomes_list_context(db: AsyncSession, year: Optional[int]) -> dic
 async def create_income(
     db: AsyncSession,
     *,
+    user_id: int,
     date: datetime.date,
     plot_id: Optional[int],
     amount_kg: float,
@@ -63,6 +74,7 @@ async def create_income(
 ) -> Income:
     total = round(amount_kg * euros_per_kg, 2)
     new_income = Income(
+        user_id=user_id,
         date=date,
         plot_id=plot_id if plot_id else None,
         amount_kg=amount_kg,

@@ -9,14 +9,18 @@ from app.models import Expense, Income, Plot
 from app.utils import campaign_year, distribute_unassigned_expenses
 
 
-async def build_dashboard_context(db: AsyncSession) -> dict:
-    plots_result = await db.execute(select(Plot).order_by(Plot.name))
+async def build_dashboard_context(db: AsyncSession, user_id: int) -> dict:
+    plots_result = await db.execute(
+        select(Plot).where(Plot.user_id == user_id).order_by(Plot.name)
+    )
     all_plots = plots_result.scalars().all()
 
-    expenses_result = await db.execute(select(Expense))
+    expenses_result = await db.execute(
+        select(Expense).where(Expense.user_id == user_id)
+    )
     all_expenses = expenses_result.scalars().all()
 
-    incomes_result = await db.execute(select(Income))
+    incomes_result = await db.execute(select(Income).where(Income.user_id == user_id))
     all_incomes = incomes_result.scalars().all()
 
     grand_expenses = sum(e.amount for e in all_expenses)

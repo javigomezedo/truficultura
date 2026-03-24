@@ -5,7 +5,9 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth import require_user
 from app.database import get_db
+from app.models.user import User
 from app.services.import_service import import_expenses_csv, import_incomes_csv, import_plots_csv
 
 router = APIRouter(prefix="/import", tags=["import"])
@@ -13,7 +15,10 @@ templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/", response_class=HTMLResponse)
-async def import_page(request: Request):
+async def import_page(
+    request: Request,
+    current_user: User = Depends(require_user),
+):
     return templates.TemplateResponse(
         "imports/index.html",
         {"request": request, "result": None},
@@ -25,9 +30,10 @@ async def upload_expenses(
     request: Request,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
 ):
     content = await file.read()
-    rows, warnings = await import_expenses_csv(db, content)
+    rows, warnings = await import_expenses_csv(db, content, current_user.id)
     await db.commit()
 
     return templates.TemplateResponse(
@@ -50,9 +56,10 @@ async def upload_incomes(
     request: Request,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
 ):
     content = await file.read()
-    rows, warnings = await import_incomes_csv(db, content)
+    rows, warnings = await import_incomes_csv(db, content, current_user.id)
     await db.commit()
 
     return templates.TemplateResponse(
@@ -75,9 +82,10 @@ async def upload_plots(
     request: Request,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
 ):
     content = await file.read()
-    rows, warnings = await import_plots_csv(db, content)
+    rows, warnings = await import_plots_csv(db, content, current_user.id)
     await db.commit()
 
     return templates.TemplateResponse(

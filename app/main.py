@@ -1,14 +1,17 @@
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.middleware.sessions import SessionMiddleware
 
+from app.auth import NotAuthenticatedException, require_user
+from app.config import settings
 from app.database import Base, engine, get_db
 from app.i18n import get_locale, load_translations
-from app.models import Plot, Expense, Income  # noqa: F401 - ensure models are registered
-from app.routers import plots, expenses, incomes, reports, charts, imports
+from app.models import User, Plot, Expense, Income  # noqa: F401 - ensure models are registered
+from app.routers import auth, charts, expenses, imports, incomes, plots, reports
 from app.services.dashboard_service import build_dashboard_context
 from app.utils import campaign_label
 
@@ -29,6 +32,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
+
 templates = Jinja2Templates(directory="app/templates")
 templates.env.filters["campaign_label"] = campaign_label
 templates.env.add_extension("jinja2.ext.i18n")
@@ -44,14 +49,21 @@ incomes.templates = templates
 reports.templates = templates
 charts.templates = templates
 imports.templates = templates
+auth.templates = templates
 
 # Include routers
+app.include_router(auth.router)
 app.include_router(plots.router)
 app.include_router(expenses.router)
 app.include_router(incomes.router)
 app.include_router(reports.router)
 app.include_router(charts.router)
 app.include_router(imports.router)
+
+
+@app.exception_handler(NotAuthenticatedException)
+async def not_authenticated_handler(request: Request, exc: NotAuthenticatedException):
+    return RedirectResponse(url="/login", status_code=303)
 
 
 @app.middleware("http")
@@ -69,8 +81,9 @@ async def i18n_middleware(request: Request, call_next):
 async def dashboard(
     request: Request,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
 ):
-    context = await build_dashboard_context(db)
+    context = await build_dashboard_context(db, current_user.id)
 
     return templates.TemplateResponse(
         "index.html",

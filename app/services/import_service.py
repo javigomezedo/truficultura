@@ -38,13 +38,13 @@ def _parse_num(s: str) -> float:
     return float(s.replace(".", "").replace(",", "."))
 
 
-async def _load_plots(db: AsyncSession) -> dict[str, int]:
-    result = await db.execute(select(Plot))
+async def _load_plots(db: AsyncSession, user_id: int) -> dict[str, int]:
+    result = await db.execute(select(Plot).where(Plot.user_id == user_id))
     return {p.name.lower(): p.id for p in result.scalars().all()}
 
 
 async def import_expenses_csv(
-    db: AsyncSession, content: bytes
+    db: AsyncSession, content: bytes, user_id: int
 ) -> tuple[list[Expense], list[str]]:
     """Parse expenses CSV and persist rows.
 
@@ -58,7 +58,7 @@ async def import_expenses_csv(
     - cantidad: amount in European format (e.g. 1.250,00)
     - categoria: expense category (optional, e.g. Riego)
     """
-    plots = await _load_plots(db)
+    plots = await _load_plots(db, user_id)
     rows: list[Expense] = []
     warnings: list[str] = []
 
@@ -86,6 +86,7 @@ async def import_expenses_csv(
 
         try:
             row = Expense(
+                user_id=user_id,
                 date=_parse_date(fecha_s),
                 description=concepto.strip(),
                 person=persona.strip(),
@@ -102,7 +103,7 @@ async def import_expenses_csv(
 
 
 async def import_incomes_csv(
-    db: AsyncSession, content: bytes
+    db: AsyncSession, content: bytes, user_id: int
 ) -> tuple[list[Income], list[str]]:
     """Parse incomes CSV and persist rows.
 
@@ -115,7 +116,7 @@ async def import_incomes_csv(
     - categoria: category label (optional)
     - euros_kg: price per kg in European format (e.g. 120,00)
     """
-    plots = await _load_plots(db)
+    plots = await _load_plots(db, user_id)
     rows: list[Income] = []
     warnings: list[str] = []
 
@@ -142,6 +143,7 @@ async def import_incomes_csv(
             kg = _parse_num(kg_s)
             euros_per_kg = _parse_num(euros_kg_s)
             row = Income(
+                user_id=user_id,
                 date=_parse_date(fecha_s),
                 plot_id=plot_id,
                 amount_kg=kg,
@@ -158,7 +160,7 @@ async def import_incomes_csv(
 
 
 async def import_plots_csv(
-    db: AsyncSession, content: bytes
+    db: AsyncSession, content: bytes, user_id: int
 ) -> tuple[list[Plot], list[str]]:
     """Parse plots CSV and persist rows.
 
@@ -194,6 +196,7 @@ async def import_plots_csv(
 
         try:
             row = Plot(
+                user_id=user_id,
                 name=col(0),
                 planting_date=_parse_date(col(1)),
                 polygon=col(2),

@@ -6,8 +6,10 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth import require_user
 from app.database import get_db
 from app.models.expense import EXPENSE_CATEGORIES
+from app.models.user import User
 from app.services.expenses_service import (
     create_expense as create_expense_service,
     delete_expense as delete_expense_service,
@@ -25,13 +27,16 @@ templates = Jinja2Templates(directory="app/templates")
 async def list_expenses(
     request: Request,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
     year: Optional[str] = Query(default=None),
     category: Optional[str] = None,
     person: Optional[str] = None,
     msg: Optional[str] = None,
 ):
     year_int = int(year) if year else None
-    context = await get_expenses_list_context(db, year_int, category=category, person=person)
+    context = await get_expenses_list_context(
+        db, year_int, current_user.id, category=category, person=person
+    )
 
     return templates.TemplateResponse(
         "gastos/list.html",
@@ -47,8 +52,9 @@ async def list_expenses(
 async def new_expense_form(
     request: Request,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
 ):
-    plots = await list_plots(db)
+    plots = await list_plots(db, current_user.id)
     return templates.TemplateResponse(
         "gastos/form.html",
         {
@@ -64,6 +70,7 @@ async def new_expense_form(
 
 @router.post("/", response_class=RedirectResponse)
 async def create_expense(
+    request: Request,
     date: datetime.date = Form(...),
     description: str = Form(...),
     person: str = Form(""),
@@ -71,9 +78,11 @@ async def create_expense(
     amount: float = Form(0.0),
     category: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
 ):
     await create_expense_service(
         db,
+        user_id=current_user.id,
         date=date,
         description=description,
         person=person,
@@ -91,14 +100,15 @@ async def edit_expense_form(
     request: Request,
     expense_id: int,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
 ):
-    expense = await get_expense(db, expense_id)
+    expense = await get_expense(db, expense_id, current_user.id)
     if expense is None:
         return RedirectResponse(
             url="/expenses/?msg=Gasto+no+encontrado", status_code=303
         )
 
-    plots = await list_plots(db)
+    plots = await list_plots(db, current_user.id)
 
     return templates.TemplateResponse(
         "gastos/form.html",
@@ -115,6 +125,7 @@ async def edit_expense_form(
 
 @router.post("/{expense_id}", response_class=RedirectResponse)
 async def update_expense(
+    request: Request,
     expense_id: int,
     date: datetime.date = Form(...),
     description: str = Form(...),
@@ -123,8 +134,9 @@ async def update_expense(
     amount: float = Form(0.0),
     category: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
 ):
-    obj = await get_expense(db, expense_id)
+    obj = await get_expense(db, expense_id, current_user.id)
     if obj is None:
         return RedirectResponse(
             url="/expenses/?msg=Gasto+no+encontrado", status_code=303
@@ -147,10 +159,12 @@ async def update_expense(
 
 @router.post("/{expense_id}/delete", response_class=RedirectResponse)
 async def delete_expense(
+    request: Request,
     expense_id: int,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
 ):
-    obj = await get_expense(db, expense_id)
+    obj = await get_expense(db, expense_id, current_user.id)
     if obj:
         await delete_expense_service(db, obj)
     return RedirectResponse(

@@ -11,26 +11,39 @@ from app.models.plot import Plot
 from app.utils import campaign_year, distribute_unassigned_expenses
 
 
-async def list_plots(db: AsyncSession) -> list[Plot]:
-    result = await db.execute(select(Plot).order_by(Plot.name))
+async def list_plots(db: AsyncSession, user_id: int) -> list[Plot]:
+    result = await db.execute(
+        select(Plot).where(Plot.user_id == user_id).order_by(Plot.name)
+    )
     return result.scalars().all()
 
 
-async def get_expense(db: AsyncSession, expense_id: int) -> Optional[Expense]:
-    result = await db.execute(select(Expense).where(Expense.id == expense_id))
+async def get_expense(
+    db: AsyncSession, expense_id: int, user_id: int
+) -> Optional[Expense]:
+    result = await db.execute(
+        select(Expense).where(Expense.id == expense_id, Expense.user_id == user_id)
+    )
     return result.scalar_one_or_none()
 
 
 async def get_expenses_list_context(
     db: AsyncSession,
     year: Optional[int],
+    user_id: int,
     category: Optional[str] = None,
     person: Optional[str] = None,
 ) -> dict:
-    result = await db.execute(select(Expense).order_by(Expense.date.desc()))
+    result = await db.execute(
+        select(Expense)
+        .where(Expense.user_id == user_id)
+        .order_by(Expense.date.desc())
+    )
     all_expenses = result.scalars().all()
 
-    plots_result = await db.execute(select(Plot).order_by(Plot.name))
+    plots_result = await db.execute(
+        select(Plot).where(Plot.user_id == user_id).order_by(Plot.name)
+    )
     all_plots = plots_result.scalars().all()
 
     years = sorted(set(campaign_year(e.date) for e in all_expenses), reverse=True)
@@ -94,6 +107,7 @@ async def get_expenses_list_context(
 async def create_expense(
     db: AsyncSession,
     *,
+    user_id: int,
     date: datetime.date,
     description: str,
     person: str,
@@ -102,6 +116,7 @@ async def create_expense(
     category: Optional[str] = None,
 ) -> Expense:
     new_expense = Expense(
+        user_id=user_id,
         date=date,
         description=description,
         person=person,
