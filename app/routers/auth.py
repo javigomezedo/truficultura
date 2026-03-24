@@ -49,24 +49,33 @@ async def login_post(
     result = await db.execute(select(User).where(User.username == username))
     user = result.scalar_one_or_none()
 
-    if (
-        user is None
-        or not user.is_active
-        or not verify_password(password, user.hashed_password)
-    ):
-        return templates.TemplateResponse(
-            "auth/login.html",
-            {"request": request, "error": "Usuario o contraseña incorrectos."},
-            status_code=401,
-        )
+    # Check if user exists and password is correct
+    if user is not None and verify_password(password, user.hashed_password):
+        # User exists and password is correct, but check if active
+        if not user.is_active:
+            return templates.TemplateResponse(
+                "auth/login.html",
+                {
+                    "request": request,
+                    "error": "Este usuario ha sido desactivado. Por favor, contacta con el administrador si necesitas reactivar tu cuenta.",
+                },
+                status_code=401,
+            )
+        # User is active, proceed with login
+        request.session["user_id"] = user.id
+        request.session["username"] = user.username
+        request.session["role"] = user.role
+        request.session["first_name"] = user.first_name
+        request.session["last_name"] = user.last_name
+        request.session["email"] = user.email
+        return RedirectResponse("/", status_code=303)
 
-    request.session["user_id"] = user.id
-    request.session["username"] = user.username
-    request.session["role"] = user.role
-    request.session["first_name"] = user.first_name
-    request.session["last_name"] = user.last_name
-    request.session["email"] = user.email
-    return RedirectResponse("/", status_code=303)
+    # Either user doesn't exist or password is wrong
+    return templates.TemplateResponse(
+        "auth/login.html",
+        {"request": request, "error": "Usuario o contraseña incorrectos."},
+        status_code=401,
+    )
 
 
 @router.get("/register", response_class=HTMLResponse)

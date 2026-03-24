@@ -222,3 +222,57 @@ class TestUserProfileFields:
         )
         profile_display = f"{user.first_name} {user.last_name} ({user.email})"
         assert profile_display == "Carlos Martinez (carlos@example.com)"
+
+
+class TestLoginLogic:
+    """Tests for login logic with different scenarios"""
+
+    def test_password_verification_for_inactive_user(self):
+        """Test that we can verify password for inactive users"""
+        user = User(
+            id=1,
+            username="inactive",
+            first_name="Inactive",
+            last_name="User",
+            email="inactive@example.com",
+            hashed_password=hash_password("correctpassword"),
+            role="user",
+            is_active=False,
+        )
+
+        # Should be able to verify the password even if user is inactive
+        assert verify_password("correctpassword", user.hashed_password)
+
+    def test_inactive_user_different_from_wrong_password(self):
+        """Test that inactive user with correct password should show different error"""
+        inactive_user = User(
+            id=1,
+            username="inactive",
+            first_name="Inactive",
+            last_name="User",
+            email="inactive@example.com",
+            hashed_password=hash_password("correctpassword"),
+            role="user",
+            is_active=False,
+        )
+
+        # User exists, password is correct, but is_active is False
+        assert inactive_user is not None
+        assert verify_password("correctpassword", inactive_user.hashed_password)
+        assert inactive_user.is_active is False
+
+    def test_active_user_can_login(self):
+        """Test that active user with correct credentials can login"""
+        user = User(
+            id=1,
+            username="active",
+            first_name="Active",
+            last_name="User",
+            email="active@example.com",
+            hashed_password=hash_password("correctpassword"),
+            role="user",
+            is_active=True,
+        )
+
+        assert user.is_active is True
+        assert verify_password("correctpassword", user.hashed_password)

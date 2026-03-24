@@ -9,7 +9,7 @@
             <h1 class="h3 mb-0">
                 <i class="bi bi-arrow-down-circle-fill text-danger me-2"></i>{{ _("Gastos") }}
             </h1>
-            <p class="text-muted mb-0">{{ expenses|length }} {{ _("gasto(s) registrado(s)") }}{% if selected_year %} {{ _("en campaña") }} {{ selected_year|campaign_label }}{% endif %}</p>
+            <p class="text-muted mb-0">{{ expenses|length }} {{ _("gasto(s) registrado(s)") }}{% if selected_year %} {{ _("en campaña") }} {{ selected_year|campaign_label }} <small class="text-nowrap">({{ selected_year|campaign_months }})</small>{% endif %}</p>
         </div>
         <a href="/expenses/new" class="btn btn-danger">
             <i class="bi bi-plus-circle me-1"></i> {{ _("Nuevo Gasto") }}
@@ -19,7 +19,7 @@
     {% if breakdown %}
     <!-- Desglose por bancal -->
     <h6 class="text-uppercase text-muted fw-semibold mb-2 small">
-        <i class="bi bi-pie-chart me-1"></i>{{ _("Desglose por bancal") }}{% if selected_year %} &mdash; {{ _("Campaña") }} {{ selected_year|campaign_label }}{% endif %}
+        <i class="bi bi-pie-chart me-1"></i>{{ _("Desglose por bancal") }}{% if selected_year %} &mdash; {{ _("Campaña") }} {{ selected_year|campaign_label }} <small class="text-nowrap">({{ selected_year|campaign_months }})</small>{% endif %}
     </h6>
     <div class="card shadow-sm mb-4">
         <div class="card-body p-0">
@@ -131,7 +131,7 @@
                             <th class="text-center">{{ _("Acciones") }}</th>
                         </tr>
                         <tr class="table-warning fw-bold">
-                            <td colspan="5" class="text-end">{{ _("TOTAL") }}{% if selected_year %} {{ selected_year|campaign_label }}{% endif %}:</td>
+                            <td colspan="5" class="text-end">{{ _("TOTAL") }}{% if selected_year %} {{ selected_year|campaign_label }} <small class="text-nowrap">({{ selected_year|campaign_months }})</small>{% endif %}:</td>
                             <td class="text-end text-danger fs-6">{{ "%.2f"|format(total) }} &euro;</td>
                             <td></td>
                         </tr>

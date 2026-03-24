@@ -12,6 +12,13 @@ def campaign_label(year: int) -> str:
     return f"{year}/{str(year + 1)[-2:]}"
 
 
+def campaign_months(year: int) -> str:
+    """Return the month range for a campaign. E.g.: 2022 -> 'Abril 2022 - Marzo 2023'."""
+    start_month = "Abril"
+    end_month = "Marzo"
+    return f"{start_month} {year} - {end_month} {year + 1}"
+
+
 def distribute_unassigned_expenses(
     expenses_by_cy_plot: dict,
     plots: list,
