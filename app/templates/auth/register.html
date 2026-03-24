@@ -41,9 +41,24 @@
 
                 <form method="post" action="/register">
                     <div class="mb-3">
+                        <label for="first_name" class="form-label fw-semibold">Nombre</label>
+                        <input type="text" class="form-control" id="first_name" name="first_name"
+                               autofocus required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="last_name" class="form-label fw-semibold">Apellidos</label>
+                        <input type="text" class="form-control" id="last_name" name="last_name"
+                               required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label fw-semibold">Email</label>
+                        <input type="email" class="form-control" id="email" name="email"
+                               required>
+                    </div>
+                    <div class="mb-3">
                         <label for="username" class="form-label fw-semibold">Nombre de usuario</label>
                         <input type="text" class="form-control" id="username" name="username"
-                               autocomplete="username" autofocus required>
+                               autocomplete="username" required>
                     </div>
                     <div class="mb-3">
                         <label for="password" class="form-label fw-semibold">Contraseña</label>

@@ -59,7 +59,8 @@ class TestRequireAdmin:
         request.session = {"user_id": 1}
 
         admin_user = User(
-            id=1, username="admin", hashed_password="hash", role="admin", is_active=True
+            id=1, username="admin", first_name="Admin", last_name="User",
+            email="admin@example.com", hashed_password="hash", role="admin", is_active=True
         )
 
         db = MagicMock()
@@ -83,7 +84,8 @@ class TestRequireAdmin:
         request.session = {"user_id": 2}
 
         user = User(
-            id=2, username="user", hashed_password="hash", role="user", is_active=True
+            id=2, username="user", first_name="Regular", last_name="User",
+            email="user@example.com", hashed_password="hash", role="user", is_active=True
         )
 
         db = MagicMock()
@@ -122,6 +124,9 @@ class TestRequireAdmin:
         inactive_user = User(
             id=3,
             username="inactive",
+            first_name="Inactive",
+            last_name="User",
+            email="inactive@example.com",
             hashed_password="hash",
             role="admin",
             is_active=False,
@@ -146,24 +151,28 @@ class TestUserModel:
 
     def test_user_accepts_role_parameter(self):
         """Test that User accepts role parameter"""
-        user = User(id=1, username="test", hashed_password="hash", role="user")
+        user = User(id=1, username="test", first_name="Test", last_name="User",
+                    email="test@example.com", hashed_password="hash", role="user")
 
         assert user.role == "user"
 
     def test_user_accepts_is_active_parameter(self):
         """Test that User accepts is_active parameter"""
-        user = User(id=1, username="test", hashed_password="hash", is_active=True)
+        user = User(id=1, username="test", first_name="Test", last_name="User",
+                    email="test@example.com", hashed_password="hash", is_active=True)
 
         assert user.is_active is True
 
     def test_user_can_have_admin_role(self):
         """Test that users can have 'admin' role"""
-        user = User(id=1, username="admin", hashed_password="hash", role="admin")
+        user = User(id=1, username="admin", first_name="Admin", last_name="User",
+                    email="admin@example.com", hashed_password="hash", role="admin")
 
         assert user.role == "admin"
 
     def test_user_can_be_deactivated(self):
         """Test that users can be deactivated"""
-        user = User(id=1, username="inactive", hashed_password="hash", is_active=False)
+        user = User(id=1, username="inactive", first_name="Inactive", last_name="User",
+                    email="inactive@example.com", hashed_password="hash", is_active=False)
 
         assert user.is_active is False

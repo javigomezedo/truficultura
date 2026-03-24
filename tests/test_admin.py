@@ -32,6 +32,9 @@ async def test_soft_delete_preserves_user_data(tmp_path: Path) -> None:
             # Create a user with associated data
             user = User(
                 username="user_to_deactivate",
+                first_name="Test",
+                last_name="User",
+                email="test@example.com",
                 hashed_password=hash_password("password123"),
                 role="user",
                 is_active=True,
@@ -87,6 +90,9 @@ async def test_user_role_change(tmp_path: Path) -> None:
             # Create a regular user
             user = User(
                 username="future_admin",
+                first_name="Future",
+                last_name="Admin",
+                email="futadmin@example.com",
                 hashed_password=hash_password("password123"),
                 role="user",
                 is_active=True,
@@ -120,6 +126,9 @@ async def test_first_user_is_admin(tmp_path: Path) -> None:
             # Create first user (should be admin)
             user1 = User(
                 username="first_user",
+                first_name="First",
+                last_name="User",
+                email="first@example.com",
                 hashed_password=hash_password("password123"),
                 role="admin",
                 is_active=True,
@@ -130,6 +139,9 @@ async def test_first_user_is_admin(tmp_path: Path) -> None:
             # Create second user (should be regular user)
             user2 = User(
                 username="second_user",
+                first_name="Second",
+                last_name="User",
+                email="second@example.com",
                 hashed_password=hash_password("password123"),
                 role="user",
                 is_active=True,
@@ -161,6 +173,9 @@ async def test_inactive_user_cannot_login(tmp_path: Path) -> None:
             # Create an inactive user
             user = User(
                 username="inactive_user",
+                first_name="Inactive",
+                last_name="User",
+                email="inactive@example.com",
                 hashed_password=hash_password("mypassword"),
                 role="user",
                 is_active=False,
@@ -196,6 +211,9 @@ async def test_admin_can_manage_multiple_users(tmp_path: Path) -> None:
             # Create admin user
             admin = User(
                 username="admin_user",
+                first_name="Admin",
+                last_name="User",
+                email="admin@example.com",
                 hashed_password=hash_password("admin123"),
                 role="admin",
                 is_active=True,
@@ -207,6 +225,9 @@ async def test_admin_can_manage_multiple_users(tmp_path: Path) -> None:
             for i in range(3):
                 user = User(
                     username=f"user_{i}",
+                    first_name=f"User{i}",
+                    last_name="Test",
+                    email=f"user{i}@example.com",
                     hashed_password=hash_password(f"password{i}"),
                     role="user",
                     is_active=True,

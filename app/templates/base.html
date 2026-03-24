@@ -133,7 +133,7 @@
                 {% if request.session.get("username") %}
                 <div class="d-flex align-items-center gap-2">
                     <span class="navbar-text text-light small">
-                        <i class="bi bi-person-circle me-1"></i>{{ request.session.get("username") }}
+                        <i class="bi bi-person-circle me-1"></i>{{ request.session.get("first_name") }} {{ request.session.get("last_name") }} ({{ request.session.get("email") }})
                     </span>
                     <form action="/logout" method="post" class="d-inline m-0">
                         <button type="submit" class="btn btn-outline-light btn-sm">

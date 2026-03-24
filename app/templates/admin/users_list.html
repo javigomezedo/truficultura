@@ -28,6 +28,8 @@
                 <thead class="table-light">
                     <tr>
                         <th>Usuario</th>
+                        <th>Nombre</th>
+                        <th>Email</th>
                         <th>Rol</th>
                         <th>Estado</th>
                         <th>Creado</th>
@@ -42,6 +44,12 @@
                             {% if user.id == current_user.id %}
                             <span class="badge bg-info ms-2">Tú</span>
                             {% endif %}
+                        </td>
+                        <td>
+                            <small>{{ user.first_name }} {{ user.last_name }}</small>
+                        </td>
+                        <td>
+                            <small class="text-muted">{{ user.email }}</small>
                         </td>
                         <td>
                             {% if user.role == "admin" %}

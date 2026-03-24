@@ -1,20 +1,28 @@
 from __future__ import annotations
 
+import re
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import hash_password, verify_password
 from app.database import get_db
+from app.jinja import templates
 from app.models.expense import Expense
 from app.models.income import Income
 from app.models.plot import Plot
 from app.models.user import User
 
 router = APIRouter(tags=["auth"])
-templates = Jinja2Templates(directory="app/templates")
+
+# Email validation pattern
+EMAIL_PATTERN = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+
+
+def is_valid_email(email: str) -> bool:
+    """Validate email format"""
+    return re.match(EMAIL_PATTERN, email) is not None
 
 
 async def _user_count(db: AsyncSession) -> int:
@@ -55,6 +63,9 @@ async def login_post(
     request.session["user_id"] = user.id
     request.session["username"] = user.username
     request.session["role"] = user.role
+    request.session["first_name"] = user.first_name
+    request.session["last_name"] = user.last_name
+    request.session["email"] = user.email
     return RedirectResponse("/", status_code=303)
 
 
@@ -71,11 +82,38 @@ async def register_page(request: Request):
 async def register_post(
     request: Request,
     username: str = Form(...),
+    first_name: str = Form(...),
+    last_name: str = Form(...),
+    email: str = Form(...),
     password: str = Form(...),
     password_confirm: str = Form(...),
     db: AsyncSession = Depends(get_db),
 ):
     count = await _user_count(db)
+
+    # Validate email format
+    email = email.strip().lower()
+    if not is_valid_email(email):
+        return templates.TemplateResponse(
+            "auth/register.html",
+            {
+                "request": request,
+                "error": "El email no tiene un formato válido.",
+            },
+            status_code=400,
+        )
+
+    # Check if email already exists
+    result = await db.execute(select(User).where(User.email == email))
+    if result.scalar_one_or_none():
+        return templates.TemplateResponse(
+            "auth/register.html",
+            {
+                "request": request,
+                "error": "Este email ya está registrado.",
+            },
+            status_code=400,
+        )
 
     password = password.strip()
     password_confirm = password_confirm.strip()
@@ -109,6 +147,9 @@ async def register_post(
 
     new_user = User(
         username=username,
+        first_name=first_name.strip(),
+        last_name=last_name.strip(),
+        email=email,
         hashed_password=hash_password(password),
         role="admin" if count == 0 else "user",
     )

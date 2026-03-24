@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import select
@@ -11,6 +12,14 @@ from app.jinja import templates
 from app.models.user import User
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+# Email validation pattern
+EMAIL_PATTERN = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+
+
+def is_valid_email(email: str) -> bool:
+    """Validate email format"""
+    return re.match(EMAIL_PATTERN, email) is not None
 
 
 @router.get("/users", response_class=HTMLResponse)
@@ -42,12 +51,28 @@ async def create_user_page(
 async def create_user(
     request: Request,
     username: str = Form(...),
+    first_name: str = Form(...),
+    last_name: str = Form(...),
+    email: str = Form(...),
     password: str = Form(...),
     role: str = Form(default="user"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
     password = password.strip()
+    email = email.strip().lower()
+
+    # Validate email format
+    if not is_valid_email(email):
+        return templates.TemplateResponse(
+            "admin/user_create.html",
+            {
+                "request": request,
+                "error": "El email no tiene un formato válido.",
+                "current_user": current_user,
+            },
+            status_code=400,
+        )
 
     # Check if username already exists
     result = await db.execute(select(User).where(User.username == username))
@@ -63,12 +88,28 @@ async def create_user(
             status_code=400,
         )
 
+    # Check if email already exists
+    result = await db.execute(select(User).where(User.email == email))
+    if result.scalar_one_or_none():
+        return templates.TemplateResponse(
+            "admin/user_create.html",
+            {
+                "request": request,
+                "error": "Este email ya está registrado.",
+                "current_user": current_user,
+            },
+            status_code=400,
+        )
+
     # Validate role
     if role not in ["user", "admin"]:
         role = "user"
 
     new_user = User(
         username=username,
+        first_name=first_name.strip(),
+        last_name=last_name.strip(),
+        email=email,
         hashed_password=hash_password(password),
         role=role,
         is_active=True,
@@ -103,6 +144,9 @@ async def update_user(
     user_id: int,
     request: Request,
     username: str = Form(...),
+    first_name: str = Form(...),
+    last_name: str = Form(...),
+    email: str = Form(...),
     role: str = Form(...),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_admin),
@@ -129,11 +173,44 @@ async def update_user(
                 status_code=400,
             )
 
+    # Validate email format
+    email = email.strip().lower()
+    if not is_valid_email(email):
+        return templates.TemplateResponse(
+            "admin/user_edit.html",
+            {
+                "request": request,
+                "user": user,
+                "error": "El email no tiene un formato válido.",
+                "current_user": current_user,
+            },
+            status_code=400,
+        )
+
+    # Check if email is taken by another user
+    if email != user.email:
+        result = await db.execute(select(User).where(User.email == email))
+        existing = result.scalar_one_or_none()
+        if existing:
+            return templates.TemplateResponse(
+                "admin/user_edit.html",
+                {
+                    "request": request,
+                    "user": user,
+                    "error": "Este email ya está registrado.",
+                    "current_user": current_user,
+                },
+                status_code=400,
+            )
+
     # Validate role
     if role not in ["user", "admin"]:
         role = "user"
 
     user.username = username
+    user.first_name = first_name.strip()
+    user.last_name = last_name.strip()
+    user.email = email
     user.role = role
     await db.commit()
 
