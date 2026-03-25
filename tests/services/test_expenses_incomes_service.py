@@ -95,11 +95,12 @@ async def test_create_update_delete_expense() -> None:
         person="Javi",
         plot_id=None,
         amount=75.0,
+        user_id=1,
     )
     assert expense.plot_id is None
     assert expense.amount == 75.0
 
-    await delete_expense(db, expense)
+    await delete_expense(db, expense, user_id=1)
     db.delete.assert_awaited_once_with(expense)
 
 
@@ -128,11 +129,12 @@ async def test_create_update_delete_income() -> None:
         amount_kg=4.0,
         category="B",
         euros_per_kg=80.0,
+        user_id=1,
     )
     assert income.total == 320.0
     assert income.plot_id is None
 
-    await delete_income(db, income)
+    await delete_income(db, income, user_id=1)
     db.delete.assert_awaited_once_with(income)
 
 
