@@ -284,34 +284,58 @@ uvicorn app.main:app --reload --log-level debug
 
 ## Importación de datos CSV
 
-Todos los assets de importación están en `import_data/`.
+La importación de datos se realiza directamente desde la interfaz web en `/import/`.
 
-### 1) Importar gastos históricos
+### Tipos de importación disponibles
 
-```bash
-python3 import_data/import_gastos.py
+**1) Importar Parcelas**
+
+Accede a `/import/` → Pestaña "Parcelas" → Carga un archivo CSV
+
+Formato esperado (semicolon-delimited, sin header):
+```
+nombre;fecha_plantacion;poligono;parcela;ref_catastral;hidrante;sector;n_plantas;superficie_ha;inicio_produccion
+Bancal Sur;15/03/2018;21;120;44223A021001200000FP;H-3;S2;120;1,25;01/11/2023
 ```
 
-Lee:
+Obligatorio: `nombre` y `fecha_plantacion`
+Opcional: resto de campos
 
-- `import_data/gastos_previos.csv`
+**2) Importar Gastos**
 
-### 2) Importar campaña 2025/2026 (gastos + ingresos)
+Accede a `/import/` → Pestaña "Gastos" → Carga un archivo CSV
 
-```bash
-python3 import_data/import_2025_2026.py
+Formato esperado (semicolon-delimited, sin header):
+```
+fecha;concepto;persona;bancal;cantidad;categoria
+15/11/2025;Riego por goteo;Javi;Bancal Sur;1.250,00;Riego
 ```
 
-Lee:
+Obligatorio: `fecha`, `concepto`, `persona`, `cantidad`
+Opcional: `bancal` (si está vacío, se registra como gasto general), `categoria`
 
-- `import_data/gastos_2025_2026.csv`
-- `import_data/ingresos_2025_2026.csv`
+**3) Importar Ingresos**
 
-Comportamiento del import:
+Accede a `/import/` → Pestaña "Ingresos" → Carga un archivo CSV
 
-- Fechas en formato `dd/mm/yyyy`.
-- Números en formato europeo (coma decimal).
-- Si un bancal no existe, se importa con bancal nulo y se muestra aviso.
+Formato esperado (semicolon-delimited, sin header):
+```
+fecha;bancal;kg;categoria;euros_kg
+05/12/2025;Bancal Norte;2,500;Extra;120,00
+```
+
+Obligatorio: `fecha`, `kg`, `euros_kg`
+Opcional: `bancal`, `categoria`
+
+### Comportamiento de la importación
+
+- **Fechas**: Formato `dd/mm/yyyy`
+- **Números**: Formato europeo (1.250,50 = 1250.50)
+- **Validación**: Se validan fechas y formatos; líneas inválidas se omiten con aviso
+- **Porcentajes**: Se calculan automáticamente después de importar parcelas
+- **Avisos**: Si un bancal no existe en ingresos/gastos, se importa sin asignar y se muestra aviso
+
+La importación NO requiere ejecutar scripts; todo se hace desde el UI con feedback visual inmediato.
 
 ## Migraciones en desarrollo
 
@@ -345,9 +369,6 @@ alembic downgrade -1
 ```bash
 # Verificar que la app levanta
 curl -I http://localhost:8000
-
-# Comprobar sintaxis de scripts de importación
-python3 -m py_compile import_data/import_gastos.py import_data/import_2025_2026.py
 
 # Ejecutar pruebas unitarias de servicios
 .venv/bin/python -m pytest -q tests/services
