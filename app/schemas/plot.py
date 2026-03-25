@@ -11,7 +11,7 @@ class PlotBase(BaseModel):
     cadastral_ref: str = ""
     hydrant: str = ""
     sector: str = ""
-    num_holm_oaks: int = 0
+    num_plants: int = 0
     planting_date: datetime.date
     area_ha: Optional[float] = None
     production_start: Optional[datetime.date] = None
@@ -29,7 +29,7 @@ class PlotUpdate(BaseModel):
     cadastral_ref: Optional[str] = None
     hydrant: Optional[str] = None
     sector: Optional[str] = None
-    num_holm_oaks: Optional[int] = None
+    num_plants: Optional[int] = None
     planting_date: Optional[datetime.date] = None
     area_ha: Optional[float] = None
     production_start: Optional[datetime.date] = None

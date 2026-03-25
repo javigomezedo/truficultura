@@ -28,7 +28,7 @@
                             <th>{{ _("Ref. Catastral") }}</th>
                             <th>{{ _("Hidrante") }}</th>
                             <th>{{ _("Sector") }}</th>
-                            <th class="text-end">{{ _("N° Carrascas") }}</th>
+                            <th class="text-end">{{ _("N° Plantas") }}</th>
                             <th>{{ _("F. Plantación") }}</th>
                             <th class="text-end">{{ _("Sup. (Ha)") }}</th>
                             <th>{{ _("Inicio Prod.") }}</th>
@@ -44,11 +44,11 @@
                             <td><small class="text-monospace">{{ p.cadastral_ref }}</small></td>
                             <td>{{ p.hydrant }}</td>
                             <td>{{ p.sector }}</td>
-                            <td class="text-end">{{ p.num_holm_oaks }}</td>
+                            <td class="text-end">{{ p.num_plants }}</td>
                             <td>{{ p.planting_date.strftime('%d/%m/%Y') }}</td>
                             <td class="text-end">{{ "%.4f"|format(p.area_ha) if p.area_ha is not none else '—' }}</td>
                             <td>{{ p.production_start.strftime('%d/%m/%Y') if p.production_start else '—' }}</td>
-                            <td class="text-end">{{ "%.1f"|format(p.percentage) }}%</td>
+                            <td class="text-end">{{ "%.2f"|format(p.percentage) }}%</td>
                             <td class="text-center">
                                 <div class="btn-group btn-group-sm" role="group">
                                     <a href="/plots/{{ p.id }}/edit"

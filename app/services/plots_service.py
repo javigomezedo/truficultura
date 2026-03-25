@@ -24,22 +24,22 @@ async def get_plot(db: AsyncSession, plot_id: int, user_id: int) -> Optional[Plo
 
 
 async def _recalculate_percentages(db: AsyncSession, user_id: int) -> None:
-    """Recalculate percentages for all plots of a user based on their surface area."""
+    """Recalculate percentages for all plots of a user based on their plant count."""
     result = await db.execute(select(Plot).where(Plot.user_id == user_id))
     plots = result.scalars().all()
 
-    # Calculate total area from plots that have area_ha defined
-    total_area = sum(p.area_ha or 0 for p in plots)
+    # Calculate total plants from all plots
+    total_plants = sum(p.num_plants or 0 for p in plots)
 
-    # If no area defined, leave all percentages at 0
-    if total_area == 0:
+    # If no plants defined, leave all percentages at 0
+    if total_plants == 0:
         for plot in plots:
             plot.percentage = 0.0
     else:
         # Calculate percentage for each plot
         for plot in plots:
-            if plot.area_ha is not None:
-                plot.percentage = (plot.area_ha / total_area) * 100
+            if plot.num_plants is not None and plot.num_plants > 0:
+                plot.percentage = (plot.num_plants / total_plants) * 100
             else:
                 plot.percentage = 0.0
 
@@ -56,7 +56,7 @@ async def create_plot(
     cadastral_ref: str,
     hydrant: str,
     sector: str,
-    num_holm_oaks: int,
+    num_plants: int,
     planting_date: datetime.date,
     area_ha: Optional[float],
     production_start: Optional[datetime.date],
@@ -69,7 +69,7 @@ async def create_plot(
         cadastral_ref=cadastral_ref,
         hydrant=hydrant,
         sector=sector,
-        num_holm_oaks=num_holm_oaks,
+        num_plants=num_plants,
         planting_date=planting_date,
         area_ha=area_ha,
         production_start=production_start,
@@ -94,7 +94,7 @@ async def update_plot(
     cadastral_ref: str,
     hydrant: str,
     sector: str,
-    num_holm_oaks: int,
+    num_plants: int,
     planting_date: datetime.date,
     area_ha: Optional[float],
     production_start: Optional[datetime.date],
@@ -105,7 +105,7 @@ async def update_plot(
     plot.cadastral_ref = cadastral_ref
     plot.hydrant = hydrant
     plot.sector = sector
-    plot.num_holm_oaks = num_holm_oaks
+    plot.num_plants = num_plants
     plot.planting_date = planting_date
     plot.area_ha = area_ha
     plot.production_start = production_start

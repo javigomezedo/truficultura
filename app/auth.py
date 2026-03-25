@@ -29,7 +29,14 @@ async def get_current_user(
     if not user_id:
         return None
     result = await db.execute(select(User).where(User.id == user_id))
-    return result.scalar_one_or_none()
+    user = result.scalar_one_or_none()
+
+    # If user doesn't exist in database but session has user_id, clear the session
+    # This prevents redirect loops when database is cleaned
+    if user is None and user_id is not None:
+        request.session.clear()
+
+    return user
 
 
 class NotAuthenticatedException(Exception):

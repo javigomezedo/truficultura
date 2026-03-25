@@ -165,7 +165,7 @@ async def import_plots_csv(
     """Parse plots CSV and persist rows.
 
     Expected format (semicolon-delimited, no header, min 2 columns):
-        nombre;fecha_plantacion[;poligono;parcela;ref_catastral;hidrante;sector;n_carrascas;superficie_ha;inicio_produccion]
+        nombre;fecha_plantacion[;poligono;parcela;ref_catastral;hidrante;sector;n_plantas;superficie_ha;inicio_produccion]
 
     - nombre:            plot name (required)
     - fecha_plantacion:  planting date DD/MM/YYYY (required)
@@ -174,11 +174,11 @@ async def import_plots_csv(
     - ref_catastral:     official cadastral reference (optional)
     - hidrante:          hydrant identifier (optional)
     - sector:            sector (optional)
-    - n_carrascas:       number of holm oaks (optional, integer)
+    - n_plantas:         number of plants (optional, integer)
     - superficie_ha:     area in hectares (optional, decimal)
     - inicio_produccion: production start date DD/MM/YYYY (optional)
 
-    Note: Percentage is automatically calculated based on total surface area.
+    Note: Percentage is automatically calculated based on total plant count.
     """
     rows: list[Plot] = []
     warnings: list[str] = []
@@ -206,7 +206,7 @@ async def import_plots_csv(
                 cadastral_ref=col(4),
                 hydrant=col(5),
                 sector=col(6),
-                num_holm_oaks=_parse_int(col(7)),
+                num_plants=_parse_int(col(7)),
                 area_ha=_parse_num(col(8)) or None,
                 production_start=_parse_date_opt(col(9)),
                 percentage=0.0,

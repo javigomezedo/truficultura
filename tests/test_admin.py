@@ -49,7 +49,7 @@ async def test_soft_delete_preserves_user_data(tmp_path: Path) -> None:
                 cadastral_ref="44223A021001200000FP",
                 hydrant="H1",
                 sector="S1",
-                num_holm_oaks=100,
+                num_plants=100,
                 planting_date=datetime.date(2020, 1, 1),
                 area_ha=1.0,
                 production_start=datetime.date(2023, 1, 1),

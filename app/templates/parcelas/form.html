@@ -99,14 +99,14 @@
                                placeholder="{{ _('Ej: H-03') }}">
                     </div>
 
-                    <!-- N. Carrascas -->
+                    <!-- N. Plantas -->
                     <div class="col-md-4">
-                        <label for="num_holm_oaks" class="form-label fw-semibold">{{ _("N° Carrascas") }}</label>
+                        <label for="num_plants" class="form-label fw-semibold">{{ _("N° Plantas") }}</label>
                         <input type="number"
                                class="form-control"
-                               id="num_holm_oaks"
-                               name="num_holm_oaks"
-                               value="{{ plot.num_holm_oaks if plot else 0 }}"
+                               id="num_plants"
+                               name="num_plants"
+                               value="{{ plot.num_plants if plot else 0 }}"
                                min="0"
                                step="1">
                     </div>
@@ -135,11 +135,11 @@
                                    class="form-control"
                                    id="percentage"
                                    name="percentage"
-                                   value="{{ "%.1f"|format(plot.percentage) if plot else '0.0' }}"
+                                   value="{{ "%.2f"|format(plot.percentage) if plot else '0.00' }}"
                                    readonly>
                             <span class="input-group-text">%</span>
                         </div>
-                        <div class="form-text small text-muted mt-1">{{ _("Se calcula automáticamente según la superficie") }}</div>
+                        <div class="form-text small text-muted mt-1">{{ _("Se calcula automáticamente según el número de plantas") }}</div>
                     </div>
 
                     <!-- Fecha Plantación -->
