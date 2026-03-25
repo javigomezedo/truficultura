@@ -49,9 +49,11 @@ async def test_create_update_delete_plot() -> None:
     db = MagicMock()
     db.flush = AsyncMock()
     db.delete = AsyncMock()
+    db.execute = AsyncMock(return_value=result([]))
 
     created = await create_plot(
         db,
+        user_id=1,
         name="Bancal Sur",
         polygon="5",
         cadastral_ref="42",
@@ -61,8 +63,6 @@ async def test_create_update_delete_plot() -> None:
         planting_date=datetime.date(2021, 2, 3),
         area_ha=1.5,
         production_start=datetime.date(2024, 1, 1),
-        percentage=40.0,
-        user_id=1,
     )
 
     db.add.assert_called_once()
@@ -82,12 +82,10 @@ async def test_create_update_delete_plot() -> None:
         planting_date=datetime.date(2021, 3, 3),
         area_ha=1.8,
         production_start=datetime.date(2024, 2, 1),
-        percentage=45.0,
     )
 
     assert updated.name == "Bancal Sur 2"
     assert updated.cadastral_ref == "43"
-    assert updated.percentage == 45.0
 
     await delete_plot(db, created)
     db.delete.assert_awaited_once_with(created)

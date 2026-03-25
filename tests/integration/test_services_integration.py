@@ -36,6 +36,7 @@ async def test_services_crud_flow_with_real_db(tmp_path: Path) -> None:
         async with session_maker() as db:
             plot = await create_plot(
                 db,
+                user_id=1,
                 name="Bancal Test",
                 polygon="1",
                 cadastral_ref="10",
@@ -45,8 +46,6 @@ async def test_services_crud_flow_with_real_db(tmp_path: Path) -> None:
                 planting_date=datetime.date(2021, 1, 1),
                 area_ha=2.0,
                 production_start=datetime.date(2024, 1, 1),
-                percentage=100.0,
-                user_id=1,
             )
             await db.commit()
 
@@ -98,6 +97,7 @@ async def test_dashboard_and_reports_context_with_real_db(tmp_path: Path) -> Non
         async with session_maker() as db:
             p1 = await create_plot(
                 db,
+                user_id=1,
                 name="P1",
                 polygon="1",
                 cadastral_ref="1",
@@ -107,11 +107,10 @@ async def test_dashboard_and_reports_context_with_real_db(tmp_path: Path) -> Non
                 planting_date=datetime.date(2020, 1, 1),
                 area_ha=1.0,
                 production_start=datetime.date(2023, 1, 1),
-                percentage=60.0,
-                user_id=1,
             )
             p2 = await create_plot(
                 db,
+                user_id=1,
                 name="P2",
                 polygon="2",
                 cadastral_ref="2",
@@ -121,8 +120,6 @@ async def test_dashboard_and_reports_context_with_real_db(tmp_path: Path) -> Non
                 planting_date=datetime.date(2020, 1, 1),
                 area_ha=1.0,
                 production_start=datetime.date(2023, 1, 1),
-                percentage=40.0,
-                user_id=1,
             )
 
             await create_expense(
@@ -188,6 +185,7 @@ async def test_charts_context_with_real_db(tmp_path: Path) -> None:
         async with session_maker() as db:
             plot = await create_plot(
                 db,
+                user_id=1,
                 name="PG",
                 polygon="1",
                 cadastral_ref="1",
@@ -197,8 +195,6 @@ async def test_charts_context_with_real_db(tmp_path: Path) -> None:
                 planting_date=datetime.date(2020, 1, 1),
                 area_ha=2.0,
                 production_start=datetime.date(2023, 1, 1),
-                percentage=100.0,
-                user_id=1,
             )
             await create_expense(
                 db,

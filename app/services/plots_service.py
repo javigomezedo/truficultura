@@ -23,6 +23,29 @@ async def get_plot(db: AsyncSession, plot_id: int, user_id: int) -> Optional[Plo
     return result.scalar_one_or_none()
 
 
+async def _recalculate_percentages(db: AsyncSession, user_id: int) -> None:
+    """Recalculate percentages for all plots of a user based on their surface area."""
+    result = await db.execute(select(Plot).where(Plot.user_id == user_id))
+    plots = result.scalars().all()
+
+    # Calculate total area from plots that have area_ha defined
+    total_area = sum(p.area_ha or 0 for p in plots)
+
+    # If no area defined, leave all percentages at 0
+    if total_area == 0:
+        for plot in plots:
+            plot.percentage = 0.0
+    else:
+        # Calculate percentage for each plot
+        for plot in plots:
+            if plot.area_ha is not None:
+                plot.percentage = (plot.area_ha / total_area) * 100
+            else:
+                plot.percentage = 0.0
+
+    await db.flush()
+
+
 async def create_plot(
     db: AsyncSession,
     *,
@@ -36,7 +59,6 @@ async def create_plot(
     planting_date: datetime.date,
     area_ha: Optional[float],
     production_start: Optional[datetime.date],
-    percentage: float,
 ) -> Plot:
     new_plot = Plot(
         user_id=user_id,
@@ -49,10 +71,14 @@ async def create_plot(
         planting_date=planting_date,
         area_ha=area_ha,
         production_start=production_start,
-        percentage=percentage,
+        percentage=0.0,
     )
     db.add(new_plot)
     await db.flush()
+
+    # Recalculate all percentages for this user
+    await _recalculate_percentages(db, user_id)
+
     return new_plot
 
 
@@ -69,7 +95,6 @@ async def update_plot(
     planting_date: datetime.date,
     area_ha: Optional[float],
     production_start: Optional[datetime.date],
-    percentage: float,
 ) -> Plot:
     plot.name = name
     plot.polygon = polygon
@@ -80,11 +105,19 @@ async def update_plot(
     plot.planting_date = planting_date
     plot.area_ha = area_ha
     plot.production_start = production_start
-    plot.percentage = percentage
     await db.flush()
+
+    # Recalculate all percentages for this user
+    await _recalculate_percentages(db, plot.user_id)
+
     return plot
 
 
 async def delete_plot(db: AsyncSession, plot: Plot) -> None:
+    user_id = plot.user_id
     await db.delete(plot)
     await db.flush()
+
+    # Recalculate percentages for remaining plots
+    if user_id:
+        await _recalculate_percentages(db, user_id)

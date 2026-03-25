@@ -165,7 +165,7 @@ async def import_plots_csv(
     """Parse plots CSV and persist rows.
 
     Expected format (semicolon-delimited, no header, min 2 columns):
-        nombre;fecha_plantacion[;poligono;ref_catastral;hidrante;sector;n_carrascas;superficie_ha;inicio_produccion;porcentaje]
+        nombre;fecha_plantacion[;poligono;ref_catastral;hidrante;sector;n_carrascas;superficie_ha;inicio_produccion]
 
     - nombre:            plot name (required)
     - fecha_plantacion:  planting date DD/MM/YYYY (required)
@@ -176,7 +176,8 @@ async def import_plots_csv(
     - n_carrascas:       number of holm oaks (optional, integer)
     - superficie_ha:     area in hectares (optional, decimal)
     - inicio_produccion: production start date DD/MM/YYYY (optional)
-    - porcentaje:        cost-share percentage (optional, decimal)
+
+    Note: Percentage is automatically calculated based on total surface area.
     """
     rows: list[Plot] = []
     warnings: list[str] = []
@@ -206,11 +207,17 @@ async def import_plots_csv(
                 num_holm_oaks=_parse_int(col(6)),
                 area_ha=_parse_num(col(7)) or None,
                 production_start=_parse_date_opt(col(8)),
-                percentage=_parse_num(col(9)),
+                percentage=0.0,
             )
             rows.append(row)
         except (ValueError, KeyError) as exc:
             warnings.append(f"Línea {i}: error al parsear — {exc} — omitida")
 
     db.add_all(rows)
+
+    # Recalculate percentages after import
+    from app.services.plots_service import _recalculate_percentages
+
+    await _recalculate_percentages(db, user_id)
+
     return rows, warnings
