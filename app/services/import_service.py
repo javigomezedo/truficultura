@@ -165,12 +165,13 @@ async def import_plots_csv(
     """Parse plots CSV and persist rows.
 
     Expected format (semicolon-delimited, no header, min 2 columns):
-        nombre;fecha_plantacion[;poligono;ref_catastral;hidrante;sector;n_carrascas;superficie_ha;inicio_produccion]
+        nombre;fecha_plantacion[;poligono;parcela;ref_catastral;hidrante;sector;n_carrascas;superficie_ha;inicio_produccion]
 
     - nombre:            plot name (required)
     - fecha_plantacion:  planting date DD/MM/YYYY (required)
     - poligono:          polygon reference (optional)
-    - ref_catastral:     cadastral reference (optional)
+    - parcela:           plot number within polygon (optional)
+    - ref_catastral:     official cadastral reference (optional)
     - hidrante:          hydrant identifier (optional)
     - sector:            sector (optional)
     - n_carrascas:       number of holm oaks (optional, integer)
@@ -201,12 +202,13 @@ async def import_plots_csv(
                 name=col(0),
                 planting_date=_parse_date(col(1)),
                 polygon=col(2),
-                cadastral_ref=col(3),
-                hydrant=col(4),
-                sector=col(5),
-                num_holm_oaks=_parse_int(col(6)),
-                area_ha=_parse_num(col(7)) or None,
-                production_start=_parse_date_opt(col(8)),
+                plot_num=col(3),
+                cadastral_ref=col(4),
+                hydrant=col(5),
+                sector=col(6),
+                num_holm_oaks=_parse_int(col(7)),
+                area_ha=_parse_num(col(8)) or None,
+                production_start=_parse_date_opt(col(9)),
                 percentage=0.0,
             )
             rows.append(row)

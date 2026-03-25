@@ -56,7 +56,8 @@ async def test_create_update_delete_plot() -> None:
         user_id=1,
         name="Bancal Sur",
         polygon="5",
-        cadastral_ref="42",
+        plot_num="42",
+        cadastral_ref="44223A021001200000FP",
         hydrant="H-01",
         sector="S1",
         num_holm_oaks=120,
@@ -68,14 +69,15 @@ async def test_create_update_delete_plot() -> None:
     db.add.assert_called_once()
     db.flush.assert_awaited()
     assert created.name == "Bancal Sur"
-    assert created.cadastral_ref == "42"
+    assert created.plot_num == "42"
 
     updated = await update_plot(
         db,
         created,
         name="Bancal Sur 2",
         polygon="6",
-        cadastral_ref="43",
+        plot_num="43",
+        cadastral_ref="44223A021001200000GP",
         hydrant="H-02",
         sector="S2",
         num_holm_oaks=130,
@@ -85,7 +87,7 @@ async def test_create_update_delete_plot() -> None:
     )
 
     assert updated.name == "Bancal Sur 2"
-    assert updated.cadastral_ref == "43"
+    assert updated.plot_num == "43"
 
     await delete_plot(db, created)
     db.delete.assert_awaited_once_with(created)

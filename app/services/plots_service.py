@@ -52,6 +52,7 @@ async def create_plot(
     user_id: int,
     name: str,
     polygon: str,
+    plot_num: str,
     cadastral_ref: str,
     hydrant: str,
     sector: str,
@@ -64,6 +65,7 @@ async def create_plot(
         user_id=user_id,
         name=name,
         polygon=polygon,
+        plot_num=plot_num,
         cadastral_ref=cadastral_ref,
         hydrant=hydrant,
         sector=sector,
@@ -88,6 +90,7 @@ async def update_plot(
     *,
     name: str,
     polygon: str,
+    plot_num: str,
     cadastral_ref: str,
     hydrant: str,
     sector: str,
@@ -98,6 +101,7 @@ async def update_plot(
 ) -> Plot:
     plot.name = name
     plot.polygon = polygon
+    plot.plot_num = plot_num
     plot.cadastral_ref = cadastral_ref
     plot.hydrant = hydrant
     plot.sector = sector

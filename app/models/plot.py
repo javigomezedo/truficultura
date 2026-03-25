@@ -23,13 +23,16 @@ class Plot(Base):
     )
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     polygon: Mapped[str] = mapped_column(String(100), nullable=False, default="")
+    plot_num: Mapped[str] = mapped_column(String(100), nullable=False, default="")
     cadastral_ref: Mapped[str] = mapped_column(String(100), nullable=False, default="")
     hydrant: Mapped[str] = mapped_column(String(100), nullable=False, default="")
     sector: Mapped[str] = mapped_column(String(100), nullable=False, default="")
     num_holm_oaks: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     planting_date: Mapped[datetime.date] = mapped_column(Date, nullable=False)
     area_ha: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
-    production_start: Mapped[Optional[datetime.date]] = mapped_column(Date, nullable=True)
+    production_start: Mapped[Optional[datetime.date]] = mapped_column(
+        Date, nullable=True
+    )
     percentage: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
 
     # Relationships

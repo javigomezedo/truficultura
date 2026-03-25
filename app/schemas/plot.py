@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict
 class PlotBase(BaseModel):
     name: str
     polygon: str = ""
+    plot_num: str = ""
     cadastral_ref: str = ""
     hydrant: str = ""
     sector: str = ""
@@ -24,6 +25,7 @@ class PlotCreate(PlotBase):
 class PlotUpdate(BaseModel):
     name: Optional[str] = None
     polygon: Optional[str] = None
+    plot_num: Optional[str] = None
     cadastral_ref: Optional[str] = None
     hydrant: Optional[str] = None
     sector: Optional[str] = None

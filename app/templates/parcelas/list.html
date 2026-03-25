@@ -24,8 +24,8 @@
                     <thead class="table-dark">
                         <tr>
                             <th>{{ _("Nombre") }}</th>
-                            <th>{{ _("Polígono") }}</th>
-                            <th>{{ _("Parcela") }}</th>
+                            <th>{{ _("Ubicación") }}</th>
+                            <th>{{ _("Ref. Catastral") }}</th>
                             <th>{{ _("Hidrante") }}</th>
                             <th>{{ _("Sector") }}</th>
                             <th class="text-end">{{ _("N° Carrascas") }}</th>
@@ -40,8 +40,8 @@
                         {% for p in plots %}
                         <tr>
                             <td class="fw-semibold">{{ p.name }}</td>
-                            <td>{{ p.polygon }}</td>
-                            <td>{{ p.cadastral_ref }}</td>
+                            <td>{{ _("Polígono") }} {{ p.polygon }}, {{ _("Parcela") }} {{ p.plot_num }}</td>
+                            <td><small class="text-monospace">{{ p.cadastral_ref }}</small></td>
                             <td>{{ p.hydrant }}</td>
                             <td>{{ p.sector }}</td>
                             <td class="text-end">{{ p.num_holm_oaks }}</td>

@@ -63,15 +63,29 @@
                                placeholder="{{ _('Ej: 5') }}">
                     </div>
 
-                    <!-- Parcela (catastro) -->
+                    <!-- Parcela (número dentro del polígono) -->
                     <div class="col-md-4">
-                        <label for="cadastral_ref" class="form-label fw-semibold">{{ _("Parcela") }}</label>
+                        <label for="plot_num" class="form-label fw-semibold">{{ _("Parcela nº") }}</label>
+                        <input type="text"
+                               class="form-control"
+                               id="plot_num"
+                               name="plot_num"
+                               value="{{ plot.plot_num if plot else '' }}"
+                               placeholder="{{ _('Ej: 120') }}">
+                        <div class="form-text small text-muted mt-1">{{ _("Número de parcela dentro del polígono") }}</div>
+                    </div>
+
+                    <!-- Referencia Catastral -->
+                    <div class="col-md-4">
+                        <label for="cadastral_ref" class="form-label fw-semibold">{{ _("Ref. Catastral") }}</label>
                         <input type="text"
                                class="form-control"
                                id="cadastral_ref"
                                name="cadastral_ref"
                                value="{{ plot.cadastral_ref if plot else '' }}"
-                               placeholder="{{ _('Ej: 42') }}">
+                               placeholder="{{ _('Ej: 44223A021001200000FP') }}"
+                               title="{{ _('Identificador único del catastro') }}">
+                        <div class="form-text small text-muted mt-1">{{ _("Identificador único del catastro") }}</div>
                     </div>
 
                     <!-- Hidrante -->
