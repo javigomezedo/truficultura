@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if record %}{{ _("Editar Riego") }}{% else %}{{ _("Nuevo Registro de Riego") }}{% endif %} &mdash; Truficultura
+{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="bi bi-droplet-fill text-primary me-2"></i>
+                {% if record %}{{ _("Editar Registro de Riego") }}{% else %}{{ _("Nuevo Registro de Riego") }}{% endif %}
+            </h1>
+        </div>
+        <a href="/irrigation/" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> {{ _("Volver al listado") }}
+        </a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form action="{{ action }}" method="post" novalidate>
+
+                <div class="row g-3">
+                    <!-- Parcela -->
+                    <div class="col-md-6">
+                        <label for="plot_id" class="form-label fw-semibold">
+                            {{ _("Parcela") }} <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select"
+                                id="plot_id"
+                                name="plot_id"
+                                required
+                                onchange="loadExpenses(this.value)">
+                            <option value="">{{ _("— Selecciona una parcela —") }}</option>
+                            {% for p in plots %}
+                            <option value="{{ p.id }}"
+                                {% if record and record.plot_id == p.id %}selected{% endif %}>
+                                {{ p.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        {% if not plots %}
+                        <div class="form-text text-warning">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            {{ _("No hay parcelas con sistema de riego activado. Actívalo en la configuración de la parcela.") }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Fecha -->
+                    <div class="col-md-3">
+                        <label for="date" class="form-label fw-semibold">
+                            {{ _("Fecha") }} <span class="text-danger">*</span>
+                        </label>
+                        <input type="date"
+                               class="form-control"
+                               id="date"
+                               name="date"
+                               value="{{ record.date.isoformat() if record else '' }}"
+                               required>
+                    </div>
+
+                    <!-- Agua (m³) -->
+                    <div class="col-md-3">
+                        <label for="water_m3" class="form-label fw-semibold">
+                            {{ _("Agua (m³)") }} <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <input type="number"
+                                   class="form-control"
+                                   id="water_m3"
+                                   name="water_m3"
+                                   value="{{ record.water_m3 if record else '' }}"
+                                   min="0"
+                                   step="0.001"
+                                   required
+                                   oninput="updateLiters(this.value)">
+                            <span class="input-group-text">m³</span>
+                        </div>
+                        <div class="form-text">
+                            <i class="bi bi-water me-1 text-info"></i>
+                            {{ _("Equivale a") }}:
+                            <span id="liters_display" class="fw-semibold text-info">
+                                {% if record %}{{ "%.1f"|format(record.water_m3 * 1000) }} L{% else %}0.0 L{% endif %}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Gasto asociado -->
+                    <div class="col-md-6">
+                        <label for="expense_id" class="form-label fw-semibold">
+                            {{ _("Gasto de Riego asociado") }}
+                            <span class="text-muted small fw-normal">{{ _("(opcional)") }}</span>
+                        </label>
+                        <select class="form-select" id="expense_id" name="expense_id">
+                            <option value="">{{ _("— Sin gasto asociado —") }}</option>
+                            {% if expenses is defined %}
+                            {% for e in expenses %}
+                            <option value="{{ e.id }}"
+                                {% if record and record.expense_id == e.id %}selected{% endif %}>
+                                {{ e.date.strftime('%d/%m/%Y') }} — {{ e.description }} ({{ "%.2f"|format(e.amount) }} €)
+                            </option>
+                            {% endfor %}
+                            {% endif %}
+                        </select>
+                        <div class="form-text text-muted small">
+                            <i class="bi bi-info-circle me-1"></i>
+                            {{ _("Solo se muestran gastos de categoría 'Riego' de la parcela seleccionada.") }}
+                        </div>
+                    </div>
+
+                    <!-- Notas -->
+                    <div class="col-12">
+                        <label for="notes" class="form-label fw-semibold">
+                            {{ _("Notas") }}
+                            <span class="text-muted small fw-normal">{{ _("(opcional)") }}</span>
+                        </label>
+                        <textarea class="form-control"
+                                  id="notes"
+                                  name="notes"
+                                  rows="2"
+                                  maxlength="500"
+                                  placeholder="{{ _('Observaciones sobre este riego...') }}">{{ record.notes if record and record.notes else '' }}</textarea>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <div class="d-flex gap-2 justify-content-end">
+                    <a href="/irrigation/" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle me-1"></i> {{ _("Cancelar") }}
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-1"></i>
+                        {% if record %}{{ _("Guardar cambios") }}{% else %}{{ _("Registrar riego") }}{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_head %}
+<script>
+    function updateLiters(value) {
+        const liters = parseFloat(value) * 1000;
+        const el = document.getElementById('liters_display');
+        el.textContent = isNaN(liters) ? '0.0 L' : liters.toFixed(1) + ' L';
+    }
+
+    async function loadExpenses(plotId) {
+        const select = document.getElementById('expense_id');
+        select.innerHTML = '<option value="">— Sin gasto asociado —</option>';
+        if (!plotId) return;
+        try {
+            const resp = await fetch(`/irrigation/expenses-for-plot/${plotId}`);
+            if (!resp.ok) return;
+            const expenses = await resp.json();
+            expenses.forEach(e => {
+                const opt = document.createElement('option');
+                opt.value = e.id;
+                const date = new Date(e.date + 'T00:00:00');
+                const dateStr = date.toLocaleDateString('es-ES', {day:'2-digit', month:'2-digit', year:'numeric'});
+                opt.textContent = `${dateStr} — ${e.description} (${parseFloat(e.amount).toFixed(2)} €)`;
+                select.appendChild(opt);
+            });
+        } catch (err) {
+            console.error('Error loading expenses:', err);
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("Riego") }} &mdash; Truficultura{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="bi bi-droplet-fill text-primary me-2"></i>{{ _("Riego") }}
+            </h1>
+            <p class="text-muted mb-0">
+                {{ count }} {{ _("registro(s)") }}
+                {% if selected_year %} {{ _("en campaña") }} {{ selected_year|campaign_label }}{% endif %}
+            </p>
+        </div>
+        <a href="/irrigation/new" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i> {{ _("Nuevo registro de riego") }}
+        </a>
+    </div>
+
+    {% if msg %}
+    <div class="alert alert-success alert-dismissible fade show alert-flash" role="alert">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
+    <!-- Totales -->
+    {% if count > 0 %}
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card card-stat border-primary shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-droplet-fill text-primary fs-2 me-3"></i>
+                        <div>
+                            <div class="text-muted small">{{ _("Total agua (m³)") }}</div>
+                            <div class="fw-bold fs-5">{{ "%.3f"|format(total_water_m3) }} m³</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card card-stat border-info shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-water text-info fs-2 me-3"></i>
+                        <div>
+                            <div class="text-muted small">{{ _("Total agua (litros)") }}</div>
+                            <div class="fw-bold fs-5">{{ "%.1f"|format(total_water_liters) }} L</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card card-stat border-secondary shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-calendar-check text-secondary fs-2 me-3"></i>
+                        <div>
+                            <div class="text-muted small">{{ _("Nº de riegos") }}</div>
+                            <div class="fw-bold fs-5">{{ count }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Filtros -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-body py-2">
+            <form method="get" action="/irrigation/" class="d-flex gap-2 align-items-center flex-wrap">
+                <label class="form-label mb-0 fw-semibold text-nowrap">
+                    <i class="bi bi-funnel me-1"></i>{{ _("Filtrar:") }}
+                </label>
+                <select name="year" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+                    <option value="">{{ _("Todas las campañas") }}</option>
+                    {% for y in years %}
+                    <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y|campaign_label }}</option>
+                    {% endfor %}
+                </select>
+                <select name="plot_id" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+                    <option value="">{{ _("Todas las parcelas") }}</option>
+                    {% for p in plots %}
+                    <option value="{{ p.id }}" {% if selected_plot == p.id %}selected{% endif %}>{{ p.name }}</option>
+                    {% endfor %}
+                </select>
+                {% if selected_year or selected_plot %}
+                <a href="/irrigation/" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-x me-1"></i>{{ _("Limpiar filtros") }}
+                </a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla -->
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            {% if records %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>{{ _("Fecha") }}</th>
+                            <th>{{ _("Parcela") }}</th>
+                            <th class="text-end">{{ _("m³") }}</th>
+                            <th class="text-end">{{ _("Litros") }}</th>
+                            <th>{{ _("Gasto asociado") }}</th>
+                            <th>{{ _("Notas") }}</th>
+                            <th class="text-end">{{ _("Acciones") }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in records %}
+                        <tr>
+                            <td class="text-nowrap">{{ r.date.strftime('%d/%m/%Y') }}</td>
+                            <td class="fw-semibold">
+                                <i class="bi bi-map"></i>
+                                {{ r.plot.name if r.plot else '—' }}
+                            </td>
+                            <td class="text-end fw-semibold text-primary">
+                                {{ "%.3f"|format(r.water_m3) }}
+                            </td>
+                            <td class="text-end text-muted">
+                                {{ "%.1f"|format(r.water_m3 * 1000) }}
+                            </td>
+                            <td>
+                                {% if r.expense %}
+                                <span class="small">
+                                    <i class="bi bi-receipt me-1 text-muted"></i>
+                                    {{ r.expense.description }}
+                                    <span class="text-danger ms-1 fw-semibold">{{ "%.2f"|format(r.expense.amount) }} €</span>
+                                </span>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if r.notes %}
+                                <span class="text-muted small" title="{{ r.notes }}">
+                                    {{ r.notes[:60] }}{% if r.notes|length > 60 %}…{% endif %}
+                                </span>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end text-nowrap">
+                                <a href="/irrigation/{{ r.id }}/edit"
+                                   class="btn btn-sm btn-outline-primary me-1">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form action="/irrigation/{{ r.id }}/delete"
+                                      method="post"
+                                      class="d-inline"
+                                      onsubmit="return confirm('{{ _('¿Eliminar este registro de riego?') }}')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light fw-bold">
+                        <tr>
+                            <td colspan="2" class="text-end">{{ _("TOTAL") }}:</td>
+                            <td class="text-end text-primary">{{ "%.3f"|format(total_water_m3) }}</td>
+                            <td class="text-end text-muted">{{ "%.1f"|format(total_water_liters) }}</td>
+                            <td colspan="3"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-droplet fs-1 d-block mb-2 opacity-25"></i>
+                <p>{{ _("No hay registros de riego") }}
+                   {% if selected_year or selected_plot %}{{ _("para los filtros seleccionados") }}{% endif %}.</p>
+                {% if not selected_year and not selected_plot %}
+                <a href="/irrigation/new" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i> {{ _("Registrar primer riego") }}
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

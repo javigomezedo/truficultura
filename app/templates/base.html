@@ -98,6 +98,12 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {% if '/irrigation' in request.url.path %}active{% endif %}"
+                           href="/irrigation/">
+                            <i class="bi bi-droplet-fill text-primary"></i> {{ _("Riego") }}
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if '/incomes' in request.url.path %}active{% endif %}"
                            href="/incomes/">
                             <i class="bi bi-arrow-up-circle-fill text-success"></i> {{ _("Ingresos") }}

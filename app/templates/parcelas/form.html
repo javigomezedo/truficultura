@@ -168,6 +168,31 @@
 
                 <hr class="my-4">
 
+                <!-- Riego -->
+                <div class="row g-3 mb-2">
+                    <div class="col-12">
+                        <h6 class="text-uppercase text-muted fw-semibold small mb-2">
+                            <i class="bi bi-droplet-fill text-primary me-1"></i>{{ _("Riego") }}
+                        </h6>
+                        <div class="form-check">
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   id="has_irrigation"
+                                   name="has_irrigation"
+                                   value="true"
+                                   {% if plot and plot.has_irrigation %}checked{% endif %}>
+                            <label class="form-check-label fw-semibold" for="has_irrigation">
+                                {{ _("Tiene sistema de riego instalado") }}
+                            </label>
+                            <div class="form-text text-muted small">
+                                {{ _("Activa esta opción para poder registrar riegos en esta parcela.") }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
                 <div class="d-flex gap-2 justify-content-end">
                     <a href="/plots/" class="btn btn-outline-secondary">
                         <i class="bi bi-x-circle me-1"></i> {{ _("Cancelar") }}

@@ -16,6 +16,7 @@ class PlotBase(BaseModel):
     area_ha: Optional[float] = None
     production_start: Optional[datetime.date] = None
     percentage: float = 0.0
+    has_irrigation: bool = False
 
 
 class PlotCreate(PlotBase):
@@ -34,6 +35,7 @@ class PlotUpdate(BaseModel):
     area_ha: Optional[float] = None
     production_start: Optional[datetime.date] = None
     percentage: Optional[float] = None
+    has_irrigation: Optional[bool] = None
 
 
 class PlotResponse(PlotBase):

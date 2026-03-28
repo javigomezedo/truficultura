@@ -10,8 +10,18 @@ from app.config import settings
 from app.database import Base, engine, get_db
 from app.i18n import get_locale, load_translations
 from app.jinja import templates
-from app.models import User, Plot, Expense, Income  # noqa: F401 - ensure models are registered
-from app.routers import auth, charts, expenses, imports, incomes, plots, reports, admin
+from app.models import User, Plot, Expense, Income, IrrigationRecord  # noqa: F401 - ensure models are registered
+from app.routers import (
+    auth,
+    charts,
+    expenses,
+    imports,
+    incomes,
+    plots,
+    reports,
+    admin,
+    irrigation,
+)
 from app.services.dashboard_service import build_dashboard_context
 
 
@@ -45,6 +55,7 @@ reports.templates = templates
 charts.templates = templates
 imports.templates = templates
 auth.templates = templates
+irrigation.templates = templates
 
 # Include routers
 app.include_router(auth.router)
@@ -55,6 +66,7 @@ app.include_router(incomes.router)
 app.include_router(reports.router)
 app.include_router(charts.router)
 app.include_router(imports.router)
+app.include_router(irrigation.router)
 
 
 @app.exception_handler(NotAuthenticatedException)

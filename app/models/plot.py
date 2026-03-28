@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import Date, Float, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Date, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -11,6 +11,7 @@ from app.database import Base
 if TYPE_CHECKING:
     from app.models.expense import Expense
     from app.models.income import Income
+    from app.models.irrigation import IrrigationRecord
     from app.models.user import User
 
 
@@ -34,6 +35,7 @@ class Plot(Base):
         Date, nullable=True
     )
     percentage: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    has_irrigation: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     # Relationships
     user: Mapped[Optional["User"]] = relationship("User", back_populates="plots")
@@ -42,4 +44,7 @@ class Plot(Base):
     )
     incomes: Mapped[List["Income"]] = relationship(
         "Income", back_populates="plot", lazy="select"
+    )
+    irrigation_records: Mapped[List["IrrigationRecord"]] = relationship(
+        "IrrigationRecord", back_populates="plot", lazy="select"
     )
