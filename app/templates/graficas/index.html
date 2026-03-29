@@ -26,12 +26,17 @@
 {# ------------------------------------------------------------------ #}
 <div class="card shadow-sm mb-4">
     <div class="card-body py-3">
-        <form method="get" action="/charts/" class="row g-3 align-items-end">
+        <form method="get" action="/charts/" class="row g-3 align-items-end"
+              onsubmit="event.preventDefault(); applyFilters();">
             <div class="col-auto">
                 <label class="form-label mb-1 fw-semibold">
                     <i class="bi bi-calendar3 me-1"></i>{{ _("Campaña") }}
                 </label>
-                <select name="campaign" class="form-select form-select-sm" onchange="this.form.submit()">
+                <select id="campaignSelect" name="campaign" class="form-select form-select-sm"
+                        onchange="applyFilters()">
+                    <option value="" {% if selected_campaign is none %}selected{% endif %}>
+                        {{ _("Todas las campañas") }}
+                    </option>
                     {% for cy in all_campaigns %}
                     <option value="{{ cy }}"
                         {% if cy == selected_campaign %}selected{% endif %}>
@@ -44,7 +49,8 @@
                 <label class="form-label mb-1 fw-semibold">
                     <i class="bi bi-map me-1"></i>{{ _("Bancal") }}
                 </label>
-                <select name="plot_id" class="form-select form-select-sm">
+                <select id="plotSelect" name="plot_id" class="form-select form-select-sm"
+                        onchange="applyFilters()">
                     <option value="">{{ _("Todos los bancales") }}</option>
                     {% for p in all_plots %}
                     <option value="{{ p.id }}"
@@ -211,10 +217,10 @@
 
 {% endif %}
 
-{# Row 3: Ingresos vs Gastos por bancal (always shown) #}
+{# Row 3: Ingresos vs Gastos por bancal + Gastos por categoría (always shown) #}
 <div class="row g-4 mb-4">
-    <div class="col-12">
-        <div class="card shadow-sm">
+    <div class="col-lg-8">
+        <div class="card shadow-sm h-100">
             <div class="card-header bg-white">
                 <h6 class="mb-0">
                     <i class="bi bi-bar-chart-grouped me-1 text-primary"></i>{{ _("Ingresos vs Gastos por Bancal (€)") }}
@@ -232,11 +238,47 @@
             </div>
         </div>
     </div>
+    <div class="col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h6 class="mb-0">
+                    <i class="bi bi-pie-chart-fill me-1 text-danger"></i>{{ _("Gastos por Categoría (€)") }}
+                    {% if selected_campaign %}
+                    <span class="badge bg-secondary ms-2 fw-normal">{{ selected_campaign | campaign_label }}</span>
+                    {% else %}
+                    <span class="badge bg-secondary ms-2 fw-normal">{{ _("Todas las campañas") }}</span>
+                    {% endif %}
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if expense_cat_labels %}
+                <div class="chart-container">
+                    <canvas id="chartGasCat"></canvas>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-inbox fs-3"></i>
+                    <p class="mb-0 mt-2">{{ _("Sin gastos para el filtro seleccionado.") }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 </div>
 
 {% endblock %}
 
 {% block extra_scripts %}
+<script>
+function applyFilters() {
+    var c = document.getElementById('campaignSelect').value;
+    var p = document.getElementById('plotSelect').value;
+    var params = new URLSearchParams();
+    if (c) params.set('campaign', c);
+    if (p) params.set('plot_id', p);
+    window.location.href = '/charts/?' + params.toString();
+}
+</script>
 <script>
 (function () {
     'use strict';
@@ -247,9 +289,11 @@
     const weeklyKg        = {{ weekly_kg | safe }};
     const cumulativeIncome = {{ cumulative_income | safe }};
     const catDatasets     = {{ cat_datasets | safe }};
-    const plotLabels      = {{ plot_labels | safe }};
-    const incomeValues    = {{ income_values | safe }};
-    const expenseValues   = {{ expense_values | safe }};
+    const plotLabels         = {{ plot_labels | safe }};
+    const incomeValues       = {{ income_values | safe }};
+    const expenseValues      = {{ expense_values | safe }};
+    const expenseCatLabels   = {{ expense_cat_labels | safe }};
+    const expenseCatValues   = {{ expense_cat_values | safe }};
 
     const defaultOptions = {
         responsive: true,
@@ -367,6 +411,40 @@
         },
         options: defaultOptions
     });
+
+    // Chart 6: Gastos por categoría (doughnut) — always rendered
+    if (expenseCatLabels.length > 0) {
+        const catColors = [
+            '#dc3545','#fd7e14','#ffc107','#198754',
+            '#0d6efd','#6f42c1','#20c997','#adb5bd'
+        ];
+        new Chart(document.getElementById('chartGasCat'), {
+            type: 'doughnut',
+            data: {
+                labels: expenseCatLabels,
+                datasets: [{
+                    data: expenseCatValues,
+                    backgroundColor: catColors.slice(0, expenseCatLabels.length),
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: true, position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const pct = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
+                                return ` ${context.label}: ${context.parsed.toFixed(2)} € (${pct}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
 
 })();
 </script>

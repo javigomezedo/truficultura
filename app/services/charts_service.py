@@ -40,34 +40,32 @@ async def build_charts_context(
     )
     all_expenses = expenses_result.scalars().all()
 
-    incomes_result = await db.execute(
-        select(Income).where(Income.user_id == user_id)
-    )
+    incomes_result = await db.execute(select(Income).where(Income.user_id == user_id))
     all_incomes = incomes_result.scalars().all()
 
-    all_campaigns = sorted({campaign_year(i.date) for i in all_incomes}, reverse=True)
+    all_campaigns = sorted(
+        {campaign_year(i.date) for i in all_incomes}
+        | {campaign_year(e.date) for e in all_expenses},
+        reverse=True,
+    )
 
     selected_campaign: Optional[int] = campaign
-    if selected_campaign is None and all_campaigns:
-        selected_campaign = all_campaigns[0]
 
     selected_plot_id: Optional[int] = plot_id
 
     kg_by_cy_plot: dict = defaultdict(lambda: defaultdict(float))
     for income in all_incomes:
         if income.plot_id is not None:
-            kg_by_cy_plot[campaign_year(income.date)][income.plot_id] += income.amount_kg
+            kg_by_cy_plot[campaign_year(income.date)][income.plot_id] += (
+                income.amount_kg
+            )
 
     kg_ha_table = []
     for cy in all_campaigns:
         row_plots = {}
         for plot in all_plots:
             kg = kg_by_cy_plot[cy][plot.id]
-            kg_ha = (
-                kg / plot.area_ha
-                if plot.area_ha and plot.area_ha > 0
-                else None
-            )
+            kg_ha = kg / plot.area_ha if plot.area_ha and plot.area_ha > 0 else None
             row_plots[plot.id] = {"kg": kg, "kg_ha": kg_ha}
         kg_ha_table.append({"year": cy, "plots": row_plots})
 
@@ -75,9 +73,7 @@ async def build_charts_context(
     for plot in all_plots:
         total_kg = sum(kg_by_cy_plot[cy][plot.id] for cy in all_campaigns)
         total_kg_ha = (
-            total_kg / plot.area_ha
-            if plot.area_ha and plot.area_ha > 0
-            else None
+            total_kg / plot.area_ha if plot.area_ha and plot.area_ha > 0 else None
         )
         kg_ha_totals[plot.id] = {"kg": total_kg, "kg_ha": total_kg_ha}
 
@@ -86,8 +82,7 @@ async def build_charts_context(
         for income in all_incomes
         if income.amount_kg > 0
         and (
-            selected_campaign is None
-            or campaign_year(income.date) == selected_campaign
+            selected_campaign is None or campaign_year(income.date) == selected_campaign
         )
         and (selected_plot_id is None or income.plot_id == selected_plot_id)
     ]
@@ -148,11 +143,22 @@ async def build_charts_context(
         for expense in all_expenses
         if selected_campaign is None or campaign_year(expense.date) == selected_campaign
     ]
+
+    expenses_by_category: dict = defaultdict(float)
+    for expense in filtered_expenses:
+        cat = expense.category if expense.category else "Sin categoría"
+        expenses_by_category[cat] += expense.amount
+
+    sorted_cat_exp = sorted(
+        expenses_by_category.items(), key=lambda x: x[1], reverse=True
+    )
+    expense_cat_labels = [item[0] for item in sorted_cat_exp]
+    expense_cat_values = [round(item[1], 2) for item in sorted_cat_exp]
+
     filtered_incomes_bar = [
         income
         for income in all_incomes
-        if selected_campaign is None
-        or campaign_year(income.date) == selected_campaign
+        if selected_campaign is None or campaign_year(income.date) == selected_campaign
     ]
 
     expenses_raw: dict = {0: defaultdict(float)}
@@ -168,9 +174,7 @@ async def build_charts_context(
             incomes_per_plot[income.plot_id] += income.total
 
     plot_labels = [plot.name for plot in all_plots]
-    income_values = [
-        round(incomes_per_plot.get(plot.id, 0.0), 2) for plot in all_plots
-    ]
+    income_values = [round(incomes_per_plot.get(plot.id, 0.0), 2) for plot in all_plots]
     expense_values = [
         round(expenses_per_plot.get(plot.id, 0.0), 2) for plot in all_plots
     ]
@@ -191,4 +195,6 @@ async def build_charts_context(
         "plot_labels": json.dumps(plot_labels),
         "income_values": json.dumps(income_values),
         "expense_values": json.dumps(expense_values),
+        "expense_cat_labels": json.dumps(expense_cat_labels),
+        "expense_cat_values": json.dumps(expense_cat_values),
     }
