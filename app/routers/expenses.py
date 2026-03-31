@@ -1,8 +1,9 @@
 import datetime
+from io import BytesIO
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Form, Query, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
+from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,9 +14,12 @@ from app.models.user import User
 from app.services.expenses_service import (
     create_expense as create_expense_service,
     delete_expense as delete_expense_service,
+    delete_receipt,
     get_expense,
     get_expenses_list_context,
+    get_receipt,
     list_plots,
+    save_receipt,
     update_expense as update_expense_service,
 )
 
@@ -169,4 +173,83 @@ async def delete_expense(
         await delete_expense_service(db, obj)
     return RedirectResponse(
         url="/expenses/?msg=Gasto+eliminado+correctamente", status_code=303
+    )
+
+
+@router.post("/{expense_id}/receipt", response_class=RedirectResponse)
+async def upload_receipt(
+    request: Request,
+    expense_id: int,
+    receipt: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
+):
+    """Upload a receipt file to an expense."""
+    obj = await get_expense(db, expense_id, current_user.id)
+    if obj is None:
+        return RedirectResponse(
+            url="/expenses/?msg=Gasto+no+encontrado", status_code=303
+        )
+
+    try:
+        file_data = await receipt.read()
+        content_type = receipt.content_type or "application/octet-stream"
+
+        await save_receipt(
+            db,
+            obj,
+            filename=receipt.filename or "receipt",
+            file_data=file_data,
+            content_type=content_type,
+        )
+        return RedirectResponse(
+            url=f"/expenses/{expense_id}/edit?msg=Recibo+cargado+correctamente",
+            status_code=303,
+        )
+    except ValueError as e:
+        return RedirectResponse(
+            url=f"/expenses/{expense_id}/edit?msg={str(e).replace(' ', '+')}",
+            status_code=303,
+        )
+
+
+@router.get("/{expense_id}/receipt/download")
+async def download_receipt(
+    expense_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
+):
+    """Download a receipt file from an expense."""
+    receipt_data = await get_receipt(db, expense_id, current_user.id)
+    if receipt_data is None:
+        return RedirectResponse(
+            url="/expenses/?msg=Recibo+no+encontrado", status_code=303
+        )
+
+    filename, file_content, content_type = receipt_data
+    return StreamingResponse(
+        BytesIO(file_content),
+        media_type=content_type,
+        headers={"Content-Disposition": f"inline; filename={filename}"},
+    )
+
+
+@router.post("/{expense_id}/receipt/delete", response_class=RedirectResponse)
+async def delete_expense_receipt(
+    request: Request,
+    expense_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
+):
+    """Delete a receipt from an expense."""
+    obj = await get_expense(db, expense_id, current_user.id)
+    if obj is None:
+        return RedirectResponse(
+            url="/expenses/?msg=Gasto+no+encontrado", status_code=303
+        )
+
+    await delete_receipt(db, obj)
+    return RedirectResponse(
+        url=f"/expenses/{expense_id}/edit?msg=Recibo+eliminado+correctamente",
+        status_code=303,
     )

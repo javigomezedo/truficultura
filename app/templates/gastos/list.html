@@ -159,6 +159,16 @@
                             <td class="text-end fw-semibold text-danger">{{ "%.2f"|format(g.amount) }} &euro;</td>
                             <td class="text-center">
                                 <div class="btn-group btn-group-sm" role="group">
+                                    {% if g.receipt_filename %}
+                                    <a href="/expenses/{{ g.id }}/receipt/download"
+                                       class="btn btn-outline-success"
+                                       title="{{ _('Ver recibo') }}"
+                                       target="_blank"
+                                       rel="noopener"
+                                       data-bs-toggle="tooltip">
+                                        <i class="bi bi-file-pdf-fill"></i>
+                                    </a>
+                                    {% endif %}
                                     <a href="/expenses/{{ g.id }}/edit"
                                        class="btn btn-outline-primary" title="{{ _('Editar') }}">
                                         <i class="bi bi-pencil-fill"></i>

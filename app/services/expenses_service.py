@@ -10,6 +10,16 @@ from app.models.expense import Expense, EXPENSE_CATEGORIES
 from app.models.plot import Plot
 from app.utils import campaign_year, distribute_unassigned_expenses
 
+# Receipt validation constants
+ALLOWED_RECEIPT_TYPES = {
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+}
+MAX_RECEIPT_SIZE = 5 * 1024 * 1024  # 5MB in bytes
+
 
 async def list_plots(db: AsyncSession, user_id: int) -> list[Plot]:
     result = await db.execute(
@@ -35,9 +45,7 @@ async def get_expenses_list_context(
     person: Optional[str] = None,
 ) -> dict:
     result = await db.execute(
-        select(Expense)
-        .where(Expense.user_id == user_id)
-        .order_by(Expense.date.desc())
+        select(Expense).where(Expense.user_id == user_id).order_by(Expense.date.desc())
     )
     all_expenses = result.scalars().all()
 
@@ -152,4 +160,72 @@ async def update_expense(
 
 async def delete_expense(db: AsyncSession, expense: Expense) -> None:
     await db.delete(expense)
+    await db.flush()
+
+
+async def save_receipt(
+    db: AsyncSession,
+    expense: Expense,
+    filename: str,
+    file_data: bytes,
+    content_type: str,
+) -> None:
+    """
+    Save a receipt file to an expense.
+
+    Args:
+        db: Database session
+        expense: Expense object to attach receipt to
+        filename: Original filename (e.g., "invoice.pdf")
+        file_data: Binary file content
+        content_type: MIME type of the file
+
+    Raises:
+        ValueError: If file type not allowed or file too large
+    """
+    # Validate content type
+    if content_type not in ALLOWED_RECEIPT_TYPES:
+        raise ValueError(
+            f"Tipo de archivo no permitido: {content_type}. "
+            f"Permitidos: PDF e imágenes (JPEG, PNG, GIF, WebP)"
+        )
+
+    # Validate file size
+    if len(file_data) > MAX_RECEIPT_SIZE:
+        raise ValueError(
+            f"Archivo demasiado grande. Máximo: 5MB, "
+            f"Tamaño actual: {len(file_data) / (1024 * 1024):.1f}MB"
+        )
+
+    expense.receipt_filename = filename
+    expense.receipt_data = file_data
+    expense.receipt_content_type = content_type
+    await db.flush()
+
+
+async def get_receipt(
+    db: AsyncSession, expense_id: int, user_id: int
+) -> Optional[tuple[str, bytes, str]]:
+    """
+    Retrieve a receipt from an expense.
+
+    Returns:
+        Tuple of (filename, file_data, content_type) if receipt exists, None otherwise
+    """
+    expense = await get_expense(db, expense_id, user_id)
+    if expense is None or expense.receipt_data is None:
+        return None
+
+    return (
+        expense.receipt_filename or "receipt",
+        expense.receipt_data,
+        expense.receipt_content_type or "application/octet-stream",
+    )
+
+
+async def delete_receipt(db: AsyncSession, expense: Expense) -> None:
+    """Delete a receipt from an expense."""
+    expense.receipt_filename = None
+    expense.receipt_data = None
+    expense.receipt_content_type = None
     await db.flush()

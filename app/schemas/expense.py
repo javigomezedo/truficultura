@@ -29,6 +29,7 @@ class ExpenseUpdate(BaseModel):
 class ExpenseResponse(ExpenseBase):
     id: int
     plot_name: Optional[str] = None
+    receipt_filename: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -10,8 +10,11 @@ from app.models.income import Income
 from app.services.expenses_service import (
     create_expense,
     delete_expense,
+    delete_receipt,
     get_expense,
     get_expenses_list_context,
+    get_receipt,
+    save_receipt,
     update_expense,
 )
 from app.services.incomes_service import (
@@ -95,13 +98,12 @@ async def test_create_update_delete_expense() -> None:
         person="Javi",
         plot_id=None,
         amount=75.0,
-        user_id=1,
     )
     assert expense.plot_id is None
     assert expense.amount == 75.0
 
-    await delete_expense(db, expense, user_id=1)
-    db.delete.assert_awaited_once_with(expense)
+    await delete_expense(db, expense)
+    db.delete.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -129,13 +131,12 @@ async def test_create_update_delete_income() -> None:
         amount_kg=4.0,
         category="B",
         euros_per_kg=80.0,
-        user_id=1,
     )
     assert income.total == 320.0
     assert income.plot_id is None
 
-    await delete_income(db, income, user_id=1)
-    db.delete.assert_awaited_once_with(income)
+    await delete_income(db, income)
+    db.delete.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -158,3 +159,164 @@ async def test_get_expense_and_get_income() -> None:
     db_i = MagicMock()
     db_i.execute = AsyncMock(return_value=result([income]))
     assert await get_income(db_i, 20, user_id=1) is income
+
+
+@pytest.mark.asyncio
+async def test_save_receipt_valid_pdf() -> None:
+    """Test saving a valid PDF receipt."""
+    expense = Expense(
+        id=1, date=datetime.date(2025, 1, 1), description="Invoice", amount=100.0
+    )
+    db = MagicMock()
+    db.flush = AsyncMock()
+
+    pdf_data = b"%PDF-1.4\n%fake pdf content"
+    await save_receipt(
+        db,
+        expense,
+        filename="invoice.pdf",
+        file_data=pdf_data,
+        content_type="application/pdf",
+    )
+
+    assert expense.receipt_filename == "invoice.pdf"
+    assert expense.receipt_data == pdf_data
+    assert expense.receipt_content_type == "application/pdf"
+    db.flush.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_save_receipt_valid_image() -> None:
+    """Test saving a valid image receipt."""
+    expense = Expense(
+        id=1, date=datetime.date(2025, 1, 1), description="Invoice", amount=100.0
+    )
+    db = MagicMock()
+    db.flush = AsyncMock()
+
+    image_data = b"\x89PNG\r\n\x1a\n"  # PNG header
+    await save_receipt(
+        db,
+        expense,
+        filename="receipt.png",
+        file_data=image_data,
+        content_type="image/png",
+    )
+
+    assert expense.receipt_filename == "receipt.png"
+    assert expense.receipt_data == image_data
+    assert expense.receipt_content_type == "image/png"
+
+
+@pytest.mark.asyncio
+async def test_save_receipt_invalid_content_type() -> None:
+    """Test that invalid content types are rejected."""
+    expense = Expense(
+        id=1, date=datetime.date(2025, 1, 1), description="Invoice", amount=100.0
+    )
+    db = MagicMock()
+
+    with pytest.raises(ValueError, match="Tipo de archivo no permitido"):
+        await save_receipt(
+            db,
+            expense,
+            filename="script.exe",
+            file_data=b"malicious",
+            content_type="application/x-exe",
+        )
+
+
+@pytest.mark.asyncio
+async def test_save_receipt_file_too_large() -> None:
+    """Test that oversized files are rejected."""
+    expense = Expense(
+        id=1, date=datetime.date(2025, 1, 1), description="Invoice", amount=100.0
+    )
+    db = MagicMock()
+
+    # Create data larger than 5MB
+    large_data = b"x" * (6 * 1024 * 1024)
+
+    with pytest.raises(ValueError, match="Archivo demasiado grande"):
+        await save_receipt(
+            db,
+            expense,
+            filename="large.pdf",
+            file_data=large_data,
+            content_type="application/pdf",
+        )
+
+
+@pytest.mark.asyncio
+async def test_get_receipt_exists() -> None:
+    """Test retrieving an existing receipt."""
+    expense = Expense(
+        id=1,
+        date=datetime.date(2025, 1, 1),
+        description="Invoice",
+        amount=100.0,
+        receipt_filename="invoice.pdf",
+        receipt_data=b"pdf content",
+        receipt_content_type="application/pdf",
+    )
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([expense]))
+
+    receipt_data = await get_receipt(db, 1, user_id=1)
+
+    assert receipt_data is not None
+    filename, data, content_type = receipt_data
+    assert filename == "invoice.pdf"
+    assert data == b"pdf content"
+    assert content_type == "application/pdf"
+
+
+@pytest.mark.asyncio
+async def test_get_receipt_not_found() -> None:
+    """Test retrieving a receipt when expense does not exist."""
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+
+    receipt_data = await get_receipt(db, 999, user_id=1)
+
+    assert receipt_data is None
+
+
+@pytest.mark.asyncio
+async def test_get_receipt_no_data() -> None:
+    """Test retrieving when receipt data is None."""
+    expense = Expense(
+        id=1,
+        date=datetime.date(2025, 1, 1),
+        description="Invoice",
+        amount=100.0,
+        receipt_filename=None,
+        receipt_data=None,
+    )
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([expense]))
+
+    receipt_data = await get_receipt(db, 1, user_id=1)
+
+    assert receipt_data is None
+
+
+@pytest.mark.asyncio
+async def test_delete_receipt() -> None:
+    """Test deleting a receipt from an expense."""
+    expense = Expense(
+        id=1,
+        date=datetime.date(2025, 1, 1),
+        description="Invoice",
+        amount=100.0,
+        receipt_filename="invoice.pdf",
+        receipt_data=b"pdf content",
+    )
+    db = MagicMock()
+    db.flush = AsyncMock()
+
+    await delete_receipt(db, expense)
+
+    assert expense.receipt_filename is None
+    assert expense.receipt_data is None
+    db.flush.assert_awaited_once()
