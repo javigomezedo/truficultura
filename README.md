@@ -264,6 +264,53 @@ Abrir en navegador:
 
 - http://localhost:8000
 
+## 3.1 Guía operativa corta (Docker)
+
+### Requisitos
+
+- Docker Desktop (o Docker Engine + Compose)
+- Archivo `.env` con `DATABASE_URL` y `SECRET_KEY`
+
+Ejemplo de `DATABASE_URL` para la base de datos del `docker-compose.yml` actual:
+
+```env
+DATABASE_URL=postgresql+asyncpg://trufi:trufi@localhost:5433/truficultura
+```
+
+### 1) Levantar PostgreSQL local con Docker Compose
+
+```bash
+docker compose up -d db
+```
+
+### 2) Construir la imagen de la app
+
+```bash
+docker build -t truficultura:local .
+```
+
+### 3) Ejecutar la app en contenedor
+
+```bash
+docker run --rm -p 8000:8000 --env-file .env truficultura:local
+```
+
+Notas:
+- El contenedor ejecuta `alembic upgrade head` al arrancar (si `RUN_MIGRATIONS` no se cambia).
+- Para desactivar migraciones en arranque: `-e RUN_MIGRATIONS=0`.
+
+### 4) Verificar estado
+
+```bash
+curl http://localhost:8000/health
+```
+
+### 5) Parar la base de datos local
+
+```bash
+docker compose down
+```
+
 ---
 
 ## 4. Modo debug, importaciones y operaciones frecuentes

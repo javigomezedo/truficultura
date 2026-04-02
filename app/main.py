@@ -69,6 +69,11 @@ app.include_router(imports.router)
 app.include_router(irrigation.router)
 
 
+@app.get("/health")
+async def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
 @app.exception_handler(NotAuthenticatedException)
 async def not_authenticated_handler(request: Request, exc: NotAuthenticatedException):
     return RedirectResponse(url="/login", status_code=303)
