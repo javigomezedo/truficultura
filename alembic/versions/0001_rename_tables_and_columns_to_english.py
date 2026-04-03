@@ -5,6 +5,7 @@ Revises:
 Create Date: 2026-03-21
 """
 
+import sqlalchemy as sa
 from alembic import op
 
 
@@ -16,6 +17,84 @@ depends_on = None
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    table_names = set(inspector.get_table_names())
+
+    legacy_tables = {"parcelas", "gastos", "ingresos"}
+    english_tables = {"plots", "expenses", "incomes"}
+
+    # Fresh DB path (e.g. Fly dev/prod bootstrap): create baseline schema directly.
+    if not legacy_tables.issubset(table_names):
+        if english_tables.issubset(table_names):
+            return
+
+        op.create_table(
+            "plots",
+            sa.Column("id", sa.Integer(), nullable=False),
+            sa.Column("name", sa.String(length=200), nullable=False),
+            sa.Column(
+                "polygon", sa.String(length=100), nullable=False, server_default=""
+            ),
+            sa.Column(
+                "cadastral_ref",
+                sa.String(length=100),
+                nullable=False,
+                server_default="",
+            ),
+            sa.Column(
+                "hydrant", sa.String(length=100), nullable=False, server_default=""
+            ),
+            sa.Column(
+                "num_holm_oaks", sa.Integer(), nullable=False, server_default="0"
+            ),
+            sa.Column("planting_date", sa.Date(), nullable=False),
+            sa.Column("area_ha", sa.Float(), nullable=True),
+            sa.Column("production_start", sa.Date(), nullable=True),
+            sa.Column("percentage", sa.Float(), nullable=False, server_default="0"),
+            sa.PrimaryKeyConstraint("id"),
+        )
+
+        op.create_table(
+            "expenses",
+            sa.Column("id", sa.Integer(), nullable=False),
+            sa.Column("date", sa.Date(), nullable=False),
+            sa.Column("description", sa.String(length=500), nullable=False),
+            sa.Column(
+                "person", sa.String(length=200), nullable=False, server_default=""
+            ),
+            sa.Column("plot_id", sa.Integer(), nullable=True),
+            sa.Column("amount", sa.Float(), nullable=False, server_default="0"),
+            sa.ForeignKeyConstraint(
+                ["plot_id"],
+                ["plots.id"],
+                name="expenses_plot_id_fkey",
+                ondelete="SET NULL",
+            ),
+            sa.PrimaryKeyConstraint("id"),
+        )
+
+        op.create_table(
+            "incomes",
+            sa.Column("id", sa.Integer(), nullable=False),
+            sa.Column("date", sa.Date(), nullable=False),
+            sa.Column("plot_id", sa.Integer(), nullable=True),
+            sa.Column("amount_kg", sa.Float(), nullable=False, server_default="0"),
+            sa.Column(
+                "category", sa.String(length=200), nullable=False, server_default=""
+            ),
+            sa.Column("euros_per_kg", sa.Float(), nullable=False, server_default="0"),
+            sa.ForeignKeyConstraint(
+                ["plot_id"],
+                ["plots.id"],
+                name="incomes_plot_id_fkey",
+                ondelete="SET NULL",
+            ),
+            sa.PrimaryKeyConstraint("id"),
+        )
+
+        return
+
     # ------------------------------------------------------------------ #
     # 1. Drop FK constraints before renaming referenced tables/columns
     # ------------------------------------------------------------------ #
