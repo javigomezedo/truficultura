@@ -70,7 +70,7 @@ Truficultura permite registrar y analizar la actividad económica de una explota
 ## Flujo de ejecución
 
 1. `uvicorn` arranca `app.main:app`.
-2. En startup se inicializa base de datos (y tablas si no existen).
+2. En startup se ejecutan migraciones Alembic en `entrypoint.sh` para asegurar esquema alineado.
 3. Cada request abre sesión asíncrona de BD.
 4. Los routers delegan en la capa de servicios.
 5. Los servicios consultan modelos SQLAlchemy y aplican reglas de negocio.
@@ -164,7 +164,7 @@ Campos relevantes:
 - `amount_kg`: cantidad en kilogramos
 - `category`: categoría de trufa (Extra, A, B, etc.)
 - `euros_per_kg`: precio por kilogramo
-- `total`: total calculado (`amount_kg * euros_per_kg`)
+- `total`: propiedad calculada (`amount_kg * euros_per_kg`) no persistida en BD
 - `user_id`: usuario propietario del dato
 
 ## Endpoints y vistas principales
@@ -388,10 +388,9 @@ La importación NO requiere ejecutar scripts; todo se hace desde el UI con feedb
 
 Historial de migraciones:
 
-- `0001`: Creación inicial de tablas (User, Plot, Expense, Income).
-- `0002-0005`: Evoluciones del modelo.
-- `0006`: División de campo `cadastral_ref` en `plot_num` (parcel number) y `cadastral_ref` (official cadastral reference).
-- `0007`: Renombramiento de `num_holm_oaks` a `num_plants` para mayor flexibilidad (encinas, trufa trufera, etc.).
+- `0001`: baseline inicial tras reset de Alembic (schema completo actual).
+
+Nota: Las migraciones históricas previas al reset se conservaron en `alembic/versions_archive_YYYYMMDD_HHMMSS/` solo como referencia.
 
 Crear migración automática:
 
@@ -469,7 +468,32 @@ Ejecutar pruebas:
 
 Resultado actual de referencia:
 
-- **58 tests pasando** (unitarios + integración)
+- **85 tests pasando** (unitarios + integración)
+
+## 3.2 Operativa Fly.io (Semana 1)
+
+### Pipeline activo
+
+- `CI` se ejecuta en PR/push a `main` (tests + build + bootstrap de migraciones en BD vacía).
+- `Fly Deploy` se dispara tras `CI` exitoso en `main` y ejecuta healthcheck post-deploy.
+
+### Verificación rápida de entorno dev
+
+```bash
+curl -sS -i https://truficultura-dev.fly.dev/health | head -n 20
+flyctl status --app truficultura-dev
+flyctl logs --app truficultura-dev --no-tail | tail -n 120
+```
+
+### Rollback rápido (imagen previa)
+
+1. Identificar imagen/release estable previa en logs o Actions.
+2. Desplegar de nuevo esa imagen/commit desde el workflow o con `flyctl deploy` apuntando al commit anterior.
+3. Verificar `/health` y login.
+
+### Notas de disponibilidad
+
+- `fly.toml` mantiene `min_machines_running = 2` y `auto_stop_machines = 'off'` para reducir riesgo de downtime en dev durante despliegues.
 
 ---
 
