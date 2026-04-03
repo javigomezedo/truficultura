@@ -27,7 +27,15 @@ class Income(Base):
     amount_kg: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     category: Mapped[str] = mapped_column(String(200), nullable=False, default="")
     euros_per_kg: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
-    total: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+
+    @property
+    def total(self) -> float:
+        return round(self.amount_kg * self.euros_per_kg, 2)
+
+    @total.setter
+    def total(self, value: float) -> None:
+        # Backward-compatible no-op: total is derived from amount_kg and euros_per_kg.
+        return
 
     # Relationships
     user: Mapped[Optional["User"]] = relationship("User", back_populates="incomes")

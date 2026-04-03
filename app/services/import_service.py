@@ -149,7 +149,6 @@ async def import_incomes_csv(
                 amount_kg=kg,
                 category=categoria.strip() or None,
                 euros_per_kg=euros_per_kg,
-                total=round(kg * euros_per_kg, 2),
             )
             rows.append(row)
         except (ValueError, KeyError) as exc:

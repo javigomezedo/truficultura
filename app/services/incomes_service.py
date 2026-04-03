@@ -72,7 +72,6 @@ async def create_income(
     category: str,
     euros_per_kg: float,
 ) -> Income:
-    total = round(amount_kg * euros_per_kg, 2)
     new_income = Income(
         user_id=user_id,
         date=date,
@@ -80,7 +79,6 @@ async def create_income(
         amount_kg=amount_kg,
         category=category,
         euros_per_kg=euros_per_kg,
-        total=total,
     )
     db.add(new_income)
     await db.flush()
@@ -97,13 +95,11 @@ async def update_income(
     category: str,
     euros_per_kg: float,
 ) -> Income:
-    total = round(amount_kg * euros_per_kg, 2)
     income.date = date
     income.plot_id = plot_id if plot_id else None
     income.amount_kg = amount_kg
     income.category = category
     income.euros_per_kg = euros_per_kg
-    income.total = total
     await db.flush()
     return income
 
