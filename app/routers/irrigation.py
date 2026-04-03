@@ -37,6 +37,7 @@ async def list_view(
         db, current_user.id, year=year_int, plot_id=plot_id
     )
     return templates.TemplateResponse(
+        request,
         "riego/list.html",
         {"request": request, **context, "msg": msg},
     )
@@ -52,6 +53,7 @@ async def new_form(
 
     plots = await _get_irrigable_plots(db, current_user.id)
     return templates.TemplateResponse(
+        request,
         "riego/form.html",
         {"request": request, "record": None, "plots": plots, "action": "/irrigation/"},
     )
@@ -98,6 +100,7 @@ async def edit_form(
     plots = await _get_irrigable_plots(db, current_user.id)
     expenses = await get_riego_expenses_for_plot(db, current_user.id, record.plot_id)
     return templates.TemplateResponse(
+        request,
         "riego/form.html",
         {
             "request": request,

@@ -35,6 +35,7 @@ async def login_page(request: Request):
     if request.session.get("user_id"):
         return RedirectResponse("/", status_code=303)
     return templates.TemplateResponse(
+        request,
         "auth/login.html", {"request": request, "error": None}
     )
 
@@ -54,6 +55,7 @@ async def login_post(
         # User exists and password is correct, but check if active
         if not user.is_active:
             return templates.TemplateResponse(
+                request,
                 "auth/login.html",
                 {
                     "request": request,
@@ -72,6 +74,7 @@ async def login_post(
 
     # Either user doesn't exist or password is wrong
     return templates.TemplateResponse(
+        request,
         "auth/login.html",
         {"request": request, "error": "Usuario o contraseña incorrectos."},
         status_code=401,
@@ -83,6 +86,7 @@ async def register_page(request: Request):
     if request.session.get("user_id"):
         return RedirectResponse("/", status_code=303)
     return templates.TemplateResponse(
+        request,
         "auth/register.html", {"request": request, "error": None}
     )
 
@@ -104,6 +108,7 @@ async def register_post(
     email = email.strip().lower()
     if not is_valid_email(email):
         return templates.TemplateResponse(
+            request,
             "auth/register.html",
             {
                 "request": request,
@@ -116,6 +121,7 @@ async def register_post(
     result = await db.execute(select(User).where(User.email == email))
     if result.scalar_one_or_none():
         return templates.TemplateResponse(
+            request,
             "auth/register.html",
             {
                 "request": request,
@@ -129,6 +135,7 @@ async def register_post(
 
     if password != password_confirm:
         return templates.TemplateResponse(
+            request,
             "auth/register.html",
             {"request": request, "error": "Las contraseñas no coinciden."},
             status_code=400,
@@ -136,6 +143,7 @@ async def register_post(
 
     if len(password) < 8:
         return templates.TemplateResponse(
+            request,
             "auth/register.html",
             {
                 "request": request,
@@ -146,6 +154,7 @@ async def register_post(
 
     if len(password.encode("utf-8")) > 72:
         return templates.TemplateResponse(
+            request,
             "auth/register.html",
             {
                 "request": request,

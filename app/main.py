@@ -104,6 +104,7 @@ async def dashboard(
     context = await build_dashboard_context(db, current_user.id)
 
     return templates.TemplateResponse(
+        request,
         "index.html",
         {
             "request": request,

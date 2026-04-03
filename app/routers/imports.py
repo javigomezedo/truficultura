@@ -20,6 +20,7 @@ async def import_page(
     current_user: User = Depends(require_user),
 ):
     return templates.TemplateResponse(
+        request,
         "imports/index.html",
         {"request": request, "result": None},
     )
@@ -37,6 +38,7 @@ async def upload_expenses(
     await db.commit()
 
     return templates.TemplateResponse(
+        request,
         "imports/index.html",
         {
             "request": request,
@@ -63,6 +65,7 @@ async def upload_incomes(
     await db.commit()
 
     return templates.TemplateResponse(
+        request,
         "imports/index.html",
         {
             "request": request,
@@ -89,6 +92,7 @@ async def upload_plots(
     await db.commit()
 
     return templates.TemplateResponse(
+        request,
         "imports/index.html",
         {
             "request": request,

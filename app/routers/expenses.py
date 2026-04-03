@@ -43,6 +43,7 @@ async def list_expenses(
     )
 
     return templates.TemplateResponse(
+        request,
         "gastos/list.html",
         {
             "request": request,
@@ -60,6 +61,7 @@ async def new_expense_form(
 ):
     plots = await list_plots(db, current_user.id)
     return templates.TemplateResponse(
+        request,
         "gastos/form.html",
         {
             "request": request,
@@ -115,6 +117,7 @@ async def edit_expense_form(
     plots = await list_plots(db, current_user.id)
 
     return templates.TemplateResponse(
+        request,
         "gastos/form.html",
         {
             "request": request,
