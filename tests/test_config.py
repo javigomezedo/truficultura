@@ -23,3 +23,27 @@ def test_sqlalchemy_database_url_trims_wrapping_quotes():
         settings.SQLALCHEMY_DATABASE_URL
         == "postgresql+asyncpg://user:pass@db.internal:5432/appdb?sslmode=require"
     )
+
+
+def test_sqlalchemy_database_url_normalizes_boolean_sslmode_true():
+    settings = Settings(
+        DATABASE_URL="postgres://user:pass@db.internal:5432/appdb?sslmode=true",
+        SECRET_KEY="secret",
+    )
+
+    assert (
+        settings.SQLALCHEMY_DATABASE_URL
+        == "postgresql+asyncpg://user:pass@db.internal:5432/appdb?sslmode=require"
+    )
+
+
+def test_sqlalchemy_database_url_normalizes_boolean_sslmode_false():
+    settings = Settings(
+        DATABASE_URL="postgres://user:pass@db.internal:5432/appdb?sslmode=false",
+        SECRET_KEY="secret",
+    )
+
+    assert (
+        settings.SQLALCHEMY_DATABASE_URL
+        == "postgresql+asyncpg://user:pass@db.internal:5432/appdb?sslmode=disable"
+    )
