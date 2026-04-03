@@ -12,13 +12,15 @@ class Settings(BaseSettings):
         Fly often injects DATABASE_URL as postgres://... while this app uses
         SQLAlchemy async engine with asyncpg.
         """
-        if self.DATABASE_URL.startswith("postgres://"):
-            return self.DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
-        if self.DATABASE_URL.startswith("postgresql://"):
-            return self.DATABASE_URL.replace(
-                "postgresql://", "postgresql+asyncpg://", 1
-            )
-        return self.DATABASE_URL
+        raw_url = self.DATABASE_URL.strip().strip("'\"")
+        normalized_lower = raw_url.lower()
+
+        if normalized_lower.startswith("postgres://"):
+            raw_url = raw_url.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif normalized_lower.startswith("postgresql://"):
+            raw_url = raw_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+        return raw_url
 
     model_config = SettingsConfigDict(
         env_file=".env",
