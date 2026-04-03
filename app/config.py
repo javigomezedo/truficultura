@@ -1,5 +1,4 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 
 class Settings(BaseSettings):
@@ -10,8 +9,8 @@ class Settings(BaseSettings):
     def SQLALCHEMY_DATABASE_URL(self) -> str:
         """Normalize DB URL schemes so Fly/local envs work with async SQLAlchemy.
 
-        Fly often injects DATABASE_URL as postgres://... and may include
-        sslmode query params which asyncpg does not accept.
+        Fly often injects DATABASE_URL as postgres://... while this app uses
+        SQLAlchemy async engine with asyncpg.
         """
         raw_url = self.DATABASE_URL.strip().strip("'\"")
         normalized_lower = raw_url.lower()
@@ -21,29 +20,7 @@ class Settings(BaseSettings):
         elif normalized_lower.startswith("postgresql://"):
             raw_url = raw_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-        parts = urlsplit(raw_url)
-        query_items = parse_qsl(parts.query, keep_blank_values=True)
-        transformed_items = []
-        sslmode_value = None
-
-        for key, value in query_items:
-            if key.lower() == "sslmode":
-                sslmode_value = value.lower()
-                continue
-            transformed_items.append((key, value))
-
-        if sslmode_value is not None and not any(
-            key.lower() == "ssl" for key, _ in transformed_items
-        ):
-            ssl_value = "true"
-            if sslmode_value in {"disable", "allow"}:
-                ssl_value = "false"
-            transformed_items.append(("ssl", ssl_value))
-
-        rebuilt_query = urlencode(transformed_items, doseq=True)
-        return urlunsplit(
-            (parts.scheme, parts.netloc, parts.path, rebuilt_query, parts.fragment)
-        )
+        return raw_url
 
     model_config = SettingsConfigDict(
         env_file=".env",
