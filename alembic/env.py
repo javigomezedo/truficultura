@@ -39,7 +39,7 @@ def get_url():
     """Get database URL from environment or alembic.ini"""
     from app.config import settings
 
-    return settings.DATABASE_URL
+    return settings.SQLALCHEMY_DATABASE_URL
 
 
 def run_migrations_offline() -> None:
