@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.expense import Expense
 from app.models.income import Income
 from app.models.plot import Plot
+from app.models.irrigation import IrrigationRecord
 
 
 def _parse_date_opt(s: str) -> Optional[datetime.date]:
@@ -164,7 +165,7 @@ async def import_plots_csv(
     """Parse plots CSV and persist rows.
 
     Expected format (semicolon-delimited, no header, min 2 columns):
-        nombre;fecha_plantacion[;poligono;parcela;ref_catastral;hidrante;sector;n_plantas;superficie_ha;inicio_produccion]
+        nombre;fecha_plantacion[;poligono;parcela;ref_catastral;hidrante;sector;n_plantas;superficie_ha;inicio_produccion[;tiene_riego]]
 
     - nombre:            plot name (required)
     - fecha_plantacion:  planting date DD/MM/YYYY (required)
@@ -176,6 +177,7 @@ async def import_plots_csv(
     - n_plantas:         number of plants (optional, integer)
     - superficie_ha:     area in hectares (optional, decimal)
     - inicio_produccion: production start date DD/MM/YYYY (optional)
+    - tiene_riego:       1 or 0 (optional, default 0 — backward compatible)
 
     Note: Percentage is automatically calculated based on total plant count.
     """
@@ -209,6 +211,7 @@ async def import_plots_csv(
                 area_ha=_parse_num(col(8)) or None,
                 production_start=_parse_date_opt(col(9)),
                 percentage=0.0,
+                has_irrigation=bool(_parse_int(col(10))),
             )
             rows.append(row)
         except (ValueError, KeyError) as exc:
@@ -220,5 +223,75 @@ async def import_plots_csv(
     from app.services.plots_service import _recalculate_percentages
 
     await _recalculate_percentages(db, user_id)
+    return rows, warnings
 
+
+async def import_irrigation_csv(
+    db: AsyncSession, content: bytes, user_id: int
+) -> tuple[list[IrrigationRecord], list[str]]:
+    """Parse irrigation records CSV and persist rows.
+
+    Expected format (semicolon-delimited, no header):
+        fecha;bancal;agua_m3[;notas]
+
+    - fecha:    DD/MM/YYYY (required)
+    - bancal:   plot name (required — irrigation always requires a plot)
+    - agua_m3:  water volume in m³, European format (required)
+    - notas:    optional free text notes
+
+    Rows are skipped (with a warning) if:
+    - the plot is not found for the current user
+    - the plot exists but has_irrigation=False
+    """
+    # We also need has_irrigation per plot — load full plot objects
+    result = await db.execute(select(Plot).where(Plot.user_id == user_id))
+    plots_obj: dict[str, Plot] = {p.name.lower(): p for p in result.scalars().all()}
+
+    rows: list[IrrigationRecord] = []
+    warnings: list[str] = []
+
+    reader = csv.reader(io.StringIO(content.decode("utf-8")), delimiter=";")
+    for i, line in enumerate(reader, 1):
+        if not any(line):
+            continue
+        if len(line) < 3:
+            warnings.append(
+                f"Línea {i}: se esperaban al menos 3 columnas, se encontraron {len(line)} — omitida"
+            )
+            continue
+
+        fecha_s, bancal, agua_m3_s = line[0], line[1].strip(), line[2]
+        notas = line[3].strip() if len(line) > 3 else None
+
+        if not bancal:
+            warnings.append(
+                f"Línea {i}: bancal vacío — omitida (el riego siempre requiere parcela)"
+            )
+            continue
+
+        plot = plots_obj.get(bancal.lower())
+        if plot is None:
+            warnings.append(f"Línea {i}: bancal '{bancal}' no encontrado — omitida")
+            continue
+
+        if not plot.has_irrigation:
+            warnings.append(
+                f"Línea {i}: bancal '{bancal}' no tiene riego habilitado — omitida"
+            )
+            continue
+
+        try:
+            row = IrrigationRecord(
+                user_id=user_id,
+                plot_id=plot.id,
+                date=_parse_date(fecha_s),
+                water_m3=_parse_num(agua_m3_s),
+                notes=notas or None,
+                expense_id=None,
+            )
+            rows.append(row)
+        except (ValueError, KeyError) as exc:
+            warnings.append(f"Línea {i}: error al parsear — {exc} — omitida")
+
+    db.add_all(rows)
     return rows, warnings

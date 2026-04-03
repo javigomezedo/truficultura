@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("Exportar datos") }} — Truficultura{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col">
+        <h2><i class="bi bi-download me-2"></i>{{ _("Exportar datos CSV") }}</h2>
+        <p class="text-muted">{{ _("Descarga archivos CSV de parcelas, gastos, ingresos y riego con el mismo formato usado por la importación.") }}</p>
+    </div>
+</div>
+
+<ul class="nav nav-tabs mb-4" id="exportTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="tab-export-plots" data-bs-target="#panel-export-plots" type="button" role="tab">
+            <i class="bi bi-grid-fill text-primary me-1"></i>{{ _("Parcelas") }}
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-export-expenses" data-bs-target="#panel-export-expenses" type="button" role="tab">
+            <i class="bi bi-arrow-down-circle-fill text-danger me-1"></i>{{ _("Gastos") }}
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-export-incomes" data-bs-target="#panel-export-incomes" type="button" role="tab">
+            <i class="bi bi-arrow-up-circle-fill text-success me-1"></i>{{ _("Ingresos") }}
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-export-irrigation" data-bs-target="#panel-export-irrigation" type="button" role="tab">
+            <i class="bi bi-droplet-fill text-primary me-1"></i>{{ _("Riego") }}
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="exportTabContent">
+    <div class="tab-pane fade show active" id="panel-export-plots" role="tabpanel">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <h5 class="card-title mb-3">{{ _("Exportar parcelas") }}</h5>
+                <p class="text-muted mb-3">{{ _("Descarga todas tus parcelas en formato CSV semicolon-delimited y sin cabecera. Incluye la columna tiene_riego (1/0) para reutilizar el archivo en la importación.") }}</p>
+                <div class="mb-4">
+                    <span class="badge text-bg-light me-2">nombre</span>
+                    <span class="badge text-bg-light me-2">fecha_plantacion</span>
+                    <span class="badge text-bg-light me-2">poligono</span>
+                    <span class="badge text-bg-light me-2">parcela</span>
+                    <span class="badge text-bg-light me-2">ref_catastral</span>
+                    <span class="badge text-bg-light me-2">hidrante</span>
+                    <span class="badge text-bg-light me-2">sector</span>
+                    <span class="badge text-bg-light me-2">n_plantas</span>
+                    <span class="badge text-bg-light me-2">superficie_ha</span>
+                    <span class="badge text-bg-light me-2">inicio_produccion</span>
+                    <span class="badge text-bg-primary">tiene_riego</span>
+                </div>
+                <a href="/export/plots.csv" class="btn btn-success">
+                    <i class="bi bi-download me-1"></i>{{ _("Descargar CSV") }}
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="panel-export-expenses" role="tabpanel">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <h5 class="card-title mb-3">{{ _("Exportar gastos") }}</h5>
+                <p class="text-muted mb-3">{{ _("Descarga los gastos con el mismo orden de columnas admitido por la importación. Si un gasto no está asignado a ningún bancal, la columna bancal se exporta vacía.") }}</p>
+                <div class="mb-4">
+                    <span class="badge text-bg-light me-2">fecha</span>
+                    <span class="badge text-bg-light me-2">concepto</span>
+                    <span class="badge text-bg-light me-2">persona</span>
+                    <span class="badge text-bg-light me-2">bancal</span>
+                    <span class="badge text-bg-light me-2">cantidad</span>
+                    <span class="badge text-bg-light">categoria</span>
+                </div>
+                <a href="/export/expenses.csv" class="btn btn-success">
+                    <i class="bi bi-download me-1"></i>{{ _("Descargar CSV") }}
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="panel-export-incomes" role="tabpanel">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <h5 class="card-title mb-3">{{ _("Exportar ingresos") }}</h5>
+                <p class="text-muted mb-3">{{ _("Descarga los ingresos en el mismo formato de importación. El total no se exporta porque se calcula automáticamente a partir de kg y euros/kg.") }}</p>
+                <div class="mb-4">
+                    <span class="badge text-bg-light me-2">fecha</span>
+                    <span class="badge text-bg-light me-2">bancal</span>
+                    <span class="badge text-bg-light me-2">kg</span>
+                    <span class="badge text-bg-light me-2">categoria</span>
+                    <span class="badge text-bg-light">euros_kg</span>
+                </div>
+                <a href="/export/incomes.csv" class="btn btn-success">
+                    <i class="bi bi-download me-1"></i>{{ _("Descargar CSV") }}
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="panel-export-irrigation" role="tabpanel">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <h5 class="card-title mb-3">{{ _("Exportar riego") }}</h5>
+                <p class="text-muted mb-3">{{ _("Descarga los registros de riego en formato reutilizable para la importación. El vínculo interno con gastos no se exporta; solo se incluyen los datos funcionales del registro.") }}</p>
+                <div class="mb-4">
+                    <span class="badge text-bg-light me-2">fecha</span>
+                    <span class="badge text-bg-light me-2">bancal</span>
+                    <span class="badge text-bg-light me-2">agua_m³</span>
+                    <span class="badge text-bg-light">notas</span>
+                </div>
+                <a href="/export/irrigation.csv" class="btn btn-success">
+                    <i class="bi bi-download me-1"></i>{{ _("Descargar CSV") }}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    (function () {
+        var buttons = document.querySelectorAll('#exportTabs button');
+        var panes = document.querySelectorAll('#exportTabContent .tab-pane');
+
+        buttons.forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                var targetId = btn.getAttribute('data-bs-target');
+                var targetPane = document.querySelector(targetId);
+                if (!targetPane) return;
+
+                buttons.forEach(function (b) { b.classList.remove('active'); });
+                panes.forEach(function (p) { p.classList.remove('show', 'active'); });
+
+                btn.classList.add('active');
+                targetPane.classList.add('show', 'active');
+            });
+        });
+    })();
+</script>
+{% endblock %}

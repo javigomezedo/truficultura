@@ -11,9 +11,10 @@ Truficultura permite registrar y analizar la actividad económica de una explota
 - Gestión de parcelas (bancales) con identificación cadastral y número de plantas.
 - Registro de gastos (con o sin parcela asignada).
 - Registro de ingresos por fecha, categoría, kg y precio por kg.
+- Registro de riegos por parcela con volumen de agua y notas.
 - Cálculo automático de rentabilidad global, por campaña y por parcela.
 - Visualización de métricas semanales y comparativas mediante gráficas.
-- Importación masiva de datos históricos desde CSV.
+- Importación y exportación masiva de datos históricos desde CSV.
 - Distribución proporcional de gastos generales según número de plantas por parcela.
 
 ### Lógica de negocio clave
@@ -90,10 +91,12 @@ Servicios principales:
 - `app/services/plots_service.py`: CRUD de parcelas con cálculo automático de porcentajes.
 - `app/services/expenses_service.py`: CRUD y contexto de listado de gastos por campaña.
 - `app/services/incomes_service.py`: CRUD y contexto de listado de ingresos por campaña.
+- `app/services/irrigation_service.py`: CRUD y contexto de listados de riego por parcela y año.
 - `app/services/dashboard_service.py`: cálculo del dashboard global.
 - `app/services/reports_service.py`: cálculo del informe de rentabilidad.
 - `app/services/charts_service.py`: datasets para gráficas y tablas de producción.
-- `app/services/import_service.py`: importación de parcelas, gastos e ingresos desde CSV.
+- `app/services/import_service.py`: importación de parcelas, gastos, ingresos y riego desde CSV.
+- `app/services/export_service.py`: exportación de parcelas, gastos, ingresos y riego a CSV.
 
 Beneficios directos del refactor:
 
@@ -137,11 +140,13 @@ Campos relevantes:
 - `planting_date`: fecha de plantación
 - `production_start`: inicio de producción
 - `percentage`: porcentaje dentro del total de plantas (calculado automáticamente)
+- `has_irrigation`: indica si la parcela tiene riego habilitado
 
 Relaciones:
 
 - 1:N con `Expense`
 - 1:N con `Income`
+- 1:N con `IrrigationRecord`
 
 ### Gasto (Expense)
 
@@ -167,15 +172,28 @@ Campos relevantes:
 - `total`: propiedad calculada (`amount_kg * euros_per_kg`) no persistida en BD
 - `user_id`: usuario propietario del dato
 
+### Riego (IrrigationRecord)
+
+Campos relevantes:
+
+- `date`: fecha del riego
+- `plot_id`: parcela asociada (obligatoria)
+- `water_m3`: volumen de agua en m³
+- `notes`: notas opcionales
+- `expense_id`: gasto de riego asociado (opcional, uso interno)
+- `user_id`: usuario propietario del dato
+
 ## Endpoints y vistas principales
 
 - `/` Dashboard con totales globales y matriz campaña x parcela.
 - `/plots/` CRUD de parcelas con gestión automática de porcentajes.
 - `/expenses/` CRUD de gastos + filtros por campaña.
 - `/incomes/` CRUD de ingresos + filtros por campaña.
+- `/irrigation/` CRUD de registros de riego + filtros por parcela y año.
 - `/reports/` Informe de rentabilidad detallado.
 - `/charts/` Análisis visual (semanal y comparativa ingresos vs gastos).
-- `/import/` Importación masiva desde CSV (parcelas, gastos, ingresos).
+- `/import/` Importación masiva desde CSV (parcelas, gastos, ingresos, riego).
+- `/export/` Exportación de datos a CSV (parcelas, gastos, ingresos, riego).
 - `/admin/users` Dashboard de gestión de usuarios (solo administrador).
   - Listado de usuarios con estado (activo/inactivo)
   - Crear nuevos usuarios
@@ -329,9 +347,9 @@ Con mayor nivel de logs:
 uvicorn app.main:app --reload --log-level debug
 ```
 
-## Importación de datos CSV
+## Importación y exportación de datos CSV
 
-La importación de datos se realiza directamente desde la interfaz web en `/import/`.
+La importación y exportación de datos se realiza directamente desde la interfaz web en `/import/` y `/export/`.
 
 ### Tipos de importación disponibles
 
@@ -341,12 +359,12 @@ Accede a `/import/` → Pestaña "Parcelas" → Carga un archivo CSV
 
 Formato esperado (semicolon-delimited, sin header):
 ```
-nombre;fecha_plantacion;poligono;parcela;ref_catastral;hidrante;sector;n_plantas;superficie_ha;inicio_produccion
-Bancal Sur;15/03/2018;21;120;44223A021001200000FP;H-3;S2;120;1,25;01/11/2023
+nombre;fecha_plantacion;poligono;parcela;ref_catastral;hidrante;sector;n_plantas;superficie_ha;inicio_produccion;tiene_riego
+Bancal Sur;15/03/2018;21;120;44223A021001200000FP;H-3;S2;120;1,25;01/11/2023;1
 ```
 
 Obligatorio: `nombre` y `fecha_plantacion`
-Opcional: resto de campos
+Opcional: resto de campos. `tiene_riego` acepta `1` o `0`; si falta, se asume `0`.
 
 **2) Importar Gastos**
 
@@ -374,6 +392,45 @@ fecha;bancal;kg;categoria;euros_kg
 Obligatorio: `fecha`, `kg`, `euros_kg`
 Opcional: `bancal`, `categoria`
 
+**4) Importar Riego**
+
+Accede a `/import/` → Pestaña "Riego" → Carga un archivo CSV
+
+Formato esperado (semicolon-delimited, sin header):
+```
+fecha;bancal;agua_m3;notas
+15/06/2025;Bancal Sur;12,500;Primera pasada
+```
+
+Obligatorio: `fecha`, `bancal`, `agua_m3`
+Opcional: `notas`
+
+Reglas específicas:
+
+- El bancal debe existir.
+- La parcela debe tener `has_irrigation=True`.
+- Si no se cumple alguna de estas condiciones, la fila se omite con aviso.
+
+## Exportación de datos CSV
+
+La exportación se realiza desde `/export/` y descarga ficheros listos para reutilizar en la importación.
+
+Tipos de exportación disponibles:
+
+- **Parcelas**: incluye columna `tiene_riego` (`1`/`0`)
+- **Gastos**
+- **Ingresos**
+- **Riego**: exporta `fecha;bancal;agua_m3;notas`
+
+Características del formato exportado:
+
+- Delimitador `;`
+- Sin fila de cabecera
+- Fechas en formato `dd/mm/yyyy`
+- Números en formato europeo
+- Compatible con la importación de la propia aplicación
+- En riego no se exporta `expense_id`, porque es una referencia interna
+
 ### Comportamiento de la importación
 
 - **Fechas**: Formato `dd/mm/yyyy`
@@ -381,8 +438,9 @@ Opcional: `bancal`, `categoria`
 - **Validación**: Se validan fechas y formatos; líneas inválidas se omiten con aviso
 - **Porcentajes**: Se calculan automáticamente después de importar parcelas
 - **Avisos**: Si un bancal no existe en ingresos/gastos, se importa sin asignar y se muestra aviso
+- **Riego**: Solo se importan registros sobre parcelas existentes y con riego habilitado
 
-La importación NO requiere ejecutar scripts; todo se hace desde el UI con feedback visual inmediato.
+La importación y exportación NO requieren ejecutar scripts; todo se hace desde el UI con feedback visual inmediato.
 
 ## Migraciones en desarrollo
 
@@ -468,7 +526,7 @@ Ejecutar pruebas:
 
 Resultado actual de referencia:
 
-- **85 tests pasando** (unitarios + integración)
+- **206 tests pasando** (unitarios, integración y routers)
 
 ## 3.2 Operativa Fly.io (Semana 1)
 
