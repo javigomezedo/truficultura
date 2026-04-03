@@ -7,7 +7,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.auth import NotAuthenticatedException, NotAdminException, require_user
 from app.config import settings
-from app.database import Base, engine, get_db
+from app.database import engine, get_db
 from app.i18n import get_locale, load_translations
 from app.jinja import templates
 from app.models import User, Plot, Expense, Income, IrrigationRecord  # noqa: F401 - ensure models are registered
@@ -27,9 +27,7 @@ from app.services.dashboard_service import build_dashboard_context
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Create all database tables on startup if they don't exist."""
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    """App lifespan hook for graceful async engine disposal."""
     yield
     await engine.dispose()
 

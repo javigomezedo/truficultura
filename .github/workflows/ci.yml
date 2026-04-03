@@ -14,6 +14,20 @@ permissions:
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: trufi
+          POSTGRES_PASSWORD: trufi
+          POSTGRES_DB: truficultura
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd="pg_isready -U trufi -d truficultura"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     steps:
       - name: Checkout
@@ -29,6 +43,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .
           pip install pytest pytest-asyncio httpx aiosqlite
+
+      - name: Validate migrations bootstrap from empty DB
+        env:
+          DATABASE_URL: postgres://trufi:trufi@localhost:5433/truficultura
+        run: |
+          alembic upgrade head
 
       - name: Run tests
         run: pytest -q tests/
