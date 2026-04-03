@@ -25,12 +25,14 @@ class Settings(BaseSettings):
         parts = urlsplit(raw_url)
         query_items = parse_qsl(parts.query, keep_blank_values=True)
         normalized_items = []
+        normalized_ssl = None
 
         for key, value in query_items:
-            if key.lower() == "sslmode":
-                # asyncpg does not accept sslmode; convert to ssl=true/false
-                lowered = value.lower()
-                if lowered in {
+            lowered_key = key.lower()
+            lowered_value = value.lower()
+
+            if lowered_key in {"sslmode", "ssl"}:
+                if lowered_value in {
                     "require",
                     "verify-ca",
                     "verify-full",
@@ -39,12 +41,15 @@ class Settings(BaseSettings):
                     "yes",
                     "on",
                 }:
-                    normalized_items.append(("ssl", "true"))
+                    normalized_ssl = "require"
                 else:
-                    # disable / allow / prefer / false / 0 / no / off → no SSL
-                    normalized_items.append(("ssl", "false"))
+                    normalized_ssl = "disable"
                 continue
+
             normalized_items.append((key, value))
+
+        if normalized_ssl is not None:
+            normalized_items.append(("ssl", normalized_ssl))
 
         return urlunsplit(
             (
