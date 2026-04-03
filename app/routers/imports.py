@@ -8,7 +8,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth import require_user
 from app.database import get_db
 from app.models.user import User
-from app.services.import_service import import_expenses_csv, import_incomes_csv, import_plots_csv
+from app.services.import_service import (
+    import_expenses_csv,
+    import_incomes_csv,
+    import_irrigation_csv,
+    import_plots_csv,
+)
 
 router = APIRouter(prefix="/import", tags=["import"])
 templates = Jinja2Templates(directory="app/templates")
@@ -103,5 +108,32 @@ async def upload_plots(
                 "warnings": warnings,
             },
             "active_tab": "plots",
+        },
+    )
+
+
+@router.post("/irrigation", response_class=HTMLResponse)
+async def upload_irrigation(
+    request: Request,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
+):
+    content = await file.read()
+    rows, warnings = await import_irrigation_csv(db, content, current_user.id)
+    await db.commit()
+
+    return templates.TemplateResponse(
+        request,
+        "imports/index.html",
+        {
+            "request": request,
+            "result": {
+                "type": "irrigation",
+                "filename": file.filename,
+                "imported": len(rows),
+                "warnings": warnings,
+            },
+            "active_tab": "irrigation",
         },
     )
