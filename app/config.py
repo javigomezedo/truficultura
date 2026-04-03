@@ -28,11 +28,22 @@ class Settings(BaseSettings):
 
         for key, value in query_items:
             if key.lower() == "sslmode":
+                # asyncpg does not accept sslmode; convert to ssl=true/false
                 lowered = value.lower()
-                if lowered in {"true", "1", "yes", "on"}:
-                    value = "require"
-                elif lowered in {"false", "0", "no", "off"}:
-                    value = "disable"
+                if lowered in {
+                    "require",
+                    "verify-ca",
+                    "verify-full",
+                    "true",
+                    "1",
+                    "yes",
+                    "on",
+                }:
+                    normalized_items.append(("ssl", "true"))
+                else:
+                    # disable / allow / prefer / false / 0 / no / off → no SSL
+                    normalized_items.append(("ssl", "false"))
+                continue
             normalized_items.append((key, value))
 
         return urlunsplit(
