@@ -1,3 +1,5 @@
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,7 +22,28 @@ class Settings(BaseSettings):
         elif normalized_lower.startswith("postgresql://"):
             raw_url = raw_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-        return raw_url
+        parts = urlsplit(raw_url)
+        query_items = parse_qsl(parts.query, keep_blank_values=True)
+        normalized_items = []
+
+        for key, value in query_items:
+            if key.lower() == "sslmode":
+                lowered = value.lower()
+                if lowered in {"true", "1", "yes", "on"}:
+                    value = "require"
+                elif lowered in {"false", "0", "no", "off"}:
+                    value = "disable"
+            normalized_items.append((key, value))
+
+        return urlunsplit(
+            (
+                parts.scheme,
+                parts.netloc,
+                parts.path,
+                urlencode(normalized_items, doseq=True),
+                parts.fragment,
+            )
+        )
 
     model_config = SettingsConfigDict(
         env_file=".env",
