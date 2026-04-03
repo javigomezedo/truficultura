@@ -21,6 +21,7 @@ async def profitability(
     context = await build_profitability_context(db, current_user.id)
 
     return templates.TemplateResponse(
+        request,
         "reportes/rentabilidad.html",
         {
             "request": request,

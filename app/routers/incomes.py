@@ -34,6 +34,7 @@ async def list_incomes(
     context = await get_incomes_list_context(db, year_int, current_user.id)
 
     return templates.TemplateResponse(
+        request,
         "ingresos/list.html",
         {
             "request": request,
@@ -51,6 +52,7 @@ async def new_income_form(
 ):
     plots = await list_plots(db, current_user.id)
     return templates.TemplateResponse(
+        request,
         "ingresos/form.html",
         {
             "request": request,
@@ -103,6 +105,7 @@ async def edit_income_form(
     plots = await list_plots(db, current_user.id)
 
     return templates.TemplateResponse(
+        request,
         "ingresos/form.html",
         {
             "request": request,

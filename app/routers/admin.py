@@ -31,6 +31,7 @@ async def list_users(
     result = await db.execute(select(User).order_by(User.username))
     users = result.scalars().all()
     return templates.TemplateResponse(
+        request,
         "admin/users_list.html",
         {"request": request, "users": users, "current_user": current_user},
     )
@@ -43,6 +44,7 @@ async def create_user_page(
     current_user: User = Depends(require_admin),
 ):
     return templates.TemplateResponse(
+        request,
         "admin/user_create.html", {"request": request, "current_user": current_user}
     )
 
@@ -65,6 +67,7 @@ async def create_user(
     # Validate email format
     if not is_valid_email(email):
         return templates.TemplateResponse(
+            request,
             "admin/user_create.html",
             {
                 "request": request,
@@ -79,6 +82,7 @@ async def create_user(
     existing = result.scalar_one_or_none()
     if existing:
         return templates.TemplateResponse(
+            request,
             "admin/user_create.html",
             {
                 "request": request,
@@ -92,6 +96,7 @@ async def create_user(
     result = await db.execute(select(User).where(User.email == email))
     if result.scalar_one_or_none():
         return templates.TemplateResponse(
+            request,
             "admin/user_create.html",
             {
                 "request": request,
@@ -134,6 +139,7 @@ async def edit_user_page(
         return RedirectResponse("/admin/users", status_code=303)
 
     return templates.TemplateResponse(
+        request,
         "admin/user_edit.html",
         {"request": request, "user": user, "current_user": current_user},
     )
@@ -163,6 +169,7 @@ async def update_user(
         existing = result.scalar_one_or_none()
         if existing:
             return templates.TemplateResponse(
+                request,
                 "admin/user_edit.html",
                 {
                     "request": request,
@@ -177,6 +184,7 @@ async def update_user(
     email = email.strip().lower()
     if not is_valid_email(email):
         return templates.TemplateResponse(
+            request,
             "admin/user_edit.html",
             {
                 "request": request,
@@ -193,6 +201,7 @@ async def update_user(
         existing = result.scalar_one_or_none()
         if existing:
             return templates.TemplateResponse(
+                request,
                 "admin/user_edit.html",
                 {
                     "request": request,

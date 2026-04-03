@@ -27,6 +27,7 @@ async def charts_index(
     )
 
     return templates.TemplateResponse(
+        request,
         "graficas/index.html",
         {
             "request": request,

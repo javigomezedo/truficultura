@@ -30,6 +30,7 @@ async def list_plots(
 ):
     plots = await list_plots_service(db, current_user.id)
     return templates.TemplateResponse(
+        request,
         "parcelas/list.html",
         {"request": request, "plots": plots, "msg": msg},
     )
@@ -41,6 +42,7 @@ async def new_plot_form(
     current_user: User = Depends(require_user),
 ):
     return templates.TemplateResponse(
+        request,
         "parcelas/form.html",
         {"request": request, "plot": None, "action": "/plots/", "method": "post"},
     )
@@ -96,6 +98,7 @@ async def edit_plot_form(
             url="/plots/?msg=Parcela+no+encontrada", status_code=303
         )
     return templates.TemplateResponse(
+        request,
         "parcelas/form.html",
         {
             "request": request,
