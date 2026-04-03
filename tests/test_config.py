@@ -7,10 +7,10 @@ def test_sqlalchemy_database_url_normalizes_postgres_scheme():
         SECRET_KEY="secret",
     )
 
-    # sslmode=require → ssl=true; scheme normalized
+    # sslmode=require → ssl=require; scheme normalized
     assert (
         settings.SQLALCHEMY_DATABASE_URL
-        == "postgresql+asyncpg://user:pass@db.internal:5432/appdb?ssl=true"
+        == "postgresql+asyncpg://user:pass@db.internal:5432/appdb?ssl=require"
     )
 
 
@@ -20,10 +20,10 @@ def test_sqlalchemy_database_url_trims_wrapping_quotes():
         SECRET_KEY="secret",
     )
 
-    # sslmode=require → ssl=true; quotes stripped; scheme normalized
+    # sslmode=require → ssl=require; quotes stripped; scheme normalized
     assert (
         settings.SQLALCHEMY_DATABASE_URL
-        == "postgresql+asyncpg://user:pass@db.internal:5432/appdb?ssl=true"
+        == "postgresql+asyncpg://user:pass@db.internal:5432/appdb?ssl=require"
     )
 
 
@@ -33,10 +33,10 @@ def test_sqlalchemy_database_url_normalizes_boolean_sslmode_true():
         SECRET_KEY="secret",
     )
 
-    # boolean sslmode=true → ssl=true
+    # boolean sslmode=true → ssl=require
     assert (
         settings.SQLALCHEMY_DATABASE_URL
-        == "postgresql+asyncpg://user:pass@db.internal:5432/appdb?ssl=true"
+        == "postgresql+asyncpg://user:pass@db.internal:5432/appdb?ssl=require"
     )
 
 
@@ -46,10 +46,10 @@ def test_sqlalchemy_database_url_normalizes_boolean_sslmode_false():
         SECRET_KEY="secret",
     )
 
-    # boolean sslmode=false → ssl=false
+    # boolean sslmode=false → ssl=disable
     assert (
         settings.SQLALCHEMY_DATABASE_URL
-        == "postgresql+asyncpg://user:pass@db.internal:5432/appdb?ssl=false"
+        == "postgresql+asyncpg://user:pass@db.internal:5432/appdb?ssl=disable"
     )
 
 
@@ -61,5 +61,15 @@ def test_sqlalchemy_database_url_sslmode_disable():
 
     assert (
         settings.SQLALCHEMY_DATABASE_URL
-        == "postgresql+asyncpg://user:pass@db.internal:5432/appdb?ssl=false"
+        == "postgresql+asyncpg://user:pass@db.internal:5432/appdb?ssl=disable"
     )
+
+
+def test_sqlalchemy_database_url_removes_sslmode_key():
+    settings = Settings(
+        DATABASE_URL="postgres://user:pass@db.internal:5432/appdb?sslmode=require&connect_timeout=10",
+        SECRET_KEY="secret",
+    )
+
+    assert "sslmode=" not in settings.SQLALCHEMY_DATABASE_URL
+    assert settings.SQLALCHEMY_DATABASE_URL.endswith("connect_timeout=10&ssl=require")
