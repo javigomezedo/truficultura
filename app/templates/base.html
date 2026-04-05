@@ -18,7 +18,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
           rel="stylesheet">
-    <link rel="stylesheet" href="{{ request.url_for('static', path='css/app.css') }}">
+    <link rel="stylesheet" href="/static/css/app.css">
     <link rel="stylesheet" href="/static/css/themes/bodega-tecnica.css" id="tf-theme-link">
     <script>
         (function () {
@@ -198,7 +198,7 @@
     <script src="https://unpkg.com/htmx.org@1.9.12"
             integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2uH8K2Ja/OIkSGPnHnVfkRvHzr5XeXWRwT"
             crossorigin="anonymous"></script>
-    <script src="{{ request.url_for('static', path='js/app.js') }}"></script>
+    <script src="/static/js/app.js"></script>
 
     {% block extra_scripts %}{% endblock %}
     </div>
