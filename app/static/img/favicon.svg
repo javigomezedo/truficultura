@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Truficultura">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7e2337"/>
+      <stop offset="100%" stop-color="#b48a3a"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
+  <circle cx="32" cy="36" r="14" fill="#2e1f18"/>
+  <path d="M19 22c5-8 21-8 26 0" fill="none" stroke="#f4e8d8" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="26" cy="33" r="1.8" fill="#5f4030"/>
+  <circle cx="33" cy="39" r="2" fill="#5f4030"/>
+  <circle cx="38" cy="32" r="1.6" fill="#5f4030"/>
+</svg>
