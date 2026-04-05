@@ -4,12 +4,13 @@
 
 {% block content %}
 <div class="container-xl">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="tf-page-header">
         <div>
-            <h1 class="h3 mb-0">
+            <p class="tf-page-kicker">{{ _("Operación hídrica") }}</p>
+            <h1 class="tf-page-title">
                 <i class="bi bi-droplet-fill text-primary me-2"></i>{{ _("Riego") }}
             </h1>
-            <p class="text-muted mb-0">
+            <p class="tf-page-subtitle">
                 {{ count }} {{ _("registro(s)") }}
                 {% if selected_year %} {{ _("en campaña") }} {{ selected_year|campaign_label }}{% endif %}
             </p>
@@ -30,7 +31,7 @@
     {% if count > 0 %}
     <div class="row g-3 mb-4">
         <div class="col-md-4">
-            <div class="card card-stat border-primary shadow-sm">
+            <div class="card tf-stat-card tf-stat-card-parcelas border-0 shadow-sm">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
                         <i class="bi bi-droplet-fill text-primary fs-2 me-3"></i>
@@ -43,7 +44,7 @@
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card card-stat border-info shadow-sm">
+            <div class="card tf-stat-card tf-stat-card-ingresos border-0 shadow-sm">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
                         <i class="bi bi-water text-info fs-2 me-3"></i>
@@ -56,7 +57,7 @@
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card card-stat border-secondary shadow-sm">
+            <div class="card tf-stat-card tf-stat-card-rentabilidad border-0 shadow-sm">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
                         <i class="bi bi-calendar-check text-secondary fs-2 me-3"></i>
@@ -72,7 +73,7 @@
     {% endif %}
 
     <!-- Filtros -->
-    <div class="card shadow-sm mb-3">
+    <div class="card tf-panel shadow-sm mb-3 border-0">
         <div class="card-body py-2">
             <form method="get" action="/irrigation/" class="d-flex gap-2 align-items-center flex-wrap">
                 <label class="form-label mb-0 fw-semibold text-nowrap">
@@ -100,7 +101,7 @@
     </div>
 
     <!-- Tabla -->
-    <div class="card shadow-sm">
+    <div class="card tf-panel shadow-sm border-0">
         <div class="card-body p-0">
             {% if records %}
             <div class="table-responsive">
@@ -178,7 +179,7 @@
                 </table>
             </div>
             {% else %}
-            <div class="text-center text-muted py-5">
+                <div class="tf-empty-state">
                 <i class="bi bi-droplet fs-1 d-block mb-2 opacity-25"></i>
                 <p>{{ _("No hay registros de riego") }}
                    {% if selected_year or selected_plot %}{{ _("para los filtros seleccionados") }}{% endif %}.</p>

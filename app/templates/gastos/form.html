@@ -4,14 +4,15 @@
 
 {% block content %}
 <div class="container-xl">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="tf-page-header">
         <div>
-            <h1 class="h3 mb-0">
-                <i class="bi bi-arrow-down-circle-fill text-danger me-2"></i>
+            <p class="tf-page-kicker">Gastos</p>
+            <h1 class="tf-page-title mb-0">
+                <i class="bi bi-arrow-down-circle-fill me-2"></i>
                 {% if expense %}{{ _("Editar Gasto") }}{% else %}{{ _("Nuevo Gasto") }}{% endif %}
             </h1>
             {% if expense %}
-            <p class="text-muted mb-0">{{ expense.description }}</p>
+            <p class="tf-page-subtitle">{{ expense.description }}</p>
             {% endif %}
         </div>
         <a href="/expenses/" class="btn btn-outline-secondary">
@@ -19,8 +20,10 @@
         </a>
     </div>
 
-    <div class="card shadow-sm" style="max-width: 700px;">
-        <div class="card-body">
+    <div class="row justify-content-center">
+        <div class="col-lg-9 col-xl-8">
+    <div class="card tf-panel shadow-sm border-0">
+        <div class="card-body p-4">
             <form action="{{ action }}" method="{{ method }}" novalidate>
                 {% if expense %}
                 <input type="hidden" name="_method" value="POST">
@@ -127,11 +130,15 @@
             </form>
         </div>
     </div>
+        </div>
+    </div>
 
     <!-- Recibos (solo en edición) -->
     {% if expense %}
-    <div class="card shadow-sm mt-4" style="max-width: 700px;">
-        <div class="card-header bg-light">
+    <div class="row justify-content-center mt-2">
+        <div class="col-lg-9 col-xl-8">
+    <div class="card tf-panel shadow-sm border-0 mt-4">
+        <div class="card-header">
             <h6 class="mb-0 fw-semibold">
                 <i class="bi bi-file-pdf me-2"></i>{{ _("Recibo del banco") }}
             </h6>
@@ -154,7 +161,7 @@
                         </div>
                     </div>
 
-                    <form method="post" action="/expenses/{{ expense.id }}/receipt/delete" style="display: inline;">
+                    <form method="post" action="/expenses/{{ expense.id }}/receipt/delete" class="d-inline">
                         <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Eliminar el recibo?')">
                             <i class="bi bi-trash me-1"></i>{{ _("Eliminar recibo") }}
                         </button>
@@ -189,7 +196,7 @@
                                placeholder="{{ _('PDF o imagen') }}"
                                data-bs-toggle="tooltip"
                                title="{{ _('Máximo 5MB. Formatos: PDF, JPEG, PNG, GIF, WebP') }}">
-                        <form method="post" action="/expenses/{{ expense.id }}/receipt" enctype="multipart/form-data" style="display: inline-block;">
+                        <form method="post" action="/expenses/{{ expense.id }}/receipt" enctype="multipart/form-data" class="d-inline-block">
                             <button type="submit" class="btn btn-outline-primary" form="receipt-form" id="upload-btn" disabled>
                                 <i class="bi bi-cloud-upload me-1"></i>{{ _("Cargar") }}
                             </button>
@@ -202,9 +209,11 @@
             </div>
 
             <!-- Formulario oculto para la subida de recibos -->
-            <form id="receipt-form" method="post" action="/expenses/{{ expense.id }}/receipt" enctype="multipart/form-data" style="display: none;">
+            <form id="receipt-form" method="post" action="/expenses/{{ expense.id }}/receipt" enctype="multipart/form-data" class="d-none">
                 <input type="file" id="receipt-input" name="receipt">
             </form>
+        </div>
+    </div>
         </div>
     </div>
 

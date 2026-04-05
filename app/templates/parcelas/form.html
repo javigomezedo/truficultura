@@ -4,14 +4,15 @@
 
 {% block content %}
 <div class="container-xl">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="tf-page-header">
         <div>
-            <h1 class="h3 mb-0">
-                <i class="bi bi-map-fill text-success me-2"></i>
+            <p class="tf-page-kicker">Parcelas</p>
+            <h1 class="tf-page-title mb-0">
+                <i class="bi bi-map-fill me-2"></i>
                 {% if plot %}{{ _("Editar Parcela") }}{% else %}{{ _("Nueva Parcela") }}{% endif %}
             </h1>
             {% if plot %}
-            <p class="text-muted mb-0">{{ plot.name }}</p>
+            <p class="tf-page-subtitle">{{ plot.name }}</p>
             {% endif %}
         </div>
         <a href="/plots/" class="btn btn-outline-secondary">
@@ -19,8 +20,10 @@
         </a>
     </div>
 
-    <div class="card shadow-sm">
-        <div class="card-body">
+    <div class="row justify-content-center">
+        <div class="col-xl-10">
+    <div class="card tf-panel shadow-sm border-0">
+        <div class="card-body p-4">
             <form action="{{ action }}" method="{{ method }}" novalidate>
                 {% if plot %}
                 <input type="hidden" name="_method" value="POST">
@@ -172,7 +175,7 @@
                 <div class="row g-3 mb-2">
                     <div class="col-12">
                         <h6 class="text-uppercase text-muted fw-semibold small mb-2">
-                            <i class="bi bi-droplet-fill text-primary me-1"></i>{{ _("Riego") }}
+                            <i class="bi bi-droplet-fill me-1"></i>{{ _("Riego") }}
                         </h6>
                         <div class="form-check">
                             <input class="form-check-input"
@@ -197,12 +200,14 @@
                     <a href="/plots/" class="btn btn-outline-secondary">
                         <i class="bi bi-x-circle me-1"></i> {{ _("Cancelar") }}
                     </a>
-                    <button type="submit" class="btn btn-success">
+                    <button type="submit" class="btn btn-primary">
                         <i class="bi bi-check-circle me-1"></i>
                         {% if plot %}{{ _("Guardar cambios") }}{% else %}{{ _("Crear parcela") }}{% endif %}
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
         </div>
     </div>
 </div>

@@ -14,9 +14,13 @@
 
 {% block content %}
 <div class="container-xl">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0">{{ _("Panel de Control") }}</h1>
-        <a href="/plots/" class="btn btn-sm btn-outline-success">
+    <div class="tf-page-header">
+        <div>
+            <p class="tf-page-kicker">{{ _("Explotación trufícola") }}</p>
+            <h1 class="tf-page-title">{{ _("Panel de Control") }}</h1>
+            <p class="tf-page-subtitle">{{ _("Visión general de campañas, rentabilidad y actividad reciente con una presentación más sobria y clara para el trabajo diario.") }}</p>
+        </div>
+        <a href="/plots/" class="btn btn-primary btn-sm">
             <i class="bi bi-map-fill me-1"></i>{{ total_plots }} {{ _("bancal(es)") }}
         </a>
     </div>
@@ -27,57 +31,57 @@
     </h6>
     <div class="row g-3 mb-4">
         <div class="col-sm-4">
-            <div class="card card-stat card-stat-gastos h-100">
+            <div class="card tf-stat-card tf-stat-card-gastos h-100 border-0">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <p class="text-muted text-uppercase small mb-1">{{ _("Total Gastos") }}</p>
-                            <h2 class="mb-0 fw-bold text-danger">{{ "%.2f"|format(grand_expenses) }} &euro;</h2>
+                            <p class="tf-stat-eyebrow">{{ _("Total Gastos") }}</p>
+                            <h2 class="tf-stat-value">{{ "%.2f"|format(grand_expenses) }} &euro;</h2>
                         </div>
-                        <div class="bg-danger bg-opacity-10 rounded p-2">
-                            <i class="bi bi-arrow-down-circle-fill text-danger fs-4"></i>
+                        <div class="tf-stat-icon">
+                            <i class="bi bi-arrow-down-circle-fill text-danger"></i>
                         </div>
                     </div>
-                    <a href="/expenses/" class="stretched-link text-decoration-none">
-                        <small class="text-muted">{{ _("Ver gastos") }} &rarr;</small>
+                    <a href="/expenses/" class="stretched-link text-decoration-none tf-stat-link">
+                        <small>{{ _("Ver gastos") }} &rarr;</small>
                     </a>
                 </div>
             </div>
         </div>
         <div class="col-sm-4">
-            <div class="card card-stat card-stat-ingresos h-100">
+            <div class="card tf-stat-card tf-stat-card-ingresos h-100 border-0">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <p class="text-muted text-uppercase small mb-1">{{ _("Total Ingresos") }}</p>
-                            <h2 class="mb-0 fw-bold text-primary">{{ "%.2f"|format(grand_incomes) }} &euro;</h2>
+                            <p class="tf-stat-eyebrow">{{ _("Total Ingresos") }}</p>
+                            <h2 class="tf-stat-value">{{ "%.2f"|format(grand_incomes) }} &euro;</h2>
                         </div>
-                        <div class="bg-primary bg-opacity-10 rounded p-2">
-                            <i class="bi bi-arrow-up-circle-fill text-primary fs-4"></i>
+                        <div class="tf-stat-icon">
+                            <i class="bi bi-arrow-up-circle-fill text-primary"></i>
                         </div>
                     </div>
-                    <a href="/incomes/" class="stretched-link text-decoration-none">
-                        <small class="text-muted">{{ _("Ver ingresos") }} &rarr;</small>
+                    <a href="/incomes/" class="stretched-link text-decoration-none tf-stat-link">
+                        <small>{{ _("Ver ingresos") }} &rarr;</small>
                     </a>
                 </div>
             </div>
         </div>
         <div class="col-sm-4">
-            <div class="card card-stat card-stat-rentabilidad h-100">
+            <div class="card tf-stat-card tf-stat-card-rentabilidad h-100 border-0">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <p class="text-muted text-uppercase small mb-1">{{ _("Rentabilidad Total") }}</p>
-                            <h2 class="mb-0 fw-bold {% if grand_profitability >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            <p class="tf-stat-eyebrow">{{ _("Rentabilidad Total") }}</p>
+                            <h2 class="tf-stat-value {% if grand_profitability < 0 %}text-negative{% endif %}">
                                 {{ "%.2f"|format(grand_profitability) }} &euro;
                             </h2>
                         </div>
-                        <div class="bg-warning bg-opacity-10 rounded p-2">
-                            <i class="bi bi-bar-chart-fill text-warning fs-4"></i>
+                        <div class="tf-stat-icon">
+                            <i class="bi bi-bar-chart-fill text-warning"></i>
                         </div>
                     </div>
-                    <a href="/reports/profitability" class="stretched-link text-decoration-none">
-                        <small class="text-muted">{{ _("Ver informe") }} &rarr;</small>
+                    <a href="/reports/profitability" class="stretched-link text-decoration-none tf-stat-link">
+                        <small>{{ _("Ver informe") }} &rarr;</small>
                     </a>
                 </div>
             </div>
@@ -88,7 +92,7 @@
     <h6 class="text-uppercase text-muted fw-semibold mb-2 small">
         <i class="bi bi-calendar3 me-1"></i>{{ _("Desglose por campaña") }}
     </h6>
-    <div class="card shadow-sm mb-4">
+    <div class="card tf-panel shadow-sm mb-4 border-0">
         <div class="card-body p-0">
             {% if campaign_rows %}
             <div class="table-responsive">
@@ -138,7 +142,7 @@
                 </table>
             </div>
             {% else %}
-            <div class="text-center py-4 text-muted">
+            <div class="tf-empty-state">
                 <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                 <p class="mb-0">{{ _("Sin datos todavía.") }} <a href="/expenses/new">{{ _("Registrar gasto") }}</a> {{ _("o") }} <a href="/incomes/new">{{ _("ingreso") }}</a>.</p>
             </div>
@@ -150,7 +154,7 @@
     <h6 class="text-uppercase text-muted fw-semibold mb-2 small">
         <i class="bi bi-table me-1"></i>{{ _("Rentabilidad por bancal y campaña (€)") }}
     </h6>
-    <div class="card shadow-sm">
+    <div class="card tf-panel shadow-sm border-0">
         <div class="card-body p-0">
             {% if matrix and plots %}
             <div class="table-responsive">
