@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.auth import NotAuthenticatedException, NotAdminException, require_user
@@ -41,6 +42,7 @@ app = FastAPI(
 )
 
 app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # Install default (Spanish) translations at startup
 _default_translations = load_translations("es")

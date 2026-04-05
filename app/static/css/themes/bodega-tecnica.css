@@ -1,0 +1,247 @@
+:root {
+    --tf-text: #241e22;
+    --tf-text-soft: #70656c;
+    --tf-heading: #1a1218;
+    --tf-primary: #7e2337;
+    --tf-primary-dark: #651c2c;
+    --tf-danger: #a13d4a;
+    --tf-info: #4a6970;
+    --tf-success: #6c8a4a;
+    --tf-warning: #b48a3a;
+    --tf-shadow-sm: 0 20px 48px rgba(39, 20, 28, 0.1);
+    --tf-shadow-md: 0 34px 80px rgba(35, 18, 25, 0.16);
+}
+
+body {
+    background:
+        radial-gradient(circle at top left, rgba(126, 35, 55, 0.12), transparent 24%),
+        radial-gradient(circle at top right, rgba(180, 138, 58, 0.14), transparent 22%),
+        linear-gradient(180deg, #f4ece7 0%, #f7f1ed 28%, #fcf8f5 100%);
+}
+
+body::before {
+    background-image: linear-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(126, 35, 55, 0.05) 1px, transparent 1px);
+}
+
+.tf-navbar {
+    background: rgba(29, 18, 24, 0.92) !important;
+    border-bottom: 1px solid rgba(247, 237, 230, 0.1);
+    box-shadow: 0 18px 44px rgba(24, 14, 19, 0.2);
+}
+
+.tf-navbar .navbar-brand,
+.tf-navbar .nav-link:hover,
+.tf-navbar .nav-link.active,
+.tf-navbar .navbar-text,
+.tf-theme-switcher-label {
+    color: #f8efe8 !important;
+}
+
+.tf-navbar .nav-link {
+    color: rgba(248, 239, 232, 0.78) !important;
+}
+
+.tf-navbar .nav-link.active::after {
+    background: linear-gradient(90deg, rgba(126, 35, 55, 0.92), rgba(218, 182, 109, 0.92));
+}
+
+.tf-navbar .navbar-brand .truffle-icon {
+    background: linear-gradient(135deg, rgba(126, 35, 55, 0.94), rgba(180, 138, 58, 0.78));
+    box-shadow: inset 0 0 0 1px rgba(248, 239, 232, 0.14);
+}
+
+.tf-theme-switcher {
+    border-color: rgba(248, 239, 232, 0.12);
+    background: rgba(248, 239, 232, 0.08);
+}
+
+.tf-navbar .tf-theme-select {
+    border-color: rgba(248, 239, 232, 0.14);
+    background: rgba(74, 41, 52, 0.78);
+    color: #f8efe8;
+}
+
+.card,
+.modal-content,
+.dropdown-menu,
+.tf-auth-form,
+.tf-theme-floating {
+    background: rgba(255, 250, 246, 0.92);
+    border-color: rgba(126, 35, 55, 0.1);
+    box-shadow: var(--tf-shadow-sm);
+}
+
+.tf-tag {
+    border-color: rgba(126, 35, 55, 0.14);
+    background: rgba(255, 247, 242, 0.92);
+    color: #6f616a;
+}
+
+.tf-toolbar {
+    border-color: rgba(126, 35, 55, 0.1);
+    background: rgba(255, 247, 242, 0.82);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.tf-stat-card {
+    background: linear-gradient(180deg, rgba(255, 253, 250, 0.98), rgba(247, 239, 234, 0.94));
+    border-color: rgba(126, 35, 55, 0.09);
+}
+
+.tf-stat-card::before {
+    background: linear-gradient(180deg, rgba(126, 35, 55, 0.94), rgba(180, 138, 58, 0.74));
+}
+
+.tf-stat-icon {
+    background: rgba(255, 247, 242, 0.92);
+    box-shadow: inset 0 0 0 1px rgba(126, 35, 55, 0.12);
+}
+
+.table {
+    --bs-table-border-color: rgba(104, 64, 75, 0.1);
+}
+
+.table-dark {
+    --bs-table-bg: #2e1b23;
+    --bs-table-striped-bg: #372029;
+    --bs-table-hover-bg: #412730;
+    --bs-table-color: #f8efe8;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(126, 35, 55, 0.06);
+}
+
+.table-secondary {
+    --bs-table-bg: rgba(126, 35, 55, 0.08);
+}
+
+.table-light {
+    --bs-table-bg: rgba(255, 249, 245, 0.92);
+}
+
+.form-control,
+.form-select {
+    border-color: rgba(126, 35, 55, 0.12);
+    background: rgba(255, 253, 250, 0.96);
+    box-shadow: inset 0 1px 2px rgba(55, 29, 38, 0.04);
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: rgba(126, 35, 55, 0.34);
+    box-shadow: 0 0 0 0.2rem rgba(126, 35, 55, 0.1);
+}
+
+.badge.text-bg-light {
+    background: rgba(126, 35, 55, 0.08) !important;
+    color: #311f28 !important;
+}
+
+.badge.bg-secondary {
+    background: rgba(46, 27, 35, 0.9) !important;
+}
+
+.nav-tabs .nav-link {
+    background: rgba(255, 247, 242, 0.68);
+    color: #70656c;
+}
+
+.nav-tabs .nav-link:hover {
+    border-color: rgba(126, 35, 55, 0.1);
+    background: rgba(255, 250, 246, 0.96);
+}
+
+.nav-tabs .nav-link.active {
+    border-color: rgba(126, 35, 55, 0.12);
+    background: rgba(255, 253, 250, 0.98);
+}
+
+.alert-success {
+    color: #466136;
+    background: rgba(108, 138, 74, 0.12);
+    border-color: rgba(108, 138, 74, 0.16);
+}
+
+.alert-warning {
+    color: #7a6225;
+    background: rgba(180, 138, 58, 0.14);
+    border-color: rgba(180, 138, 58, 0.18);
+}
+
+.alert-danger {
+    color: #7c3640;
+    background: rgba(161, 61, 74, 0.12);
+    border-color: rgba(161, 61, 74, 0.18);
+}
+
+.alert-info {
+    color: #425f64;
+    background: rgba(74, 105, 112, 0.12);
+    border-color: rgba(74, 105, 112, 0.16);
+}
+
+.tf-auth::before {
+    background: radial-gradient(circle, rgba(126, 35, 55, 0.2), transparent 62%);
+}
+
+.tf-auth::after {
+    background: radial-gradient(circle, rgba(180, 138, 58, 0.18), transparent 62%);
+}
+
+.tf-theme-floating {
+    background: rgba(255, 250, 246, 0.94);
+    border-color: rgba(126, 35, 55, 0.1);
+}
+
+.tf-theme-floating label {
+    color: #70656c;
+}
+
+.tf-auth-brand {
+    background:
+        linear-gradient(145deg, rgba(42, 22, 30, 0.94), rgba(90, 38, 52, 0.84)),
+        radial-gradient(circle at top left, rgba(180, 138, 58, 0.18), transparent 38%),
+        radial-gradient(circle at bottom right, rgba(126, 35, 55, 0.24), transparent 34%);
+    color: #f9f1ea;
+    border-color: rgba(126, 35, 55, 0.12);
+}
+
+.tf-auth-brand::after {
+    border-color: rgba(249, 241, 234, 0.12);
+}
+
+.tf-auth-brand .truffle-mark {
+    background: rgba(249, 241, 234, 0.12);
+}
+
+.tf-auth-brand .tf-display,
+.tf-auth-brand p,
+.tf-auth-brand li {
+    color: #f9f1ea;
+}
+
+.tf-auth-feature {
+    background: rgba(249, 241, 234, 0.08);
+    border-color: rgba(249, 241, 234, 0.1);
+}
+
+footer.tf-footer {
+    border-top-color: rgba(126, 35, 55, 0.12);
+}
+
+@media (max-width: 767.98px) {
+    .tf-navbar {
+        background: rgba(29, 18, 24, 0.95) !important;
+        box-shadow: 0 10px 24px rgba(24, 14, 19, 0.22);
+    }
+
+    .tf-theme-floating {
+        background: rgba(255, 250, 246, 0.96);
+    }
+
+    .tf-theme-floating .tf-theme-button.is-active {
+        border-color: rgba(126, 35, 55, 0.8);
+    }
+}

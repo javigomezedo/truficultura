@@ -4,14 +4,15 @@
 
 {% block content %}
 <div class="container-xl">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="tf-page-header">
         <div>
-            <h1 class="h3 mb-0">
-                <i class="bi bi-arrow-up-circle-fill text-success me-2"></i>
+            <p class="tf-page-kicker">Ingresos</p>
+            <h1 class="tf-page-title mb-0">
+                <i class="bi bi-arrow-up-circle-fill me-2"></i>
                 {% if income %}{{ _("Editar Ingreso") }}{% else %}{{ _("Nuevo Ingreso") }}{% endif %}
             </h1>
             {% if income %}
-            <p class="text-muted mb-0">{{ income.date.strftime('%d/%m/%Y') }}{% if income.plot %} &mdash; {{ income.plot.name }}{% endif %}</p>
+            <p class="tf-page-subtitle">{{ income.date.strftime('%d/%m/%Y') }}{% if income.plot %} &mdash; {{ income.plot.name }}{% endif %}</p>
             {% endif %}
         </div>
         <a href="/incomes/" class="btn btn-outline-secondary">
@@ -19,8 +20,10 @@
         </a>
     </div>
 
-    <div class="card shadow-sm" style="max-width: 700px;">
-        <div class="card-body">
+    <div class="row justify-content-center">
+        <div class="col-lg-9 col-xl-8">
+    <div class="card tf-panel shadow-sm border-0">
+        <div class="card-body p-4">
             <form action="{{ action }}" method="{{ method }}" novalidate id="incomeForm">
                 {% if income %}
                 <input type="hidden" name="_method" value="POST">
@@ -108,11 +111,11 @@
                     <div class="col-md-6">
                         <label for="total_display" class="form-label fw-semibold">
                             {{ _("Total (€)") }}
-                            <span class="badge bg-info text-dark ms-1" style="font-size:0.65em;">auto</span>
+                            <span class="badge tf-badge-auto ms-1">auto</span>
                         </label>
                         <div class="input-group">
                             <input type="text"
-                                   class="form-control bg-light fw-bold text-success"
+                                   class="form-control tf-total-readonly fw-bold"
                                    id="total_display"
                                    readonly
                                    placeholder="{{ _('Calculado automáticamente') }}"
@@ -129,12 +132,14 @@
                     <a href="/incomes/" class="btn btn-outline-secondary">
                         <i class="bi bi-x-circle me-1"></i> {{ _("Cancelar") }}
                     </a>
-                    <button type="submit" class="btn btn-success">
+                    <button type="submit" class="btn btn-primary">
                         <i class="bi bi-check-circle me-1"></i>
                         {% if income %}{{ _("Guardar cambios") }}{% else %}{{ _("Registrar ingreso") }}{% endif %}
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
         </div>
     </div>
 </div>

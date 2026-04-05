@@ -3,12 +3,15 @@
 {% block title %}{{ _("Importar datos") }} — Truficultura{% endblock %}
 
 {% block content %}
-<div class="row mb-3">
-    <div class="col">
-        <h2><i class="bi bi-upload me-2"></i>{{ _("Importar datos CSV") }}</h2>
-        <p class="text-muted">{{ _("Sube un archivo CSV para importar parcelas, gastos o ingresos masivamente. Los archivos no se almacenan en el servidor.") }}</p>
+<div class="container-xl">
+    <div class="tf-page-header">
+        <div>
+            <p class="tf-page-kicker">{{ _("Operaciones masivas") }}</p>
+            <h1 class="tf-page-title">{{ _("Importar datos CSV") }}</h1>
+            <p class="tf-page-subtitle">{{ _("Carga parcelas, gastos, ingresos y riego con una interfaz más clara y profesional. Los archivos se procesan puntualmente y no se almacenan en el servidor.") }}</p>
+        </div>
+        <div class="tf-tag"><i class="bi bi-shield-check"></i>{{ _("Validación en tiempo de importación") }}</div>
     </div>
-</div>
 
 {% if result %}
 {% set is_ok = result.imported > 0 or result.warnings | length == 0 %}
@@ -35,7 +38,7 @@
 {% endif %}
 
 <!-- Tabs -->
-<ul class="nav nav-tabs mb-4" id="importTabs" role="tablist">
+<ul class="nav nav-tabs mb-4" id="importTabs" role="tablist" data-manual-tabs data-tabs-target="#importTabContent">
     <li class="nav-item" role="presentation">
         <button class="nav-link {% if not active_tab or active_tab == 'plots' %}active{% endif %}"
                 id="tab-plots" data-bs-target="#panel-plots"
@@ -71,9 +74,9 @@
     <!-- ── PARCELAS ── -->
     <div class="tab-pane fade {% if not active_tab or active_tab == 'plots' %}show active{% endif %}"
          id="panel-plots" role="tabpanel">
-        <div class="row g-4">
-            <div class="col-lg-6">
-                <div class="card h-100">
+        <div class="row g-3 tf-import-pane-row align-items-start">
+            <div class="col-xl-7 col-lg-6">
+                <div class="card tf-panel tf-import-format-card border-0">
                     <div class="card-header fw-semibold">
                         <i class="bi bi-filetype-csv me-1"></i>{{ _("Formato del archivo") }}
                     </div>
@@ -81,7 +84,7 @@
                         <p class="text-muted small mb-2">
                             {{ _("Archivo CSV delimitado por <code>;</code>, sin cabecera, codificación UTF-8.") }}
                         </p>
-                        <table class="table table-sm table-bordered small">
+                        <table class="table table-sm table-bordered small tf-import-format-table">
                             <thead class="table-light">
                                 <tr>
                                     <th>{{ _("Columna") }}</th>
@@ -107,21 +110,21 @@
                             <i class="bi bi-info-circle me-1"></i>
                             {{ _("Solo son obligatorios nombre y fecha de plantación. El resto de columnas pueden omitirse o dejarse vacías.") }}
                         </p>
-                        <div class="mt-3 bg-light rounded p-2">
+                        <div class="mt-3 rounded p-3 tf-sample-box tf-sample-box-primary">
                             <small class="text-muted d-block mb-1 fw-semibold">{{ _("Ejemplo de línea:") }}</small>
                             <code class="small">Bancal Sur;15/03/2018;21;120;44223A021001200000FP;H-3;S2;120;1,25;01/11/2023;1</code>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="col-lg-6">
-                <div class="card h-100">
+            <div class="col-xl-5 col-lg-6">
+                <div class="card tf-panel tf-import-upload-card border-0">
                     <div class="card-header fw-semibold">
                         <i class="bi bi-cloud-upload me-1"></i>{{ _("Subir archivo") }}
                     </div>
-                    <div class="card-body d-flex flex-column">
-                        <form method="post" action="/import/plots" enctype="multipart/form-data" class="d-flex flex-column flex-grow-1">
-                            <div class="mb-3 flex-grow-1">
+                    <div class="card-body">
+                        <form method="post" action="/import/plots" enctype="multipart/form-data">
+                            <div class="mb-3">
                                 <label for="plots-file" class="form-label fw-semibold">
                                     {{ _("Archivo CSV de parcelas") }}
                                 </label>
@@ -133,7 +136,7 @@
                                 <i class="bi bi-exclamation-triangle-fill me-1"></i>
                                 {{ _("Esta acción insertará todos los registros del archivo en la base de datos. Asegúrate de que el archivo no contiene duplicados.") }}
                             </div>
-                            <button type="submit" class="btn btn-primary mt-auto">
+                            <button type="submit" class="btn btn-primary w-100">
                                 <i class="bi bi-upload me-1"></i>{{ _("Importar parcelas") }}
                             </button>
                         </form>
@@ -146,9 +149,9 @@
     <!-- ── GASTOS ── -->
     <div class="tab-pane fade {% if active_tab == 'expenses' %}show active{% endif %}"
          id="panel-expenses" role="tabpanel">
-        <div class="row g-4">
-            <div class="col-lg-6">
-                <div class="card h-100">
+        <div class="row g-3 tf-import-pane-row align-items-start">
+            <div class="col-xl-7 col-lg-6">
+                <div class="card tf-panel tf-import-format-card border-0">
                     <div class="card-header fw-semibold">
                         <i class="bi bi-filetype-csv me-1"></i>{{ _("Formato del archivo") }}
                     </div>
@@ -156,7 +159,7 @@
                         <p class="text-muted small mb-2">
                             {{ _("Archivo CSV delimitado por <code>;</code>, sin cabecera, codificación UTF-8.") }}
                         </p>
-                        <table class="table table-sm table-bordered small">
+                        <table class="table table-sm table-bordered small tf-import-format-table">
                             <thead class="table-light">
                                 <tr>
                                     <th>{{ _("Columna") }}</th>
@@ -177,21 +180,21 @@
                             <i class="bi bi-info-circle me-1"></i>
                             {{ _("Si el bancal está vacío, el gasto se registra como gasto general (sin bancal asignado).") }}
                         </p>
-                        <div class="mt-3 bg-light rounded p-2">
+                        <div class="mt-3 rounded p-3 tf-sample-box tf-sample-box-danger">
                             <small class="text-muted d-block mb-1 fw-semibold">{{ _("Ejemplo de línea:") }}</small>
                             <code class="small">15/11/2025;Mantenimiento poda;Javi;Bancal Sur;1.250,00;Poda</code>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="col-lg-6">
-                <div class="card h-100">
+            <div class="col-xl-5 col-lg-6">
+                <div class="card tf-panel tf-import-upload-card border-0">
                     <div class="card-header fw-semibold">
                         <i class="bi bi-cloud-upload me-1"></i>{{ _("Subir archivo") }}
                     </div>
-                    <div class="card-body d-flex flex-column">
-                        <form method="post" action="/import/expenses" enctype="multipart/form-data" class="d-flex flex-column flex-grow-1">
-                            <div class="mb-3 flex-grow-1">
+                    <div class="card-body">
+                        <form method="post" action="/import/expenses" enctype="multipart/form-data">
+                            <div class="mb-3">
                                 <label for="expenses-file" class="form-label fw-semibold">
                                     {{ _("Archivo CSV de gastos") }}
                                 </label>
@@ -203,7 +206,7 @@
                                 <i class="bi bi-exclamation-triangle-fill me-1"></i>
                                 {{ _("Esta acción insertará todos los registros del archivo en la base de datos. Asegúrate de que el archivo no contiene duplicados.") }}
                             </div>
-                            <button type="submit" class="btn btn-danger mt-auto">
+                            <button type="submit" class="btn btn-danger w-100">
                                 <i class="bi bi-upload me-1"></i>{{ _("Importar gastos") }}
                             </button>
                         </form>
@@ -216,9 +219,9 @@
     <!-- ── INGRESOS ── -->
     <div class="tab-pane fade {% if active_tab == 'incomes' %}show active{% endif %}"
          id="panel-incomes" role="tabpanel">
-        <div class="row g-4">
-            <div class="col-lg-6">
-                <div class="card h-100">
+        <div class="row g-3 tf-import-pane-row align-items-start">
+            <div class="col-xl-7 col-lg-6">
+                <div class="card tf-panel tf-import-format-card border-0">
                     <div class="card-header fw-semibold">
                         <i class="bi bi-filetype-csv me-1"></i>{{ _("Formato del archivo") }}
                     </div>
@@ -226,7 +229,7 @@
                         <p class="text-muted small mb-2">
                             {{ _("Archivo CSV delimitado por <code>;</code>, sin cabecera, codificación UTF-8.") }}
                         </p>
-                        <table class="table table-sm table-bordered small">
+                        <table class="table table-sm table-bordered small tf-import-format-table">
                             <thead class="table-light">
                                 <tr>
                                     <th>{{ _("Columna") }}</th>
@@ -246,21 +249,21 @@
                             <i class="bi bi-info-circle me-1"></i>
                             {{ _("El total (€) se calcula automáticamente como kg × euros/kg.") }}
                         </p>
-                        <div class="mt-3 bg-light rounded p-2">
+                        <div class="mt-3 rounded p-3 tf-sample-box tf-sample-box-info">
                             <small class="text-muted d-block mb-1 fw-semibold">{{ _("Ejemplo de línea:") }}</small>
                             <code class="small">05/12/2025;Bancal Norte;2,500;Extra;120,00</code>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="col-lg-6">
-                <div class="card h-100">
+            <div class="col-xl-5 col-lg-6">
+                <div class="card tf-panel tf-import-upload-card border-0">
                     <div class="card-header fw-semibold">
                         <i class="bi bi-cloud-upload me-1"></i>{{ _("Subir archivo") }}
                     </div>
-                    <div class="card-body d-flex flex-column">
-                        <form method="post" action="/import/incomes" enctype="multipart/form-data" class="d-flex flex-column flex-grow-1">
-                            <div class="mb-3 flex-grow-1">
+                    <div class="card-body">
+                        <form method="post" action="/import/incomes" enctype="multipart/form-data">
+                            <div class="mb-3">
                                 <label for="incomes-file" class="form-label fw-semibold">
                                     {{ _("Archivo CSV de ingresos") }}
                                 </label>
@@ -272,7 +275,7 @@
                                 <i class="bi bi-exclamation-triangle-fill me-1"></i>
                                 {{ _("Esta acción insertará todos los registros del archivo en la base de datos. Asegúrate de que el archivo no contiene duplicados.") }}
                             </div>
-                            <button type="submit" class="btn btn-success mt-auto">
+                            <button type="submit" class="btn btn-success w-100">
                                 <i class="bi bi-upload me-1"></i>{{ _("Importar ingresos") }}
                             </button>
                         </form>
@@ -285,9 +288,9 @@
     <!-- ── RIEGO ── -->
     <div class="tab-pane fade {% if active_tab == 'irrigation' %}show active{% endif %}"
          id="panel-irrigation" role="tabpanel">
-        <div class="row g-4">
-            <div class="col-lg-6">
-                <div class="card h-100">
+        <div class="row g-3 tf-import-pane-row align-items-start">
+            <div class="col-xl-7 col-lg-6">
+                <div class="card tf-panel tf-import-format-card border-0">
                     <div class="card-header fw-semibold">
                         <i class="bi bi-filetype-csv me-1"></i>{{ _("Formato del archivo") }}
                     </div>
@@ -295,7 +298,7 @@
                         <p class="text-muted small mb-2">
                             {{ _("Archivo CSV delimitado por <code>;</code>, sin cabecera, codificación UTF-8.") }}
                         </p>
-                        <table class="table table-sm table-bordered small">
+                        <table class="table table-sm table-bordered small tf-import-format-table">
                             <thead class="table-light">
                                 <tr>
                                     <th>{{ _("Columna") }}</th>
@@ -314,21 +317,21 @@
                             <i class="bi bi-info-circle me-1"></i>
                             {{ _("El bancal debe existir y tener riego habilitado. Las filas que no cumplan esta condición generarán un aviso y serán omitidas.") }}
                         </p>
-                        <div class="mt-3 bg-light rounded p-2">
+                        <div class="mt-3 rounded p-3 tf-sample-box tf-sample-box-warning">
                             <small class="text-muted d-block mb-1 fw-semibold">{{ _("Ejemplo de línea:") }}</small>
                             <code class="small">15/06/2025;Via Minera;12,500;Primera pasada</code>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="col-lg-6">
-                <div class="card h-100">
+            <div class="col-xl-5 col-lg-6">
+                <div class="card tf-panel tf-import-upload-card border-0">
                     <div class="card-header fw-semibold">
                         <i class="bi bi-cloud-upload me-1"></i>{{ _("Subir archivo") }}
                     </div>
-                    <div class="card-body d-flex flex-column">
-                        <form method="post" action="/import/irrigation" enctype="multipart/form-data" class="d-flex flex-column flex-grow-1">
-                            <div class="mb-3 flex-grow-1">
+                    <div class="card-body">
+                        <form method="post" action="/import/irrigation" enctype="multipart/form-data">
+                            <div class="mb-3">
                                 <label for="irrigation-file" class="form-label fw-semibold">
                                     {{ _("Archivo CSV de riego") }}
                                 </label>
@@ -340,7 +343,7 @@
                                 <i class="bi bi-exclamation-triangle-fill me-1"></i>
                                 {{ _("Esta acción insertará todos los registros del archivo en la base de datos. Asegúrate de que el archivo no contiene duplicados.") }}
                             </div>
-                            <button type="submit" class="btn btn-primary mt-auto">
+                            <button type="submit" class="btn btn-primary w-100">
                                 <i class="bi bi-upload me-1"></i>{{ _("Importar riego") }}
                             </button>
                         </form>
@@ -351,28 +354,7 @@
     </div>
 
 </div>
+</div>
 {% endblock %}
 
-{% block extra_scripts %}
-<script>
-    (function () {
-        var buttons = document.querySelectorAll('#importTabs button');
-        var panes   = document.querySelectorAll('#importTabContent .tab-pane');
-
-        buttons.forEach(function (btn) {
-            btn.addEventListener('click', function (e) {
-                e.preventDefault();
-                var targetId = btn.getAttribute('data-bs-target');
-                var targetPane = document.querySelector(targetId);
-                if (!targetPane) return;
-
-                buttons.forEach(function (b) { b.classList.remove('active'); });
-                panes.forEach(function (p) { p.classList.remove('show', 'active'); });
-
-                btn.classList.add('active');
-                targetPane.classList.add('show', 'active');
-            });
-        });
-    })();
-</script>
-{% endblock %}
+{% block extra_scripts %}{% endblock %}

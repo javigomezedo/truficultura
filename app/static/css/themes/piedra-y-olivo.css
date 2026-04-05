@@ -1,0 +1,247 @@
+:root {
+    --tf-text: #273029;
+    --tf-text-soft: #667267;
+    --tf-heading: #1d241e;
+    --tf-primary: #556b4c;
+    --tf-primary-dark: #45573e;
+    --tf-danger: #7b4b45;
+    --tf-info: #536d70;
+    --tf-success: #627b56;
+    --tf-warning: #987951;
+    --tf-shadow-sm: 0 18px 42px rgba(39, 46, 40, 0.08);
+    --tf-shadow-md: 0 30px 72px rgba(28, 35, 30, 0.12);
+}
+
+body {
+    background:
+        radial-gradient(circle at top left, rgba(120, 132, 109, 0.12), transparent 24%),
+        radial-gradient(circle at top right, rgba(191, 178, 154, 0.18), transparent 24%),
+        linear-gradient(180deg, #eef1eb 0%, #f4f3ee 28%, #faf8f3 100%);
+}
+
+body::before {
+    background-image: linear-gradient(rgba(255, 255, 255, 0.16) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(124, 136, 122, 0.08) 1px, transparent 1px);
+}
+
+.tf-navbar {
+    background: rgba(41, 50, 44, 0.9) !important;
+    border-bottom: 1px solid rgba(244, 244, 236, 0.14);
+    box-shadow: 0 16px 40px rgba(22, 28, 24, 0.14);
+}
+
+.tf-navbar .navbar-brand,
+.tf-navbar .nav-link:hover,
+.tf-navbar .nav-link.active,
+.tf-navbar .navbar-text,
+.tf-theme-switcher-label {
+    color: #f4f3ed !important;
+}
+
+.tf-navbar .nav-link {
+    color: rgba(244, 243, 237, 0.78) !important;
+}
+
+.tf-navbar .nav-link.active::after {
+    background: linear-gradient(90deg, rgba(99, 122, 92, 0.86), rgba(219, 213, 197, 0.95));
+}
+
+.tf-navbar .navbar-brand .truffle-icon {
+    background: linear-gradient(135deg, rgba(111, 125, 95, 0.92), rgba(170, 149, 115, 0.82));
+    box-shadow: inset 0 0 0 1px rgba(244, 243, 237, 0.18);
+}
+
+.tf-theme-switcher {
+    border-color: rgba(244, 243, 237, 0.12);
+    background: rgba(244, 243, 237, 0.08);
+}
+
+.tf-navbar .tf-theme-select {
+    border-color: rgba(244, 243, 237, 0.14);
+    background: rgba(77, 88, 80, 0.72);
+    color: #f4f3ed;
+}
+
+.card,
+.modal-content,
+.dropdown-menu,
+.tf-auth-form,
+.tf-theme-floating {
+    background: rgba(252, 250, 245, 0.9);
+    border-color: rgba(85, 100, 87, 0.12);
+    box-shadow: var(--tf-shadow-sm);
+}
+
+.tf-tag {
+    border-color: rgba(99, 122, 92, 0.14);
+    background: rgba(247, 244, 236, 0.92);
+    color: #677366;
+}
+
+.tf-toolbar {
+    border-color: rgba(85, 100, 87, 0.12);
+    background: rgba(247, 244, 236, 0.82);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32);
+}
+
+.tf-stat-card {
+    background: linear-gradient(180deg, rgba(253, 252, 247, 0.98), rgba(243, 240, 232, 0.94));
+    border-color: rgba(85, 100, 87, 0.11);
+}
+
+.tf-stat-card::before {
+    background: linear-gradient(180deg, rgba(97, 122, 86, 0.92), rgba(179, 156, 118, 0.72));
+}
+
+.tf-stat-icon {
+    background: rgba(244, 243, 237, 0.92);
+    box-shadow: inset 0 0 0 1px rgba(99, 122, 92, 0.12);
+}
+
+.table {
+    --bs-table-border-color: rgba(92, 104, 92, 0.1);
+}
+
+.table-dark {
+    --bs-table-bg: #354138;
+    --bs-table-striped-bg: #3d4b41;
+    --bs-table-hover-bg: #455348;
+    --bs-table-color: #f4f3ed;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(125, 136, 117, 0.08);
+}
+
+.table-secondary {
+    --bs-table-bg: rgba(99, 122, 92, 0.1);
+}
+
+.table-light {
+    --bs-table-bg: rgba(250, 248, 242, 0.9);
+}
+
+.form-control,
+.form-select {
+    border-color: rgba(85, 100, 87, 0.14);
+    background: rgba(255, 255, 251, 0.95);
+    box-shadow: inset 0 1px 2px rgba(50, 61, 52, 0.04);
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: rgba(99, 122, 92, 0.38);
+    box-shadow: 0 0 0 0.2rem rgba(99, 122, 92, 0.12);
+}
+
+.badge.text-bg-light {
+    background: rgba(99, 122, 92, 0.1) !important;
+    color: #2a332c !important;
+}
+
+.badge.bg-secondary {
+    background: rgba(53, 65, 56, 0.88) !important;
+}
+
+.nav-tabs .nav-link {
+    background: rgba(247, 244, 236, 0.72);
+    color: #667267;
+}
+
+.nav-tabs .nav-link:hover {
+    border-color: rgba(99, 122, 92, 0.12);
+    background: rgba(250, 248, 242, 0.96);
+}
+
+.nav-tabs .nav-link.active {
+    border-color: rgba(99, 122, 92, 0.14);
+    background: rgba(255, 255, 251, 0.96);
+}
+
+.alert-success {
+    color: #45553f;
+    background: rgba(99, 122, 92, 0.12);
+    border-color: rgba(99, 122, 92, 0.18);
+}
+
+.alert-warning {
+    color: #735b36;
+    background: rgba(152, 121, 81, 0.12);
+    border-color: rgba(152, 121, 81, 0.16);
+}
+
+.alert-danger {
+    color: #6a4540;
+    background: rgba(123, 75, 69, 0.11);
+    border-color: rgba(123, 75, 69, 0.16);
+}
+
+.alert-info {
+    color: #465f61;
+    background: rgba(83, 109, 112, 0.12);
+    border-color: rgba(83, 109, 112, 0.16);
+}
+
+.tf-auth::before {
+    background: radial-gradient(circle, rgba(122, 137, 116, 0.22), transparent 62%);
+}
+
+.tf-auth::after {
+    background: radial-gradient(circle, rgba(192, 179, 155, 0.2), transparent 62%);
+}
+
+.tf-theme-floating {
+    background: rgba(252, 250, 245, 0.92);
+    border-color: rgba(85, 100, 87, 0.12);
+}
+
+.tf-theme-floating label {
+    color: #667267;
+}
+
+.tf-auth-brand {
+    background:
+        linear-gradient(145deg, rgba(45, 54, 47, 0.94), rgba(86, 98, 84, 0.84)),
+        radial-gradient(circle at top left, rgba(193, 181, 160, 0.22), transparent 38%),
+        radial-gradient(circle at bottom right, rgba(109, 129, 98, 0.22), transparent 34%);
+    color: #f6f4ef;
+    border-color: rgba(85, 100, 87, 0.12);
+}
+
+.tf-auth-brand::after {
+    border-color: rgba(246, 244, 239, 0.12);
+}
+
+.tf-auth-brand .truffle-mark {
+    background: rgba(246, 244, 239, 0.12);
+}
+
+.tf-auth-brand .tf-display,
+.tf-auth-brand p,
+.tf-auth-brand li {
+    color: #f6f4ef;
+}
+
+.tf-auth-feature {
+    background: rgba(246, 244, 239, 0.08);
+    border-color: rgba(246, 244, 239, 0.1);
+}
+
+footer.tf-footer {
+    border-top-color: rgba(85, 100, 87, 0.14);
+}
+
+@media (max-width: 767.98px) {
+    .tf-navbar {
+        background: rgba(41, 50, 44, 0.94) !important;
+        box-shadow: 0 10px 24px rgba(22, 28, 24, 0.18);
+    }
+
+    .tf-theme-floating {
+        background: rgba(252, 250, 245, 0.96);
+    }
+
+    .tf-theme-floating .tf-theme-button.is-active {
+        border-color: rgba(85, 107, 76, 0.8);
+    }
+}

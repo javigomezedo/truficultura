@@ -3,14 +3,17 @@
 {% block title %}{{ _("Exportar datos") }} — Truficultura{% endblock %}
 
 {% block content %}
-<div class="row mb-3">
-    <div class="col">
-        <h2><i class="bi bi-download me-2"></i>{{ _("Exportar datos CSV") }}</h2>
-        <p class="text-muted">{{ _("Descarga archivos CSV de parcelas, gastos, ingresos y riego con el mismo formato usado por la importación.") }}</p>
+<div class="container-xl">
+    <div class="tf-page-header">
+        <div>
+            <p class="tf-page-kicker">{{ _("Copia y portabilidad") }}</p>
+            <h1 class="tf-page-title">{{ _("Exportar datos CSV") }}</h1>
+            <p class="tf-page-subtitle">{{ _("Descarga tus datos en un formato consistente para backup, revisión externa o reutilización en procesos de importación.") }}</p>
+        </div>
+        <div class="tf-tag"><i class="bi bi-database-down"></i>{{ _("Formato compatible con importación") }}</div>
     </div>
-</div>
 
-<ul class="nav nav-tabs mb-4" id="exportTabs" role="tablist">
+<ul class="nav nav-tabs mb-4" id="exportTabs" role="tablist" data-manual-tabs data-tabs-target="#exportTabContent">
     <li class="nav-item" role="presentation">
         <button class="nav-link active" id="tab-export-plots" data-bs-target="#panel-export-plots" type="button" role="tab">
             <i class="bi bi-grid-fill text-primary me-1"></i>{{ _("Parcelas") }}
@@ -35,7 +38,7 @@
 
 <div class="tab-content" id="exportTabContent">
     <div class="tab-pane fade show active" id="panel-export-plots" role="tabpanel">
-        <div class="card shadow-sm border-0">
+        <div class="card tf-panel shadow-sm border-0">
             <div class="card-body p-4">
                 <h5 class="card-title mb-3">{{ _("Exportar parcelas") }}</h5>
                 <p class="text-muted mb-3">{{ _("Descarga todas tus parcelas en formato CSV semicolon-delimited y sin cabecera. Incluye la columna tiene_riego (1/0) para reutilizar el archivo en la importación.") }}</p>
@@ -60,7 +63,7 @@
     </div>
 
     <div class="tab-pane fade" id="panel-export-expenses" role="tabpanel">
-        <div class="card shadow-sm border-0">
+        <div class="card tf-panel shadow-sm border-0">
             <div class="card-body p-4">
                 <h5 class="card-title mb-3">{{ _("Exportar gastos") }}</h5>
                 <p class="text-muted mb-3">{{ _("Descarga los gastos con el mismo orden de columnas admitido por la importación. Si un gasto no está asignado a ningún bancal, la columna bancal se exporta vacía.") }}</p>
@@ -80,7 +83,7 @@
     </div>
 
     <div class="tab-pane fade" id="panel-export-incomes" role="tabpanel">
-        <div class="card shadow-sm border-0">
+        <div class="card tf-panel shadow-sm border-0">
             <div class="card-body p-4">
                 <h5 class="card-title mb-3">{{ _("Exportar ingresos") }}</h5>
                 <p class="text-muted mb-3">{{ _("Descarga los ingresos en el mismo formato de importación. El total no se exporta porque se calcula automáticamente a partir de kg y euros/kg.") }}</p>
@@ -99,7 +102,7 @@
     </div>
 
     <div class="tab-pane fade" id="panel-export-irrigation" role="tabpanel">
-        <div class="card shadow-sm border-0">
+        <div class="card tf-panel shadow-sm border-0">
             <div class="card-body p-4">
                 <h5 class="card-title mb-3">{{ _("Exportar riego") }}</h5>
                 <p class="text-muted mb-3">{{ _("Descarga los registros de riego en formato reutilizable para la importación. El vínculo interno con gastos no se exporta; solo se incluyen los datos funcionales del registro.") }}</p>
@@ -116,28 +119,7 @@
         </div>
     </div>
 </div>
+</div>
 {% endblock %}
 
-{% block extra_scripts %}
-<script>
-    (function () {
-        var buttons = document.querySelectorAll('#exportTabs button');
-        var panes = document.querySelectorAll('#exportTabContent .tab-pane');
-
-        buttons.forEach(function (btn) {
-            btn.addEventListener('click', function (e) {
-                e.preventDefault();
-                var targetId = btn.getAttribute('data-bs-target');
-                var targetPane = document.querySelector(targetId);
-                if (!targetPane) return;
-
-                buttons.forEach(function (b) { b.classList.remove('active'); });
-                panes.forEach(function (p) { p.classList.remove('show', 'active'); });
-
-                btn.classList.add('active');
-                targetPane.classList.add('show', 'active');
-            });
-        });
-    })();
-</script>
-{% endblock %}
+{% block extra_scripts %}{% endblock %}

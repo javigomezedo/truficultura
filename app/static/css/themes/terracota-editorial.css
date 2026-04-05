@@ -1,0 +1,226 @@
+:root {
+    --tf-text: #2f261d;
+    --tf-text-soft: #6f6254;
+    --tf-heading: #24180f;
+    --tf-primary: #566b2f;
+    --tf-primary-dark: #445523;
+    --tf-danger: #9a3f33;
+    --tf-info: #496f77;
+    --tf-success: #5c7c35;
+    --tf-warning: #af7a2f;
+    --tf-shadow-sm: 0 18px 40px rgba(67, 47, 28, 0.08);
+    --tf-shadow-md: 0 28px 70px rgba(50, 36, 23, 0.14);
+}
+
+body {
+    background:
+        radial-gradient(circle at top left, rgba(157, 90, 52, 0.12), transparent 26%),
+        radial-gradient(circle at top right, rgba(86, 107, 47, 0.18), transparent 22%),
+        linear-gradient(180deg, #efe7da 0%, #f3efe7 22%, #f9f5ee 100%);
+}
+
+body::before {
+    background-image: linear-gradient(rgba(255, 255, 255, 0.18) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.14) 1px, transparent 1px);
+}
+
+.tf-navbar {
+    background: rgba(38, 28, 19, 0.86) !important;
+    border-bottom: 1px solid rgba(255, 244, 231, 0.12);
+    box-shadow: 0 16px 40px rgba(22, 15, 9, 0.16);
+}
+
+.tf-navbar .navbar-brand,
+.tf-navbar .nav-link:hover,
+.tf-navbar .nav-link.active,
+.tf-navbar .navbar-text,
+.tf-theme-switcher-label {
+    color: #fff7ef !important;
+}
+
+.tf-navbar .nav-link {
+    color: rgba(255, 247, 239, 0.82) !important;
+}
+
+.tf-navbar .nav-link.active::after {
+    background: linear-gradient(90deg, rgba(157, 90, 52, 0.8), rgba(233, 204, 169, 0.95));
+}
+
+.tf-navbar .navbar-brand .truffle-icon {
+    background: linear-gradient(135deg, rgba(157, 90, 52, 0.9), rgba(86, 107, 47, 0.8));
+    box-shadow: inset 0 0 0 1px rgba(255, 248, 240, 0.18);
+}
+
+.tf-theme-switcher {
+    border-color: rgba(255, 247, 239, 0.16);
+    background: rgba(255, 250, 243, 0.14);
+}
+
+.tf-navbar .tf-theme-select {
+    border-color: rgba(255, 247, 239, 0.16);
+    background: rgba(82, 58, 39, 0.72);
+    color: #fff7ef;
+}
+
+.card,
+.modal-content,
+.dropdown-menu,
+.tf-auth-form,
+.tf-auth-brand,
+.tf-theme-floating {
+    box-shadow: var(--tf-shadow-sm);
+}
+
+.tf-tag {
+    border-color: rgba(86, 107, 47, 0.14);
+    background: rgba(255, 250, 243, 0.76);
+}
+
+.tf-toolbar {
+    background: rgba(255, 250, 243, 0.64);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.tf-stat-card {
+    background: linear-gradient(180deg, rgba(255, 251, 246, 0.94), rgba(249, 242, 233, 0.92));
+}
+
+.tf-stat-card::before {
+    background: linear-gradient(180deg, rgba(157, 90, 52, 0.92), rgba(86, 107, 47, 0.72));
+}
+
+.tf-stat-icon {
+    background: rgba(255, 250, 243, 0.8);
+    box-shadow: inset 0 0 0 1px rgba(86, 107, 47, 0.12);
+}
+
+.table-dark {
+    --bs-table-bg: #38291f;
+    --bs-table-striped-bg: #413026;
+    --bs-table-hover-bg: #47352b;
+    --bs-table-color: #fff7ef;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(157, 90, 52, 0.06);
+}
+
+.form-control,
+.form-select {
+    border-color: rgba(88, 67, 45, 0.14);
+    background: rgba(255, 252, 247, 0.92);
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: rgba(86, 107, 47, 0.45);
+    box-shadow: 0 0 0 0.2rem rgba(86, 107, 47, 0.12);
+}
+
+.badge.text-bg-light {
+    background: rgba(86, 107, 47, 0.08) !important;
+}
+
+.badge.bg-secondary {
+    background: rgba(56, 41, 31, 0.84) !important;
+}
+
+.nav-tabs .nav-link {
+    background: rgba(255, 250, 243, 0.46);
+}
+
+.nav-tabs .nav-link:hover {
+    border-color: rgba(86, 107, 47, 0.12);
+    background: rgba(255, 250, 243, 0.78);
+}
+
+.nav-tabs .nav-link.active {
+    border-color: rgba(86, 107, 47, 0.12);
+}
+
+.alert-success {
+    color: #355024;
+    background: rgba(92, 124, 53, 0.12);
+    border-color: rgba(92, 124, 53, 0.16);
+}
+
+.alert-warning {
+    color: #744f18;
+    background: rgba(175, 122, 47, 0.12);
+    border-color: rgba(175, 122, 47, 0.16);
+}
+
+.alert-danger {
+    color: #6f2d25;
+    background: rgba(154, 63, 51, 0.1);
+    border-color: rgba(154, 63, 51, 0.16);
+}
+
+.alert-info {
+    color: #38545a;
+    background: rgba(73, 111, 119, 0.12);
+    border-color: rgba(73, 111, 119, 0.16);
+}
+
+.tf-auth::before {
+    background: radial-gradient(circle, rgba(157, 90, 52, 0.24), transparent 62%);
+}
+
+.tf-auth::after {
+    background: radial-gradient(circle, rgba(86, 107, 47, 0.22), transparent 62%);
+}
+
+.tf-theme-floating {
+    background: rgba(255, 250, 243, 0.9);
+    border-color: rgba(88, 67, 45, 0.14);
+}
+
+.tf-theme-floating label {
+    color: #6f6254;
+}
+
+.tf-auth-brand {
+    background:
+        linear-gradient(145deg, rgba(44, 30, 18, 0.92), rgba(82, 58, 39, 0.82)),
+        radial-gradient(circle at top left, rgba(157, 90, 52, 0.28), transparent 38%),
+        radial-gradient(circle at bottom right, rgba(86, 107, 47, 0.22), transparent 34%);
+    color: #fff8f1;
+}
+
+.tf-auth-brand::after {
+    border-color: rgba(255, 247, 239, 0.12);
+}
+
+.tf-auth-brand .truffle-mark {
+    background: rgba(255, 247, 239, 0.12);
+}
+
+.tf-auth-brand .tf-display,
+.tf-auth-brand p,
+.tf-auth-brand li {
+    color: #fff8f1;
+}
+
+.tf-auth-feature {
+    background: rgba(255, 247, 239, 0.08);
+    border-color: rgba(255, 247, 239, 0.08);
+}
+
+footer.tf-footer {
+    border-top-color: rgba(88, 67, 45, 0.14);
+}
+
+@media (max-width: 767.98px) {
+    .tf-navbar {
+        background: rgba(38, 28, 19, 0.94) !important;
+        box-shadow: 0 10px 24px rgba(22, 15, 9, 0.2);
+    }
+
+    .tf-theme-floating {
+        background: rgba(255, 250, 243, 0.96);
+    }
+
+    .tf-theme-floating .tf-theme-button.is-active {
+        border-color: rgba(86, 107, 47, 0.8);
+    }
+}
