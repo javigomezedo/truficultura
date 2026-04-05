@@ -760,7 +760,7 @@ a:hover {
 .tf-auth {
     position: relative;
     min-height: 100vh;
-    overflow: hidden;
+    overflow-x: hidden;
 }
 
 .tf-auth::before,
@@ -1100,14 +1100,10 @@ footer.tf-footer {
     }
 
     .tf-auth-brand {
-        min-height: 0;
+        display: none;
     }
 
-    .tf-auth-brand .tf-display {
-        font-size: clamp(2rem, 12vw, 2.9rem);
-    }
-
-    .tf-auth-feature {
-        padding: 0.75rem 0.85rem;
+    .tf-auth-card {
+        max-width: 440px;
     }
 }
