@@ -116,26 +116,23 @@
                     </li>
                     {% endif %}
                 </ul>
-                <div class="d-flex align-items-center gap-2 flex-wrap ms-lg-3">
+                <div class="d-flex align-items-center gap-2 ms-lg-3 tf-navbar-meta">
                     <div class="tf-theme-switcher">
                         <span class="tf-theme-switcher-label">{{ _("Estilo") }}</span>
                         <div class="tf-theme-buttons" role="group" aria-label="{{ _('Cambiar estilo visual') }}">
-                            <button type="button" class="btn tf-theme-button" data-theme-button="terracota-editorial" title="{{ _('Terracota Editorial') }}">
+                            <button type="button" class="btn tf-theme-button" data-theme-button="terracota-editorial" title="{{ _('Terracota Editorial') }}" aria-label="{{ _('Terracota Editorial') }}">
                                 <span class="tf-theme-dot tf-theme-dot-terracota"></span>
-                                <span>{{ _("Terracota") }}</span>
                             </button>
-                            <button type="button" class="btn tf-theme-button" data-theme-button="piedra-y-olivo" title="{{ _('Piedra y Olivo') }}">
+                            <button type="button" class="btn tf-theme-button" data-theme-button="piedra-y-olivo" title="{{ _('Piedra y Olivo') }}" aria-label="{{ _('Piedra y Olivo') }}">
                                 <span class="tf-theme-dot tf-theme-dot-piedra"></span>
-                                <span>{{ _("Piedra") }}</span>
                             </button>
-                            <button type="button" class="btn tf-theme-button" data-theme-button="bodega-tecnica" title="{{ _('Bodega Técnica') }}">
+                            <button type="button" class="btn tf-theme-button" data-theme-button="bodega-tecnica" title="{{ _('Bodega Técnica') }}" aria-label="{{ _('Bodega Técnica') }}">
                                 <span class="tf-theme-dot tf-theme-dot-bodega"></span>
-                                <span>{{ _("Bodega") }}</span>
                             </button>
                         </div>
                     </div>
                 {% if request.session.get("username") %}
-                    <span class="navbar-text text-light small">
+                    <span class="navbar-text text-light small tf-navbar-user">
                         <i class="bi bi-person-circle me-1"></i>{{ request.session.get("first_name") }} {{ request.session.get("last_name") }}
                     </span>
                     <form action="/logout" method="post" class="d-inline m-0">
