@@ -134,6 +134,119 @@ def test_login_post_success_redirects_and_sets_session(monkeypatch) -> None:
     assert response.headers["location"] == "/"
 
 
+def test_login_post_success_uses_next_url(monkeypatch) -> None:
+    db = _fake_db()
+    user = User(
+        id=1,
+        username="javier",
+        first_name="Javier",
+        last_name="Gomez",
+        email="javier@example.com",
+        hashed_password="hash",
+        role="user",
+        is_active=True,
+    )
+    db.execute.return_value = result([user])
+    app.dependency_overrides.clear()
+    app.dependency_overrides[__import__("app.database", fromlist=["get_db"]).get_db] = (
+        lambda: db
+    )
+    monkeypatch.setattr("app.routers.auth.verify_password", lambda plain, hashed: True)
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/login",
+            data={
+                "username": "javier",
+                "password": "secreto",
+                "next_url": "/scan/fake-token",
+            },
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/scan/fake-token"
+
+
+def test_login_page_prefills_next_url_from_pending_scan(monkeypatch) -> None:
+    db = _fake_db()
+    user = User(
+        id=1,
+        username="javier",
+        first_name="Javier",
+        last_name="Gomez",
+        email="javier@example.com",
+        hashed_password="hash",
+        role="user",
+        is_active=True,
+    )
+    db.execute.return_value = result([user])
+    app.dependency_overrides[__import__("app.database", fromlist=["get_db"]).get_db] = (
+        lambda: db
+    )
+    monkeypatch.setattr("app.routers.auth.verify_password", lambda plain, hashed: True)
+
+    token = __import__(
+        "app.routers.scan", fromlist=["sign_plant_token"]
+    ).sign_plant_token(5)
+
+    try:
+        client = TestClient(app)
+        scan_redirect = client.get(f"/scan/{token}", follow_redirects=False)
+        response = client.get("/login")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert scan_redirect.status_code == 303
+    assert response.status_code == 200
+    assert f'value="/scan/{token}"' in response.text
+
+
+def test_login_post_uses_pending_scan_when_next_url_empty(monkeypatch) -> None:
+    db = _fake_db()
+    user = User(
+        id=1,
+        username="javier",
+        first_name="Javier",
+        last_name="Gomez",
+        email="javier@example.com",
+        hashed_password="hash",
+        role="user",
+        is_active=True,
+    )
+    db.execute.return_value = result([user])
+    app.dependency_overrides[__import__("app.database", fromlist=["get_db"]).get_db] = (
+        lambda: db
+    )
+    monkeypatch.setattr("app.routers.auth.verify_password", lambda plain, hashed: True)
+
+    token = __import__(
+        "app.routers.scan", fromlist=["sign_plant_token"]
+    ).sign_plant_token(5)
+
+    try:
+        client = TestClient(app)
+        scan_redirect = client.get(f"/scan/{token}", follow_redirects=False)
+        response = client.post(
+            "/login",
+            data={
+                "username": "javier",
+                "password": "secreto",
+                "next_url": "",
+            },
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert scan_redirect.status_code == 303
+    assert response.status_code == 303
+    assert response.headers["location"] == f"/scan/{token}"
+
+
 def test_login_post_inactive_user_returns_401(monkeypatch) -> None:
     db = _fake_db()
     user = User(

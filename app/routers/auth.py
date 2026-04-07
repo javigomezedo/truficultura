@@ -46,10 +46,16 @@ async def login_page(
 ):
     if request.session.get("user_id"):
         return RedirectResponse(_safe_next(next), status_code=303)
+
+    next_url = next
+    pending_scan = request.session.get("pending_scan")
+    if not next_url and pending_scan:
+        next_url = f"/scan/{pending_scan}"
+
     return templates.TemplateResponse(
         request,
         "auth/login.html",
-        {"request": request, "error": None, "next_url": next or ""},
+        {"request": request, "error": None, "next_url": next_url or ""},
     )
 
 
@@ -84,7 +90,15 @@ async def login_post(
         request.session["first_name"] = user.first_name
         request.session["last_name"] = user.last_name
         request.session["email"] = user.email
+
+        if not next_url:
+            pending_scan = request.session.get("pending_scan")
+            if pending_scan:
+                next_url = f"/scan/{pending_scan}"
+
         redirect_to = _safe_next(next_url) if next_url else "/"
+        if redirect_to.startswith("/scan/"):
+            request.session.pop("pending_scan", None)
         return RedirectResponse(redirect_to, status_code=303)
 
     # Either user doesn't exist or password is wrong

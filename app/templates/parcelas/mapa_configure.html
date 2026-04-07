@@ -25,7 +25,7 @@
             <form method="post" action="/plots/{{ plot.id }}/map/configure" class="row g-3">
                 <div class="col-md-8">
                     <label class="form-label">{{ _("Plantas por fila") }}</label>
-                    <input class="form-control" name="row_config" placeholder="4,5,3" value="{{ row_counts|join(',') if row_counts else '' }}" {% if has_events %}disabled{% endif %}>
+                    <input id="row-config-input" class="form-control" name="row_config" placeholder="4,5,3" value="{{ row_counts|join(',') if row_counts else '' }}" {% if has_events %}disabled{% endif %}>
                     <div class="form-text">{{ _("Cada número representa una fila. Las etiquetas se generan automáticamente (A1, A2, B1...).") }}</div>
                 </div>
                 <div class="col-md-4 d-flex align-items-end gap-2">
@@ -33,7 +33,73 @@
                     <a class="btn btn-outline-secondary" href="/plots/{{ plot.id }}/map">{{ _("Cancelar") }}</a>
                 </div>
             </form>
+
+            <div class="mt-4">
+                <h2 class="h6">{{ _("Previsualización") }}</h2>
+                <div id="preview-grid" class="d-flex flex-column gap-2"></div>
+            </div>
         </div>
     </div>
 </div>
+
+<script>
+    (function () {
+        var input = document.getElementById("row-config-input");
+        var grid = document.getElementById("preview-grid");
+        if (!input || !grid) return;
+
+        function rowLabelFromIndex(i) {
+            var n = i + 1;
+            var label = "";
+            while (n > 0) {
+                n -= 1;
+                label = String.fromCharCode(65 + (n % 26)) + label;
+                n = Math.floor(n / 26);
+            }
+            return label;
+        }
+
+        function renderPreview() {
+            var parts = input.value
+                .split(",")
+                .map(function (p) { return p.trim(); })
+                .filter(function (p) { return p.length > 0; });
+
+            var counts = [];
+            for (var i = 0; i < parts.length; i += 1) {
+                var n = parseInt(parts[i], 10);
+                if (!Number.isNaN(n) && n > 0) counts.push(n);
+            }
+
+            grid.innerHTML = "";
+            if (counts.length === 0) {
+                grid.innerHTML = '<small class="text-muted">Sin datos para previsualizar.</small>';
+                return;
+            }
+
+            for (var r = 0; r < counts.length; r += 1) {
+                var row = document.createElement("div");
+                row.className = "d-flex flex-wrap align-items-center";
+                row.style.gap = "6px";
+
+                var badge = document.createElement("span");
+                badge.className = "badge bg-dark-subtle text-dark-emphasis";
+                badge.style.minWidth = "44px";
+                badge.textContent = rowLabelFromIndex(r);
+                row.appendChild(badge);
+
+                for (var c = 1; c <= counts[r]; c += 1) {
+                    var cell = document.createElement("span");
+                    cell.className = "badge text-bg-light border";
+                    cell.textContent = rowLabelFromIndex(r) + String(c);
+                    row.appendChild(cell);
+                }
+                grid.appendChild(row);
+            }
+        }
+
+        input.addEventListener("input", renderPreview);
+        renderPreview();
+    })();
+</script>
 {% endblock %}

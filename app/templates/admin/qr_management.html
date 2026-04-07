@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="tf-page-header">
+        <div>
+            <p class="tf-page-kicker">Administración</p>
+            <h1 class="tf-page-title mb-0">
+                <i class="bi bi-qr-code me-2"></i>QR por Parcelas
+            </h1>
+            <p class="tf-page-subtitle">Selecciona usuario y parcela para descargar etiquetas QR en PDF.</p>
+        </div>
+        <a href="/admin/users" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Volver a usuarios
+        </a>
+    </div>
+
+    <div class="card tf-panel border-0 shadow-sm mb-3">
+        <div class="card-body">
+            <form class="row g-3 align-items-end" method="get" action="/admin/qr">
+                <div class="col-md-5">
+                    <label class="form-label">Usuario</label>
+                    <select name="user_id" class="form-select" required>
+                        <option value="">Selecciona un usuario</option>
+                        {% for u in users %}
+                        <option value="{{ u.id }}" {% if selected_user_id == u.id %}selected{% endif %}>{{ u.username }} ({{ u.first_name }} {{ u.last_name }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">Parcela</label>
+                    <select name="plot_id" class="form-select" {% if not selected_user_id %}disabled{% endif %}>
+                        <option value="">Selecciona una parcela</option>
+                        {% for p in plots %}
+                        <option value="{{ p.id }}" {% if selected_plot_id == p.id %}selected{% endif %}>{{ p.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-grid">
+                    <button class="btn btn-primary" type="submit">Cargar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if selected_user_id and selected_plot_id %}
+    <div class="card tf-panel border-0 shadow-sm">
+        <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h2 class="h5 mb-1">Descarga de etiquetas QR</h2>
+                <p class="text-muted mb-0">Se generará un PDF con un QR por planta.</p>
+            </div>
+            <a class="btn btn-success" href="/admin/users/{{ selected_user_id }}/plots/{{ selected_plot_id }}/qr-pdf">
+                <i class="bi bi-download me-1"></i>Descargar PDF QR
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

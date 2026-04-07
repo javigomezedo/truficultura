@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import re
-from fastapi import APIRouter, Depends, Form, Request
+from typing import Optional
+
+from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth import hash_password, require_admin
 from app.database import get_db
 from app.jinja import templates
+from app.models.plot import Plot
 from app.models.user import User
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -264,6 +267,38 @@ async def activate_user(
     await db.commit()
 
     return RedirectResponse("/admin/users", status_code=303)
+
+
+@router.get("/qr", response_class=HTMLResponse)
+async def qr_management_page(
+    request: Request,
+    selected_user_id: Optional[int] = Query(default=None, alias="user_id"),
+    selected_plot_id: Optional[int] = Query(default=None, alias="plot_id"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    users_result = await db.execute(select(User).order_by(User.username))
+    users = users_result.scalars().all()
+
+    plots: list[Plot] = []
+    if selected_user_id is not None:
+        plots_result = await db.execute(
+            select(Plot).where(Plot.user_id == selected_user_id).order_by(Plot.name)
+        )
+        plots = plots_result.scalars().all()
+
+    return templates.TemplateResponse(
+        request,
+        "admin/qr_management.html",
+        {
+            "request": request,
+            "current_user": current_user,
+            "users": users,
+            "plots": plots,
+            "selected_user_id": selected_user_id,
+            "selected_plot_id": selected_plot_id,
+        },
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -9,6 +9,7 @@ import pytest
 
 from app.models.truffle_event import TruffleEvent
 from app.services.truffle_events_service import (
+    build_plot_event_summary,
     create_event,
     get_counts_by_plant,
     get_last_undoable_event,
@@ -26,6 +27,7 @@ from tests.conftest import result
 @pytest.mark.asyncio
 async def test_create_event_sets_timestamps() -> None:
     db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
     db.add = MagicMock()
     db.flush = AsyncMock()
 
@@ -40,6 +42,7 @@ async def test_create_event_sets_timestamps() -> None:
     assert before <= event.created_at <= after
     assert event.undo_window_expires_at == event.created_at + timedelta(seconds=30)
     assert event.undone_at is None
+    db.execute.assert_awaited_once()
     db.add.assert_called_once_with(event)
     db.flush.assert_awaited_once()
 
@@ -47,12 +50,38 @@ async def test_create_event_sets_timestamps() -> None:
 @pytest.mark.asyncio
 async def test_create_event_default_source_is_manual() -> None:
     db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
     db.add = MagicMock()
     db.flush = AsyncMock()
 
     event = await create_event(db, plant_id=2, plot_id=5, user_id=3)
 
     assert event.source == "manual"
+
+
+@pytest.mark.asyncio
+async def test_create_event_returns_duplicate_without_creating_new_row() -> None:
+    now = datetime.datetime.now(tz=timezone.utc)
+    existing = TruffleEvent(
+        id=77,
+        plant_id=1,
+        plot_id=10,
+        user_id=1,
+        source="manual",
+        created_at=now,
+        undo_window_expires_at=now + timedelta(seconds=30),
+    )
+
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([existing]))
+    db.add = MagicMock()
+    db.flush = AsyncMock()
+
+    returned = await create_event(db, plant_id=1, plot_id=10, user_id=1)
+
+    assert returned is existing
+    db.add.assert_not_called()
+    db.flush.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -228,3 +257,71 @@ async def test_list_events_user_id_isolation() -> None:
     await list_events(db, user_id=2)
 
     assert db.execute.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_list_events_can_exclude_undone() -> None:
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+
+    found = await list_events(db, user_id=1, include_undone=False)
+
+    assert found == []
+    db.execute.assert_awaited_once()
+
+
+def test_build_plot_event_summary_returns_expected_rows() -> None:
+    filtered_events = [
+        SimpleNamespace(
+            plot_id=10,
+            plant_id=1,
+            undone_at=None,
+            plot=SimpleNamespace(name="P1"),
+            plant=SimpleNamespace(label="A1"),
+        ),
+        SimpleNamespace(
+            plot_id=10,
+            plant_id=2,
+            undone_at=None,
+            plot=SimpleNamespace(name="P1"),
+            plant=SimpleNamespace(label="A2"),
+        ),
+        SimpleNamespace(
+            plot_id=11,
+            plant_id=3,
+            undone_at=datetime.datetime.now(tz=timezone.utc),
+            plot=SimpleNamespace(name="P2"),
+            plant=SimpleNamespace(label="B1"),
+        ),
+    ]
+    historical_active_events = [
+        SimpleNamespace(
+            plot_id=10,
+            plant_id=1,
+            undone_at=None,
+            plot=SimpleNamespace(name="P1"),
+            plant=SimpleNamespace(label="A1"),
+        ),
+        SimpleNamespace(
+            plot_id=10,
+            plant_id=1,
+            undone_at=None,
+            plot=SimpleNamespace(name="P1"),
+            plant=SimpleNamespace(label="A1"),
+        ),
+        SimpleNamespace(
+            plot_id=10,
+            plant_id=2,
+            undone_at=None,
+            plot=SimpleNamespace(name="P1"),
+            plant=SimpleNamespace(label="A2"),
+        ),
+    ]
+
+    summary = build_plot_event_summary(filtered_events, historical_active_events)
+
+    assert len(summary) == 1
+    assert summary[0]["plot_name"] == "P1"
+    assert summary[0]["campaign_total"] == 2
+    assert summary[0]["historical_total"] == 3
+    assert summary[0]["top_plants"][0] == ("A1", 2)

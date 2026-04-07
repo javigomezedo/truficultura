@@ -39,6 +39,44 @@
     </div>
 
     <div class="card tf-panel border-0 shadow-sm">
+        {% if summary_rows %}
+        <div class="card-header bg-transparent border-0 pb-0">
+            <h2 class="h6 mb-0">{{ _("Resumen por parcela") }}</h2>
+        </div>
+        <div class="card-body pt-3">
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>{{ _("Parcela") }}</th>
+                            <th>{{ _("Total campaña") }}</th>
+                            <th>{{ _("Total histórico") }}</th>
+                            <th>{{ _("Top plantas") }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in summary_rows %}
+                        <tr>
+                            <td>{{ s.plot_name }}</td>
+                            <td>{{ s.campaign_total }}</td>
+                            <td>{{ s.historical_total }}</td>
+                            <td>
+                                {% if s.top_plants %}
+                                    {% for label, count in s.top_plants %}
+                                    <span class="badge text-bg-light border me-1">{{ label }}: {{ count }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <hr class="my-0">
+        {% endif %}
         <div class="table-responsive">
             <table class="table table-hover mb-0">
                 <thead class="table-dark">
@@ -46,20 +84,30 @@
                         <th>{{ _("Fecha") }}</th>
                         <th>{{ _("Parcela") }}</th>
                         <th>{{ _("Planta") }}</th>
+                        <th>{{ _("Estado") }}</th>
                         <th>{{ _("Origen") }}</th>
+                        <th>{{ _("Propietario") }}</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for e in events %}
                     <tr>
                         <td>{{ e.created_at.strftime('%d/%m/%Y %H:%M:%S') if e.created_at else '—' }}</td>
-                        <td>{{ e.plot_id }}</td>
-                        <td>{{ e.plant_id }}</td>
+                        <td>{{ e.plot.name if e.plot else e.plot_id }}</td>
+                        <td>{{ e.plant.label if e.plant else e.plant_id }}</td>
+                        <td>
+                            {% if e.undone_at %}
+                            <span class="badge text-bg-warning">{{ _("Deshecho") }}</span>
+                            {% else %}
+                            <span class="badge text-bg-success">{{ _("Activo") }}</span>
+                            {% endif %}
+                        </td>
                         <td><span class="badge text-bg-secondary">{{ e.source }}</span></td>
+                        <td>{{ e.user.username if e.user else e.user_id }}</td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="4" class="text-center py-4 text-muted">{{ _("Sin eventos para los filtros seleccionados") }}</td>
+                        <td colspan="6" class="text-center py-4 text-muted">{{ _("Sin eventos para los filtros seleccionados") }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>

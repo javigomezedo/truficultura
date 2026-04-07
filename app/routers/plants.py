@@ -232,6 +232,24 @@ async def list_truffle_events(
         campaign_year=camp_int,
         plot_id=plot_id,
         plant_id=plant_id,
+        include_undone=True,
+    )
+
+    if camp_int is not None:
+        historical_active_events = await truffle_events_service.list_events(
+            db,
+            user_id=current_user.id,
+            campaign_year=None,
+            plot_id=plot_id,
+            plant_id=plant_id,
+            include_undone=False,
+            limit=2000,
+        )
+    else:
+        historical_active_events = [e for e in events if e.undone_at is None]
+
+    summary_rows = truffle_events_service.build_plot_event_summary(
+        events, historical_active_events
     )
 
     return templates.TemplateResponse(
@@ -244,5 +262,6 @@ async def list_truffle_events(
             "selected_campaign": camp_int,
             "selected_plot_id": plot_id,
             "selected_plant_id": plant_id,
+            "summary_rows": summary_rows,
         },
     )

@@ -52,6 +52,10 @@
                             <td class="text-end">{{ "%.2f"|format(p.percentage) }}%</td>
                             <td class="text-center">
                                 <div class="btn-group btn-group-sm" role="group">
+                                    <a href="/plots/{{ p.id }}/map"
+                                       class="btn btn-outline-success" title="{{ _('Mapa') }}">
+                                        <i class="bi bi-grid-3x3-gap-fill"></i>
+                                    </a>
                                     <a href="/plots/{{ p.id }}/edit"
                                        class="btn btn-outline-primary" title="{{ _('Editar') }}">
                                         <i class="bi bi-pencil-fill"></i>

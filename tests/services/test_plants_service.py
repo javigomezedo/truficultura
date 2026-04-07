@@ -172,6 +172,37 @@ async def test_configure_plot_map_raises_when_events_exist() -> None:
         await configure_plot_map(db, plot, user_id=1, row_counts=[3])
 
 
+@pytest.mark.asyncio
+async def test_configure_plot_map_generates_excel_labels_after_z() -> None:
+    plot = Plot(
+        id=10,
+        user_id=1,
+        name="P1",
+        num_plants=0,
+        percentage=100.0,
+        planting_date=datetime.date(2020, 1, 1),
+    )
+
+    db = MagicMock()
+    db.execute = AsyncMock(
+        side_effect=[
+            result([]),  # has_active_truffle_events -> no events
+            result([]),  # delete(Plant)
+            result([plot]),  # _recalculate_percentages fetch plots
+        ]
+    )
+    db.flush = AsyncMock()
+    db.add = MagicMock()
+
+    plants = await configure_plot_map(db, plot, user_id=1, row_counts=[1] * 28)
+
+    labels = [p.label for p in plants]
+    assert labels[0] == "A1"
+    assert labels[25] == "Z1"
+    assert labels[26] == "AA1"
+    assert labels[27] == "AB1"
+
+
 # ---------------------------------------------------------------------------
 # get_plot_map_context
 # ---------------------------------------------------------------------------
