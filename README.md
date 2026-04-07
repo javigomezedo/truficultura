@@ -329,6 +329,49 @@ curl http://localhost:8000/health
 docker compose down
 ```
 
+## 3.2 Conectar a la DB dev de Fly.io desde local
+
+Para conectarte a `truficultura-db-dev` desde tu cliente SQL local, usa el proxy de Fly.
+
+### 1) Levantar el proxy
+
+Se incluye un script auxiliar:
+
+```bash
+./scripts/proxy-dev-db.sh
+```
+
+Este comando abre un túnel local en `localhost:5434` hacia `truficultura-db-dev`.
+Mantén esta terminal abierta mientras uses el cliente.
+
+### 2) Parámetros de conexión
+
+- Host: `localhost`
+- Port: `5434`
+- Database: `truficultura_dev`
+- User: `postgres`
+- Password: usa la variable local `TRUFICULTURA_DB_DEV_PASSWORD`
+
+Connection string:
+
+```text
+postgresql://postgres:<password>@localhost:5434/truficultura_dev
+```
+
+Puedes obtener la password desde Fly cuando la necesites:
+
+```bash
+flyctl postgres credentials --app truficultura-db-dev
+```
+
+Y guardarla solo en local en un `.env` (no versionado):
+
+```env
+TRUFICULTURA_DB_DEV_PASSWORD=tu_password_real
+```
+
+Nota: Se usa `5434` para evitar conflicto con PostgreSQL local (`5432`) y con `docker-compose` (`5433`).
+
 ---
 
 ## 4. Modo debug, importaciones y operaciones frecuentes
