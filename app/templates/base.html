@@ -86,6 +86,12 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {% if '/truffles' in request.url.path %}active{% endif %}"
+                           href="/truffles/">
+                            <i class="bi bi-grid-3x3-gap-fill"></i> {{ _("Trufas") }}
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if '/reports' in request.url.path %}active{% endif %}"
                            href="/reports/profitability">
                             <i class="bi bi-bar-chart-fill"></i> {{ _("Rentabilidad") }}

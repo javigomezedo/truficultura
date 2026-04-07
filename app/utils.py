@@ -19,6 +19,32 @@ def campaign_months(year: int) -> str:
     return f"{start_month} {year} - {end_month} {year + 1}"
 
 
+def row_label_from_index(n: int) -> str:
+    """Convert a 0-based row index to an Excel-style column label.
+
+    0 -> 'A', 1 -> 'B', ..., 25 -> 'Z', 26 -> 'AA', 27 -> 'AB', ...
+    """
+    label = ""
+    n += 1  # work in 1-based space
+    while n > 0:
+        n -= 1
+        label = chr(ord("A") + n % 26) + label
+        n //= 26
+    return label
+
+
+def generate_plant_labels(row_counts: list[int]) -> list[list[str]]:
+    """Given a list of plant counts per row, return a 2D list of plant labels.
+
+    Example: [4, 5, 3] -> [['A1','A2','A3','A4'], ['B1','B2','B3','B4','B5'], ['C1','C2','C3']]
+    """
+    grid: list[list[str]] = []
+    for row_idx, count in enumerate(row_counts):
+        rl = row_label_from_index(row_idx)
+        grid.append([f"{rl}{col + 1}" for col in range(count)])
+    return grid
+
+
 def distribute_unassigned_expenses(
     expenses_by_cy_plot: dict,
     plots: list,

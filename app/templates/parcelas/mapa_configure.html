@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("Configurar mapa") }} — {{ plot.name }}{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="tf-page-header">
+        <div>
+            <p class="tf-page-kicker">{{ _("Diseño de plantación") }}</p>
+            <h1 class="tf-page-title">
+                <i class="bi bi-sliders text-success me-2"></i>{{ _("Configurar mapa") }} · {{ plot.name }}
+            </h1>
+            <p class="tf-page-subtitle">{{ _("Introduce plantas por fila. Ejemplo: 4,5,3") }}</p>
+        </div>
+    </div>
+
+    {% if has_events %}
+    <div class="alert alert-danger">
+        {{ _("No puedes regenerar el mapa porque ya existen registros de trufas activos.") }}
+    </div>
+    {% endif %}
+
+    <div class="card tf-panel border-0 shadow-sm">
+        <div class="card-body">
+            <form method="post" action="/plots/{{ plot.id }}/map/configure" class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label">{{ _("Plantas por fila") }}</label>
+                    <input class="form-control" name="row_config" placeholder="4,5,3" value="{{ row_counts|join(',') if row_counts else '' }}" {% if has_events %}disabled{% endif %}>
+                    <div class="form-text">{{ _("Cada número representa una fila. Las etiquetas se generan automáticamente (A1, A2, B1...).") }}</div>
+                </div>
+                <div class="col-md-4 d-flex align-items-end gap-2">
+                    <button class="btn btn-success" type="submit" {% if has_events %}disabled{% endif %}>{{ _("Guardar mapa") }}</button>
+                    <a class="btn btn-outline-secondary" href="/plots/{{ plot.id }}/map">{{ _("Cancelar") }}</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
