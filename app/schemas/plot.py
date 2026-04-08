@@ -17,6 +17,8 @@ class PlotBase(BaseModel):
     production_start: Optional[datetime.date] = None
     percentage: float = 0.0
     has_irrigation: bool = False
+    provincia_cod: Optional[str] = None
+    municipio_cod: Optional[str] = None
 
 
 class PlotCreate(PlotBase):
@@ -36,6 +38,8 @@ class PlotUpdate(BaseModel):
     production_start: Optional[datetime.date] = None
     percentage: Optional[float] = None
     has_irrigation: Optional[bool] = None
+    provincia_cod: Optional[str] = None
+    municipio_cod: Optional[str] = None
 
 
 class PlotResponse(PlotBase):

@@ -91,6 +91,28 @@
                         <div class="form-text small text-muted mt-1">{{ _("Identificador único del catastro") }}</div>
                     </div>
 
+                    <!-- Provincia (Catastro) -->
+                    <div class="col-md-4">
+                        <label for="provincia_cod" class="form-label fw-semibold">{{ _("Provincia (Catastro)") }}</label>
+                        <select class="form-select"
+                                id="provincia_cod"
+                                name="provincia_cod"
+                                data-initial="{{ plot.provincia_cod if plot and plot.provincia_cod else '' }}">
+                            <option value="">{{ _("— Selecciona provincia —") }}</option>
+                        </select>
+                    </div>
+
+                    <!-- Municipio (Catastro) -->
+                    <div class="col-md-4">
+                        <label for="municipio_cod" class="form-label fw-semibold">{{ _("Municipio (Catastro)") }}</label>
+                        <select class="form-select"
+                                id="municipio_cod"
+                                name="municipio_cod"
+                                data-initial="{{ plot.municipio_cod if plot and plot.municipio_cod else '' }}">
+                            <option value="">{{ _("— Selecciona municipio —") }}</option>
+                        </select>
+                    </div>
+
                     <!-- Hidrante -->
                     <div class="col-md-4">
                         <label for="hydrant" class="form-label fw-semibold">{{ _("Hidrante") }}</label>
@@ -212,3 +234,45 @@
     </div>
 </div>
 {% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+    const GEO_URL = "/static/js/catastro_geo.json";
+    const selProv = document.getElementById("provincia_cod");
+    const selMun  = document.getElementById("municipio_cod");
+    const INIT_PROV = selProv.dataset.initial || '';
+    const INIT_MUN  = selMun.dataset.initial  || '';
+
+    function selectByValue(sel, val) {
+        if (!val) return;
+        for (let i = 0; i < sel.options.length; i++) {
+            if (sel.options[i].value === val) { sel.selectedIndex = i; return; }
+        }
+    }
+
+    function loadMunicipios(provCode, selectedMun) {
+        selMun.innerHTML = '<option value="">— Selecciona municipio —</option>';
+        const munis = (window._catGeo && window._catGeo.municipalities[provCode]) || [];
+        munis.forEach(m => selMun.appendChild(new Option(m.name, m.code)));
+        if (selectedMun) selectByValue(selMun, selectedMun);
+    }
+
+    fetch(GEO_URL)
+        .then(r => r.json())
+        .then(data => {
+            window._catGeo = data;
+            data.provinces.forEach(p => selProv.appendChild(new Option(p.name, p.code)));
+
+            if (INIT_PROV) {
+                selectByValue(selProv, INIT_PROV);
+                loadMunicipios(INIT_PROV, INIT_MUN);
+            }
+
+            selProv.addEventListener('change', function () {
+                loadMunicipios(this.value, null);
+            });
+        });
+})();
+</script>
+{% endblock %} {# extra_scripts #}

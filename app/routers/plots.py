@@ -64,6 +64,8 @@ async def create_plot(
     area_ha: Optional[float] = Form(None),
     production_start: Optional[datetime.date] = Form(None),
     has_irrigation: Optional[str] = Form(None),
+    provincia_cod: Optional[str] = Form(None),
+    municipio_cod: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_user),
 ):
@@ -81,6 +83,8 @@ async def create_plot(
         area_ha=area_ha,
         production_start=production_start,
         has_irrigation=has_irrigation == "true",
+        provincia_cod=provincia_cod or None,
+        municipio_cod=municipio_cod or None,
     )
     return RedirectResponse(
         url="/plots/?msg=Parcela+creada+correctamente", status_code=303
@@ -126,6 +130,8 @@ async def update_plot(
     area_ha: Optional[float] = Form(None),
     production_start: Optional[datetime.date] = Form(None),
     has_irrigation: Optional[str] = Form(None),
+    provincia_cod: Optional[str] = Form(None),
+    municipio_cod: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_user),
 ):
@@ -149,6 +155,8 @@ async def update_plot(
         area_ha=area_ha,
         production_start=production_start,
         has_irrigation=has_irrigation == "true",
+        provincia_cod=provincia_cod or None,
+        municipio_cod=municipio_cod or None,
     )
     return RedirectResponse(
         url="/plots/?msg=Parcela+actualizada+correctamente", status_code=303
