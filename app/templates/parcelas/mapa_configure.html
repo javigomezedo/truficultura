@@ -97,12 +97,10 @@
 
             for (var r = 0; r < rows.length; r += 1) {
                 var row = document.createElement("div");
-                row.className = "d-flex flex-wrap align-items-center";
-                row.style.gap = "6px";
+                row.className = "tf-map-preview-row";
 
                 var badge = document.createElement("span");
-                badge.className = "badge bg-dark-subtle text-dark-emphasis";
-                badge.style.minWidth = "44px";
+                badge.className = "badge bg-dark-subtle text-dark-emphasis tf-map-preview-row-label";
                 badge.textContent = rowLabelFromIndex(r);
                 row.appendChild(badge);
 
@@ -111,12 +109,12 @@
                 for (var p = 0; p < rows[r].length; p += 1) present[String(rows[r][p])] = true;
 
                 for (var c = 1; c <= maxCol; c += 1) {
-                    var cell = document.createElement("span");
+                    var cell = document.createElement("div");
                     if (present[String(c)]) {
-                        cell.className = "badge text-bg-light border";
-                        cell.textContent = rowLabelFromIndex(r) + String(c);
+                        cell.className = "tf-map-preview-cell";
+                        cell.textContent = String(c);
                     } else {
-                        cell.className = "badge border text-secondary bg-body-secondary";
+                        cell.className = "tf-map-preview-cell is-hole";
                         cell.textContent = "·";
                     }
                     row.appendChild(cell);
