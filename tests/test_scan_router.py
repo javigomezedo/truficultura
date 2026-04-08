@@ -53,7 +53,7 @@ def test_scan_without_session_redirects_to_login() -> None:
     assert "/login?next=/scan/" in response.headers["location"]
 
 
-def test_scan_with_session_registers_event(monkeypatch) -> None:
+def test_scan_with_session_shows_quantity_form(monkeypatch) -> None:
     db = _fake_db()
     db.execute.return_value = result([_active_user()])
     app.dependency_overrides[get_db] = lambda: db
@@ -64,10 +64,6 @@ def test_scan_with_session_registers_event(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.routers.scan.plants_service.get_plant",
         AsyncMock(return_value=SimpleNamespace(id=5, plot_id=10, label="A1")),
-    )
-    monkeypatch.setattr(
-        "app.routers.scan.truffle_events_service.create_event",
-        AsyncMock(return_value=SimpleNamespace(id=101, created_at=None)),
     )
     monkeypatch.setattr("app.routers.auth.verify_password", lambda plain, hashed: True)
 
@@ -84,10 +80,11 @@ def test_scan_with_session_registers_event(monkeypatch) -> None:
 
     assert login.status_code == 303
     assert response.status_code == 200
-    assert "Trufa registrada" in response.text
+    assert "Registro por QR" in response.text
+    assert 'name="quantity"' in response.text
 
 
-def test_scan_without_session_then_login_returns_and_completes(monkeypatch) -> None:
+def test_scan_without_session_then_login_returns_to_confirm(monkeypatch) -> None:
     db = _fake_db()
     db.execute.return_value = result([_active_user()])
     app.dependency_overrides[get_db] = lambda: db
@@ -98,11 +95,6 @@ def test_scan_without_session_then_login_returns_and_completes(monkeypatch) -> N
     monkeypatch.setattr(
         "app.routers.scan.plants_service.get_plant",
         AsyncMock(return_value=SimpleNamespace(id=5, plot_id=10, label="A1")),
-    )
-    create_mock = AsyncMock(return_value=SimpleNamespace(id=101, created_at=None))
-    monkeypatch.setattr(
-        "app.routers.scan.truffle_events_service.create_event",
-        create_mock,
     )
     monkeypatch.setattr("app.routers.auth.verify_password", lambda plain, hashed: True)
 
@@ -126,5 +118,41 @@ def test_scan_without_session_then_login_returns_and_completes(monkeypatch) -> N
         app.dependency_overrides.clear()
 
     assert final_scan.status_code == 200
-    assert "Trufa registrada" in final_scan.text
-    create_mock.assert_awaited_once()
+    assert "Registro por QR" in final_scan.text
+
+
+def test_scan_submit_registers_quantity(monkeypatch) -> None:
+    db = _fake_db()
+    db.execute.return_value = result([_active_user()])
+    app.dependency_overrides[get_db] = lambda: db
+
+    token = __import__(
+        "app.routers.scan", fromlist=["sign_plant_token"]
+    ).sign_plant_token(5)
+    monkeypatch.setattr(
+        "app.routers.scan.plants_service.get_plant",
+        AsyncMock(return_value=SimpleNamespace(id=5, plot_id=10, label="A1")),
+    )
+    create_mock = AsyncMock(return_value=SimpleNamespace(id=101, created_at=None))
+    monkeypatch.setattr(
+        "app.routers.scan.truffle_events_service.create_event",
+        create_mock,
+    )
+    monkeypatch.setattr("app.routers.auth.verify_password", lambda plain, hashed: True)
+
+    try:
+        client = TestClient(app)
+        login = client.post(
+            "/login",
+            data={"username": "javier", "password": "secreto"},
+            follow_redirects=False,
+        )
+        response = client.post(f"/scan/{token}", data={"quantity": "5"})
+    finally:
+        app.dependency_overrides.clear()
+
+    assert login.status_code == 303
+    assert response.status_code == 200
+    assert "Trufas registradas" in response.text
+    assert "Cantidad" in response.text
+    assert create_mock.await_count == 5
