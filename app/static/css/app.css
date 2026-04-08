@@ -816,6 +816,42 @@ a:hover {
     padding: 0.3rem 0.5rem;
 }
 
+.tf-map-preview-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 6px;
+    width: max-content;
+}
+
+.tf-map-preview-row-label {
+    min-width: 44px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
+
+.tf-map-preview-cell {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--tf-border);
+    border-radius: 0.45rem;
+    background: rgba(255, 255, 255, 0.55);
+    font-size: 0.73rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.tf-map-preview-cell.is-hole {
+    background: rgba(173, 181, 189, 0.22);
+    color: #6c757d;
+}
+
 .tf-chart-container,
 .chart-container {
     position: relative;
