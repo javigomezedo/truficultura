@@ -1,6 +1,7 @@
 import datetime
 from io import BytesIO
 from typing import Optional
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
@@ -233,7 +234,7 @@ async def download_receipt(
     return StreamingResponse(
         BytesIO(file_content),
         media_type=content_type,
-        headers={"Content-Disposition": f"inline; filename={filename}"},
+        headers={"Content-Disposition": f'inline; filename="{quote(filename)}"'},
     )
 
 

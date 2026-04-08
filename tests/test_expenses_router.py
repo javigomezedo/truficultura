@@ -313,7 +313,7 @@ def test_download_receipt_streams_file(monkeypatch) -> None:
         app.dependency_overrides.clear()
 
     assert response.status_code == 200
-    assert response.headers["content-disposition"] == "inline; filename=factura.pdf"
+    assert response.headers["content-disposition"] == 'inline; filename="factura.pdf"'
     assert response.content == b"contenido"
 
 
