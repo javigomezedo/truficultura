@@ -10,7 +10,7 @@
             <h1 class="tf-page-title">
                 <i class="bi bi-grid-3x3-gap-fill text-success me-2"></i>{{ _("Mapa de plantas") }} · {{ plot.name }}
             </h1>
-            <p class="tf-page-subtitle">{{ _("Visualiza campaña actual y total histórico por celda.") }}</p>
+            <p class="tf-page-subtitle">{{ _("Visualiza el conteo por celda según la campaña seleccionada.") }}</p>
         </div>
         <div class="d-flex gap-2 flex-wrap">
             <a href="/plots/{{ plot.id }}/map/configure" class="btn btn-outline-success">
@@ -27,16 +27,22 @@
     {% endif %}
 
     <div class="card tf-panel border-0 shadow-sm mb-3">
-        <div class="card-body">
-            <form method="get" class="row g-3 align-items-end">
-                <div class="col-md-4">
-                    <label class="form-label">{{ _("Campaña") }}</label>
-                    <input type="number" name="campaign" class="form-control" value="{{ selected_campaign if selected_campaign is not none else '' }}" placeholder="2025">
-                </div>
-                <div class="col-md-8 d-flex gap-2">
-                    <button class="btn btn-primary" type="submit"><i class="bi bi-funnel me-1"></i>{{ _("Aplicar") }}</button>
-                    <a href="/plots/{{ plot.id }}/map" class="btn btn-outline-secondary">{{ _("Quitar filtro") }}</a>
-                </div>
+        <div class="card-body py-2">
+            <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+                <label class="form-label mb-0 fw-semibold text-nowrap">
+                    <i class="bi bi-funnel me-1"></i>{{ _("Filtrar:") }}
+                </label>
+                <select name="campaign" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+                        <option value="">{{ _("Todas las campañas") }}</option>
+                        {% for y in campaign_years %}
+                        <option value="{{ y }}" {% if selected_campaign == y %}selected{% endif %}>{{ y|campaign_label }}</option>
+                        {% endfor %}
+                    </select>
+                {% if selected_campaign %}
+                <a href="/plots/{{ plot.id }}/map" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-x me-1"></i>{{ _("Limpiar filtros") }}
+                </a>
+                {% endif %}
             </form>
         </div>
     </div>
@@ -52,27 +58,27 @@
             <div class="d-flex align-items-start mb-2 flex-wrap" style="gap: 8px;">
                 <span class="badge bg-dark-subtle text-dark-emphasis" style="min-width: 48px;">{{ row.row_label }}</span>
                 {% for cell in row.cells %}
-                <div class="border rounded-3 p-2 {% if cell.total_count == 0 %}bg-warning-subtle{% else %}bg-light{% endif %}" style="min-width: 116px;">
+                {% set display_count = cell.campaign_count if selected_campaign is not none else cell.total_count %}
+                <div class="border rounded-3 p-2 {% if display_count == 0 %}bg-warning-subtle{% else %}bg-light{% endif %}" style="min-width: 116px;">
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <strong>{{ cell.plant.label }}</strong>
-                        <span class="badge {% if cell.total_count == 0 %}text-bg-warning{% else %}text-bg-success{% endif %}">
-                            {{ cell.total_count }}
+                        <span class="badge {% if display_count == 0 %}text-bg-warning{% else %}text-bg-success{% endif %}">
+                            {{ display_count }}
                         </span>
                     </div>
-                    <div class="small text-muted">{{ _("Campaña") }}: <strong>{{ cell.campaign_count }}</strong></div>
-                    <div class="small text-muted">{{ _("Histórico") }}: <strong>{{ cell.total_count }}</strong></div>
+                    <div class="small text-muted">
+                        {% if selected_campaign is not none %}
+                        {{ _("Campaña") }}: <strong>{{ cell.campaign_count }}</strong>
+                        {% else %}
+                        {{ _("Total") }}: <strong>{{ cell.total_count }}</strong>
+                        {% endif %}
+                    </div>
                     <div class="mt-2 d-flex gap-1">
                         <form method="post" action="/plots/{{ plot.id }}/plants/{{ cell.plant.id }}/add">
                             {% if selected_campaign is not none %}
                             <input type="hidden" name="campaign" value="{{ selected_campaign }}">
                             {% endif %}
                             <button class="btn btn-sm btn-success" type="submit">+1</button>
-                        </form>
-                        <form method="post" action="/plots/{{ plot.id }}/plants/{{ cell.plant.id }}/undo">
-                            {% if selected_campaign is not none %}
-                            <input type="hidden" name="campaign" value="{{ selected_campaign }}">
-                            {% endif %}
-                            <button class="btn btn-sm btn-outline-danger" type="submit">{{ _("Deshacer") }}</button>
                         </form>
                     </div>
                 </div>

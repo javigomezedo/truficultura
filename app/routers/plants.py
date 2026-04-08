@@ -12,9 +12,20 @@ from app.database import get_db
 from app.models.user import User
 from app.services import plants_service, truffle_events_service
 from app.services.plots_service import get_plot, list_plots
+from app.utils import campaign_year
 
 router = APIRouter(tags=["plants"])
 templates = Jinja2Templates(directory="app/templates")
+
+
+def _parse_optional_int(value: Optional[str]) -> Optional[int]:
+    if value is None or value == "":
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        return None
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Plant map — view
@@ -34,9 +45,26 @@ async def map_view(
     if plot is None:
         return RedirectResponse("/plots/?msg=Parcela+no+encontrada", status_code=303)
 
-    selected = int(campaign) if campaign else None
+    selected = _parse_optional_int(campaign)
     ctx = await plants_service.get_plot_map_context(
         db, plot, user_id=current_user.id, selected_campaign=selected
+    )
+
+    year_events = await truffle_events_service.list_events(
+        db,
+        user_id=current_user.id,
+        campaign_year=None,
+        plot_id=plot_id,
+        include_undone=True,
+        limit=2000,
+    )
+    campaign_years = sorted(
+        {
+            campaign_year(e.created_at.date())
+            for e in year_events
+            if getattr(e, "created_at", None) is not None
+        },
+        reverse=True,
     )
 
     has_events = await plants_service.has_active_truffle_events(
@@ -51,6 +79,7 @@ async def map_view(
             "plot": plot,
             "msg": msg,
             "has_events": has_events,
+            "campaign_years": campaign_years,
             **ctx,
         },
     )
@@ -223,8 +252,26 @@ async def list_truffle_events(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_user),
 ):
-    camp_int = int(camp) if camp else None
+    camp_int = _parse_optional_int(camp)
     plots = await list_plots(db, current_user.id)
+
+    year_events = await truffle_events_service.list_events(
+        db,
+        user_id=current_user.id,
+        campaign_year=None,
+        plot_id=plot_id,
+        plant_id=plant_id,
+        include_undone=True,
+        limit=2000,
+    )
+    campaign_years = sorted(
+        {
+            campaign_year(e.created_at.date())
+            for e in year_events
+            if getattr(e, "created_at", None) is not None
+        },
+        reverse=True,
+    )
 
     events = await truffle_events_service.list_events(
         db,
@@ -262,6 +309,74 @@ async def list_truffle_events(
             "selected_campaign": camp_int,
             "selected_plot_id": plot_id,
             "selected_plant_id": plant_id,
+            "campaign_years": campaign_years,
             "summary_rows": summary_rows,
         },
+    )
+
+
+@router.get("/plots/{plot_id}/qr-pdf")
+async def download_plot_qr_pdf(
+    request: Request,
+    plot_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
+):
+    """Generate a PDF with one QR code per plant for the current user's plot."""
+    import io
+
+    import qrcode
+    from fpdf import FPDF
+
+    from app.routers.scan import sign_plant_token
+
+    plot = await get_plot(db, plot_id, current_user.id)
+    if plot is None:
+        return RedirectResponse("/plots/?msg=Parcela+no+encontrada", status_code=303)
+
+    plants = await plants_service.list_plants(db, plot_id, current_user.id)
+    if not plants:
+        return RedirectResponse(
+            "/plots/?msg=La+parcela+no+tiene+plantas+configuradas",
+            status_code=303,
+        )
+
+    base_url = str(request.base_url).rstrip("/")
+
+    pdf = FPDF(orientation="P", unit="mm", format="A4")
+    pdf.set_auto_page_break(auto=False)
+
+    page_w = 210.0
+    qr_size = 140.0
+
+    for plant in plants:
+        pdf.add_page()
+        scan_url = f"{base_url}/scan/{sign_plant_token(plant.id)}"
+
+        img = qrcode.make(scan_url)
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        buf.seek(0)
+
+        qr_x = (page_w - qr_size) / 2
+        qr_y = 34.0
+        pdf.image(buf, x=qr_x, y=qr_y, w=qr_size, h=qr_size)
+
+        pdf.set_font("Helvetica", "B", 24)
+        pdf.set_xy(0, qr_y + qr_size + 14)
+        pdf.cell(page_w, 12, plant.label, align="C")
+
+        pdf.set_font("Helvetica", "", 12)
+        pdf.set_xy(0, qr_y + qr_size + 28)
+        pdf.cell(page_w, 8, plot.name, align="C")
+
+    pdf_bytes = pdf.output()
+    filename = f"qr_{plot.name.replace(' ', '_')}_{current_user.id}.pdf"
+
+    from fastapi.responses import Response
+
+    return Response(
+        content=bytes(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

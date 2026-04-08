@@ -22,7 +22,25 @@ def _db() -> MagicMock:
 def test_plots_list_renders(monkeypatch) -> None:
     fake_db = _db()
     monkeypatch.setattr(
-        "app.routers.plots.list_plots_service", AsyncMock(return_value=[])
+        "app.routers.plots.list_plots_service",
+        AsyncMock(
+            return_value=[
+                SimpleNamespace(
+                    id=10,
+                    name="Parcela Norte",
+                    polygon="1",
+                    plot_num="10",
+                    cadastral_ref="44223A021001200000FP",
+                    hydrant="H-01",
+                    sector="S1",
+                    num_plants=20,
+                    planting_date=datetime.date(2020, 1, 1),
+                    area_ha=1.2,
+                    production_start=datetime.date(2024, 1, 1),
+                    percentage=100.0,
+                )
+            ]
+        ),
     )
     app.dependency_overrides[require_user] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
@@ -34,6 +52,7 @@ def test_plots_list_renders(monkeypatch) -> None:
 
     assert response.status_code == 200
     assert "Parcel" in response.text
+    assert "/plots/10/qr-pdf" in response.text
 
 
 def test_new_plot_form_renders() -> None:
