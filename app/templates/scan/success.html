@@ -1,19 +1,18 @@
 {% extends "base.html" %}
 
-{% block title %}{{ _("Trufa registrada") }}{% endblock %}
+{% block title %}{{ _("Trufas registradas") }}{% endblock %}
 
 {% block content %}
 <div class="container py-5">
     <div class="card tf-panel border-0 shadow-sm">
         <div class="card-body">
-            <h1 class="h3"><i class="bi bi-check-circle-fill text-success me-2"></i>{{ _("Trufa registrada") }}</h1>
+            <h1 class="h3"><i class="bi bi-check-circle-fill text-success me-2"></i>{{ _("Trufas registradas") }}</h1>
             <p>{{ _("Planta") }}: <strong>{{ plant.label }}</strong></p>
             <p>{{ _("Parcela") }}: <strong>{{ plant.plot_id }}</strong></p>
+            <p>{{ _("Cantidad") }}: <strong>{{ quantity if quantity is defined else 1 }}</strong></p>
             <p class="text-muted">{{ event.created_at.strftime('%d/%m/%Y %H:%M:%S') if event.created_at else '' }}</p>
             <div class="d-flex gap-2">
-                <form method="post" action="{{ undo_url }}">
-                    <button class="btn btn-outline-danger">{{ _("Deshacer (30s)") }}</button>
-                </form>
+                <a href="{{ request.url.path }}" class="btn btn-outline-primary">{{ _("Registrar más en esta planta") }}</a>
                 <a href="/plots/{{ plant.plot_id }}/map" class="btn btn-success">{{ _("Ir al mapa") }}</a>
             </div>
         </div>
