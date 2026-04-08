@@ -72,6 +72,8 @@ async def create_plot(
     area_ha: Optional[float],
     production_start: Optional[datetime.date],
     has_irrigation: bool = False,
+    provincia_cod: Optional[str] = None,
+    municipio_cod: Optional[str] = None,
 ) -> Plot:
     new_plot = Plot(
         user_id=user_id,
@@ -87,6 +89,8 @@ async def create_plot(
         production_start=production_start,
         percentage=0.0,
         has_irrigation=has_irrigation,
+        provincia_cod=provincia_cod or None,
+        municipio_cod=municipio_cod or None,
     )
     db.add(new_plot)
     await db.flush()
@@ -112,6 +116,8 @@ async def update_plot(
     area_ha: Optional[float],
     production_start: Optional[datetime.date],
     has_irrigation: bool = False,
+    provincia_cod: Optional[str] = None,
+    municipio_cod: Optional[str] = None,
 ) -> Plot:
     plot.name = name
     plot.polygon = polygon
@@ -124,6 +130,8 @@ async def update_plot(
     plot.area_ha = area_ha
     plot.production_start = production_start
     plot.has_irrigation = has_irrigation
+    plot.provincia_cod = provincia_cod or None
+    plot.municipio_cod = municipio_cod or None
     await db.flush()
 
     # Recalculate all percentages for this user

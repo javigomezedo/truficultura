@@ -66,12 +66,16 @@ async def test_create_update_delete_plot() -> None:
         planting_date=datetime.date(2021, 2, 3),
         area_ha=1.5,
         production_start=datetime.date(2024, 1, 1),
+        provincia_cod="44",
+        municipio_cod="223",
     )
 
     db.add.assert_called_once()
     db.flush.assert_awaited()
     assert created.name == "Bancal Sur"
     assert created.plot_num == "42"
+    assert created.provincia_cod == "44"
+    assert created.municipio_cod == "223"
 
     updated = await update_plot(
         db,
@@ -86,10 +90,14 @@ async def test_create_update_delete_plot() -> None:
         planting_date=datetime.date(2021, 3, 3),
         area_ha=1.8,
         production_start=datetime.date(2024, 2, 1),
+        provincia_cod="44",
+        municipio_cod="224",
     )
 
     assert updated.name == "Bancal Sur 2"
     assert updated.plot_num == "43"
+    assert updated.provincia_cod == "44"
+    assert updated.municipio_cod == "224"
 
     await delete_plot(db, created)
     db.delete.assert_awaited_once_with(created)

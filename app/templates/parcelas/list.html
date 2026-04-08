@@ -42,7 +42,19 @@
                         <tr>
                             <td class="fw-semibold">{{ p.name }}</td>
                             <td>{{ _("Polígono") }} {{ p.polygon }}, {{ _("Parcela") }} {{ p.plot_num }}</td>
-                            <td><small class="text-monospace">{{ p.cadastral_ref }}</small></td>
+                            <td>
+                                {% if p.cadastral_ref and p.provincia_cod and p.municipio_cod %}
+                                <a href="https://www1.sedecatastro.gob.es/CYCBienInmueble/OVCConCiud.aspx?RefC={{ p.cadastral_ref }}&del={{ p.provincia_cod }}&mun={{ p.municipio_cod }}"
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   title="{{ _('Ver en sede electrónica del catastro') }}">
+                                    <small class="text-monospace">{{ p.cadastral_ref }}</small>
+                                    <i class="bi bi-box-arrow-up-right ms-1 small"></i>
+                                </a>
+                                {% else %}
+                                <small class="text-monospace">{{ p.cadastral_ref }}</small>
+                                {% endif %}
+                            </td>
                             <td>{{ p.hydrant }}</td>
                             <td>{{ p.sector }}</td>
                             <td class="text-end">
