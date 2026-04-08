@@ -218,12 +218,45 @@ async def undo_truffle_event(
         db, plant_id=plant_id, user_id=current_user.id
     )
 
-    msg = "Último+registro+deshecho" if undone else "No+hay+registro+para+deshacer"
+    msg = "Último+registro+eliminado" if undone else "No+hay+registro+para+deshacer"
     if campaign:
         target = f"/plots/{plot_id}/map?campaign={campaign}&msg={msg}"
     else:
         target = f"/plots/{plot_id}/map?msg={msg}"
     return RedirectResponse(target, status_code=303)
+
+
+@router.post("/truffles/{event_id}/delete", response_class=RedirectResponse)
+async def delete_truffle_event_from_list(
+    request: Request,
+    event_id: int,
+    camp: Optional[str] = Form(default=None),
+    plot_id: Optional[str] = Form(default=None),
+    plant_id: Optional[str] = Form(default=None),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
+):
+    deleted = await truffle_events_service.delete_event(
+        db,
+        event_id=event_id,
+        user_id=current_user.id,
+    )
+
+    params: list[str] = []
+    if camp:
+        params.append(f"camp={camp}")
+    if plot_id:
+        params.append(f"plot_id={plot_id}")
+    if plant_id:
+        params.append(f"plant_id={plant_id}")
+
+    msg = (
+        "msg=Registro+de+trufa+eliminado"
+        if deleted
+        else "msg=No+se+ha+encontrado+el+registro"
+    )
+    query = "&".join(params + [msg]) if params else msg
+    return RedirectResponse(f"/truffles/?{query}", status_code=303)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -256,7 +289,7 @@ async def list_truffle_events(
         campaign_year=None,
         plot_id=plot_id_int,
         plant_id=plant_id_int,
-        include_undone=True,
+        include_undone=False,
         limit=2000,
     )
     campaign_years = sorted(
@@ -274,7 +307,7 @@ async def list_truffle_events(
         campaign_year=camp_int,
         plot_id=plot_id_int,
         plant_id=plant_id_int,
-        include_undone=True,
+        include_undone=False,
     )
 
     if camp_int is not None:

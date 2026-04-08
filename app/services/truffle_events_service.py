@@ -143,13 +143,35 @@ async def undo_last_event(
     plant_id: int,
     user_id: int,
 ) -> Optional[TruffleEvent]:
-    """Mark the last undoable event as undone. Returns the event or None if unavailable."""
+    """Hard-delete the last undoable event. Returns the deleted event or None."""
     event = await get_last_undoable_event(db, plant_id=plant_id, user_id=user_id)
     if event is None:
         return None
-    event.undone_at = datetime.datetime.now(tz=timezone.utc)
+    await db.delete(event)
     await db.flush()
     return event
+
+
+async def delete_event(
+    db: AsyncSession,
+    *,
+    event_id: int,
+    user_id: int,
+) -> bool:
+    """Delete a truffle event by id for the given user. Returns True if deleted."""
+    res = await db.execute(
+        select(TruffleEvent).where(
+            TruffleEvent.id == event_id,
+            TruffleEvent.user_id == user_id,
+        )
+    )
+    event = res.scalar_one_or_none()
+    if event is None:
+        return False
+
+    await db.delete(event)
+    await db.flush()
+    return True
 
 
 async def get_counts_by_plant(
