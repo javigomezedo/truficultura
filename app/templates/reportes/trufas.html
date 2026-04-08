@@ -29,7 +29,12 @@
                     <option value="{{ p.id }}" {% if selected_plot_id == p.id %}selected{% endif %}>{{ p.name }}</option>
                     {% endfor %}
                 </select>
-                <input type="number" name="plant_id" class="form-control form-control-sm w-auto" placeholder="{{ _('Planta ID') }}" value="{{ selected_plant_id if selected_plant_id is not none else '' }}">
+                <select class="form-select form-select-sm w-auto" name="plant_id" onchange="this.form.submit()" {% if selected_plot_id is none %}disabled{% endif %}>
+                    <option value="">{{ _("Todas las plantas") }}</option>
+                    {% for p in plants_for_filter %}
+                    <option value="{{ p.id }}" {% if selected_plant_id == p.id %}selected{% endif %}>{{ p.label }}</option>
+                    {% endfor %}
+                </select>
                 <button class="btn btn-sm btn-primary" type="submit">{{ _("Filtrar") }}</button>
                 {% if selected_campaign is not none or selected_plot_id is not none or selected_plant_id is not none %}
                 <a href="/truffles/" class="btn btn-sm btn-outline-secondary">
@@ -88,7 +93,6 @@
                         <th>{{ _("Planta") }}</th>
                         <th>{{ _("Estado") }}</th>
                         <th>{{ _("Origen") }}</th>
-                        <th>{{ _("Propietario") }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -105,11 +109,10 @@
                             {% endif %}
                         </td>
                         <td><span class="badge text-bg-secondary">{{ e.source }}</span></td>
-                        <td>{{ e.user.username if e.user else e.user_id }}</td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="6" class="text-center py-4 text-muted">{{ _("Sin eventos para los filtros seleccionados") }}</td>
+                        <td colspan="5" class="text-center py-4 text-muted">{{ _("Sin eventos para los filtros seleccionados") }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>

@@ -42,6 +42,10 @@ def test_plots_list_renders(monkeypatch) -> None:
             ]
         ),
     )
+    monkeypatch.setattr(
+        "app.routers.plots.get_plant_counts_by_plot",
+        AsyncMock(return_value={10: 20}),
+    )
     app.dependency_overrides[require_user] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:

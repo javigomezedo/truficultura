@@ -9,6 +9,8 @@ Truficultura permite registrar y analizar la actividad económica de una explota
 ### Qué resuelve
 
 - Gestión de parcelas (bancales) con identificación cadastral y número de plantas.
+- Configuración de mapas de plantas por parcela (filas/columnas, huecos y etiquetas tipo A1, C2, AA10).
+- Registro de trufas por planta (manual o por QR), con histórico y filtros por campaña/parcela/planta.
 - Registro de gastos (con o sin parcela asignada).
 - Registro de ingresos por fecha, categoría, kg y precio por kg.
 - Registro de riegos por parcela con volumen de agua y notas.
@@ -147,6 +149,36 @@ Relaciones:
 - 1:N con `Expense`
 - 1:N con `Income`
 - 1:N con `IrrigationRecord`
+- 1:N con `Plant`
+
+### Planta (Plant)
+
+Campos relevantes:
+
+- `plot_id`: parcela a la que pertenece
+- `label`: etiqueta legible (`A1`, `B3`, `AA12`)
+- `row_label`: etiqueta de fila (`A`, `B`, `AA`)
+- `row_order`: orden interno de fila (0-index)
+- `col_order`: orden interno de columna (0-index)
+- `visual_col`: columna visual en el mapa (1-index, soporta filas no uniformes)
+- `user_id`: usuario propietario del dato
+
+Relaciones:
+
+- N:1 con `Plot`
+- 1:N con `TruffleEvent`
+
+### Evento de trufa (TruffleEvent)
+
+Campos relevantes:
+
+- `plant_id`: planta donde se registra la trufa
+- `plot_id`: parcela denormalizada para filtrado rápido
+- `source`: origen del registro (`manual` o `qr`)
+- `created_at`: fecha/hora del registro
+- `undo_window_expires_at`: límite temporal para deshacer
+- `undone_at`: marca de deshecho (si aplica)
+- `user_id`: usuario propietario del dato
 
 ### Gasto (Expense)
 
@@ -190,6 +222,10 @@ Campos relevantes:
 - `/expenses/` CRUD de gastos + filtros por campaña.
 - `/incomes/` CRUD de ingresos + filtros por campaña.
 - `/irrigation/` CRUD de registros de riego + filtros por parcela y año.
+- `/plots/{id}/map` mapa visual por planta con conteos por campaña y alta rápida (+1).
+- `/plots/{id}/map/configure` configuración de geometría del mapa de plantas por parcela.
+- `/truffles/` listado cronológico de eventos de trufa con filtros por campaña, parcela y planta.
+- `/scan/{token}` alta de trufa por escaneo QR de planta.
 - `/reports/` Informe de rentabilidad detallado.
 - `/charts/` Análisis visual (semanal y comparativa ingresos vs gastos).
 - `/import/` Importación masiva desde CSV (parcelas, gastos, ingresos, riego).
@@ -375,6 +411,36 @@ Nota: Se usa `5434` para evitar conflicto con PostgreSQL local (`5432`) y con `d
 ---
 
 ## 4. Modo debug, importaciones y operaciones frecuentes
+
+## Datos de prueba para mapa y trufas por planta
+
+Para poblar la base de datos con datos realistas (múltiples campañas, parcelas, plantas y eventos de trufa), se incluye:
+
+- `scripts/seed_truffle_demo_data.py`
+
+Ejemplo recomendado:
+
+```bash
+.venv/bin/python scripts/seed_truffle_demo_data.py \
+  --plots 3 \
+  --start-campaign 2021 \
+  --end-campaign 2026 \
+  --events-min 20 \
+  --events-max 60 \
+  --seed 123
+```
+
+Parámetros más útiles:
+
+- `--user-id`: usuario destino (si no se indica, usa el primer usuario de la BD)
+- `--plots`: número de parcelas demo a crear
+- `--start-campaign` / `--end-campaign`: rango de campañas (año de inicio)
+- `--events-min` / `--events-max`: eventos de trufa por parcela y campaña
+- `--rows-min` / `--rows-max`: tamaño del mapa por filas
+- `--cols-min` / `--cols-max`: amplitud potencial de columnas por fila
+- `--seed`: semilla para resultados reproducibles
+
+El script crea parcelas nuevas con mapas de plantas no uniformes y eventos de trufa por planta (incluyendo algunos deshechos) para validar filtros y reportes.
 
 ## Modo desarrollo/debug
 

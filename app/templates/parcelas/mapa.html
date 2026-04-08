@@ -54,37 +54,42 @@
     {% else %}
     <div class="card tf-panel border-0 shadow-sm">
         <div class="card-body p-3">
+            <div class="overflow-x-auto pb-1">
             {% for row in rows %}
-            <div class="d-flex align-items-start mb-2 flex-wrap" style="gap: 8px;">
-                <span class="badge bg-dark-subtle text-dark-emphasis" style="min-width: 48px;">{{ row.row_label }}</span>
+            <div class="d-flex align-items-start mb-2 flex-nowrap" style="gap: 8px; width: max-content;">
+                <span class="badge bg-dark-subtle text-dark-emphasis flex-shrink-0"
+                      style="position: sticky; left: 0; z-index: 2; min-width: 48px; box-shadow: 6px 0 8px -8px rgba(0,0,0,.4);">{{ row.row_label }}</span>
                 {% for cell in row.cells %}
-                {% set display_count = cell.campaign_count if selected_campaign is not none else cell.total_count %}
-                <div class="border rounded-3 p-2 {% if display_count == 0 %}bg-warning-subtle{% else %}bg-light{% endif %}" style="min-width: 116px;">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <strong>{{ cell.plant.label }}</strong>
-                        <span class="badge {% if display_count == 0 %}text-bg-warning{% else %}text-bg-success{% endif %}">
-                            {{ display_count }}
-                        </span>
+                {% if cell.plant %}
+                    {% set display_count = cell.campaign_count if selected_campaign is not none else cell.total_count %}
+                    <div class="tf-map-cell tf-map-cell-plant border rounded-3 p-2 flex-shrink-0 {% if display_count == 0 %}bg-warning-subtle{% else %}bg-light{% endif %}">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <strong>{{ cell.plant.label }}</strong>
+                            <a href="/truffles/?{% if selected_campaign is not none %}camp={{ selected_campaign }}&{% endif %}plot_id={{ plot.id }}&plant_id={{ cell.plant.id }}"
+                               class="text-decoration-none">
+                                <span class="badge tf-plant-count-badge {% if display_count == 0 %}text-bg-warning{% else %}text-bg-success{% endif %}">
+                                    {{ display_count }}
+                                </span>
+                            </a>
+                        </div>
+                        <div class="tf-map-cell-actions mt-2 d-flex gap-1">
+                            <form method="post" action="/plots/{{ plot.id }}/plants/{{ cell.plant.id }}/add">
+                                {% if selected_campaign is not none %}
+                                <input type="hidden" name="campaign" value="{{ selected_campaign }}">
+                                {% endif %}
+                                <button class="btn btn-success tf-map-add-btn" type="submit">+1</button>
+                            </form>
+                        </div>
                     </div>
-                    <div class="small text-muted">
-                        {% if selected_campaign is not none %}
-                        {{ _("Campaña") }}: <strong>{{ cell.campaign_count }}</strong>
-                        {% else %}
-                        {{ _("Total") }}: <strong>{{ cell.total_count }}</strong>
-                        {% endif %}
+                {% else %}
+                    <div class="tf-map-cell tf-map-cell-hole border rounded-3 p-2 flex-shrink-0 bg-body-secondary text-secondary d-flex align-items-center justify-content-center">
+                        <small>{{ _("Hueco") }}</small>
                     </div>
-                    <div class="mt-2 d-flex gap-1">
-                        <form method="post" action="/plots/{{ plot.id }}/plants/{{ cell.plant.id }}/add">
-                            {% if selected_campaign is not none %}
-                            <input type="hidden" name="campaign" value="{{ selected_campaign }}">
-                            {% endif %}
-                            <button class="btn btn-sm btn-success" type="submit">+1</button>
-                        </form>
-                    </div>
-                </div>
+                {% endif %}
                 {% endfor %}
             </div>
             {% endfor %}
+            </div>
         </div>
     </div>
     {% endif %}

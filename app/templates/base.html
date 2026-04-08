@@ -126,17 +126,32 @@
                 </ul>
                 <div class="d-flex align-items-center gap-2 ms-lg-3 tf-navbar-meta">
                     <div class="tf-theme-switcher">
-                        <span class="tf-theme-switcher-label">{{ _("Estilo") }}</span>
-                        <div class="tf-theme-buttons" role="group" aria-label="{{ _('Cambiar estilo visual') }}">
-                            <button type="button" class="btn tf-theme-button" data-theme-button="terracota-editorial" title="{{ _('Terracota Editorial') }}" aria-label="{{ _('Terracota Editorial') }}">
-                                <span class="tf-theme-dot tf-theme-dot-terracota"></span>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-light btn-sm dropdown-toggle tf-theme-toggle-icon"
+                                    type="button"
+                                    data-bs-toggle="dropdown"
+                                    aria-expanded="false"
+                                    aria-label="{{ _('Cambiar estilo visual') }}"
+                                    title="{{ _('Cambiar estilo visual') }}">
+                                <i class="bi bi-palette-fill"></i>
                             </button>
-                            <button type="button" class="btn tf-theme-button" data-theme-button="piedra-y-olivo" title="{{ _('Piedra y Olivo') }}" aria-label="{{ _('Piedra y Olivo') }}">
-                                <span class="tf-theme-dot tf-theme-dot-piedra"></span>
-                            </button>
-                            <button type="button" class="btn tf-theme-button" data-theme-button="bodega-tecnica" title="{{ _('Bodega Técnica') }}" aria-label="{{ _('Bodega Técnica') }}">
-                                <span class="tf-theme-dot tf-theme-dot-bodega"></span>
-                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <button type="button" class="dropdown-item tf-theme-menu-item" data-theme-button="terracota-editorial" aria-label="{{ _('Terracota Editorial') }}">
+                                        <span class="tf-theme-dot tf-theme-dot-terracota me-2"></span>{{ _("Terracota Editorial") }}
+                                    </button>
+                                </li>
+                                <li>
+                                    <button type="button" class="dropdown-item tf-theme-menu-item" data-theme-button="piedra-y-olivo" aria-label="{{ _('Piedra y Olivo') }}">
+                                        <span class="tf-theme-dot tf-theme-dot-piedra me-2"></span>{{ _("Piedra y Olivo") }}
+                                    </button>
+                                </li>
+                                <li>
+                                    <button type="button" class="dropdown-item tf-theme-menu-item" data-theme-button="bodega-tecnica" aria-label="{{ _('Bodega Técnica') }}">
+                                        <span class="tf-theme-dot tf-theme-dot-bodega me-2"></span>{{ _("Bodega Técnica") }}
+                                    </button>
+                                </li>
+                            </ul>
                         </div>
                     </div>
                 {% if request.session.get("username") %}

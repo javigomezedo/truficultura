@@ -80,7 +80,6 @@ a:hover {
 
 .tf-shell {
     position: relative;
-    z-index: 1;
 }
 
 .tf-navbar {
@@ -242,6 +241,14 @@ a:hover {
 
 .tf-panel {
     overflow: hidden;
+}
+
+.tf-panel-overflow-visible {
+    overflow: visible;
+}
+
+.tf-table-responsive-overflow-visible {
+    overflow: visible;
 }
 
 .tf-panel-header {
@@ -579,6 +586,31 @@ a:hover {
     gap: 0.6rem;
 }
 
+.tf-theme-switcher .dropdown-toggle {
+    white-space: nowrap;
+}
+
+.tf-theme-toggle-icon {
+    width: 2rem;
+    min-width: 2rem;
+    height: 2rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tf-theme-menu-item {
+    display: inline-flex;
+    align-items: center;
+    width: 100%;
+}
+
+.tf-theme-menu-item.is-active {
+    font-weight: 700;
+    background: rgba(86, 107, 47, 0.12);
+}
+
 .tf-theme-buttons {
     display: inline-flex;
     align-items: center;
@@ -749,6 +781,39 @@ a:hover {
 .tf-total-readonly {
     background: var(--tf-surface-muted);
     color: var(--tf-success) !important;
+}
+
+.tf-plant-count-badge {
+    min-width: 2.2rem;
+    font-size: 1rem;
+    line-height: 1.1;
+    font-weight: 800;
+    text-align: center;
+}
+
+.tf-map-cell {
+    width: 112px;
+    height: 112px;
+}
+
+.tf-map-cell-plant {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.tf-map-cell-hole {
+    opacity: 0.6;
+}
+
+.tf-map-cell-actions {
+    justify-content: center;
+}
+
+.tf-map-add-btn {
+    font-size: 0.75rem;
+    line-height: 1;
+    padding: 0.3rem 0.5rem;
 }
 
 .tf-chart-container,

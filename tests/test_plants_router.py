@@ -72,10 +72,70 @@ def test_configure_map_submit_redirects_on_invalid_format(monkeypatch) -> None:
         app.dependency_overrides.clear()
 
     assert response.status_code == 303
-    assert "Formato+incorrecto" in response.headers["location"]
+    assert "formato+nuevo" in response.headers["location"]
 
 
 def test_configure_map_submit_calls_service(monkeypatch) -> None:
+    db = _db()
+    plot = _plot()
+    monkeypatch.setattr("app.routers.plants.get_plot", AsyncMock(return_value=plot))
+    configure_mock = AsyncMock(return_value=[])
+    monkeypatch.setattr(
+        "app.routers.plants.plants_service.configure_plot_map",
+        configure_mock,
+    )
+
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = lambda: db
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/plots/10/map/configure",
+            data={"row_config": "A:1-4; B:1-5; C:1-3"},
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert "Mapa+configurado+correctamente" in response.headers["location"]
+    assert configure_mock.await_args.kwargs["row_columns"] == [
+        [1, 2, 3, 4],
+        [1, 2, 3, 4, 5],
+        [1, 2, 3],
+    ]
+
+
+def test_configure_map_submit_accepts_sparse_format(monkeypatch) -> None:
+    db = _db()
+    plot = _plot()
+    monkeypatch.setattr("app.routers.plants.get_plot", AsyncMock(return_value=plot))
+    configure_mock = AsyncMock(return_value=[])
+    monkeypatch.setattr(
+        "app.routers.plants.plants_service.configure_plot_map",
+        configure_mock,
+    )
+
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = lambda: db
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/plots/10/map/configure",
+            data={"row_config": "A:2-5,8; B:1,3,4"},
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert configure_mock.await_args.kwargs["row_columns"] == [
+        [2, 3, 4, 5, 8],
+        [1, 3, 4],
+    ]
+
+
+def test_configure_map_submit_rejects_legacy_format(monkeypatch) -> None:
     db = _db()
     plot = _plot()
     monkeypatch.setattr("app.routers.plants.get_plot", AsyncMock(return_value=plot))
@@ -98,8 +158,8 @@ def test_configure_map_submit_calls_service(monkeypatch) -> None:
         app.dependency_overrides.clear()
 
     assert response.status_code == 303
-    assert "Mapa+configurado+correctamente" in response.headers["location"]
-    assert configure_mock.await_args.kwargs["row_counts"] == [4, 5, 3]
+    assert "formato+nuevo" in response.headers["location"]
+    configure_mock.assert_not_called()
 
 
 def test_add_truffle_event_redirects_with_campaign(monkeypatch) -> None:
@@ -161,6 +221,10 @@ def test_list_truffle_events_renders(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.routers.plants.list_plots", AsyncMock(return_value=[_plot()])
     )
+    monkeypatch.setattr(
+        "app.routers.plants.plants_service.list_plants",
+        AsyncMock(return_value=[SimpleNamespace(id=3, label="A1")]),
+    )
     list_events_mock = AsyncMock(
         side_effect=[
             [
@@ -211,6 +275,7 @@ def test_list_truffle_events_renders(monkeypatch) -> None:
     assert response.status_code == 200
     assert "Eventos de trufas" in response.text
     assert 'name="camp"' in response.text
+    assert 'name="plant_id"' in response.text
     assert 'onchange="this.form.submit()"' in response.text
 
 

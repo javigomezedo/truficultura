@@ -12,6 +12,7 @@ from app.models.user import User
 from app.services.plots_service import (
     create_plot as create_plot_service,
     delete_plot as delete_plot_service,
+    get_plant_counts_by_plot,
     get_plot,
     list_plots as list_plots_service,
     update_plot as update_plot_service,
@@ -29,10 +30,11 @@ async def list_plots(
     msg: Optional[str] = None,
 ):
     plots = await list_plots_service(db, current_user.id)
+    plant_counts = await get_plant_counts_by_plot(db, current_user.id)
     return templates.TemplateResponse(
         request,
         "parcelas/list.html",
-        {"request": request, "plots": plots, "msg": msg},
+        {"request": request, "plots": plots, "plant_counts": plant_counts, "msg": msg},
     )
 
 

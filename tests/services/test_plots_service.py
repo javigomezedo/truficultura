@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -9,6 +10,7 @@ from app.models.plot import Plot
 from app.services.plots_service import (
     create_plot,
     delete_plot,
+    get_plant_counts_by_plot,
     get_plot,
     list_plots,
     update_plot,
@@ -91,3 +93,27 @@ async def test_create_update_delete_plot() -> None:
 
     await delete_plot(db, created)
     db.delete.assert_awaited_once_with(created)
+
+
+@pytest.mark.asyncio
+async def test_get_plant_counts_by_plot() -> None:
+    rows = [
+        SimpleNamespace(plot_id=1, cnt=5),
+        SimpleNamespace(plot_id=2, cnt=12),
+    ]
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result(rows))
+
+    counts = await get_plant_counts_by_plot(db, user_id=1)
+
+    assert counts == {1: 5, 2: 12}
+
+
+@pytest.mark.asyncio
+async def test_get_plant_counts_by_plot_empty() -> None:
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+
+    counts = await get_plant_counts_by_plot(db, user_id=99)
+
+    assert counts == {}

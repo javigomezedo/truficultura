@@ -11,13 +11,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.plant import Plant
 from app.models.plot import Plot
 from app.models.truffle_event import TruffleEvent
-from app.services.plots_service import _recalculate_percentages
-from app.utils import generate_plant_labels, row_label_from_index
+from app.utils import row_label_from_index
 
 
 @dataclass
 class PlantCell:
-    plant: Plant
+    plant: Optional[Plant]
+    visual_col: int
     campaign_count: int
     total_count: int
 
@@ -66,12 +66,12 @@ async def configure_plot_map(
     plot: Plot,
     *,
     user_id: int,
-    row_counts: list[int],
+    row_columns: list[list[int]],
 ) -> list[Plant]:
     """Replace the plant layout of a plot.
 
     Raises ValueError if active truffle events already exist (data protection).
-    Updates plot.num_plants once the new layout is saved.
+    Does NOT modify plot.num_plants — that field is managed via the plot form only.
     """
     if await has_active_truffle_events(db, plot.id, user_id):
         raise ValueError(
@@ -84,25 +84,23 @@ async def configure_plot_map(
     )
     await db.flush()
 
-    grid = generate_plant_labels(row_counts)
     plants: list[Plant] = []
-    for row_idx, labels in enumerate(grid):
+    for row_idx, columns in enumerate(row_columns):
         row_label = row_label_from_index(row_idx)
-        for col_idx, label in enumerate(labels):
+        for visual_col in sorted(set(columns)):
             p = Plant(
                 plot_id=plot.id,
                 user_id=user_id,
-                label=label,
+                label=f"{row_label}{visual_col}",
                 row_label=row_label,
                 row_order=row_idx,
-                col_order=col_idx,
+                col_order=visual_col - 1,
+                visual_col=visual_col,
             )
             db.add(p)
             plants.append(p)
 
-    plot.num_plants = sum(row_counts)
     await db.flush()
-    await _recalculate_percentages(db, user_id)
     return plants
 
 
@@ -171,17 +169,45 @@ async def get_plot_map_context(
         campaign_by_plant = {row.plant_id: row.cnt for row in campaign_res.all()}
 
     rows: list[MapRow] = []
-    current_row: Optional[MapRow] = None
+    by_row: dict[int, list[Plant]] = {}
     for plant in all_plants:
-        if current_row is None or current_row.row_order != plant.row_order:
-            current_row = MapRow(row_label=plant.row_label, row_order=plant.row_order)
-            rows.append(current_row)
-        current_row.cells.append(
-            PlantCell(
-                plant=plant,
-                campaign_count=campaign_by_plant.get(plant.id, 0),
-                total_count=total_by_plant.get(plant.id, 0),
+        by_row.setdefault(plant.row_order, []).append(plant)
+
+    for row_order in sorted(by_row):
+        row_plants = sorted(by_row[row_order], key=lambda p: p.col_order)
+        row = MapRow(row_label=row_plants[0].row_label, row_order=row_order)
+        by_visual_col = {
+            (
+                p.visual_col
+                if getattr(p, "visual_col", None) is not None
+                else p.col_order + 1
+            ): p
+            for p in row_plants
+        }
+        max_col = max(by_visual_col)
+
+        for visual_col in range(1, max_col + 1):
+            plant = by_visual_col.get(visual_col)
+            if plant is None:
+                row.cells.append(
+                    PlantCell(
+                        plant=None,
+                        visual_col=visual_col,
+                        campaign_count=0,
+                        total_count=0,
+                    )
+                )
+                continue
+
+            row.cells.append(
+                PlantCell(
+                    plant=plant,
+                    visual_col=visual_col,
+                    campaign_count=campaign_by_plant.get(plant.id, 0),
+                    total_count=total_by_plant.get(plant.id, 0),
+                )
             )
-        )
+
+        rows.append(row)
 
     return {"rows": rows, "selected_campaign": selected_campaign, "has_plants": True}

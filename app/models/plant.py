@@ -30,16 +30,24 @@ class Plant(Base):
     # 0-indexed stable positions for ordering and rendering
     row_order: Mapped[int] = mapped_column(Integer, nullable=False)
     col_order: Mapped[int] = mapped_column(Integer, nullable=False)
+    # 1-indexed visual column in the field layout (supports sparse rows and offsets)
+    visual_col: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 
     __table_args__ = (
         UniqueConstraint("plot_id", "label", name="uq_plant_label_per_plot"),
-        UniqueConstraint("plot_id", "row_order", "col_order", name="uq_plant_position_per_plot"),
+        UniqueConstraint(
+            "plot_id", "row_order", "col_order", name="uq_plant_position_per_plot"
+        ),
         Index("ix_plant_user_plot", "user_id", "plot_id"),
+        Index("ix_plant_user_plot_visual", "user_id", "plot_id", "visual_col"),
     )
 
     # Relationships
     plot: Mapped["Plot"] = relationship("Plot", back_populates="plants")
     user: Mapped["User"] = relationship("User")
     truffle_events: Mapped[List["TruffleEvent"]] = relationship(
-        "TruffleEvent", back_populates="plant", lazy="select", cascade="all, delete-orphan"
+        "TruffleEvent",
+        back_populates="plant",
+        lazy="select",
+        cascade="all, delete-orphan",
     )

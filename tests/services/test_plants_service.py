@@ -138,20 +138,22 @@ async def test_configure_plot_map_creates_correct_plants() -> None:
         side_effect=[
             result([]),  # has_active_truffle_events → no events
             result([]),  # delete(Plant)
-            result([plot]),  # _recalculate_percentages fetch plots
         ]
     )
     db.flush = AsyncMock()
     db.add = MagicMock()
 
-    plants = await configure_plot_map(db, plot, user_id=1, row_counts=[2, 3])
+    plants = await configure_plot_map(
+        db, plot, user_id=1, row_columns=[[1, 2], [1, 2, 3]]
+    )
 
     assert len(plants) == 5
     assert plants[0].label == "A1"
     assert plants[1].label == "A2"
     assert plants[2].label == "B1"
     assert plants[4].label == "B3"
-    assert plot.num_plants == 5
+    assert plants[0].visual_col == 1
+    assert plants[4].visual_col == 3
 
 
 @pytest.mark.asyncio
@@ -169,7 +171,7 @@ async def test_configure_plot_map_raises_when_events_exist() -> None:
     db.execute = AsyncMock(return_value=result([99]))  # event id → blocked
 
     with pytest.raises(ValueError, match="existen registros de trufas activos"):
-        await configure_plot_map(db, plot, user_id=1, row_counts=[3])
+        await configure_plot_map(db, plot, user_id=1, row_columns=[[1, 2, 3]])
 
 
 @pytest.mark.asyncio
@@ -188,13 +190,14 @@ async def test_configure_plot_map_generates_excel_labels_after_z() -> None:
         side_effect=[
             result([]),  # has_active_truffle_events -> no events
             result([]),  # delete(Plant)
-            result([plot]),  # _recalculate_percentages fetch plots
         ]
     )
     db.flush = AsyncMock()
     db.add = MagicMock()
 
-    plants = await configure_plot_map(db, plot, user_id=1, row_counts=[1] * 28)
+    plants = await configure_plot_map(
+        db, plot, user_id=1, row_columns=[[1] for _ in range(28)]
+    )
 
     labels = [p.label for p in plants]
     assert labels[0] == "A1"
@@ -224,13 +227,34 @@ async def test_get_plot_map_context_no_plants() -> None:
 @pytest.mark.asyncio
 async def test_get_plot_map_context_builds_rows_with_counts() -> None:
     plant_a1 = Plant(
-        id=1, plot_id=10, user_id=1, label="A1", row_label="A", row_order=0, col_order=0
+        id=1,
+        plot_id=10,
+        user_id=1,
+        label="A1",
+        row_label="A",
+        row_order=0,
+        col_order=0,
+        visual_col=1,
     )
-    plant_a2 = Plant(
-        id=2, plot_id=10, user_id=1, label="A2", row_label="A", row_order=0, col_order=1
+    plant_a3 = Plant(
+        id=2,
+        plot_id=10,
+        user_id=1,
+        label="A3",
+        row_label="A",
+        row_order=0,
+        col_order=2,
+        visual_col=3,
     )
     plant_b1 = Plant(
-        id=3, plot_id=10, user_id=1, label="B1", row_label="B", row_order=1, col_order=0
+        id=3,
+        plot_id=10,
+        user_id=1,
+        label="B1",
+        row_label="B",
+        row_order=1,
+        col_order=0,
+        visual_col=1,
     )
 
     total_rows = [
@@ -244,7 +268,7 @@ async def test_get_plot_map_context_builds_rows_with_counts() -> None:
     db = MagicMock()
     db.execute = AsyncMock(
         side_effect=[
-            result([plant_a1, plant_a2, plant_b1]),  # plants
+            result([plant_a1, plant_a3, plant_b1]),  # plants
             result(total_rows),  # total counts
             result(campaign_rows),  # campaign counts
         ]
@@ -261,11 +285,12 @@ async def test_get_plot_map_context_builds_rows_with_counts() -> None:
     rows: list[MapRow] = ctx["rows"]
     assert len(rows) == 2
     assert rows[0].row_label == "A"
-    assert len(rows[0].cells) == 2
+    assert len(rows[0].cells) == 3
     assert rows[0].cells[0].campaign_count == 3
     assert rows[0].cells[0].total_count == 10
-    assert rows[0].cells[1].campaign_count == 0  # no campaign events for A2
-    assert rows[0].cells[1].total_count == 0
+    assert rows[0].cells[1].plant is None
+    assert rows[0].cells[2].campaign_count == 0  # no campaign events for A3
+    assert rows[0].cells[2].total_count == 0
     assert rows[1].row_label == "B"
     assert rows[1].cells[0].total_count == 5
 
