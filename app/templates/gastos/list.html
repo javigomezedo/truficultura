@@ -159,31 +159,41 @@
                             </td>
                             <td class="text-end fw-semibold text-danger">{{ "%.2f"|format(g.amount) }} &euro;</td>
                             <td class="text-center">
-                                <div class="btn-group btn-group-sm" role="group">
-                                    {% if g.receipt_filename %}
-                                    <a href="/expenses/{{ g.id }}/receipt/download"
-                                       class="btn btn-outline-success"
-                                       title="{{ _('Ver recibo') }}"
-                                       target="_blank"
-                                       rel="noopener"
-                                       data-bs-toggle="tooltip">
-                                        <i class="bi bi-file-pdf-fill"></i>
-                                    </a>
-                                    {% endif %}
-                                    <a href="/expenses/{{ g.id }}/edit"
-                                       class="btn btn-outline-primary" title="{{ _('Editar') }}">
-                                        <i class="bi bi-pencil-fill"></i>
-                                    </a>
-                                    <form action="/expenses/{{ g.id }}/delete"
-                                          method="post"
-                                          class="d-inline"
-                                          onsubmit="return confirmDelete(this)">
-                                        <button type="submit"
-                                                class="btn btn-outline-danger"
-                                                title="{{ _('Eliminar') }}">
-                                            <i class="bi bi-trash-fill"></i>
-                                        </button>
-                                    </form>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary px-2 py-0"
+                                            type="button"
+                                            data-bs-toggle="dropdown"
+                                            aria-expanded="false"
+                                            title="{{ _('Acciones') }}">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                        {% if g.receipt_filename %}
+                                        <li>
+                                            <a href="/expenses/{{ g.id }}/receipt/download"
+                                               class="dropdown-item"
+                                               target="_blank"
+                                               rel="noopener">
+                                                <i class="bi bi-file-pdf-fill me-2 text-success"></i>{{ _('Ver recibo') }}
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                        <li>
+                                            <a href="/expenses/{{ g.id }}/edit" class="dropdown-item">
+                                                <i class="bi bi-pencil-fill me-2 text-primary"></i>{{ _('Editar') }}
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <form action="/expenses/{{ g.id }}/delete"
+                                                  method="post"
+                                                  onsubmit="return confirmDelete(this)">
+                                                <button type="submit" class="dropdown-item text-danger">
+                                                    <i class="bi bi-trash-fill me-2"></i>{{ _('Eliminar') }}
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
                                 </div>
                             </td>
                         </tr>

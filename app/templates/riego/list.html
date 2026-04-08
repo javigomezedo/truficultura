@@ -152,18 +152,32 @@
                                 {% endif %}
                             </td>
                             <td class="text-end text-nowrap">
-                                <a href="/irrigation/{{ r.id }}/edit"
-                                   class="btn btn-sm btn-outline-primary me-1">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                                <form action="/irrigation/{{ r.id }}/delete"
-                                      method="post"
-                                      class="d-inline"
-                                      onsubmit="return confirm('{{ _('¿Eliminar este registro de riego?') }}')">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                                        <i class="bi bi-trash"></i>
+                                <div class="dropdown d-inline-block">
+                                    <button class="btn btn-sm btn-outline-secondary px-2 py-0"
+                                            type="button"
+                                            data-bs-toggle="dropdown"
+                                            aria-expanded="false"
+                                            title="{{ _('Acciones') }}">
+                                        <i class="bi bi-three-dots-vertical"></i>
                                     </button>
-                                </form>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                        <li>
+                                            <a href="/irrigation/{{ r.id }}/edit" class="dropdown-item">
+                                                <i class="bi bi-pencil-fill me-2 text-primary"></i>{{ _('Editar') }}
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <form action="/irrigation/{{ r.id }}/delete"
+                                                  method="post"
+                                                  onsubmit="return confirm('{{ _('¿Eliminar este registro de riego?') }}')">
+                                                <button type="submit" class="dropdown-item text-danger">
+                                                    <i class="bi bi-trash-fill me-2"></i>{{ _('Eliminar') }}
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}

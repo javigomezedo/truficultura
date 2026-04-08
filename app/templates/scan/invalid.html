@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("QR inválido") }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="alert alert-danger">
+        <h4 class="alert-heading">{{ _("QR inválido o caducado") }}</h4>
+        <p class="mb-0">{{ _("No hemos podido validar este código QR.") }}</p>
+    </div>
+</div>
+{% endblock %}

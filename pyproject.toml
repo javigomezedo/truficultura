@@ -19,6 +19,8 @@ dependencies = [
     "babel>=2.18.0",
     "passlib[argon2]>=1.7.4",
     "itsdangerous>=2.1.0",
+    "qrcode[pil]>=8.2",
+    "fpdf2>=2.8.7",
 ]
 
 [build-system]

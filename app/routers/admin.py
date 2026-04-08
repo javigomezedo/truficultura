@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import select
@@ -14,7 +15,7 @@ from app.models.user import User
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 # Email validation pattern
-EMAIL_PATTERN = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+EMAIL_PATTERN = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
 
 
 def is_valid_email(email: str) -> bool:
@@ -45,7 +46,8 @@ async def create_user_page(
 ):
     return templates.TemplateResponse(
         request,
-        "admin/user_create.html", {"request": request, "current_user": current_user}
+        "admin/user_create.html",
+        {"request": request, "current_user": current_user},
     )
 
 

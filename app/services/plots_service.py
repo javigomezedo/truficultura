@@ -3,9 +3,10 @@ from __future__ import annotations
 import datetime
 from typing import Optional
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.plant import Plant
 from app.models.plot import Plot
 
 
@@ -14,6 +15,16 @@ async def list_plots(db: AsyncSession, user_id: int) -> list[Plot]:
         select(Plot).where(Plot.user_id == user_id).order_by(Plot.name)
     )
     return result.scalars().all()
+
+
+async def get_plant_counts_by_plot(db: AsyncSession, user_id: int) -> dict[int, int]:
+    """Return a mapping of plot_id → number of Plant rows currently in the DB."""
+    res = await db.execute(
+        select(Plant.plot_id, func.count(Plant.id).label("cnt"))
+        .where(Plant.user_id == user_id)
+        .group_by(Plant.plot_id)
+    )
+    return {row.plot_id: row.cnt for row in res.all()}
 
 
 async def get_plot(db: AsyncSession, plot_id: int, user_id: int) -> Optional[Plot]:

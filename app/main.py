@@ -11,7 +11,8 @@ from app.config import settings
 from app.database import engine, get_db
 from app.i18n import get_locale, load_translations
 from app.jinja import templates
-from app.models import User, Plot, Expense, Income, IrrigationRecord  # noqa: F401 - ensure models are registered
+import app.models  # noqa: F401 - ensure models are registered
+from app.models.user import User
 from app.routers import (
     admin,
     auth,
@@ -21,8 +22,10 @@ from app.routers import (
     imports,
     incomes,
     irrigation,
+    plants,
     plots,
     reports,
+    scan,
 )
 from app.services.dashboard_service import build_dashboard_context
 
@@ -58,6 +61,8 @@ imports.templates = templates
 auth.templates = templates
 irrigation.templates = templates
 exports.templates = templates
+plants.templates = templates
+scan.templates = templates
 
 # Include routers
 app.include_router(auth.router)
@@ -70,6 +75,8 @@ app.include_router(charts.router)
 app.include_router(imports.router)
 app.include_router(irrigation.router)
 app.include_router(exports.router)
+app.include_router(plants.router)
+app.include_router(scan.router)
 
 
 @app.get("/health")

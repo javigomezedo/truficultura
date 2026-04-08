@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import re
-from fastapi import APIRouter, Depends, Form, Request
+from typing import Optional
+
+from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,7 +19,7 @@ from app.models.user import User
 router = APIRouter(tags=["auth"])
 
 # Email validation pattern
-EMAIL_PATTERN = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+EMAIL_PATTERN = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
 
 
 def is_valid_email(email: str) -> bool:
@@ -30,13 +32,30 @@ async def _user_count(db: AsyncSession) -> int:
     return result.scalar_one()
 
 
+def _safe_next(next_url: Optional[str]) -> str:
+    """Return next_url only when it is a safe relative path."""
+    if next_url and next_url.startswith("/") and not next_url.startswith("//"):
+        return next_url
+    return "/"
+
+
 @router.get("/login", response_class=HTMLResponse)
-async def login_page(request: Request):
+async def login_page(
+    request: Request,
+    next: Optional[str] = Query(default=None),
+):
     if request.session.get("user_id"):
-        return RedirectResponse("/", status_code=303)
+        return RedirectResponse(_safe_next(next), status_code=303)
+
+    next_url = next
+    pending_scan = request.session.get("pending_scan")
+    if not next_url and pending_scan:
+        next_url = f"/scan/{pending_scan}"
+
     return templates.TemplateResponse(
         request,
-        "auth/login.html", {"request": request, "error": None}
+        "auth/login.html",
+        {"request": request, "error": None, "next_url": next_url or ""},
     )
 
 
@@ -45,6 +64,7 @@ async def login_post(
     request: Request,
     username: str = Form(...),
     password: str = Form(...),
+    next_url: str = Form(default=""),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(User).where(User.username == username))
@@ -70,7 +90,16 @@ async def login_post(
         request.session["first_name"] = user.first_name
         request.session["last_name"] = user.last_name
         request.session["email"] = user.email
-        return RedirectResponse("/", status_code=303)
+
+        if not next_url:
+            pending_scan = request.session.get("pending_scan")
+            if pending_scan:
+                next_url = f"/scan/{pending_scan}"
+
+        redirect_to = _safe_next(next_url) if next_url else "/"
+        if redirect_to.startswith("/scan/"):
+            request.session.pop("pending_scan", None)
+        return RedirectResponse(redirect_to, status_code=303)
 
     # Either user doesn't exist or password is wrong
     return templates.TemplateResponse(
@@ -86,8 +115,7 @@ async def register_page(request: Request):
     if request.session.get("user_id"):
         return RedirectResponse("/", status_code=303)
     return templates.TemplateResponse(
-        request,
-        "auth/register.html", {"request": request, "error": None}
+        request, "auth/register.html", {"request": request, "error": None}
     )
 
 

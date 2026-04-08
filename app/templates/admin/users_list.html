@@ -24,8 +24,8 @@
     </div>
     {% endif %}
 
-    <div class="card tf-panel border-0">
-        <div class="table-responsive">
+    <div class="card tf-panel tf-panel-overflow-visible border-0">
+        <div class="table-responsive tf-table-responsive-overflow-visible">
             <table class="table table-hover mb-0">
                 <thead class="table-secondary">
                     <tr>
@@ -73,24 +73,41 @@
                             </small>
                         </td>
                         <td>
-                            <div class="btn-group btn-group-sm" role="group">
-                                <a href="/admin/users/{{ user.id }}/edit" class="btn btn-outline-primary">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                                {% if user.is_active %}
-                                <form method="post" action="/admin/users/{{ user.id }}/deactivate" class="d-inline">
-                                    <button type="submit" class="btn btn-outline-warning"
-                                            {% if user.id == current_user.id %}disabled{% endif %}>
-                                        <i class="bi bi-lock"></i>
-                                    </button>
-                                </form>
-                                {% else %}
-                                <form method="post" action="/admin/users/{{ user.id }}/activate" class="d-inline">
-                                    <button type="submit" class="btn btn-outline-success">
-                                        <i class="bi bi-unlock"></i>
-                                    </button>
-                                </form>
-                                {% endif %}
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary px-2 py-0"
+                                        type="button"
+                                        data-bs-toggle="dropdown"
+                                        aria-expanded="false"
+                                        title="Acciones">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                    <li>
+                                        <a href="/admin/users/{{ user.id }}/edit" class="dropdown-item">
+                                            <i class="bi bi-pencil-fill me-2 text-primary"></i>Editar
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    {% if user.is_active %}
+                                    <li>
+                                        <form method="post" action="/admin/users/{{ user.id }}/deactivate">
+                                            <button type="submit"
+                                                    class="dropdown-item text-warning"
+                                                    {% if user.id == current_user.id %}disabled{% endif %}>
+                                                <i class="bi bi-lock-fill me-2"></i>Desactivar
+                                            </button>
+                                        </form>
+                                    </li>
+                                    {% else %}
+                                    <li>
+                                        <form method="post" action="/admin/users/{{ user.id }}/activate">
+                                            <button type="submit" class="dropdown-item text-success">
+                                                <i class="bi bi-unlock-fill me-2"></i>Activar
+                                            </button>
+                                        </form>
+                                    </li>
+                                    {% endif %}
+                                </ul>
                             </div>
                         </td>
                     </tr>

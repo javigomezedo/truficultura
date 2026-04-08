@@ -45,27 +45,57 @@
                             <td><small class="text-monospace">{{ p.cadastral_ref }}</small></td>
                             <td>{{ p.hydrant }}</td>
                             <td>{{ p.sector }}</td>
-                            <td class="text-end">{{ p.num_plants }}</td>
+                            <td class="text-end">
+                                {{ p.num_plants }}
+                                {% set actual = plant_counts.get(p.id, 0) %}
+                                {% if actual > 0 and actual != p.num_plants %}
+                                <a href="/plots/{{ p.id }}/map/configure"
+                                   class="text-warning ms-1"
+                                   title="El mapa tiene {{ actual }} plantas pero la parcela declara {{ p.num_plants }}. Revisa la configuración del mapa.">
+                                    <i class="bi bi-exclamation-triangle-fill"></i>
+                                </a>
+                                {% endif %}
+                            </td>
                             <td>{{ p.planting_date.strftime('%d/%m/%Y') }}</td>
                             <td class="text-end">{{ "%.4f"|format(p.area_ha) if p.area_ha is not none else '—' }}</td>
                             <td>{{ p.production_start.strftime('%d/%m/%Y') if p.production_start else '—' }}</td>
                             <td class="text-end">{{ "%.2f"|format(p.percentage) }}%</td>
                             <td class="text-center">
-                                <div class="btn-group btn-group-sm" role="group">
-                                    <a href="/plots/{{ p.id }}/edit"
-                                       class="btn btn-outline-primary" title="{{ _('Editar') }}">
-                                        <i class="bi bi-pencil-fill"></i>
-                                    </a>
-                                    <form action="/plots/{{ p.id }}/delete"
-                                          method="post"
-                                          class="d-inline"
-                                          onsubmit="return confirmDelete(this)">
-                                        <button type="submit"
-                                                class="btn btn-outline-danger"
-                                                title="{{ _('Eliminar') }}">
-                                            <i class="bi bi-trash-fill"></i>
-                                        </button>
-                                    </form>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary px-2 py-0"
+                                            type="button"
+                                            data-bs-toggle="dropdown"
+                                            aria-expanded="false"
+                                            title="{{ _('Acciones') }}">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                        <li>
+                                            <a class="dropdown-item" href="/plots/{{ p.id }}/map">
+                                                <i class="bi bi-grid-3x3-gap-fill me-2 text-success"></i>{{ _("Mapa") }}
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="/plots/{{ p.id }}/qr-pdf">
+                                                <i class="bi bi-qr-code me-2 text-secondary"></i>{{ _("Descargar QR") }}
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="/plots/{{ p.id }}/edit">
+                                                <i class="bi bi-pencil-fill me-2 text-primary"></i>{{ _("Editar") }}
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <form action="/plots/{{ p.id }}/delete"
+                                                  method="post"
+                                                  onsubmit="return confirmDelete(this)">
+                                                <button type="submit" class="dropdown-item text-danger">
+                                                    <i class="bi bi-trash-fill me-2"></i>{{ _("Eliminar") }}
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
                                 </div>
                             </td>
                         </tr>

@@ -4,7 +4,13 @@ import datetime
 
 import pytest
 
-from app.utils import campaign_year, campaign_label, campaign_months
+from app.utils import (
+    campaign_label,
+    campaign_months,
+    campaign_year,
+    format_sparse_row_config,
+    parse_row_config,
+)
 
 
 class TestCampaignYear:
@@ -125,3 +131,29 @@ class TestCampaignIntegration:
 
         assert "Marzo 2023" in months_2022
         assert "Abril 2023 - Marzo 2024" == months_2023
+
+
+class TestRowConfig:
+    def test_parse_row_config_legacy_counts_rejected(self):
+        with pytest.raises(ValueError):
+            parse_row_config("4,5,3")
+
+    def test_parse_row_config_sparse_columns(self):
+        parsed = parse_row_config("A:2-5,8; B:1,3,4; C:7-9")
+        assert parsed == [
+            [2, 3, 4, 5, 8],
+            [1, 3, 4],
+            [7, 8, 9],
+        ]
+
+    def test_parse_row_config_rejects_invalid(self):
+        with pytest.raises(ValueError):
+            parse_row_config("A:4-x")
+
+    def test_parse_row_config_rejects_empty(self):
+        with pytest.raises(ValueError):
+            parse_row_config("  ")
+
+    def test_format_sparse_row_config(self):
+        text = format_sparse_row_config([[2, 3, 4, 5, 8], [1, 3, 4]])
+        assert text == "A:2-5,8; B:1,3-4"
