@@ -11,6 +11,7 @@ from app.models.truffle_event import TruffleEvent
 from app.services.truffle_events_service import (
     build_plot_event_summary,
     create_event,
+    delete_event,
     get_counts_by_plant,
     get_last_undoable_event,
     list_events,
@@ -125,7 +126,7 @@ async def test_get_last_undoable_event_none_when_no_event() -> None:
 
 
 @pytest.mark.asyncio
-async def test_undo_last_event_marks_undone_at() -> None:
+async def test_undo_last_event_deletes_record() -> None:
     now = datetime.datetime.now(tz=timezone.utc)
     event = TruffleEvent(
         id=1,
@@ -138,15 +139,13 @@ async def test_undo_last_event_marks_undone_at() -> None:
     )
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([event]))
+    db.delete = AsyncMock()
     db.flush = AsyncMock()
 
-    before = datetime.datetime.now(tz=timezone.utc)
     undone = await undo_last_event(db, plant_id=1, user_id=1)
-    after = datetime.datetime.now(tz=timezone.utc)
 
     assert undone is event
-    assert event.undone_at is not None
-    assert before <= event.undone_at <= after
+    db.delete.assert_awaited_once_with(event)
     db.flush.assert_awaited_once()
 
 
@@ -158,6 +157,44 @@ async def test_undo_last_event_returns_none_when_no_undoable_event() -> None:
     undone = await undo_last_event(db, plant_id=1, user_id=1)
 
     assert undone is None
+
+
+@pytest.mark.asyncio
+async def test_delete_event_deletes_matching_user_record() -> None:
+    now = datetime.datetime.now(tz=timezone.utc)
+    event = TruffleEvent(
+        id=10,
+        plant_id=1,
+        plot_id=10,
+        user_id=1,
+        source="manual",
+        created_at=now,
+        undo_window_expires_at=now + timedelta(seconds=30),
+    )
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([event]))
+    db.delete = AsyncMock()
+    db.flush = AsyncMock()
+
+    deleted = await delete_event(db, event_id=10, user_id=1)
+
+    assert deleted is True
+    db.delete.assert_awaited_once_with(event)
+    db.flush.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_delete_event_returns_false_when_not_found() -> None:
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+    db.delete = AsyncMock()
+    db.flush = AsyncMock()
+
+    deleted = await delete_event(db, event_id=999, user_id=1)
+
+    assert deleted is False
+    db.delete.assert_not_called()
+    db.flush.assert_not_called()
 
 
 # ---------------------------------------------------------------------------

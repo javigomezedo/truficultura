@@ -91,8 +91,8 @@
                         <th>{{ _("Fecha") }}</th>
                         <th>{{ _("Parcela") }}</th>
                         <th>{{ _("Planta") }}</th>
-                        <th>{{ _("Estado") }}</th>
                         <th>{{ _("Origen") }}</th>
+                        <th class="text-center">{{ _("Acciones") }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -101,14 +101,20 @@
                         <td>{{ e.created_at.strftime('%d/%m/%Y %H:%M:%S') if e.created_at else '—' }}</td>
                         <td>{{ e.plot.name if e.plot else e.plot_id }}</td>
                         <td>{{ e.plant.label if e.plant else e.plant_id }}</td>
-                        <td>
-                            {% if e.undone_at %}
-                            <span class="badge text-bg-warning">{{ _("Deshecho") }}</span>
-                            {% else %}
-                            <span class="badge text-bg-success">{{ _("Activo") }}</span>
-                            {% endif %}
-                        </td>
                         <td><span class="badge text-bg-secondary">{{ e.source }}</span></td>
+                        <td class="text-center">
+                            <form method="post"
+                                  action="/truffles/{{ e.id }}/delete"
+                                  class="d-inline"
+                                  onsubmit="return confirmDelete(this)">
+                                <input type="hidden" name="camp" value="{{ selected_campaign if selected_campaign is not none else '' }}">
+                                <input type="hidden" name="plot_id" value="{{ selected_plot_id if selected_plot_id is not none else '' }}">
+                                <input type="hidden" name="plant_id" value="{{ selected_plant_id if selected_plant_id is not none else '' }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="{{ _('Eliminar') }}">
+                                    <i class="bi bi-trash-fill"></i>
+                                </button>
+                            </form>
+                        </td>
                     </tr>
                     {% else %}
                     <tr>

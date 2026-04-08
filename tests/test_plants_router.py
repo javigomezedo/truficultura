@@ -216,6 +216,35 @@ def test_undo_truffle_event_redirects_when_no_event(monkeypatch) -> None:
     assert "No+hay+registro+para+deshacer" in response.headers["location"]
 
 
+def test_undo_truffle_event_redirects_when_deleted(monkeypatch) -> None:
+    db = _db()
+    plant = SimpleNamespace(id=3, plot_id=10)
+    monkeypatch.setattr(
+        "app.routers.plants.plants_service.get_plant",
+        AsyncMock(return_value=plant),
+    )
+    monkeypatch.setattr(
+        "app.routers.plants.truffle_events_service.undo_last_event",
+        AsyncMock(return_value=SimpleNamespace(id=1)),
+    )
+
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = lambda: db
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/plots/10/plants/3/undo",
+            data={"campaign": "2025"},
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert "campaign=2025" in response.headers["location"]
+    assert "registro+eliminado" in response.headers["location"]
+
+
 def test_list_truffle_events_renders(monkeypatch) -> None:
     db = _db()
     monkeypatch.setattr(
@@ -277,6 +306,31 @@ def test_list_truffle_events_renders(monkeypatch) -> None:
     assert 'name="camp"' in response.text
     assert 'name="plant_id"' in response.text
     assert 'onchange="this.form.submit()"' in response.text
+
+
+def test_delete_truffle_event_from_list_redirects(monkeypatch) -> None:
+    db = _db()
+    monkeypatch.setattr(
+        "app.routers.plants.truffle_events_service.delete_event",
+        AsyncMock(return_value=True),
+    )
+
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = lambda: db
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/truffles/55/delete",
+            data={"camp": "2025", "plot_id": "10", "plant_id": "3"},
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert response.headers["location"] == (
+        "/truffles/?camp=2025&plot_id=10&plant_id=3&msg=Registro+de+trufa+eliminado"
+    )
 
 
 def test_download_plot_qr_pdf_redirects_when_plot_not_found(monkeypatch) -> None:
