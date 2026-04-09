@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 from fastapi.testclient import TestClient
 from fastapi import HTTPException
 
-from app.auth import require_user
+from app.auth import require_admin, require_user
 from app.database import get_db
 from app.main import app
 
@@ -115,6 +115,11 @@ def test_stream_returns_sse_payload(monkeypatch) -> None:
             return_value={
                 "intent": "uso",
                 "messages": [{"role": "system", "content": "ctx"}],
+                "traceability": {
+                    "retrieval_mode": "static",
+                    "data_scope": "product-guidance",
+                    "sources": ["kb:app_core_guidance"],
+                },
             }
         ),
     )
@@ -138,6 +143,7 @@ def test_stream_returns_sse_payload(monkeypatch) -> None:
     assert response.headers["content-type"].startswith("text/event-stream")
     assert '"type": "ready"' in response.text
     assert '"intent": "uso"' in response.text
+    assert '"traceability"' in response.text
     assert '"type": "token"' in response.text
     assert '"type": "done"' in response.text
 
@@ -235,3 +241,24 @@ def test_stream_returns_429_when_rate_limited(monkeypatch) -> None:
         app.dependency_overrides.clear()
 
     assert response.status_code == 429
+
+
+def test_metrics_requires_admin() -> None:
+    client = TestClient(app, follow_redirects=False)
+    response = client.get("/api/assistant/metrics")
+    assert response.status_code == 303
+
+
+def test_metrics_returns_snapshot_for_admin() -> None:
+    app.dependency_overrides[require_admin] = _user
+    try:
+        client = TestClient(app)
+        response = client.get("/api/assistant/metrics")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert "chat" in payload
+    assert "stream" in payload
+    assert "intents" in payload

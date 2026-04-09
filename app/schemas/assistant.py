@@ -18,3 +18,4 @@ class AssistantRequest(BaseModel):
 class AssistantResponse(BaseModel):
     response: str
     intent: Literal["uso", "datos"]
+    traceability: dict | None = None

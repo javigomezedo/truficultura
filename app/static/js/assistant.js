@@ -80,6 +80,20 @@
             return node;
         }
 
+        function formatTraceability(traceability, intent) {
+            if (!traceability) {
+                return '';
+            }
+            var sources = Array.isArray(traceability.sources) ? traceability.sources : [];
+            var scope = traceability.data_scope || 'sin especificar';
+            var mode = traceability.retrieval_mode || 'static';
+            var head = 'Contexto usado: ' + intent + ' (' + scope + ', mode=' + mode + ')';
+            if (!sources.length) {
+                return head;
+            }
+            return head + '\nFuentes: ' + sources.join(', ');
+        }
+
         cancelBtn.addEventListener('click', function () {
             if (controller) {
                 controller.abort();
@@ -121,6 +135,12 @@
                         });
                     }
                     return readSSEStream(response, function (evt) {
+                        if (evt.type === 'ready') {
+                            var traceMsg = formatTraceability(evt.traceability, evt.intent);
+                            if (traceMsg) {
+                                pushMessage('system', traceMsg);
+                            }
+                        }
                         if (evt.type === 'token') {
                             assistantText += evt.delta || '';
                             assistantNode.textContent = assistantText;

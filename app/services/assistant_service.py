@@ -110,6 +110,20 @@ _PROMPT_INJECTION_PATTERNS = [
     re.compile(r"system prompt", re.IGNORECASE),
 ]
 
+_SOURCES_USAGE = [
+    "kb:app_core_guidance",
+    "kb:campaign_rules",
+]
+
+_SOURCES_DATA = [
+    "db:plots",
+    "db:incomes",
+    "db:expenses",
+    "db:irrigation",
+    "utils:campaign_year",
+    "utils:campaign_label",
+]
+
 
 def _normalize_text(value: str) -> str:
     normalized = unicodedata.normalize("NFD", value)
@@ -136,6 +150,25 @@ def _sanitize_user_message(message: str) -> str:
     # Collapse excessive whitespace after substitutions.
     clean = re.sub(r"\s+", " ", clean).strip()
     return clean
+
+
+def _build_traceability(intent: str) -> dict:
+    """Build machine-readable trace metadata for UI transparency.
+
+    retrieval_mode is set to "static" for now and can evolve to "rag" without
+    changing API contracts.
+    """
+    if intent == "datos":
+        return {
+            "retrieval_mode": "static",
+            "data_scope": "aggregated-user-data",
+            "sources": _SOURCES_DATA,
+        }
+    return {
+        "retrieval_mode": "static",
+        "data_scope": "product-guidance",
+        "sources": _SOURCES_USAGE,
+    }
 
 
 def _classify_intent(message: str) -> str:
@@ -319,7 +352,11 @@ async def chat(
     context = await prepare_chat_context(db, user_id, message, history)
     messages = context["messages"]
     response = await adapter.complete(messages)
-    return {"response": response, "intent": context["intent"]}
+    return {
+        "response": response,
+        "intent": context["intent"],
+        "traceability": context["traceability"],
+    }
 
 
 async def prepare_chat_context(
@@ -335,4 +372,8 @@ async def prepare_chat_context(
     if intent == "datos":
         user_ctx = await _build_user_context(db, user_id)
     messages = _compose_messages(safe_message, history, user_ctx)
-    return {"intent": intent, "messages": messages}
+    return {
+        "intent": intent,
+        "messages": messages,
+        "traceability": _build_traceability(intent),
+    }

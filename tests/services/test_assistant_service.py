@@ -120,6 +120,7 @@ async def test_chat_uso_skips_db_queries() -> None:
     db.execute.assert_not_called()
     assert result_data["intent"] == "uso"
     assert len(result_data["response"]) > 0
+    assert result_data["traceability"]["data_scope"] == "product-guidance"
     adapter.complete.assert_awaited_once()
 
 
@@ -184,6 +185,7 @@ async def test_chat_datos_queries_db_with_user_id() -> None:
     assert "2025/26" in system_content
     assert "Resumen global" in system_content
     assert "Riego total registrado" in system_content
+    assert result_data["traceability"]["data_scope"] == "aggregated-user-data"
 
 
 @pytest.mark.asyncio
@@ -249,6 +251,8 @@ async def test_prepare_chat_context_uso_does_not_query_db() -> None:
 
     assert data["intent"] == "uso"
     assert len(data["messages"]) >= 2
+    assert data["traceability"]["retrieval_mode"] == "static"
+    assert "kb:app_core_guidance" in data["traceability"]["sources"]
     db.execute.assert_not_called()
 
 
@@ -266,3 +270,5 @@ async def test_prepare_chat_context_datos_queries_db() -> None:
 
     assert data["intent"] == "datos"
     assert db.execute.call_count == 4
+    assert data["traceability"]["data_scope"] == "aggregated-user-data"
+    assert "db:plots" in data["traceability"]["sources"]
