@@ -188,8 +188,8 @@ async def get_counts_by_plant(
         TruffleEvent.undone_at.is_(None),
     ]
     if campaign_year is not None:
-        start = datetime.datetime(campaign_year, 4, 1, tzinfo=timezone.utc)
-        end = datetime.datetime(campaign_year + 1, 4, 1, tzinfo=timezone.utc)
+        start = datetime.datetime(campaign_year, 5, 1, tzinfo=timezone.utc)
+        end = datetime.datetime(campaign_year + 1, 5, 1, tzinfo=timezone.utc)
         filters.extend(
             [TruffleEvent.created_at >= start, TruffleEvent.created_at < end]
         )
@@ -218,8 +218,8 @@ async def list_events(
     if not include_undone:
         filters.append(TruffleEvent.undone_at.is_(None))
     if campaign_year is not None:
-        start = datetime.datetime(campaign_year, 4, 1, tzinfo=timezone.utc)
-        end = datetime.datetime(campaign_year + 1, 4, 1, tzinfo=timezone.utc)
+        start = datetime.datetime(campaign_year, 5, 1, tzinfo=timezone.utc)
+        end = datetime.datetime(campaign_year + 1, 5, 1, tzinfo=timezone.utc)
         filters.extend(
             [TruffleEvent.created_at >= start, TruffleEvent.created_at < end]
         )

@@ -17,22 +17,27 @@ class TestCampaignYear:
     """Tests for campaign_year function"""
 
     def test_campaign_year_january(self):
-        """Test that January (month < 4) returns previous year"""
+        """Test that January (month < 5) returns previous year"""
         date = datetime.date(2023, 1, 15)
         assert campaign_year(date) == 2022
 
     def test_campaign_year_march(self):
-        """Test that March (month < 4) returns previous year"""
+        """Test that March (month < 5) returns previous year"""
         date = datetime.date(2023, 3, 31)
         assert campaign_year(date) == 2022
 
     def test_campaign_year_april(self):
-        """Test that April (month >= 4) returns current year"""
+        """Test that April (month < 5) returns previous year"""
         date = datetime.date(2023, 4, 1)
+        assert campaign_year(date) == 2022
+
+    def test_campaign_year_may(self):
+        """Test that May (month >= 5) returns current year"""
+        date = datetime.date(2023, 5, 1)
         assert campaign_year(date) == 2023
 
     def test_campaign_year_december(self):
-        """Test that December (month >= 4) returns current year"""
+        """Test that December (month >= 5) returns current year"""
         date = datetime.date(2023, 12, 25)
         assert campaign_year(date) == 2023
 
@@ -40,10 +45,10 @@ class TestCampaignYear:
         """Test campaign year boundaries"""
         # Feb 2022 -> campaign 2021
         assert campaign_year(datetime.date(2022, 2, 1)) == 2021
-        # Apr 2022 -> campaign 2022
-        assert campaign_year(datetime.date(2022, 4, 1)) == 2022
-        # Mar 2022 -> campaign 2021
-        assert campaign_year(datetime.date(2022, 3, 31)) == 2021
+        # Apr 2022 -> campaign 2021
+        assert campaign_year(datetime.date(2022, 4, 1)) == 2021
+        # May 2022 -> campaign 2022
+        assert campaign_year(datetime.date(2022, 5, 1)) == 2022
 
 
 class TestCampaignLabel:
@@ -66,8 +71,8 @@ class TestCampaignMonths:
 
     def test_campaign_months_format(self):
         """Test that campaign_months returns correct month range"""
-        assert campaign_months(2022) == "Abril 2022 - Marzo 2023"
-        assert campaign_months(2023) == "Abril 2023 - Marzo 2024"
+        assert campaign_months(2022) == "Mayo 2022 - Abril 2023"
+        assert campaign_months(2023) == "Mayo 2023 - Abril 2024"
 
     def test_campaign_months_includes_years(self):
         """Test that both years are included in the output"""
@@ -78,13 +83,13 @@ class TestCampaignMonths:
     def test_campaign_months_contains_months(self):
         """Test that both month names are present"""
         result = campaign_months(2022)
+        assert "Mayo" in result
         assert "Abril" in result
-        assert "Marzo" in result
 
     def test_campaign_months_range_across_years(self):
         """Test campaign month range spans across years correctly"""
         result = campaign_months(2022)
-        # Should be: "Abril 2022 - Marzo 2023"
+        # Should be: "Mayo 2022 - Abril 2023"
         parts = result.split(" - ")
         assert len(parts) == 2
         assert "2022" in parts[0]
@@ -110,27 +115,27 @@ class TestCampaignIntegration:
 
         # July 2022 -> campaign 2022
         assert cy == 2022
-        # Campaign 2022 -> Apr 2022 - Mar 2023
-        assert "Abril 2022 - Marzo 2023" == months
+        # Campaign 2022 -> May 2022 - Apr 2023
+        assert "Mayo 2022 - Abril 2023" == months
 
-    def test_campaign_year_april_boundary(self):
-        """Test April 1st is start of new campaign"""
-        march_31 = datetime.date(2023, 3, 31)
-        april_1 = datetime.date(2023, 4, 1)
+    def test_campaign_year_may_boundary(self):
+        """Test May 1st is start of new campaign"""
+        april_30 = datetime.date(2023, 4, 30)
+        may_1 = datetime.date(2023, 5, 1)
 
-        march_campaign = campaign_year(march_31)
-        april_campaign = campaign_year(april_1)
+        april_campaign = campaign_year(april_30)
+        may_campaign = campaign_year(may_1)
 
-        # Mar 31 -> campaign 2022
-        assert march_campaign == 2022
-        # Apr 1 -> campaign 2023
-        assert april_campaign == 2023
+        # Apr 30 -> campaign 2022
+        assert april_campaign == 2022
+        # May 1 -> campaign 2023
+        assert may_campaign == 2023
 
-        months_2022 = campaign_months(march_campaign)
-        months_2023 = campaign_months(april_campaign)
+        months_2022 = campaign_months(april_campaign)
+        months_2023 = campaign_months(may_campaign)
 
-        assert "Marzo 2023" in months_2022
-        assert "Abril 2023 - Marzo 2024" == months_2023
+        assert "Abril 2023" in months_2022
+        assert "Mayo 2023 - Abril 2024" == months_2023
 
 
 class TestRowConfig:

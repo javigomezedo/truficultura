@@ -4,7 +4,7 @@ Aplicación web para la gestión de una explotación trufícola: parcelas, gasto
 
 ## 1. Resumen del proyecto
 
-Truficultura permite registrar y analizar la actividad económica de una explotación de trufa con una lógica de campañas agrícolas (de abril a marzo).
+Truficultura permite registrar y analizar la actividad económica de una explotación de trufa con una lógica de campañas agrícolas (de mayo a abril).
 
 ### Qué resuelve
 
@@ -21,7 +21,7 @@ Truficultura permite registrar y analizar la actividad económica de una explota
 
 ### Lógica de negocio clave
 
-- **Campaña agrícola**: abril-marzo.
+- **Campaña agrícola**: mayo-abril.
   - Ejemplo: febrero de 2026 pertenece a campaña 2025.
 - **Distribución de gastos sin parcela**:
   - Los gastos con `plot_id = None` se reparten proporcionalmente según el campo `porcentaje` de cada parcela.

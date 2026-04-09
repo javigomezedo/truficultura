@@ -84,8 +84,8 @@ def format_sparse_row_config(row_columns: list[list[int]]) -> str:
 
 
 def campaign_year(date: datetime.date) -> int:
-    """Return the campaign year (April-March). E.g.: Feb-2023 -> 2022, Nov-2022 -> 2022."""
-    return date.year if date.month >= 4 else date.year - 1
+    """Return the campaign year (May-April). E.g.: Apr-2023 -> 2022, Nov-2022 -> 2022."""
+    return date.year if date.month >= 5 else date.year - 1
 
 
 def campaign_label(year: int) -> str:
@@ -94,9 +94,9 @@ def campaign_label(year: int) -> str:
 
 
 def campaign_months(year: int) -> str:
-    """Return the month range for a campaign. E.g.: 2022 -> 'Abril 2022 - Marzo 2023'."""
-    start_month = "Abril"
-    end_month = "Marzo"
+    """Return the month range for a campaign. E.g.: 2022 -> 'Mayo 2022 - Abril 2023'."""
+    start_month = "Mayo"
+    end_month = "Abril"
     return f"{start_month} {year} - {end_month} {year + 1}"
 
 

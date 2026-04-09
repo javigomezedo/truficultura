@@ -28,8 +28,8 @@ class SeedSummary:
 
 
 def _campaign_bounds(campaign_year: int) -> tuple[dt.datetime, dt.datetime]:
-    start = dt.datetime(campaign_year, 4, 1, 0, 0, 0, tzinfo=dt.timezone.utc)
-    end = dt.datetime(campaign_year + 1, 4, 1, 0, 0, 0, tzinfo=dt.timezone.utc)
+    start = dt.datetime(campaign_year, 5, 1, 0, 0, 0, tzinfo=dt.timezone.utc)
+    end = dt.datetime(campaign_year + 1, 5, 1, 0, 0, 0, tzinfo=dt.timezone.utc)
     return start, end
 
 
@@ -228,7 +228,7 @@ async def seed_data(args: argparse.Namespace) -> SeedSummary:
 
 def _build_parser() -> argparse.ArgumentParser:
     current_campaign = (
-        dt.date.today().year if dt.date.today().month >= 4 else dt.date.today().year - 1
+        dt.date.today().year if dt.date.today().month >= 5 else dt.date.today().year - 1
     )
 
     parser = argparse.ArgumentParser(
