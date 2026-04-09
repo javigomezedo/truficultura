@@ -225,7 +225,7 @@ async def test_get_plot_map_context_no_plants() -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_plot_map_context_builds_rows_with_counts() -> None:
+async def test_get_plot_map_context_builds_rows_with_weights() -> None:
     plant_a1 = Plant(
         id=1,
         plot_id=10,
@@ -258,11 +258,11 @@ async def test_get_plot_map_context_builds_rows_with_counts() -> None:
     )
 
     total_rows = [
-        SimpleNamespace(plant_id=1, cnt=10),
-        SimpleNamespace(plant_id=3, cnt=5),
+        SimpleNamespace(plant_id=1, total_grams=10.0),
+        SimpleNamespace(plant_id=3, total_grams=5.0),
     ]
     campaign_rows = [
-        SimpleNamespace(plant_id=1, cnt=3),
+        SimpleNamespace(plant_id=1, total_grams=3.0),
     ]
 
     db = MagicMock()
@@ -286,13 +286,13 @@ async def test_get_plot_map_context_builds_rows_with_counts() -> None:
     assert len(rows) == 2
     assert rows[0].row_label == "A"
     assert len(rows[0].cells) == 3
-    assert rows[0].cells[0].campaign_count == 3
-    assert rows[0].cells[0].total_count == 10
+    assert rows[0].cells[0].campaign_weight_grams == 3.0
+    assert rows[0].cells[0].total_weight_grams == 10.0
     assert rows[0].cells[1].plant is None
-    assert rows[0].cells[2].campaign_count == 0  # no campaign events for A3
-    assert rows[0].cells[2].total_count == 0
+    assert rows[0].cells[2].campaign_weight_grams == 0.0  # no campaign events for A3
+    assert rows[0].cells[2].total_weight_grams == 0.0
     assert rows[1].row_label == "B"
-    assert rows[1].cells[0].total_count == 5
+    assert rows[1].cells[0].total_weight_grams == 5.0
 
 
 @pytest.mark.asyncio
@@ -306,7 +306,7 @@ async def test_get_plot_map_context_no_campaign_skips_campaign_query() -> None:
     db.execute = AsyncMock(
         side_effect=[
             result([plant]),  # plants
-            result([SimpleNamespace(plant_id=1, cnt=7)]),  # total counts
+            result([SimpleNamespace(plant_id=1, total_grams=7.0)]),  # total grams
         ]
     )
 
@@ -318,5 +318,5 @@ async def test_get_plot_map_context_no_campaign_skips_campaign_query() -> None:
     )
 
     assert db.execute.call_count == 2
-    assert ctx["rows"][0].cells[0].total_count == 7
-    assert ctx["rows"][0].cells[0].campaign_count == 0
+    assert ctx["rows"][0].cells[0].total_weight_grams == 7.0
+    assert ctx["rows"][0].cells[0].campaign_weight_grams == 0.0

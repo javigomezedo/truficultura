@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ _("Registrar trufas") }}{% endblock %}
+{% block title %}{{ _("Registrar peso de trufa") }}{% endblock %}
 
 {% block content %}
 <div class="container py-5">
@@ -14,16 +14,22 @@
 
             <form method="post" class="row g-3 align-items-end">
                 <div class="col-sm-4">
-                    <label for="quantity" class="form-label">{{ _("Cantidad de trufas") }}</label>
-                    <input id="quantity"
-                           name="quantity"
+                    <label for="estimated_weight_grams" class="form-label">{{ _("Peso orientativo (g)") }}</label>
+                    <input id="estimated_weight_grams"
+                           name="estimated_weight_grams"
                            type="number"
-                           min="1"
-                           max="500"
-                           step="1"
-                           value="1"
+                              min="0"
+                           max="5000"
+                           step="0.1"
+                              value="0"
                            class="form-control"
                            required>
+                    <div class="d-flex flex-wrap gap-1 mt-2">
+                        <button type="button" class="btn btn-outline-success btn-sm js-qr-weight-add" data-add="10">+10</button>
+                        <button type="button" class="btn btn-outline-success btn-sm js-qr-weight-add" data-add="50">+50</button>
+                        <button type="button" class="btn btn-outline-success btn-sm js-qr-weight-add" data-add="100">+100</button>
+                        <button type="button" class="btn btn-outline-success btn-sm js-qr-weight-add" data-add="500">+500</button>
+                    </div>
                 </div>
                 <div class="col-sm-8 d-flex gap-2">
                     <button class="btn btn-success" type="submit">
@@ -35,4 +41,17 @@
         </div>
     </div>
 </div>
+
+<script>
+    const qrWeightInput = document.getElementById('estimated_weight_grams');
+    document.querySelectorAll('.js-qr-weight-add').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const add = Number(btn.dataset.add || 0);
+            const current = Number(qrWeightInput.value || 0);
+            const next = Math.min(5000, Math.max(0, current + add));
+            qrWeightInput.value = next.toFixed(1);
+            qrWeightInput.focus();
+        });
+    });
+</script>
 {% endblock %}

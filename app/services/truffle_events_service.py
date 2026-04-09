@@ -24,19 +24,21 @@ def build_plot_event_summary(
         e for e in filtered_events if getattr(e, "undone_at", None) is None
     ]
 
-    campaign_by_plot: dict[int, int] = {}
-    historical_by_plot: dict[int, int] = {}
-    top_plants_by_plot: dict[int, dict[str, int]] = {}
+    campaign_by_plot: dict[int, float] = {}
+    historical_by_plot: dict[int, float] = {}
+    top_plants_by_plot: dict[int, dict[str, float]] = {}
     plot_names: dict[int, str] = {}
 
     for e in campaign_active:
-        campaign_by_plot[e.plot_id] = campaign_by_plot.get(e.plot_id, 0) + 1
+        weight = float(getattr(e, "estimated_weight_grams", 1.0) or 0.0)
+        campaign_by_plot[e.plot_id] = campaign_by_plot.get(e.plot_id, 0.0) + weight
         plot_obj = getattr(e, "plot", None)
         if plot_obj is not None and getattr(plot_obj, "name", None):
             plot_names[e.plot_id] = plot_obj.name
 
     for e in historical_active_events:
-        historical_by_plot[e.plot_id] = historical_by_plot.get(e.plot_id, 0) + 1
+        weight = float(getattr(e, "estimated_weight_grams", 1.0) or 0.0)
+        historical_by_plot[e.plot_id] = historical_by_plot.get(e.plot_id, 0.0) + weight
         plot_obj = getattr(e, "plot", None)
         if plot_obj is not None and getattr(plot_obj, "name", None):
             plot_names[e.plot_id] = plot_obj.name
@@ -47,7 +49,7 @@ def build_plot_event_summary(
             plant_label = plant_obj.label
         top_plants_by_plot.setdefault(e.plot_id, {})
         top_plants_by_plot[e.plot_id][plant_label] = (
-            top_plants_by_plot[e.plot_id].get(plant_label, 0) + 1
+            top_plants_by_plot[e.plot_id].get(plant_label, 0.0) + weight
         )
 
     rows: list[dict] = []
@@ -60,8 +62,8 @@ def build_plot_event_summary(
             {
                 "plot_id": pid,
                 "plot_name": plot_names.get(pid, f"Parcela {pid}"),
-                "campaign_total": campaign_by_plot.get(pid, 0),
-                "historical_total": historical_by_plot.get(pid, 0),
+                "campaign_total": round(campaign_by_plot.get(pid, 0.0), 2),
+                "historical_total": round(historical_by_plot.get(pid, 0.0), 2),
                 "top_plants": top_plants,
             }
         )
@@ -74,6 +76,7 @@ async def create_event(
     plant_id: int,
     plot_id: int,
     user_id: int,
+    estimated_weight_grams: float = 1.0,
     source: str = "manual",
     dedupe_window_seconds: int = 2,
 ) -> TruffleEvent:
@@ -107,6 +110,7 @@ async def create_event(
         plot_id=plot_id,
         user_id=user_id,
         source=source,
+        estimated_weight_grams=max(float(estimated_weight_grams), 0.0),
         created_at=now,
         undo_window_expires_at=now + timedelta(seconds=30),
     )
@@ -180,8 +184,8 @@ async def get_counts_by_plant(
     plot_id: int,
     user_id: int,
     campaign_year: Optional[int] = None,
-) -> dict[int, int]:
-    """Return {plant_id: count} of active truffle events, optionally filtered by campaign."""
+) -> dict[int, float]:
+    """Return {plant_id: grams} of active truffle events, optionally filtered by campaign."""
     filters = [
         TruffleEvent.plot_id == plot_id,
         TruffleEvent.user_id == user_id,
@@ -195,12 +199,17 @@ async def get_counts_by_plant(
         )
 
     q = (
-        select(TruffleEvent.plant_id, func.count(TruffleEvent.id).label("cnt"))
+        select(
+            TruffleEvent.plant_id,
+            func.sum(func.coalesce(TruffleEvent.estimated_weight_grams, 1.0)).label(
+                "total_grams"
+            ),
+        )
         .where(*filters)
         .group_by(TruffleEvent.plant_id)
     )
     res = await db.execute(q)
-    return {row.plant_id: row.cnt for row in res.all()}
+    return {row.plant_id: round(float(row.total_grams or 0.0), 2) for row in res.all()}
 
 
 async def list_events(

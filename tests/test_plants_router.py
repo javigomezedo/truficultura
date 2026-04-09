@@ -181,7 +181,7 @@ def test_add_truffle_event_redirects_with_campaign(monkeypatch) -> None:
         client = TestClient(app)
         response = client.post(
             "/plots/10/plants/3/add",
-            data={"campaign": "2025"},
+            data={"campaign": "2025", "estimated_weight_grams": "14.5"},
             follow_redirects=False,
         )
     finally:
@@ -190,6 +190,7 @@ def test_add_truffle_event_redirects_with_campaign(monkeypatch) -> None:
     assert response.status_code == 303
     assert "campaign=2025" in response.headers["location"]
     create_mock.assert_awaited_once()
+    assert create_mock.await_args.kwargs["estimated_weight_grams"] == 14.5
 
 
 def test_undo_truffle_event_redirects_when_no_event(monkeypatch) -> None:

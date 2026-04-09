@@ -18,8 +18,8 @@ from app.utils import row_label_from_index
 class PlantCell:
     plant: Optional[Plant]
     visual_col: int
-    campaign_count: int
-    total_count: int
+    campaign_weight_grams: float
+    total_weight_grams: float
 
 
 @dataclass
@@ -145,19 +145,31 @@ async def get_plot_map_context(
 
     # Historical totals
     total_q = (
-        select(TruffleEvent.plant_id, func.count(TruffleEvent.id).label("cnt"))
+        select(
+            TruffleEvent.plant_id,
+            func.sum(func.coalesce(TruffleEvent.estimated_weight_grams, 1.0)).label(
+                "total_grams"
+            ),
+        )
         .where(*base_filters)
         .group_by(TruffleEvent.plant_id)
     )
     total_res = await db.execute(total_q)
-    total_by_plant: dict[int, int] = {row.plant_id: row.cnt for row in total_res.all()}
+    total_by_plant: dict[int, float] = {
+        row.plant_id: round(float(row.total_grams or 0.0), 2) for row in total_res.all()
+    }
 
     # Campaign counts
-    campaign_by_plant: dict[int, int] = {}
+    campaign_by_plant: dict[int, float] = {}
     if selected_campaign is not None:
         start, end = _campaign_date_range(selected_campaign)
         campaign_q = (
-            select(TruffleEvent.plant_id, func.count(TruffleEvent.id).label("cnt"))
+            select(
+                TruffleEvent.plant_id,
+                func.sum(func.coalesce(TruffleEvent.estimated_weight_grams, 1.0)).label(
+                    "total_grams"
+                ),
+            )
             .where(
                 *base_filters,
                 TruffleEvent.created_at >= start,
@@ -166,7 +178,10 @@ async def get_plot_map_context(
             .group_by(TruffleEvent.plant_id)
         )
         campaign_res = await db.execute(campaign_q)
-        campaign_by_plant = {row.plant_id: row.cnt for row in campaign_res.all()}
+        campaign_by_plant = {
+            row.plant_id: round(float(row.total_grams or 0.0), 2)
+            for row in campaign_res.all()
+        }
 
     rows: list[MapRow] = []
     by_row: dict[int, list[Plant]] = {}
@@ -193,8 +208,8 @@ async def get_plot_map_context(
                     PlantCell(
                         plant=None,
                         visual_col=visual_col,
-                        campaign_count=0,
-                        total_count=0,
+                        campaign_weight_grams=0.0,
+                        total_weight_grams=0.0,
                     )
                 )
                 continue
@@ -203,8 +218,8 @@ async def get_plot_map_context(
                 PlantCell(
                     plant=plant,
                     visual_col=visual_col,
-                    campaign_count=campaign_by_plant.get(plant.id, 0),
-                    total_count=total_by_plant.get(plant.id, 0),
+                    campaign_weight_grams=campaign_by_plant.get(plant.id, 0.0),
+                    total_weight_grams=total_by_plant.get(plant.id, 0.0),
                 )
             )
 

@@ -53,7 +53,7 @@ def test_scan_without_session_redirects_to_login() -> None:
     assert "/login?next=/scan/" in response.headers["location"]
 
 
-def test_scan_with_session_shows_quantity_form(monkeypatch) -> None:
+def test_scan_with_session_shows_weight_form(monkeypatch) -> None:
     db = _fake_db()
     db.execute.return_value = result([_active_user()])
     app.dependency_overrides[get_db] = lambda: db
@@ -81,7 +81,7 @@ def test_scan_with_session_shows_quantity_form(monkeypatch) -> None:
     assert login.status_code == 303
     assert response.status_code == 200
     assert "Registro por QR" in response.text
-    assert 'name="quantity"' in response.text
+    assert 'name="estimated_weight_grams"' in response.text
 
 
 def test_scan_without_session_then_login_returns_to_confirm(monkeypatch) -> None:
@@ -121,7 +121,7 @@ def test_scan_without_session_then_login_returns_to_confirm(monkeypatch) -> None
     assert "Registro por QR" in final_scan.text
 
 
-def test_scan_submit_registers_quantity(monkeypatch) -> None:
+def test_scan_submit_registers_weight(monkeypatch) -> None:
     db = _fake_db()
     db.execute.return_value = result([_active_user()])
     app.dependency_overrides[get_db] = lambda: db
@@ -147,12 +147,15 @@ def test_scan_submit_registers_quantity(monkeypatch) -> None:
             data={"username": "javier", "password": "secreto"},
             follow_redirects=False,
         )
-        response = client.post(f"/scan/{token}", data={"quantity": "5"})
+        response = client.post(
+            f"/scan/{token}", data={"estimated_weight_grams": "125.5"}
+        )
     finally:
         app.dependency_overrides.clear()
 
     assert login.status_code == 303
     assert response.status_code == 200
-    assert "Trufas registradas" in response.text
-    assert "Cantidad" in response.text
-    assert create_mock.await_count == 5
+    assert "Peso de trufa registrado" in response.text
+    assert "Peso orientativo" in response.text
+    create_mock.assert_awaited_once()
+    assert create_mock.await_args.kwargs["estimated_weight_grams"] == 125.5

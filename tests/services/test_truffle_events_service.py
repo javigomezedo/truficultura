@@ -40,6 +40,7 @@ async def test_create_event_sets_timestamps() -> None:
     assert event.plot_id == 10
     assert event.user_id == 1
     assert event.source == "manual"
+    assert event.estimated_weight_grams == 1.0
     assert before <= event.created_at <= after
     assert event.undo_window_expires_at == event.created_at + timedelta(seconds=30)
     assert event.undone_at is None
@@ -61,6 +62,24 @@ async def test_create_event_default_source_is_manual() -> None:
 
 
 @pytest.mark.asyncio
+async def test_create_event_persists_custom_estimated_weight() -> None:
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+    db.add = MagicMock()
+    db.flush = AsyncMock()
+
+    event = await create_event(
+        db,
+        plant_id=2,
+        plot_id=5,
+        user_id=3,
+        estimated_weight_grams=28.4,
+    )
+
+    assert event.estimated_weight_grams == 28.4
+
+
+@pytest.mark.asyncio
 async def test_create_event_returns_duplicate_without_creating_new_row() -> None:
     now = datetime.datetime.now(tz=timezone.utc)
     existing = TruffleEvent(
@@ -69,6 +88,7 @@ async def test_create_event_returns_duplicate_without_creating_new_row() -> None
         plot_id=10,
         user_id=1,
         source="manual",
+        estimated_weight_grams=1.0,
         created_at=now,
         undo_window_expires_at=now + timedelta(seconds=30),
     )
@@ -99,6 +119,7 @@ async def test_get_last_undoable_event_found_within_window() -> None:
         plot_id=10,
         user_id=1,
         source="manual",
+        estimated_weight_grams=1.0,
         created_at=now,
         undo_window_expires_at=now + timedelta(seconds=30),
     )
@@ -134,6 +155,7 @@ async def test_undo_last_event_deletes_record() -> None:
         plot_id=10,
         user_id=1,
         source="qr",
+        estimated_weight_grams=1.0,
         created_at=now,
         undo_window_expires_at=now + timedelta(seconds=30),
     )
@@ -168,6 +190,7 @@ async def test_delete_event_deletes_matching_user_record() -> None:
         plot_id=10,
         user_id=1,
         source="manual",
+        estimated_weight_grams=1.0,
         created_at=now,
         undo_window_expires_at=now + timedelta(seconds=30),
     )
@@ -205,15 +228,15 @@ async def test_delete_event_returns_false_when_not_found() -> None:
 @pytest.mark.asyncio
 async def test_get_counts_by_plant_returns_dict() -> None:
     rows = [
-        SimpleNamespace(plant_id=1, cnt=7),
-        SimpleNamespace(plant_id=2, cnt=3),
+        SimpleNamespace(plant_id=1, total_grams=7.0),
+        SimpleNamespace(plant_id=2, total_grams=3.5),
     ]
     db = MagicMock()
     db.execute = AsyncMock(return_value=result(rows))
 
     counts = await get_counts_by_plant(db, plot_id=10, user_id=1)
 
-    assert counts == {1: 7, 2: 3}
+    assert counts == {1: 7.0, 2: 3.5}
 
 
 @pytest.mark.asyncio
@@ -253,6 +276,7 @@ async def test_list_events_returns_events() -> None:
             plot_id=10,
             user_id=1,
             source="manual",
+            estimated_weight_grams=1.0,
             created_at=now,
             undo_window_expires_at=now + timedelta(seconds=30),
         ),
@@ -262,6 +286,7 @@ async def test_list_events_returns_events() -> None:
             plot_id=10,
             user_id=1,
             source="qr",
+            estimated_weight_grams=12.3,
             created_at=now,
             undo_window_expires_at=now + timedelta(seconds=30),
         ),
@@ -312,6 +337,7 @@ def test_build_plot_event_summary_returns_expected_rows() -> None:
         SimpleNamespace(
             plot_id=10,
             plant_id=1,
+            estimated_weight_grams=2.5,
             undone_at=None,
             plot=SimpleNamespace(name="P1"),
             plant=SimpleNamespace(label="A1"),
@@ -319,6 +345,7 @@ def test_build_plot_event_summary_returns_expected_rows() -> None:
         SimpleNamespace(
             plot_id=10,
             plant_id=2,
+            estimated_weight_grams=1.0,
             undone_at=None,
             plot=SimpleNamespace(name="P1"),
             plant=SimpleNamespace(label="A2"),
@@ -326,6 +353,7 @@ def test_build_plot_event_summary_returns_expected_rows() -> None:
         SimpleNamespace(
             plot_id=11,
             plant_id=3,
+            estimated_weight_grams=8.0,
             undone_at=datetime.datetime.now(tz=timezone.utc),
             plot=SimpleNamespace(name="P2"),
             plant=SimpleNamespace(label="B1"),
@@ -335,6 +363,7 @@ def test_build_plot_event_summary_returns_expected_rows() -> None:
         SimpleNamespace(
             plot_id=10,
             plant_id=1,
+            estimated_weight_grams=2.5,
             undone_at=None,
             plot=SimpleNamespace(name="P1"),
             plant=SimpleNamespace(label="A1"),
@@ -342,6 +371,7 @@ def test_build_plot_event_summary_returns_expected_rows() -> None:
         SimpleNamespace(
             plot_id=10,
             plant_id=1,
+            estimated_weight_grams=1.8,
             undone_at=None,
             plot=SimpleNamespace(name="P1"),
             plant=SimpleNamespace(label="A1"),
@@ -349,6 +379,7 @@ def test_build_plot_event_summary_returns_expected_rows() -> None:
         SimpleNamespace(
             plot_id=10,
             plant_id=2,
+            estimated_weight_grams=1.0,
             undone_at=None,
             plot=SimpleNamespace(name="P1"),
             plant=SimpleNamespace(label="A2"),
@@ -359,6 +390,6 @@ def test_build_plot_event_summary_returns_expected_rows() -> None:
 
     assert len(summary) == 1
     assert summary[0]["plot_name"] == "P1"
-    assert summary[0]["campaign_total"] == 2
-    assert summary[0]["historical_total"] == 3
-    assert summary[0]["top_plants"][0] == ("A1", 2)
+    assert summary[0]["campaign_total"] == 3.5
+    assert summary[0]["historical_total"] == 5.3
+    assert summary[0]["top_plants"][0] == ("A1", 4.3)

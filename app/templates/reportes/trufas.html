@@ -56,21 +56,21 @@
                     <thead>
                         <tr>
                             <th>{{ _("Parcela") }}</th>
-                            <th>{{ _("Total campaña") }}</th>
-                            <th>{{ _("Total histórico") }}</th>
-                            <th>{{ _("Top plantas") }}</th>
+                            <th>{{ _("Total campaña (g)") }}</th>
+                            <th>{{ _("Total histórico (g)") }}</th>
+                            <th>{{ _("Top plantas (g)") }}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for s in summary_rows %}
                         <tr>
                             <td>{{ s.plot_name }}</td>
-                            <td>{{ s.campaign_total }}</td>
-                            <td>{{ s.historical_total }}</td>
+                            <td>{{ '%.1f'|format(s.campaign_total) }}</td>
+                            <td>{{ '%.1f'|format(s.historical_total) }}</td>
                             <td>
                                 {% if s.top_plants %}
-                                    {% for label, count in s.top_plants %}
-                                    <span class="badge text-bg-light border me-1">{{ label }}: {{ count }}</span>
+                                    {% for label, grams in s.top_plants %}
+                                    <span class="badge text-bg-light border me-1">{{ label }}: {{ '%.1f'|format(grams) }} g</span>
                                     {% endfor %}
                                 {% else %}
                                     <span class="text-muted">—</span>
@@ -91,6 +91,7 @@
                         <th>{{ _("Fecha") }}</th>
                         <th>{{ _("Parcela") }}</th>
                         <th>{{ _("Planta") }}</th>
+                        <th>{{ _("Peso (g)") }}</th>
                         <th>{{ _("Origen") }}</th>
                         <th class="text-center">{{ _("Acciones") }}</th>
                     </tr>
@@ -101,6 +102,7 @@
                         <td>{{ e.created_at.strftime('%d/%m/%Y %H:%M:%S') if e.created_at else '—' }}</td>
                         <td>{{ e.plot.name if e.plot else e.plot_id }}</td>
                         <td>{{ e.plant.label if e.plant else e.plant_id }}</td>
+                        <td>{{ '%.1f'|format(e.estimated_weight_grams if e.estimated_weight_grams is defined and e.estimated_weight_grams is not none else 0.0) }}</td>
                         <td><span class="badge text-bg-secondary">{{ e.source }}</span></td>
                         <td class="text-center">
                             <form method="post"
@@ -118,7 +120,7 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="5" class="text-center py-4 text-muted">{{ _("Sin eventos para los filtros seleccionados") }}</td>
+                        <td colspan="6" class="text-center py-4 text-muted">{{ _("Sin eventos para los filtros seleccionados") }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>

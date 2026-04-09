@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, String
+from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -30,6 +30,10 @@ class TruffleEvent(Base):
     )
     # "manual" | "qr"
     source: Mapped[str] = mapped_column(String(10), nullable=False, default="manual")
+    # Approximate harvested weight (grams) for this event
+    estimated_weight_grams: Mapped[float] = mapped_column(
+        Float, nullable=False, default=1.0
+    )
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )

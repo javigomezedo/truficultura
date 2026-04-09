@@ -175,6 +175,7 @@ async def add_truffle_event(
     plot_id: int,
     plant_id: int,
     campaign: Optional[str] = Form(default=None),
+    estimated_weight_grams: float = Form(default=1.0),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_user),
 ):
@@ -184,11 +185,14 @@ async def add_truffle_event(
             f"/plots/{plot_id}/map?msg=Planta+no+encontrada", status_code=303
         )
 
+    weight = max(0.1, min(float(estimated_weight_grams), 5000.0))
+
     await truffle_events_service.create_event(
         db,
         plant_id=plant_id,
         plot_id=plot_id,
         user_id=current_user.id,
+        estimated_weight_grams=weight,
         source="manual",
     )
 
