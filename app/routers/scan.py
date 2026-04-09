@@ -82,7 +82,7 @@ async def scan_qr(
 async def scan_qr_submit(
     request: Request,
     token: str,
-    quantity: int = Form(1),
+    estimated_weight_grams: float = Form(...),
     db: AsyncSession = Depends(get_db),
 ):
     plant_id = verify_plant_token(token)
@@ -107,17 +107,16 @@ async def scan_qr_submit(
             status_code=404,
         )
 
-    qty = max(1, min(quantity, 500))
-    last_event = None
-    for _ in range(qty):
-        last_event = await truffle_events_service.create_event(
-            db,
-            plant_id=plant.id,
-            plot_id=plant.plot_id,
-            user_id=request.session["user_id"],
-            source="qr",
-            dedupe_window_seconds=0,
-        )
+    estimated_weight = max(1.0, min(float(estimated_weight_grams), 5000.0))
+    last_event = await truffle_events_service.create_event(
+        db,
+        plant_id=plant.id,
+        plot_id=plant.plot_id,
+        user_id=request.session["user_id"],
+        estimated_weight_grams=estimated_weight,
+        source="qr",
+        dedupe_window_seconds=0,
+    )
 
     request.session.pop("pending_scan", None)
 
@@ -128,6 +127,6 @@ async def scan_qr_submit(
             "request": request,
             "plant": plant,
             "event": last_event,
-            "quantity": qty,
+            "estimated_weight_grams": estimated_weight,
         },
     )

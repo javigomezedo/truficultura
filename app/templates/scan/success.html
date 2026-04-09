@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 
-{% block title %}{{ _("Trufas registradas") }}{% endblock %}
+{% block title %}{{ _("Peso de trufa registrado") }}{% endblock %}
 
 {% block content %}
 <div class="container py-5">
     <div class="card tf-panel border-0 shadow-sm">
         <div class="card-body">
-            <h1 class="h3"><i class="bi bi-check-circle-fill text-success me-2"></i>{{ _("Trufas registradas") }}</h1>
+            <h1 class="h3"><i class="bi bi-check-circle-fill text-success me-2"></i>{{ _("Peso de trufa registrado") }}</h1>
             <p>{{ _("Planta") }}: <strong>{{ plant.label }}</strong></p>
             <p>{{ _("Parcela") }}: <strong>{{ plant.plot_id }}</strong></p>
-            <p>{{ _("Cantidad") }}: <strong>{{ quantity if quantity is defined else 1 }}</strong></p>
+            <p>{{ _("Peso orientativo") }}: <strong>{{ estimated_weight_grams if estimated_weight_grams is defined else (event.estimated_weight_grams if event.estimated_weight_grams is defined else 0) }} g</strong></p>
             <p class="text-muted">{{ event.created_at.strftime('%d/%m/%Y %H:%M:%S') if event.created_at else '' }}</p>
             <div class="d-flex gap-2">
                 <a href="{{ request.url.path }}" class="btn btn-outline-primary">{{ _("Registrar más en esta planta") }}</a>
