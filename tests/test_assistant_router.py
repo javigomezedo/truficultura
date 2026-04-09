@@ -93,6 +93,70 @@ def test_chat_returns_response_for_datos_intent(monkeypatch) -> None:
     assert response.json()["intent"] == "datos"
 
 
+def test_stream_requires_authentication() -> None:
+    client = TestClient(app, follow_redirects=False)
+    response = client.post("/api/assistant/stream", json={"message": "Hola"})
+    assert response.status_code == 303
+    assert "/login" in response.headers["location"]
+
+
+def test_stream_returns_sse_payload(monkeypatch) -> None:
+    async def fake_stream(messages):
+        yield "Hola"
+        yield " mundo"
+
+    fake_adapter = MagicMock()
+    fake_adapter.stream = fake_stream
+
+    monkeypatch.setattr(
+        "app.routers.assistant.prepare_chat_context",
+        AsyncMock(
+            return_value={
+                "intent": "uso",
+                "messages": [{"role": "system", "content": "ctx"}],
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        "app.routers.assistant._get_adapter",
+        MagicMock(return_value=fake_adapter),
+    )
+
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = lambda: _db()
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/api/assistant/stream",
+            json={"message": "¿Cómo doy de alta una parcela?"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/event-stream")
+    assert '"type": "ready"' in response.text
+    assert '"intent": "uso"' in response.text
+    assert '"type": "token"' in response.text
+    assert '"type": "done"' in response.text
+
+
+def test_stream_returns_503_when_api_key_missing(monkeypatch) -> None:
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "OPENAI_API_KEY", None)
+
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = lambda: _db()
+    try:
+        client = TestClient(app)
+        response = client.post("/api/assistant/stream", json={"message": "Hola"})
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 503
+
+
 def test_chat_returns_503_when_api_key_missing(monkeypatch) -> None:
     from app.config import settings
 

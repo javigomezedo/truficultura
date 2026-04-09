@@ -8,7 +8,12 @@ import pytest
 from app.models.expense import Expense
 from app.models.income import Income
 from app.models.plot import Plot
-from app.services.assistant_service import _classify_intent, _compose_messages, chat
+from app.services.assistant_service import (
+    _classify_intent,
+    _compose_messages,
+    chat,
+    prepare_chat_context,
+)
 from app.services.llm_adapter import LLMAdapter
 from tests.conftest import result
 
@@ -191,3 +196,36 @@ async def test_chat_history_is_forwarded_to_adapter() -> None:
     assert "system" in roles
     assert call_messages[1]["content"] == "Hola"
     assert call_messages[2]["content"] == "¿En qué te ayudo?"
+
+
+@pytest.mark.asyncio
+async def test_prepare_chat_context_uso_does_not_query_db() -> None:
+    db = MagicMock()
+    db.execute = AsyncMock()
+
+    data = await prepare_chat_context(
+        db=db,
+        user_id=2,
+        message="¿Cómo funciona el riego?",
+        history=[],
+    )
+
+    assert data["intent"] == "uso"
+    assert len(data["messages"]) >= 2
+    db.execute.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_prepare_chat_context_datos_queries_db() -> None:
+    db = MagicMock()
+    db.execute = AsyncMock(side_effect=[result([]), result([]), result([])])
+
+    data = await prepare_chat_context(
+        db=db,
+        user_id=2,
+        message="¿Cuáles son mis parcelas?",
+        history=[],
+    )
+
+    assert data["intent"] == "datos"
+    assert db.execute.call_count == 3

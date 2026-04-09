@@ -160,10 +160,22 @@ async def chat(
     adapter: LLMAdapter,
 ) -> dict:
     """Orchestrate an assistant response: classify intent, build context, call LLM."""
+    context = await prepare_chat_context(db, user_id, message, history)
+    messages = context["messages"]
+    response = await adapter.complete(messages)
+    return {"response": response, "intent": context["intent"]}
+
+
+async def prepare_chat_context(
+    db: AsyncSession,
+    user_id: int,
+    message: str,
+    history: list[dict],
+) -> dict:
+    """Build validated intent + prompt messages for complete/stream chat flows."""
     intent = _classify_intent(message)
     user_ctx = ""
     if intent == "datos":
         user_ctx = await _build_user_context(db, user_id)
     messages = _compose_messages(message, history, user_ctx)
-    response = await adapter.complete(messages)
-    return {"response": response, "intent": intent}
+    return {"intent": intent, "messages": messages}

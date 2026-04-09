@@ -184,6 +184,48 @@
         <span>Truficultura &mdash; {{ _("Gestión de explotación trufícola") }}</span>
     </footer>
 
+    {% if request.session.get("username") %}
+    <button type="button"
+            class="btn btn-primary tf-assistant-launch"
+            data-bs-toggle="offcanvas"
+            data-bs-target="#assistantPanel"
+            aria-controls="assistantPanel"
+            aria-label="{{ _('Abrir asistente') }}">
+        <i class="bi bi-chat-dots-fill me-1"></i>{{ _("Asistente") }}
+    </button>
+
+    <div class="offcanvas offcanvas-end tf-assistant-offcanvas" tabindex="-1" id="assistantPanel" aria-labelledby="assistantPanelLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="assistantPanelLabel">
+                <i class="bi bi-chat-square-text-fill me-2"></i>{{ _("Asistente Truficultura") }}
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="{{ _('Cerrar') }}"></button>
+        </div>
+        <div class="offcanvas-body tf-assistant-body">
+            <p class="tf-assistant-helper mb-2">
+                {{ _("Pregúntame sobre uso de la app y sobre tus datos (modo lectura).") }}
+            </p>
+            <div class="tf-assistant-messages" id="assistantMessages" aria-live="polite"></div>
+            <form id="assistantForm" class="tf-assistant-form" autocomplete="off">
+                <label for="assistantInput" class="form-label mb-1">{{ _("Tu pregunta") }}</label>
+                <textarea id="assistantInput"
+                          class="form-control"
+                          rows="3"
+                          maxlength="1000"
+                          placeholder="{{ _('Ejemplo: ¿Cuál fue mi mejor campaña y por qué?') }}"></textarea>
+                <div class="d-flex gap-2 mt-2">
+                    <button type="submit" class="btn btn-primary btn-sm" id="assistantSendBtn">
+                        <i class="bi bi-send-fill me-1"></i>{{ _("Preguntar") }}
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="assistantCancelBtn" disabled>
+                        <i class="bi bi-x-circle me-1"></i>{{ _("Cancelar") }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Modal de confirmación de borrado -->
     <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -217,6 +259,9 @@
             integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2XoQrxeTUQyRjrOnlCoYta87iKBWq3EsdM2"
             crossorigin="anonymous"></script>
     <script src="/static/js/app.js"></script>
+    {% if request.session.get("username") %}
+    <script src="/static/js/assistant.js"></script>
+    {% endif %}
 
     {% block extra_scripts %}{% endblock %}
     </div>
