@@ -303,7 +303,7 @@ def test_list_truffle_events_renders(monkeypatch) -> None:
         app.dependency_overrides.clear()
 
     assert response.status_code == 200
-    assert "Eventos de trufas" in response.text
+    assert "Producción" in response.text
     assert 'name="camp"' in response.text
     assert 'name="plant_id"' in response.text
     assert 'onchange="this.form.submit()"' in response.text

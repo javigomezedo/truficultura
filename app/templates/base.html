@@ -68,15 +68,9 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if '/expenses' in request.url.path %}active{% endif %}"
-                           href="/expenses/">
-                            <i class="bi bi-arrow-down-circle-fill text-danger"></i> {{ _("Gastos") }}
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if '/incomes' in request.url.path %}active{% endif %}"
-                           href="/incomes/">
-                            <i class="bi bi-arrow-up-circle-fill text-success"></i> {{ _("Ingresos") }}
+                        <a class="nav-link {% if '/truffles' in request.url.path %}active{% endif %}"
+                           href="/truffles/">
+                            <i class="bi bi-grid-3x3-gap-fill"></i> {{ _("Producción") }}
                         </a>
                     </li>
                     <li class="nav-item">
@@ -86,9 +80,15 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if '/truffles' in request.url.path %}active{% endif %}"
-                           href="/truffles/">
-                            <i class="bi bi-grid-3x3-gap-fill"></i> {{ _("Trufas") }}
+                        <a class="nav-link {% if '/incomes' in request.url.path %}active{% endif %}"
+                           href="/incomes/">
+                            <i class="bi bi-arrow-up-circle-fill text-success"></i> {{ _("Ingresos") }}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if '/expenses' in request.url.path %}active{% endif %}"
+                           href="/expenses/">
+                            <i class="bi bi-arrow-down-circle-fill text-danger"></i> {{ _("Gastos") }}
                         </a>
                     </li>
                     <li class="nav-item">
@@ -125,34 +125,32 @@
                     {% endif %}
                 </ul>
                 <div class="d-flex align-items-center gap-2 ms-lg-3 tf-navbar-meta">
-                    <div class="tf-theme-switcher">
-                        <div class="dropdown">
-                            <button class="btn btn-outline-light btn-sm dropdown-toggle tf-theme-toggle-icon"
-                                    type="button"
-                                    data-bs-toggle="dropdown"
-                                    aria-expanded="false"
-                                    aria-label="{{ _('Cambiar estilo visual') }}"
-                                    title="{{ _('Cambiar estilo visual') }}">
-                                <i class="bi bi-palette-fill"></i>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li>
-                                    <button type="button" class="dropdown-item tf-theme-menu-item" data-theme-button="terracota-editorial" aria-label="{{ _('Terracota Editorial') }}">
-                                        <span class="tf-theme-dot tf-theme-dot-terracota me-2"></span>{{ _("Terracota Editorial") }}
-                                    </button>
-                                </li>
-                                <li>
-                                    <button type="button" class="dropdown-item tf-theme-menu-item" data-theme-button="piedra-y-olivo" aria-label="{{ _('Piedra y Olivo') }}">
-                                        <span class="tf-theme-dot tf-theme-dot-piedra me-2"></span>{{ _("Piedra y Olivo") }}
-                                    </button>
-                                </li>
-                                <li>
-                                    <button type="button" class="dropdown-item tf-theme-menu-item" data-theme-button="bodega-tecnica" aria-label="{{ _('Bodega Técnica') }}">
-                                        <span class="tf-theme-dot tf-theme-dot-bodega me-2"></span>{{ _("Bodega Técnica") }}
-                                    </button>
-                                </li>
-                            </ul>
-                        </div>
+                    <div class="dropdown tf-navbar-theme-dropdown">
+                        <button class="btn btn-outline-light btn-sm dropdown-toggle tf-theme-toggle-icon"
+                                type="button"
+                                data-bs-toggle="dropdown"
+                                aria-expanded="false"
+                                aria-label="{{ _('Cambiar estilo visual') }}"
+                                title="{{ _('Cambiar estilo visual') }}">
+                            <i class="bi bi-palette-fill"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <button type="button" class="dropdown-item tf-theme-menu-item" data-theme-button="terracota-editorial" aria-label="{{ _('Terracota Editorial') }}">
+                                    <span class="tf-theme-dot tf-theme-dot-terracota me-2"></span>{{ _("Terracota Editorial") }}
+                                </button>
+                            </li>
+                            <li>
+                                <button type="button" class="dropdown-item tf-theme-menu-item" data-theme-button="piedra-y-olivo" aria-label="{{ _('Piedra y Olivo') }}">
+                                    <span class="tf-theme-dot tf-theme-dot-piedra me-2"></span>{{ _("Piedra y Olivo") }}
+                                </button>
+                            </li>
+                            <li>
+                                <button type="button" class="dropdown-item tf-theme-menu-item" data-theme-button="bodega-tecnica" aria-label="{{ _('Bodega Técnica') }}">
+                                    <span class="tf-theme-dot tf-theme-dot-bodega me-2"></span>{{ _("Bodega Técnica") }}
+                                </button>
+                            </li>
+                        </ul>
                     </div>
                 {% if request.session.get("username") %}
                     <span class="navbar-text text-light small tf-navbar-user">

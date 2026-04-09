@@ -147,6 +147,13 @@ a:hover {
     min-width: 0;
 }
 
+.tf-navbar-theme-dropdown {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 0.35rem;
+    margin-right: 0.35rem;
+}
+
 .tf-navbar-user {
     display: inline-flex;
     align-items: center;
@@ -678,6 +685,12 @@ a:hover {
     background: rgba(255, 250, 243, 0.14);
 }
 
+.tf-navbar .tf-theme-switcher {
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
 .tf-theme-switcher-label,
 .tf-theme-floating label {
     margin: 0;
@@ -1058,6 +1071,11 @@ footer.tf-footer {
         max-width: 100%;
     }
 
+    .tf-navbar-theme-dropdown {
+        margin-left: 0;
+        margin-right: 0;
+    }
+
     .tf-theme-switcher {
         width: 100%;
         margin-top: 0.75rem;
@@ -1106,7 +1124,7 @@ footer.tf-footer {
     }
 
     .tf-navbar .tf-theme-switcher {
-        padding-left: 0.38rem;
+        padding-left: 0;
     }
 
     .tf-navbar-user {
