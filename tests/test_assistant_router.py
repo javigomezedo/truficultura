@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 from fastapi.testclient import TestClient
+from fastapi import HTTPException
 
 from app.auth import require_user
 from app.database import get_db
@@ -196,3 +197,41 @@ def test_chat_rejects_message_over_1000_chars() -> None:
         app.dependency_overrides.clear()
 
     assert response.status_code == 422
+
+
+def test_chat_returns_429_when_rate_limited(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.routers.assistant._enforce_rate_limit",
+        MagicMock(
+            side_effect=HTTPException(status_code=429, detail="Límite alcanzado")
+        ),
+    )
+
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = lambda: _db()
+    try:
+        client = TestClient(app)
+        response = client.post("/api/assistant/chat", json={"message": "Hola"})
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 429
+
+
+def test_stream_returns_429_when_rate_limited(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.routers.assistant._enforce_rate_limit",
+        MagicMock(
+            side_effect=HTTPException(status_code=429, detail="Límite alcanzado")
+        ),
+    )
+
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = lambda: _db()
+    try:
+        client = TestClient(app)
+        response = client.post("/api/assistant/stream", json={"message": "Hola"})
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 429

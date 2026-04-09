@@ -103,6 +103,13 @@ _DATA_PATTERNS = [
     re.compile(r"\b(mejor|peor)\b.*\b(campana|parcela)\b"),
 ]
 
+_PROMPT_INJECTION_PATTERNS = [
+    re.compile(r"ignora (todas )?las instrucciones", re.IGNORECASE),
+    re.compile(r"olvida (todo|las reglas)", re.IGNORECASE),
+    re.compile(r"actua como", re.IGNORECASE),
+    re.compile(r"system prompt", re.IGNORECASE),
+]
+
 
 def _normalize_text(value: str) -> str:
     normalized = unicodedata.normalize("NFD", value)
@@ -114,6 +121,21 @@ def _normalize_text(value: str) -> str:
 
 def _format_eur(value: float) -> str:
     return f"{value:.2f}€"
+
+
+def _sanitize_user_message(message: str) -> str:
+    """Apply light prompt hardening and strip control characters.
+
+    We keep semantics intact while removing common jailbreak phrases and
+    unsupported non-printable chars.
+    """
+    clean = "".join(ch for ch in message if ch.isprintable() or ch in {"\n", "\t"})
+    clean = clean.strip()
+    for pattern in _PROMPT_INJECTION_PATTERNS:
+        clean = pattern.sub("", clean)
+    # Collapse excessive whitespace after substitutions.
+    clean = re.sub(r"\s+", " ", clean).strip()
+    return clean
 
 
 def _classify_intent(message: str) -> str:
@@ -307,9 +329,10 @@ async def prepare_chat_context(
     history: list[dict],
 ) -> dict:
     """Build validated intent + prompt messages for complete/stream chat flows."""
-    intent = _classify_intent(message)
+    safe_message = _sanitize_user_message(message)
+    intent = _classify_intent(safe_message)
     user_ctx = ""
     if intent == "datos":
         user_ctx = await _build_user_context(db, user_id)
-    messages = _compose_messages(message, history, user_ctx)
+    messages = _compose_messages(safe_message, history, user_ctx)
     return {"intent": intent, "messages": messages}
