@@ -7,6 +7,7 @@ import pytest
 
 from app.models.expense import Expense
 from app.models.income import Income
+from app.models.irrigation import IrrigationRecord
 from app.models.plot import Plot
 from app.services.assistant_service import (
     _classify_intent,
@@ -43,6 +44,14 @@ def test_classify_intent_uso_campaign() -> None:
 
 def test_classify_intent_uso_irrigation() -> None:
     assert _classify_intent("¿Cómo funciona el riego?") == "uso"
+
+
+def test_classify_intent_datos_with_total_question() -> None:
+    assert _classify_intent("¿Cuánto he gastado en total?") == "datos"
+
+
+def test_classify_intent_uso_for_how_to_register() -> None:
+    assert _classify_intent("¿Cómo registrar un gasto?") == "uso"
 
 
 # ── Message composition ────────────────────────────────────────────────────
@@ -117,6 +126,13 @@ async def test_chat_datos_queries_db_with_user_id() -> None:
         description="Labrado",
         user_id=1,
     )
+    irrigation = IrrigationRecord(
+        id=1,
+        plot_id=1,
+        date=datetime.date(2025, 8, 1),
+        water_m3=120.0,
+        user_id=1,
+    )
 
     db = MagicMock()
     db.execute = AsyncMock(
@@ -124,6 +140,7 @@ async def test_chat_datos_queries_db_with_user_id() -> None:
             result([plot]),  # plots query
             result([income]),  # incomes query
             result([expense]),  # expenses query
+            result([irrigation]),  # irrigation query
         ]
     )
 
@@ -138,21 +155,27 @@ async def test_chat_datos_queries_db_with_user_id() -> None:
         adapter=adapter,
     )
 
-    assert db.execute.call_count == 3
+    assert db.execute.call_count == 4
     assert result_data["intent"] == "datos"
     adapter.complete.assert_awaited_once()
+
+    for awaited in db.execute.await_args_list:
+        statement = awaited.args[0]
+        assert "user_id" in str(statement)
 
     # User context (with plot name and campaign) must appear in the system message
     call_messages = adapter.complete.call_args[0][0]
     system_content = call_messages[0]["content"]
     assert "Norte" in system_content
     assert "2025/26" in system_content
+    assert "Resumen global" in system_content
+    assert "Riego total registrado" in system_content
 
 
 @pytest.mark.asyncio
 async def test_chat_datos_no_records_returns_graceful_context() -> None:
     db = MagicMock()
-    db.execute = AsyncMock(side_effect=[result([]), result([]), result([])])
+    db.execute = AsyncMock(side_effect=[result([]), result([]), result([]), result([])])
 
     adapter = MagicMock(spec=LLMAdapter)
     adapter.complete = AsyncMock(return_value="Sin datos aún.")
@@ -218,7 +241,7 @@ async def test_prepare_chat_context_uso_does_not_query_db() -> None:
 @pytest.mark.asyncio
 async def test_prepare_chat_context_datos_queries_db() -> None:
     db = MagicMock()
-    db.execute = AsyncMock(side_effect=[result([]), result([]), result([])])
+    db.execute = AsyncMock(side_effect=[result([]), result([]), result([]), result([])])
 
     data = await prepare_chat_context(
         db=db,
@@ -228,4 +251,4 @@ async def test_prepare_chat_context_datos_queries_db() -> None:
     )
 
     assert data["intent"] == "datos"
-    assert db.execute.call_count == 3
+    assert db.execute.call_count == 4

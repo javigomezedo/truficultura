@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+import unicodedata
 from collections import defaultdict
 
 from sqlalchemy import select
@@ -7,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.expense import Expense
 from app.models.income import Income
+from app.models.irrigation import IrrigationRecord
 from app.models.plot import Plot
 from app.services.llm_adapter import LLMAdapter
 from app.utils import campaign_label, campaign_year
@@ -55,29 +58,80 @@ MULTI-USUARIO:
 _DATA_KEYWORDS = {
     "mi ",
     "mis ",
-    "mío",
-    "mía",
-    "cuánto he",
-    "cuánto tengo",
-    "cuánto llevo",
-    "cuál fue mi",
-    "cuál es mi",
-    "cuáles son mis",
+    "mio",
+    "mia",
+    "cuanto he",
+    "cuanto tengo",
+    "cuanto llevo",
+    "cual fue mi",
+    "cual es mi",
+    "cuales son mis",
     "mi mejor",
     "mi peor",
-    "mejor campaña",
-    "peor campaña",
+    "mejor campana",
+    "peor campana",
     "mis datos",
     "mi rentabilidad",
+    "cuanto he ganado",
+    "cuanto he gastado",
+    "cuantas parcelas tengo",
+    "mis ingresos",
+    "mis gastos",
+    "mi produccion",
+    "mis riegos",
 }
+
+_USAGE_KEYWORDS = {
+    "como",
+    "donde",
+    "que es",
+    "pasos",
+    "funciona",
+    "dar de alta",
+    "crear",
+    "registrar",
+    "importar",
+    "exportar",
+    "menu",
+    "pantalla",
+}
+
+_DATA_PATTERNS = [
+    re.compile(
+        r"\b(cuanto|cuantos|cual|cuales)\b.*\b(tengo|he|llevo|fue|es|han sido)\b"
+    ),
+    re.compile(r"\b(mejor|peor)\b.*\b(campana|parcela)\b"),
+]
+
+
+def _normalize_text(value: str) -> str:
+    normalized = unicodedata.normalize("NFD", value)
+    without_accents = "".join(
+        ch for ch in normalized if unicodedata.category(ch) != "Mn"
+    )
+    return without_accents.lower().strip()
+
+
+def _format_eur(value: float) -> str:
+    return f"{value:.2f}€"
 
 
 def _classify_intent(message: str) -> str:
     """Return 'datos' if the query is about the user's own data, else 'uso'."""
-    lowered = message.lower()
+    lowered = _normalize_text(message)
+
+    for pattern in _DATA_PATTERNS:
+        if pattern.search(lowered):
+            return "datos"
+
     for kw in _DATA_KEYWORDS:
         if kw in lowered:
             return "datos"
+
+    for kw in _USAGE_KEYWORDS:
+        if kw in lowered:
+            return "uso"
+
     return "uso"
 
 
@@ -100,13 +154,51 @@ async def _build_user_context(db: AsyncSession, user_id: int) -> str:
     )
     expenses = expenses_result.scalars().all()
 
+    irrigation_result = await db.execute(
+        select(IrrigationRecord).where(IrrigationRecord.user_id == user_id)
+    )
+    irrigations = irrigation_result.scalars().all()
+
+    if not plots and not incomes and not expenses and not irrigations:
+        return "Sin datos registrados aún."
+
     income_by_campaign: dict[int, float] = defaultdict(float)
+    income_by_plot: dict[int | None, float] = defaultdict(float)
     for inc in incomes:
-        income_by_campaign[campaign_year(inc.date)] += inc.total
+        total = inc.total
+        income_by_campaign[campaign_year(inc.date)] += total
+        income_by_plot[inc.plot_id] += total
 
     expense_by_campaign: dict[int, float] = defaultdict(float)
+    expense_by_plot: dict[int | None, float] = defaultdict(float)
+    unassigned_expenses_total = 0.0
     for exp in expenses:
-        expense_by_campaign[campaign_year(exp.date)] += exp.amount
+        amount = exp.amount
+        expense_by_campaign[campaign_year(exp.date)] += amount
+        expense_by_plot[exp.plot_id] += amount
+        if exp.plot_id is None:
+            unassigned_expenses_total += amount
+
+    irrigation_by_campaign: dict[int, float] = defaultdict(float)
+    irrigation_by_plot: dict[int, float] = defaultdict(float)
+    for record in irrigations:
+        water = record.water_m3
+        irrigation_by_campaign[campaign_year(record.date)] += water
+        irrigation_by_plot[record.plot_id] += water
+
+    per_plot_rows: list[tuple[int, str, float, float, float]] = []
+    for plot in plots:
+        incomes_plot = income_by_plot.get(plot.id, 0.0)
+        expenses_plot = expense_by_plot.get(plot.id, 0.0)
+        profitability = incomes_plot - expenses_plot
+        per_plot_rows.append(
+            (plot.id, plot.name, incomes_plot, expenses_plot, profitability)
+        )
+
+    total_incomes = sum(inc.total for inc in incomes)
+    total_expenses = sum(exp.amount for exp in expenses)
+    total_irrigation = sum(r.water_m3 for r in irrigations)
+    total_profitability = total_incomes - total_expenses
 
     lines: list[str] = []
     if plots:
@@ -116,19 +208,61 @@ async def _build_user_context(db: AsyncSession, user_id: int) -> str:
             f"Parcelas ({len(plots)}): {names}. Total plantas: {total_plants}."
         )
 
+    lines.append(
+        "Resumen global: "
+        f"ingresos {_format_eur(total_incomes)} | "
+        f"gastos {_format_eur(total_expenses)} | "
+        f"rentabilidad {_format_eur(total_profitability)} | "
+        f"gastos generales {_format_eur(unassigned_expenses_total)}."
+    )
+
+    if total_irrigation > 0:
+        lines.append(f"Riego total registrado: {total_irrigation:.2f} m3.")
+
     all_years = sorted(
-        set(list(income_by_campaign.keys()) + list(expense_by_campaign.keys())),
+        set(
+            list(income_by_campaign.keys())
+            + list(expense_by_campaign.keys())
+            + list(irrigation_by_campaign.keys())
+        ),
         reverse=True,
     )
     if all_years:
         lines.append("Resumen por campaña (valores agregados):")
+
+        campaign_profitability: list[tuple[int, float]] = []
         for year in all_years:
             inc = income_by_campaign.get(year, 0.0)
             exp = expense_by_campaign.get(year, 0.0)
             profit = inc - exp
+            water = irrigation_by_campaign.get(year, 0.0)
+            campaign_profitability.append((year, profit))
             lines.append(
-                f"  {campaign_label(year)}: ingresos {inc:.2f}€ | "
-                f"gastos {exp:.2f}€ | rentabilidad {profit:.2f}€"
+                f"  {campaign_label(year)}: ingresos {_format_eur(inc)} | "
+                f"gastos {_format_eur(exp)} | rentabilidad {_format_eur(profit)}"
+                + (f" | riego {water:.2f} m3" if water > 0 else "")
+            )
+
+        best_year, best_value = max(campaign_profitability, key=lambda item: item[1])
+        worst_year, worst_value = min(campaign_profitability, key=lambda item: item[1])
+        lines.append(
+            "Campañas destacadas: "
+            f"mejor {campaign_label(best_year)} ({_format_eur(best_value)}), "
+            f"peor {campaign_label(worst_year)} ({_format_eur(worst_value)})."
+        )
+
+    if per_plot_rows:
+        lines.append("Resumen por parcela (gastos directos):")
+        for plot_id, name, inc, exp, profitability in sorted(
+            per_plot_rows,
+            key=lambda row: row[4],
+            reverse=True,
+        )[:3]:
+            water = irrigation_by_plot.get(plot_id, 0.0)
+            lines.append(
+                f"  {name}: ingresos {_format_eur(inc)} | gastos {_format_eur(exp)} | "
+                f"rentabilidad {_format_eur(profitability)}"
+                + (f" | riego {water:.2f} m3" if water > 0 else "")
             )
 
     return "\n".join(lines) if lines else "Sin datos registrados aún."
