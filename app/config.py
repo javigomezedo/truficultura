@@ -1,3 +1,4 @@
+from typing import Optional
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -6,6 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://user:password@localhost:5432/truficultura"
     SECRET_KEY: str = "change-me-in-production-please"
+    OPENAI_API_KEY: Optional[str] = None
 
     @property
     def SQLALCHEMY_DATABASE_URL(self) -> str:
