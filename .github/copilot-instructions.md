@@ -40,9 +40,9 @@ When adding a feature: create/extend the service first, then wire up the router.
 
 ## Key Business Rules
 
-### Agricultural campaign (April–March)
+### Agricultural campaign (May-April)
 - `campaign_year(date)` → `app/utils.py`: returns the campaign start year.
-  - April 2025 → 2025; February 2026 → **2025** (not 2026).
+  - May 2025 → 2025; April 2026 → **2025** (not 2026).
 - `campaign_label(year)` formats as `"2025/26"`.
 - Always use these helpers; never inline the logic.
 
