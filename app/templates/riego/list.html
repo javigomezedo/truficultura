@@ -129,7 +129,7 @@
                                 {{ r.water_m3|format_eu(3) }}
                             </td>
                             <td class="text-end text-muted">
-                                {{ r.water_m3 * 1000|format_eu(1) }}
+                                {{ (r.water_m3 * 1000)|format_eu(1) }}
                             </td>
                             <td>
                                 {% if r.expense %}
