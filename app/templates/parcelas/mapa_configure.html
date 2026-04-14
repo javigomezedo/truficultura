@@ -23,21 +23,51 @@
     <div class="card tf-panel border-0 shadow-sm">
         <div class="card-body">
             <form method="post" action="/plots/{{ plot.id }}/map/configure" class="row g-3">
-                <div class="col-md-8">
+                <div class="col-12">
                     <label class="form-label">{{ _("Configuración de filas") }}</label>
                     <input id="row-config-input" class="form-control" name="row_config" placeholder="A:2-5,8; B:1,3,4" value="{{ row_config_value if row_config_value else '' }}" {% if has_events %}disabled{% endif %}>
                     <div class="form-text">{{ _("Formato por fila: A:2-5,8; B:1,3,4. El formato antiguo ya no está disponible.") }}</div>
                 </div>
+
+                <div class="col-12">
+                    <div class="tf-map-editor-card border rounded-3 p-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+                            <div>
+                                <h2 class="h6 mb-1">{{ _("Editor visual del mapa") }}</h2>
+                                <p class="mb-0 text-muted small">
+                                    {{ _("Arrastra el borde inferior para cambiar filas y el borde derecho para columnas. Haz clic en una celda para marcarla como hueco.") }}
+                                </p>
+                            </div>
+                            <div id="grid-size-info" class="text-muted small"></div>
+                        </div>
+
+                        <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                            <span class="badge bg-success-subtle text-success">
+                                {{ _("Celda nueva = activa") }}
+                            </span>
+                            <span class="badge bg-secondary-subtle text-secondary">
+                                {{ _("Clic para convertir en hueco") }}
+                            </span>
+                        </div>
+
+                        <div id="grid-error" class="alert alert-danger d-none mb-3" role="alert"></div>
+
+                        <div id="interactive-grid-wrapper" class="tf-map-editor-grid-wrapper{% if has_events %} disabled{% endif %}">
+                            <div id="interactive-grid" class="tf-map-editor-grid"></div>
+                            <div id="grid-handle" class="tf-map-editor-handle" title="{{ _('Arrastra para cambiar el tamaño de la cuadrícula') }}">↔</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-8">
+                    <p class="text-muted small mb-1">{{ _("Consejo: usa el editor visual para dibujar la parcela y el campo de texto para ajustes avanzados.") }}</p>
+                </div>
+
                 <div class="col-md-4 d-flex align-items-end gap-2">
                     <button class="btn btn-success" type="submit" {% if has_events %}disabled{% endif %}>{{ _("Guardar mapa") }}</button>
                     <a class="btn btn-outline-secondary" href="/plots/{{ plot.id }}/map">{{ _("Cancelar") }}</a>
                 </div>
             </form>
-
-            <div class="mt-4">
-                <h2 class="h6">{{ _("Previsualización") }}</h2>
-                <div id="preview-grid" class="d-flex flex-column gap-2"></div>
-            </div>
         </div>
     </div>
 </div>
@@ -45,8 +75,19 @@
 <script>
     (function () {
         var input = document.getElementById("row-config-input");
-        var grid = document.getElementById("preview-grid");
-        if (!input || !grid) return;
+        var grid = document.getElementById("interactive-grid");
+        var wrapper = document.getElementById("interactive-grid-wrapper");
+        var handle = document.getElementById("grid-handle");
+        var sizeInfo = document.getElementById("grid-size-info");
+        var errorBox = document.getElementById("grid-error");
+        if (!input || !grid || !wrapper || !handle || !sizeInfo || !errorBox) return;
+
+        var disabled = input.disabled;
+        var state = {
+            rowColumns: [],
+            rows: 1,
+            cols: 1,
+        };
 
         function rowLabelFromIndex(i) {
             var n = i + 1;
@@ -59,72 +100,339 @@
             return label;
         }
 
-        function renderPreview() {
-            var raw = (input.value || "").trim();
+        function _expandColumnToken(token) {
+            token = token.trim();
+            if (!token) throw new Error("Formato incorrecto");
+            if (token.indexOf("-") >= 0) {
+                var parts = token.split("-", 2);
+                if (parts.length !== 2) throw new Error("Formato incorrecto");
+                var start = parseInt(parts[0].trim(), 10);
+                var end = parseInt(parts[1].trim(), 10);
+                if (Number.isNaN(start) || Number.isNaN(end) || start <= 0 || end <= 0 || end < start) {
+                    throw new Error("Formato incorrecto");
+                }
+                var numbers = [];
+                for (var i = start; i <= end; i += 1) numbers.push(i);
+                return numbers;
+            }
+            var value = parseInt(token, 10);
+            if (Number.isNaN(value) || value <= 0) throw new Error("Formato incorrecto");
+            return [value];
+        }
+
+        function parseRowConfig(raw) {
+            var text = (raw || "").trim();
+            if (!text) throw new Error("Debes definir al menos una fila");
+
+            var chunks = text.split(";").map(function (p) { return p.trim(); }).filter(function (p) { return p.length > 0; });
+            if (chunks.length === 0) throw new Error("Debes definir al menos una fila");
+
             var rows = [];
-
-            var chunks = raw.split(";").map(function (p) { return p.trim(); }).filter(function (p) { return p.length > 0; });
             for (var i = 0; i < chunks.length; i += 1) {
-                var payload = chunks[i];
-                if (payload.indexOf(":") >= 0) payload = payload.split(":", 2)[1].trim();
-                if (!payload) continue;
+                var chunk = chunks[i];
+                var payload = chunk.indexOf(":") >= 0 ? chunk.split(":", 2)[1].trim() : chunk;
+                if (!payload) throw new Error("Formato incorrecto");
 
-                var colsMap = {};
+                var columns = [];
                 var tokens = payload.split(",").map(function (p) { return p.trim(); }).filter(function (p) { return p.length > 0; });
+                if (tokens.length === 0) throw new Error("Formato incorrecto");
+
                 for (var t = 0; t < tokens.length; t += 1) {
                     var token = tokens[t];
-                    if (token.indexOf("-") >= 0) {
-                        var pieces = token.split("-", 2);
-                        var start = parseInt(pieces[0], 10);
-                        var end = parseInt(pieces[1], 10);
-                        if (!Number.isNaN(start) && !Number.isNaN(end) && start > 0 && end >= start) {
-                            for (var c = start; c <= end; c += 1) colsMap[String(c)] = true;
-                        }
-                    } else {
-                        var single = parseInt(token, 10);
-                        if (!Number.isNaN(single) && single > 0) colsMap[String(single)] = true;
+                    var expanded = _expandColumnToken(token);
+                    for (var j = 0; j < expanded.length; j += 1) {
+                        columns.push(expanded[j]);
                     }
                 }
-                var colsRow = Object.keys(colsMap).map(function (k) { return parseInt(k, 10); }).sort(function (a, b) { return a - b; });
-                if (colsRow.length > 0) rows.push(colsRow);
-            }
 
-            grid.innerHTML = "";
-            if (rows.length === 0) {
-                grid.innerHTML = '<small class="text-muted">Sin datos para previsualizar.</small>';
+                var unique = Array.from(new Set(columns)).sort(function (a, b) { return a - b; });
+                if (unique.length === 0) throw new Error("Formato incorrecto");
+                rows.push(unique);
+            }
+            return rows;
+        }
+
+        function _compressColumns(columns) {
+            if (!columns || columns.length === 0) return "";
+            var ranges = [];
+            var start = columns[0];
+            var prev = columns[0];
+            for (var i = 1; i < columns.length; i += 1) {
+                var value = columns[i];
+                if (value === prev + 1) {
+                    prev = value;
+                    continue;
+                }
+                ranges.push(start === prev ? String(start) : start + "-" + prev);
+                start = value;
+                prev = value;
+            }
+            ranges.push(start === prev ? String(start) : start + "-" + prev);
+            return ranges.join(",");
+        }
+
+        function rowColumnsToConfig(rowColumns) {
+            var parts = [];
+            for (var i = 0; i < rowColumns.length; i += 1) {
+                var columns = rowColumns[i].slice().sort(function (a, b) { return a - b; });
+                if (columns.length === 0) continue;
+                parts.push(rowLabelFromIndex(i) + ":" + _compressColumns(columns));
+            }
+            return parts.join("; ");
+        }
+
+        function normalizeRowColumns(rows) {
+            if (!rows || rows.length === 0) {
+                return [[1]];
+            }
+            var cols = 1;
+            var normalized = rows.map(function (columns) {
+                var unique = Array.from(new Set(columns || [])).filter(function (c) { return Number.isInteger(c) && c > 0; });
+                if (unique.length === 0) unique = [1];
+                unique.sort(function (a, b) { return a - b; });
+                cols = Math.max(cols, unique[unique.length - 1]);
+                return unique;
+            });
+            return { rows: normalized, cols: cols };
+        }
+
+        function showError(message) {
+            if (!message) {
+                errorBox.classList.add("d-none");
+                errorBox.textContent = "";
                 return;
             }
+            errorBox.textContent = message;
+            errorBox.classList.remove("d-none");
+        }
 
-            for (var r = 0; r < rows.length; r += 1) {
-                var row = document.createElement("div");
-                row.className = "tf-map-preview-row";
-
-                var badge = document.createElement("span");
-                badge.className = "badge bg-dark-subtle text-dark-emphasis tf-map-preview-row-label";
-                badge.textContent = rowLabelFromIndex(r);
-                row.appendChild(badge);
-
-                var maxCol = rows[r][rows[r].length - 1];
-                var present = {};
-                for (var p = 0; p < rows[r].length; p += 1) present[String(rows[r][p])] = true;
-
-                for (var c = 1; c <= maxCol; c += 1) {
-                    var cell = document.createElement("div");
-                    if (present[String(c)]) {
-                        cell.className = "tf-map-preview-cell";
-                        cell.textContent = String(c);
-                    } else {
-                        cell.className = "tf-map-preview-cell is-hole";
-                        cell.textContent = "·";
-                    }
-                    row.appendChild(cell);
-                }
-                grid.appendChild(row);
+        function setStateFromInput(raw) {
+            try {
+                var rows = parseRowConfig(raw);
+                var normalized = normalizeRowColumns(rows);
+                state.rowColumns = normalized.rows;
+                state.rows = state.rowColumns.length;
+                state.cols = Math.max(1, normalized.cols);
+                showError("");
+                return true;
+            } catch (exc) {
+                showError(exc.message || "Formato incorrecto");
+                return false;
             }
         }
 
-        input.addEventListener("input", renderPreview);
-        renderPreview();
+        function ensureValidRowColumns() {
+            if (!state.rowColumns || state.rowColumns.length === 0) {
+                state.rowColumns = [[1]];
+                state.rows = 1;
+                state.cols = 1;
+            }
+            for (var i = 0; i < state.rowColumns.length; i += 1) {
+                if (!state.rowColumns[i] || state.rowColumns[i].length === 0) {
+                    state.rowColumns[i] = [1];
+                }
+            }
+            state.cols = Math.max(1, state.cols);
+        }
+
+        function updateInputValue() {
+            input.value = rowColumnsToConfig(state.rowColumns);
+        }
+
+        function updateGridSizeInfo() {
+            sizeInfo.textContent = "Filas: " + state.rows + " · Columnas: " + state.cols;
+        }
+
+        function renderGrid() {
+            grid.innerHTML = "";
+            var header = document.createElement("div");
+            header.className = "tf-map-editor-grid-row tf-map-editor-grid-header";
+            header.style.gridTemplateColumns = "minmax(48px, auto) repeat(" + state.cols + ", minmax(38px, 1fr))";
+
+            var placeholder = document.createElement("div");
+            placeholder.className = "tf-map-editor-row-label tf-map-editor-cell-header";
+            placeholder.textContent = "";
+            header.appendChild(placeholder);
+
+            for (var c = 1; c <= state.cols; c += 1) {
+                var headerCell = document.createElement("div");
+                headerCell.className = "tf-map-editor-cell tf-map-editor-cell-header";
+                headerCell.textContent = c;
+                header.appendChild(headerCell);
+            }
+            grid.appendChild(header);
+
+            for (var r = 0; r < state.rows; r += 1) {
+                var rowWrapper = document.createElement("div");
+                rowWrapper.className = "tf-map-editor-grid-row";
+                rowWrapper.style.gridTemplateColumns = "minmax(48px, auto) repeat(" + state.cols + ", minmax(38px, 1fr))";
+
+                var rowLabel = document.createElement("button");
+                rowLabel.type = "button";
+                rowLabel.className = "tf-map-editor-row-label tf-map-editor-cell-header";
+                rowLabel.disabled = true;
+                rowLabel.textContent = rowLabelFromIndex(r);
+                rowWrapper.appendChild(rowLabel);
+
+                var columnSet = new Set(state.rowColumns[r] || []);
+                for (var c = 1; c <= state.cols; c += 1) {
+                    var cell = document.createElement("button");
+                    cell.type = "button";
+                    cell.className = "tf-map-editor-cell";
+                    cell.dataset.row = String(r);
+                    cell.dataset.col = String(c);
+                    cell.title = rowLabelFromIndex(r) + c;
+                    if (columnSet.has(c)) {
+                        cell.classList.add("active");
+                        cell.textContent = rowLabelFromIndex(r) + c;
+                    } else {
+                        cell.classList.add("is-hole");
+                        cell.textContent = "·";
+                    }
+                    rowWrapper.appendChild(cell);
+                }
+                grid.appendChild(rowWrapper);
+            }
+
+            updateGridSizeInfo();
+        }
+
+        function toggleCell(row, col) {
+            var columns = state.rowColumns[row] || [];
+            var index = columns.indexOf(col);
+            if (index >= 0) {
+                if (columns.length <= 1) {
+                    return;
+                }
+                columns.splice(index, 1);
+            } else {
+                columns.push(col);
+                columns.sort(function (a, b) { return a - b; });
+            }
+
+            if (col > state.cols) {
+                state.cols = col;
+            }
+
+            state.rowColumns[row] = columns;
+            renderGrid();
+            updateInputValue();
+        }
+
+        function resizeGrid(newRows, newCols) {
+            newRows = Math.max(1, newRows);
+            newCols = Math.max(1, newCols);
+            var originalCols = state.cols;
+
+            if (newRows !== state.rows) {
+                if (newRows > state.rows) {
+                    for (var i = state.rows; i < newRows; i += 1) {
+                        var newRow = [];
+                        for (var j = 1; j <= newCols; j += 1) {
+                            newRow.push(j);
+                        }
+                        state.rowColumns.push(newRow);
+                    }
+                } else {
+                    state.rowColumns = state.rowColumns.slice(0, newRows);
+                }
+                state.rows = newRows;
+            }
+
+            if (newCols !== state.cols) {
+                for (var r = 0; r < state.rowColumns.length; r += 1) {
+                    var rowCols = state.rowColumns[r] || [];
+                    if (newCols > originalCols) {
+                        for (var c = originalCols + 1; c <= newCols; c += 1) {
+                            rowCols.push(c);
+                        }
+                    }
+                    rowCols = rowCols.filter(function (c) { return c <= newCols; });
+                    if (rowCols.length === 0) {
+                        for (var k = 1; k <= newCols; k += 1) {
+                            rowCols.push(k);
+                        }
+                    }
+                    rowCols = Array.from(new Set(rowCols)).sort(function (a, b) { return a - b; });
+                    state.rowColumns[r] = rowCols;
+                }
+                state.cols = newCols;
+            }
+
+            renderGrid();
+            updateInputValue();
+        }
+
+        function commitInput() {
+            var valid = setStateFromInput(input.value);
+            if (valid) {
+                ensureValidRowColumns();
+                renderGrid();
+                updateInputValue();
+            }
+            return valid;
+        }
+
+        var dragState = null;
+        handle.addEventListener("pointerdown", function (event) {
+            if (disabled) return;
+            event.preventDefault();
+            handle.setPointerCapture(event.pointerId);
+            dragState = {
+                startX: event.clientX,
+                startY: event.clientY,
+                startRows: state.rows,
+                startCols: state.cols,
+            };
+        });
+
+        handle.addEventListener("pointermove", function (event) {
+            if (!dragState) return;
+            var deltaY = event.clientY - dragState.startY;
+            var deltaX = event.clientX - dragState.startX;
+            var rowDelta = Math.round(deltaY / 24);
+            var colDelta = Math.round(deltaX / 24);
+            var nextRows = Math.max(1, dragState.startRows + rowDelta);
+            var nextCols = Math.max(1, dragState.startCols + colDelta);
+            if (nextRows !== state.rows || nextCols !== state.cols) {
+                resizeGrid(nextRows, nextCols);
+            }
+        });
+
+        handle.addEventListener("pointerup", function (event) {
+            if (!dragState) return;
+            handle.releasePointerCapture(event.pointerId);
+            dragState = null;
+        });
+
+        handle.addEventListener("pointercancel", function () {
+            dragState = null;
+        });
+
+        grid.addEventListener("click", function (event) {
+            if (disabled) return;
+            var button = event.target.closest(".tf-map-editor-cell");
+            if (!button || button.classList.contains("tf-map-editor-cell-header")) return;
+            var row = Number(button.dataset.row);
+            var col = Number(button.dataset.col);
+            if (Number.isNaN(row) || Number.isNaN(col)) return;
+            toggleCell(row, col);
+        });
+
+        input.addEventListener("input", function () {
+            if (disabled) return;
+            commitInput();
+        });
+
+        if (!setStateFromInput(input.value)) {
+            state.rowColumns = [[1]];
+            state.rows = 1;
+            state.cols = 1;
+            updateInputValue();
+        }
+
+        ensureValidRowColumns();
+        renderGrid();
     })();
 </script>
 {% endblock %}

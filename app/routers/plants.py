@@ -185,7 +185,7 @@ async def add_truffle_event(
             f"/plots/{plot_id}/map?msg=Planta+no+encontrada", status_code=303
         )
 
-    weight = max(0.1, min(float(estimated_weight_grams), 5000.0))
+    weight = max(0.1, min(float(estimated_weight_grams), 50000.0))
 
     await truffle_events_service.create_event(
         db,

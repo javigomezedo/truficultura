@@ -18,6 +18,7 @@ EXPENSE_CATEGORIES = [
     "Labrar",
     "Instalación riego",
     "Perros",
+    "Plantel",
     "Riego",
     "Regadío Social",
     "Otros",

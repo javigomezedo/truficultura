@@ -805,8 +805,8 @@ a:hover {
 }
 
 .tf-map-cell {
-    width: 112px;
-    height: 112px;
+    width: 32px;
+    height: 32px;
 }
 
 .tf-map-cell-plant {
@@ -863,6 +863,153 @@ a:hover {
 .tf-map-preview-cell.is-hole {
     background: rgba(173, 181, 189, 0.22);
     color: #6c757d;
+}
+
+/* New color scale for truffle weights */
+.tf-map-cell-weight-0 {
+    background-color: transparent; /* No color for 0 grams */
+}
+
+.tf-map-cell-weight-1 {
+    background-color: hsl(120, 100%, 95%); /* Very light green for <=50g */
+}
+
+.tf-map-cell-weight-2 {
+    background-color: hsl(120, 100%, 85%); /* Light green for 50-100g */
+}
+
+.tf-map-cell-weight-3 {
+    background-color: hsl(120, 100%, 75%); /* Light green for 100-200g */
+}
+
+.tf-map-cell-weight-4 {
+    background-color: hsl(120, 100%, 65%); /* Medium light green for 200-500g */
+}
+
+.tf-map-cell-weight-5 {
+    background-color: hsl(120, 100%, 55%); /* Medium green for 500g-1kg */
+}
+
+.tf-map-cell-weight-6 {
+    background-color: hsl(120, 100%, 45%); /* Medium dark green for 1-2kg */
+}
+
+.tf-map-cell-weight-7 {
+    background-color: hsl(120, 100%, 35%); /* Dark green for 2-5kg */
+}
+
+.tf-map-cell-weight-8 {
+    background-color: hsl(120, 100%, 25%); /* Darker green for 5-10kg */
+}
+
+.tf-map-cell-weight-9 {
+    background-color: hsl(120, 100%, 15%); /* Very dark green for 10-20kg */
+}
+
+.tf-map-cell-weight-10 {
+    background-color: hsl(120, 100%, 5%); /* Almost black green for >20kg */
+}
+
+.tf-map-editor-card {
+    background: #fff;
+}
+
+.tf-map-editor-grid-wrapper {
+    position: relative;
+    overflow: auto;
+    min-height: 280px;
+    border: 1px solid var(--tf-border, #dee2e6);
+    border-radius: 1rem;
+    padding: 0.75rem;
+    background: #fafafa;
+}
+
+.tf-map-editor-grid-wrapper.disabled {
+    opacity: 0.65;
+    pointer-events: none;
+}
+
+.tf-map-editor-grid {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.tf-map-editor-grid-row {
+    display: grid;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.tf-map-editor-row-label,
+.tf-map-editor-cell-header {
+    min-width: 48px;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--tf-border, #dee2e6);
+    border-radius: 0.55rem;
+    background: #f4f4f4;
+    font-weight: 700;
+    color: #343a40;
+}
+
+.tf-map-editor-cell {
+    min-width: 38px;
+    min-height: 38px;
+    border: 1px solid var(--tf-border, #dee2e6);
+    border-radius: 0.55rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    padding: 0.25rem;
+    background: #ffffff;
+    color: #212529;
+    cursor: pointer;
+}
+
+.tf-map-editor-cell.active {
+    background: rgba(198, 242, 194, 0.9);
+    border-color: #8fce96;
+}
+
+.tf-map-editor-cell.is-hole {
+    background: rgba(173, 181, 189, 0.22);
+    color: #6c757d;
+}
+
+.tf-map-editor-cell-header {
+    background: #e9ecef;
+    cursor: default;
+}
+
+.tf-map-editor-handle {
+    position: absolute;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    width: 30px;
+    height: 30px;
+    border-radius: 0.8rem;
+    background: rgba(52, 211, 153, 0.12);
+    border: 1px solid #34d199;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #156a4f;
+    font-size: 1rem;
+    cursor: grab;
+    user-select: none;
+}
+
+.tf-map-editor-handle:active {
+    cursor: grabbing;
+    background: #34d199;
+    color: #fff;
+}
+
+.tf-map-editor-grid-row button {
+    min-width: 38px;
 }
 
 .tf-chart-container,
