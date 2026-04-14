@@ -39,7 +39,7 @@
                         {% for row in breakdown %}
                         <tr>
                             <td class="fw-semibold">{{ row.plot.name }}</td>
-                            <td class="text-end text-muted">{{ row.plot.percentage or 0|format_eu(1) }}%</td>
+                            <td class="text-end text-muted">{{ (row.plot.percentage or 0)|format_eu(2) }}%</td>
                             <td class="text-end">
                                 {% if row.direct > 0 %}
                                 {{ row.direct|format_eu(2) }}
@@ -49,7 +49,7 @@
                             </td>
                             <td class="text-end text-muted small">
                                 {% if general_total > 0 %}
-                                {{ general_total|format_eu(2) }} &times; {{ row.plot.percentage or 0|format_eu(1) }}%
+                                {{ general_total|format_eu(2) }} &times; {{ (row.plot.percentage or 0)|format_eu(2) }}%
                                 = {{ row.general_share|format_eu(2) }}
                                 {% else %}
                                 <span class="text-muted">&mdash;</span>
