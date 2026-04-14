@@ -27,6 +27,7 @@ from app.routers import (
     plots,
     reports,
     scan,
+    wells,
 )
 from app.services.dashboard_service import build_dashboard_context
 
@@ -64,6 +65,7 @@ irrigation.templates = templates
 exports.templates = templates
 plants.templates = templates
 scan.templates = templates
+wells.templates = templates
 
 # Include routers
 app.include_router(auth.router)
@@ -76,6 +78,7 @@ app.include_router(reports.router)
 app.include_router(charts.router)
 app.include_router(imports.router)
 app.include_router(irrigation.router)
+app.include_router(wells.router)
 app.include_router(exports.router)
 app.include_router(plants.router)
 app.include_router(scan.router)

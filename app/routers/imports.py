@@ -13,6 +13,7 @@ from app.services.import_service import (
     import_incomes_csv,
     import_irrigation_csv,
     import_plots_csv,
+    import_wells_csv,
 )
 
 router = APIRouter(prefix="/import", tags=["import"])
@@ -135,5 +136,32 @@ async def upload_irrigation(
                 "warnings": warnings,
             },
             "active_tab": "irrigation",
+        },
+    )
+
+
+@router.post("/wells", response_class=HTMLResponse)
+async def upload_wells(
+    request: Request,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
+):
+    content = await file.read()
+    rows, warnings = await import_wells_csv(db, content, current_user.id)
+    await db.commit()
+
+    return templates.TemplateResponse(
+        request,
+        "imports/index.html",
+        {
+            "request": request,
+            "result": {
+                "type": "wells",
+                "filename": file.filename,
+                "imported": len(rows),
+                "warnings": warnings,
+            },
+            "active_tab": "wells",
         },
     )

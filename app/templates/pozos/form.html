@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if record %}{{ _('Editar Pozos') }}{% else %}{{ _('Nuevo Registro de Pozos') }}{% endif %} &mdash; Truficultura
+{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="tf-page-header">
+        <div>
+            <p class="tf-page-kicker">Pozos</p>
+            <h1 class="tf-page-title mb-0">
+                <i class="bi bi-droplet-fill me-2"></i>
+                {% if record %}{{ _('Editar Registro de Pozos') }}{% else %}{{ _('Nuevo Registro de Pozos') }}{% endif %}
+            </h1>
+        </div>
+        <a href="/wells/" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> {{ _('Volver al listado') }}
+        </a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-xl-10">
+    <div class="card tf-panel shadow-sm border-0">
+        <div class="card-body p-4">
+            <form action="{{ action }}" method="post" novalidate>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="plot_id" class="form-label fw-semibold">
+                            {{ _('Parcela') }} <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select"
+                                id="plot_id"
+                                name="plot_id"
+                                required
+                                onchange="loadExpenses(this.value)">
+                            <option value="">{{ _('— Selecciona una parcela —') }}</option>
+                            {% for p in plots %}
+                            <option value="{{ p.id }}" data-plants="{{ p.num_plants }}"
+                                {% if record and record.plot_id == p.id %}selected{% endif %}>
+                                {{ p.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        {% if not plots %}
+                        <div class="form-text text-warning">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            {{ _('No hay parcelas disponibles. Crea una parcela primero.') }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-3">
+                        <label for="date" class="form-label fw-semibold">
+                            {{ _('Fecha') }} <span class="text-danger">*</span>
+                        </label>
+                        <input type="date"
+                               class="form-control"
+                               id="date"
+                               name="date"
+                               value="{{ record.date.isoformat() if record else '' }}"
+                               required>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label for="wells_per_plant" class="form-label fw-semibold">
+                            {{ _('Pozos por planta') }} <span class="text-danger">*</span>
+                        </label>
+                        <input type="number"
+                               class="form-control"
+                               id="wells_per_plant"
+                               name="wells_per_plant"
+                               value="{{ record.wells_per_plant if record else '' }}"
+                               min="0"
+                               step="1"
+                               required
+                               oninput="updateEstimatedWells(this.value)">
+                        <div class="form-text">
+                            <i class="bi bi-info-circle me-1"></i>
+                            {{ _('Pozos estimados:') }}
+                            <span id="estimated_wells_display" class="fw-semibold text-primary">
+                                {% if record and record.plot %}{{ (record.wells_per_plant * record.plot.num_plants) }}{% else %}0{% endif %}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="expense_id" class="form-label fw-semibold">
+                            {{ _('Gasto de Pozos asociado') }}
+                            <span class="text-muted small fw-normal">{{ _('(opcional)') }}</span>
+                        </label>
+                        <select class="form-select" id="expense_id" name="expense_id">
+                            <option value="">{{ _('— Sin gasto asociado —') }}</option>
+                            {% if expenses is defined %}
+                            {% for e in expenses %}
+                            <option value="{{ e.id }}"
+                                {% if record and record.expense_id == e.id %}selected{% endif %}>
+                                {{ e.date.strftime('%d/%m/%Y') }} — {{ e.description }} ({{ e.amount|format_eu(2) }} €)
+                            </option>
+                            {% endfor %}
+                            {% endif %}
+                        </select>
+                        <div class="form-text text-muted small">
+                            <i class="bi bi-info-circle me-1"></i>
+                            {{ _('Solo se muestran gastos de categoría "Pozos" de la parcela seleccionada.') }}
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <label for="notes" class="form-label fw-semibold">
+                            {{ _('Notas') }}
+                            <span class="text-muted small fw-normal">{{ _('(opcional)') }}</span>
+                        </label>
+                        <textarea class="form-control"
+                                  id="notes"
+                                  name="notes"
+                                  rows="2"
+                                  maxlength="500"
+                                  placeholder="{{ _('Observaciones sobre este pozo...') }}">{{ record.notes if record and record.notes else '' }}</textarea>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <div class="d-flex gap-2 justify-content-end">
+                    <a href="/wells/" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle me-1"></i> {{ _('Cancelar') }}
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-1"></i>
+                        {% if record %}{{ _('Guardar cambios') }}{% else %}{{ _('Registrar pozo') }}{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_head %}
+<script>
+    function updateEstimatedWells(value) {
+        const plants = document.getElementById('plot_id').selectedOptions[0]?.dataset?.plants || 0;
+        const estimated = parseInt(value, 10) * parseInt(plants, 10);
+        const el = document.getElementById('estimated_wells_display');
+        el.textContent = isNaN(estimated) ? '0' : estimated;
+    }
+
+    async function loadExpenses(plotId) {
+        const select = document.getElementById('expense_id');
+        select.innerHTML = '<option value="">— Sin gasto asociado —</option>';
+        if (!plotId) return;
+        try {
+            const resp = await fetch(`/wells/expenses-for-plot/${plotId}`);
+            if (!resp.ok) return;
+            const expenses = await resp.json();
+            expenses.forEach(e => {
+                const opt = document.createElement('option');
+                opt.value = e.id;
+                const date = new Date(e.date + 'T00:00:00');
+                const dateStr = date.toLocaleDateString('es-ES', {day:'2-digit', month:'2-digit', year:'numeric'});
+                opt.textContent = `${dateStr} — ${e.description} (${parseFloat(e.amount).toFixed(2)} €)`;
+                select.appendChild(opt);
+            });
+        } catch (err) {
+            console.error('Error loading expenses:', err);
+        }
+    }
+</script>
+{% endblock %}

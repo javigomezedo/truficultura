@@ -73,48 +73,79 @@
                             <i class="bi bi-grid-3x3-gap-fill"></i> {{ _("Producción") }}
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if '/irrigation' in request.url.path %}active{% endif %}"
-                           href="/irrigation/">
-                            <i class="bi bi-droplet-fill text-primary"></i> {{ _("Riego") }}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if '/irrigation' in request.url.path or '/wells' in request.url.path %}active{% endif %}"
+                           href="#"
+                           role="button"
+                           data-bs-toggle="dropdown"
+                           aria-expanded="false">
+                            <i class="bi bi-moisture"></i> {{ _("Campo") }}
                         </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item {% if '/irrigation' in request.url.path %}active{% endif %}" href="/irrigation/">
+                                    <i class="bi bi-droplet-fill text-primary me-1"></i> {{ _("Riego") }}
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if '/wells' in request.url.path %}active{% endif %}" href="/wells/">
+                                    <i class="bi bi-moisture text-info me-1"></i> {{ _("Pozos") }}
+                                </a>
+                            </li>
+                        </ul>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if '/incomes' in request.url.path %}active{% endif %}"
-                           href="/incomes/">
-                            <i class="bi bi-arrow-up-circle-fill text-success"></i> {{ _("Ingresos") }}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if '/incomes' in request.url.path or '/expenses' in request.url.path or '/reports' in request.url.path %}active{% endif %}"
+                           href="#"
+                           role="button"
+                           data-bs-toggle="dropdown"
+                           aria-expanded="false">
+                            <i class="bi bi-cash-stack"></i> {{ _("Finanzas") }}
                         </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item {% if '/incomes' in request.url.path %}active{% endif %}" href="/incomes/">
+                                    <i class="bi bi-arrow-up-circle-fill text-success me-1"></i> {{ _("Ingresos") }}
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if '/expenses' in request.url.path %}active{% endif %}" href="/expenses/">
+                                    <i class="bi bi-arrow-down-circle-fill text-danger me-1"></i> {{ _("Gastos") }}
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if '/reports' in request.url.path %}active{% endif %}" href="/reports/profitability">
+                                    <i class="bi bi-bar-chart-fill me-1"></i> {{ _("Rentabilidad") }}
+                                </a>
+                            </li>
+                        </ul>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if '/expenses' in request.url.path %}active{% endif %}"
-                           href="/expenses/">
-                            <i class="bi bi-arrow-down-circle-fill text-danger"></i> {{ _("Gastos") }}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if '/charts' in request.url.path or '/import' in request.url.path or '/export' in request.url.path %}active{% endif %}"
+                           href="#"
+                           role="button"
+                           data-bs-toggle="dropdown"
+                           aria-expanded="false">
+                            <i class="bi bi-tools"></i> {{ _("Herramientas") }}
                         </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item {% if '/charts' in request.url.path %}active{% endif %}" href="/charts/">
+                                    <i class="bi bi-graph-up me-1"></i> {{ _("Gráficas") }}
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if '/import' in request.url.path %}active{% endif %}" href="/import/">
+                                    <i class="bi bi-upload me-1"></i> {{ _("Importar") }}
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if '/export' in request.url.path %}active{% endif %}" href="/export/">
+                                    <i class="bi bi-download me-1"></i> {{ _("Exportar") }}
+                                </a>
+                            </li>
+                        </ul>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if '/reports' in request.url.path %}active{% endif %}"
-                           href="/reports/profitability">
-                            <i class="bi bi-bar-chart-fill"></i> {{ _("Rentabilidad") }}
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if '/charts' in request.url.path %}active{% endif %}"
-                           href="/charts/">
-                            <i class="bi bi-graph-up me-1"></i> {{ _("Gráficas") }}
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if '/import' in request.url.path %}active{% endif %}"
-                           href="/import/">
-                            <i class="bi bi-upload me-1"></i> {{ _("Importar") }}
-                        </a>
-                    </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if '/export' in request.url.path %}active{% endif %}"
-                               href="/export/">
-                                <i class="bi bi-download me-1"></i> {{ _("Exportar") }}
-                            </a>
-                        </li>
                     {% if request.session.get("role") == "admin" %}
                     <li class="nav-item">
                         <a class="nav-link {% if '/admin' in request.url.path %}active{% endif %}"
@@ -153,8 +184,11 @@
                         </ul>
                     </div>
                 {% if request.session.get("username") %}
-                    <span class="navbar-text text-light small tf-navbar-user">
-                        <i class="bi bi-person-circle me-1"></i>{{ request.session.get("first_name") }} {{ request.session.get("last_name") }}
+                    {% set first_name = request.session.get("first_name") or request.session.get("username") %}
+                    {% set last_name = request.session.get("last_name") or "" %}
+                    <span class="navbar-text text-light small tf-navbar-user"
+                          title="{{ first_name }} {{ last_name }}">
+                        <i class="bi bi-person-circle me-1"></i>{{ first_name }}{% if last_name %} {{ last_name }}{% endif %}
                     </span>
                     <form action="/logout" method="post" class="d-inline m-0">
                         <button type="submit" class="btn btn-outline-light btn-sm">

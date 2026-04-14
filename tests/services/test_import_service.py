@@ -8,11 +8,13 @@ import pytest
 from app.models.expense import Expense
 from app.models.income import Income
 from app.models.plot import Plot
+from app.models.well import Well
 from app.services.import_service import (
     import_expenses_csv,
     import_incomes_csv,
     import_irrigation_csv,
     import_plots_csv,
+    import_wells_csv,
 )
 from tests.conftest import result
 
@@ -46,6 +48,10 @@ def _plots_csv(rows: list[str]) -> bytes:
 
 
 def _irrigation_csv(rows: list[str]) -> bytes:
+    return "\n".join(rows).encode("utf-8")
+
+
+def _wells_csv(rows: list[str]) -> bytes:
     return "\n".join(rows).encode("utf-8")
 
 
@@ -429,15 +435,15 @@ async def test_import_irrigation_csv_case_insensitive_bancal():
 
 
 @pytest.mark.asyncio
-async def test_import_irrigation_csv_parse_error_warns():
-    plot = _make_plot(id=1, name="Bancal Sur", has_irrigation=True)
+async def test_import_wells_csv_parse_error_warns():
+    plot = _make_plot(id=1, name="Bancal Sur")
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([plot]))
     db.add_all = MagicMock()
 
-    rows, warnings = await import_irrigation_csv(
+    rows, warnings = await import_wells_csv(
         db,
-        _irrigation_csv(["fecha-mal;Bancal Sur;3,000"]),
+        _wells_csv(["fecha-mal;Bancal Sur;3"]),
         user_id=1,
     )
 

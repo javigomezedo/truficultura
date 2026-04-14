@@ -5,6 +5,7 @@ from app.models.income import Income
 from app.models.irrigation import IrrigationRecord
 from app.models.plant import Plant
 from app.models.truffle_event import TruffleEvent
+from app.models.well import Well
 
 __all__ = [
     "User",
@@ -14,4 +15,5 @@ __all__ = [
     "IrrigationRecord",
     "Plant",
     "TruffleEvent",
+    "Well",
 ]
