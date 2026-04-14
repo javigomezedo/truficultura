@@ -5,7 +5,7 @@ from collections import defaultdict
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Expense, Income, Plot
+from app.models import Expense, Income, Plot, Well
 from app.utils import campaign_year, distribute_unassigned_expenses
 
 
@@ -23,9 +23,19 @@ async def build_dashboard_context(db: AsyncSession, user_id: int) -> dict:
     incomes_result = await db.execute(select(Income).where(Income.user_id == user_id))
     all_incomes = incomes_result.scalars().all()
 
+    wells_result = await db.execute(select(Well).where(Well.user_id == user_id))
+    all_wells = wells_result.scalars().all()
+
     grand_expenses = sum(e.amount for e in all_expenses)
     grand_incomes = sum(i.total for i in all_incomes)
     grand_profitability = grand_incomes - grand_expenses
+
+    total_wells_per_plant = sum(w.wells_per_plant for w in all_wells)
+    total_estimated_wells = sum(
+        w.wells_per_plant * (w.plot.num_plants if w.plot is not None else 0)
+        for w in all_wells
+    )
+    total_well_events = len(all_wells)
 
     expenses_raw: dict = defaultdict(lambda: defaultdict(float))
     for expense in all_expenses:
@@ -89,6 +99,9 @@ async def build_dashboard_context(db: AsyncSession, user_id: int) -> dict:
         "grand_expenses": grand_expenses,
         "grand_incomes": grand_incomes,
         "grand_profitability": grand_profitability,
+        "total_wells_per_plant": total_wells_per_plant,
+        "total_estimated_wells": total_estimated_wells,
+        "total_well_events": total_well_events,
         "campaign_rows": campaign_rows,
         "plots": all_plots,
         "matrix": matrix,

@@ -8,6 +8,7 @@ import pytest
 from app.models.expense import Expense
 from app.models.income import Income
 from app.models.plot import Plot
+from app.models.well import Well
 from app.services.dashboard_service import build_dashboard_context
 from app.services.reports_service import build_profitability_context
 from tests.conftest import result
@@ -21,12 +22,14 @@ async def test_build_dashboard_context_returns_expected_totals() -> None:
             name="P1",
             planting_date=datetime.date(2020, 1, 1),
             percentage=60.0,
+            num_plants=10,
         ),
         Plot(
             id=2,
             name="P2",
             planting_date=datetime.date(2020, 1, 1),
             percentage=40.0,
+            num_plants=20,
         ),
     ]
     expenses = [
@@ -64,9 +67,22 @@ async def test_build_dashboard_context_returns_expected_totals() -> None:
         ),
     ]
 
+    wells = [
+        Well(
+            id=1,
+            user_id=1,
+            plot_id=1,
+            date=datetime.date(2025, 6, 10),
+            wells_per_plant=3,
+            expense_id=None,
+            notes=None,
+        )
+    ]
+    wells[0].plot = plots[0]
+
     db = MagicMock()
     db.execute = AsyncMock(
-        side_effect=[result(plots), result(expenses), result(incomes)]
+        side_effect=[result(plots), result(expenses), result(incomes), result(wells)]
     )
 
     context = await build_dashboard_context(db, user_id=1)
@@ -75,6 +91,9 @@ async def test_build_dashboard_context_returns_expected_totals() -> None:
     assert context["grand_expenses"] == 150.0
     assert context["grand_incomes"] == 70.0
     assert context["grand_profitability"] == -80.0
+    assert context["total_wells_per_plant"] == 3
+    assert context["total_estimated_wells"] == 30
+    assert context["total_well_events"] == 1
     assert len(context["campaign_rows"]) == 1
 
 

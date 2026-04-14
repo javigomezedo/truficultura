@@ -12,6 +12,7 @@ from app.models.expense import Expense
 from app.models.income import Income
 from app.models.plot import Plot
 from app.models.irrigation import IrrigationRecord
+from app.models.well import Well
 
 
 def _parse_date_opt(s: str) -> Optional[datetime.date]:
@@ -223,6 +224,68 @@ async def import_plots_csv(
     from app.services.plots_service import _recalculate_percentages
 
     await _recalculate_percentages(db, user_id)
+    return rows, warnings
+
+
+async def import_wells_csv(
+    db: AsyncSession, content: bytes, user_id: int
+) -> tuple[list[Well], list[str]]:
+    """Parse wells CSV and persist rows.
+
+    Expected format (semicolon-delimited, no header):
+        fecha;bancal;pozos_por_planta[;notas]
+
+    - fecha:                  DD/MM/YYYY (required)
+    - bancal:                 plot name (required)
+    - pozos_por_planta:       integer number of wells per plant (required)
+    - notas:                  optional free text notes
+
+    Rows are skipped with a warning if the plot is not found for the current user.
+    """
+    result = await db.execute(select(Plot).where(Plot.user_id == user_id))
+    plots_obj: dict[str, Plot] = {p.name.lower(): p for p in result.scalars().all()}
+
+    rows: list[Well] = []
+    warnings: list[str] = []
+
+    reader = csv.reader(io.StringIO(content.decode("utf-8")), delimiter=";")
+    for i, line in enumerate(reader, 1):
+        if not any(line):
+            continue
+        if len(line) < 3:
+            warnings.append(
+                f"Línea {i}: se esperaban al menos 3 columnas, se encontraron {len(line)} — omitida"
+            )
+            continue
+
+        fecha_s, bancal, wells_s = line[0], line[1].strip(), line[2]
+        notas = line[3].strip() if len(line) > 3 else None
+
+        if not bancal:
+            warnings.append(
+                f"Línea {i}: bancal vacío — omitida (el registro de pozos siempre requiere parcela)"
+            )
+            continue
+
+        plot = plots_obj.get(bancal.lower())
+        if plot is None:
+            warnings.append(f"Línea {i}: bancal '{bancal}' no encontrado — omitida")
+            continue
+
+        try:
+            row = Well(
+                user_id=user_id,
+                plot_id=plot.id,
+                date=_parse_date(fecha_s),
+                wells_per_plant=int(_parse_int(wells_s)),
+                notes=notas or None,
+                expense_id=None,
+            )
+            rows.append(row)
+        except (ValueError, KeyError) as exc:
+            warnings.append(f"Línea {i}: error al parsear — {exc} — omitida")
+
+    db.add_all(rows)
     return rows, warnings
 
 

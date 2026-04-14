@@ -26,6 +26,7 @@ def test_app_registers_import_routes() -> None:
     assert "/import/incomes" in paths
     assert "/import/plots" in paths
     assert "/import/irrigation" in paths
+    assert "/import/wells" in paths
 
 
 def test_import_page_renders() -> None:
@@ -42,6 +43,7 @@ def test_import_page_renders() -> None:
     assert response.status_code == 200
     assert "Importar datos CSV" in response.text
     assert "Riego" in response.text
+    assert "Pozos" in response.text
 
 
 def test_upload_irrigation_renders_result(monkeypatch) -> None:
@@ -68,6 +70,34 @@ def test_upload_irrigation_renders_result(monkeypatch) -> None:
 
     assert response.status_code == 200
     assert "Importación de riego completada" in response.text
+    assert "aviso de prueba" in response.text
+    fake_db.commit.assert_awaited_once()
+
+
+def test_upload_wells_renders_result(monkeypatch) -> None:
+    fake_db = _build_fake_db()
+
+    async def fake_import_wells_csv(db, content: bytes, user_id: int):
+        return [object(), object()], ["aviso de prueba"]
+
+    monkeypatch.setattr(
+        "app.routers.imports.import_wells_csv",
+        fake_import_wells_csv,
+    )
+    app.dependency_overrides[require_user] = _override_user
+    app.dependency_overrides[get_db] = lambda: fake_db
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/import/wells",
+            files={"file": ("pozos.csv", b"15/06/2025;Bancal Sur;5", "text/csv")},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert "Importación de pozos completada" in response.text
     assert "aviso de prueba" in response.text
     fake_db.commit.assert_awaited_once()
 

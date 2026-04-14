@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from app.models.income import Income
     from app.models.irrigation import IrrigationRecord
     from app.models.plot import Plot
+    from app.models.well import Well
 
 
 class User(Base):
@@ -46,4 +47,7 @@ class User(Base):
     )
     irrigation_records: Mapped[List["IrrigationRecord"]] = relationship(
         "IrrigationRecord", back_populates="user", lazy="select"
+    )
+    wells: Mapped[List["Well"]] = relationship(
+        "Well", back_populates="user", lazy="select"
     )

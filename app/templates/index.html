@@ -88,6 +88,63 @@
         </div>
     </div>
 
+    <div class="row g-3 mb-4">
+        <div class="col-sm-4">
+            <div class="card tf-stat-card tf-stat-card-parcelas h-100 border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="tf-stat-eyebrow">{{ _("Eventos de pozos") }}</p>
+                            <h2 class="tf-stat-value">{{ total_well_events }}</h2>
+                        </div>
+                        <div class="tf-stat-icon">
+                            <i class="bi bi-hammer text-success"></i>
+                        </div>
+                    </div>
+                    <a href="/wells/" class="stretched-link text-decoration-none tf-stat-link">
+                        <small>{{ _("Ver pozos") }} &rarr;</small>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="card tf-stat-card tf-stat-card-ingresos h-100 border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="tf-stat-eyebrow">{{ _("Pozos por planta totales") }}</p>
+                            <h2 class="tf-stat-value">{{ total_wells_per_plant }}</h2>
+                        </div>
+                        <div class="tf-stat-icon">
+                            <i class="bi bi-grid text-info"></i>
+                        </div>
+                    </div>
+                    <a href="/wells/" class="stretched-link text-decoration-none tf-stat-link">
+                        <small>{{ _("Ver pozos") }} &rarr;</small>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="card tf-stat-card tf-stat-card-rentabilidad h-100 border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="tf-stat-eyebrow">{{ _("Pozos estimados") }}</p>
+                            <h2 class="tf-stat-value">{{ total_estimated_wells }}</h2>
+                        </div>
+                        <div class="tf-stat-icon">
+                            <i class="bi bi-calculator text-secondary"></i>
+                        </div>
+                    </div>
+                    <a href="/wells/" class="stretched-link text-decoration-none tf-stat-link">
+                        <small>{{ _("Ver pozos") }} &rarr;</small>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ===== SECCIÓN 2: Desglose por campaña ===== -->
     <h6 class="text-uppercase text-muted fw-semibold mb-2 small">
         <i class="bi bi-calendar3 me-1"></i>{{ _("Desglose por campaña") }}
