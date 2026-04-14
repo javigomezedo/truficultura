@@ -39,32 +39,32 @@
                         {% for row in breakdown %}
                         <tr>
                             <td class="fw-semibold">{{ row.plot.name }}</td>
-                            <td class="text-end text-muted">{{ "%.1f"|format(row.plot.percentage or 0) }}%</td>
+                            <td class="text-end text-muted">{{ row.plot.percentage or 0|format_eu(1) }}%</td>
                             <td class="text-end">
                                 {% if row.direct > 0 %}
-                                {{ "%.2f"|format(row.direct) }}
+                                {{ row.direct|format_eu(2) }}
                                 {% else %}
                                 <span class="text-muted">&mdash;</span>
                                 {% endif %}
                             </td>
                             <td class="text-end text-muted small">
                                 {% if general_total > 0 %}
-                                {{ "%.2f"|format(general_total) }} &times; {{ "%.1f"|format(row.plot.percentage or 0) }}%
-                                = {{ "%.2f"|format(row.general_share) }}
+                                {{ general_total|format_eu(2) }} &times; {{ row.plot.percentage or 0|format_eu(1) }}%
+                                = {{ row.general_share|format_eu(2) }}
                                 {% else %}
                                 <span class="text-muted">&mdash;</span>
                                 {% endif %}
                             </td>
-                            <td class="text-end fw-bold text-danger">{{ "%.2f"|format(row.total) }}</td>
+                            <td class="text-end fw-bold text-danger">{{ row.total|format_eu(2) }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                     <tfoot class="table-warning fw-bold">
                         <tr>
                             <td colspan="2" class="text-end">{{ _("TOTAL") }}:</td>
-                            <td class="text-end">{{ "%.2f"|format(breakdown | sum(attribute='direct')) }}</td>
-                            <td class="text-end">{{ "%.2f"|format(general_total) }}</td>
-                            <td class="text-end text-danger">{{ "%.2f"|format(total) }}</td>
+                            <td class="text-end">{{ (breakdown | sum(attribute='direct'))|format_eu(2) }}</td>
+                            <td class="text-end">{{ general_total|format_eu(2) }}</td>
+                            <td class="text-end text-danger">{{ total|format_eu(2) }}</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -133,7 +133,7 @@
                         </tr>
                         <tr class="table-warning fw-bold">
                             <td colspan="5" class="text-end">{{ _("TOTAL") }}{% if selected_year %} {{ selected_year|campaign_label }} <small class="text-nowrap">({{ selected_year|campaign_months }})</small>{% endif %}:</td>
-                            <td class="text-end text-danger fs-6">{{ "%.2f"|format(total) }} &euro;</td>
+                            <td class="text-end text-danger fs-6">{{ total|format_eu(2) }} &euro;</td>
                             <td></td>
                         </tr>
                     </thead>
@@ -157,7 +157,7 @@
                                 <span class="text-muted small">&mdash;</span>
                                 {% endif %}
                             </td>
-                            <td class="text-end fw-semibold text-danger">{{ "%.2f"|format(g.amount) }} &euro;</td>
+                            <td class="text-end fw-semibold text-danger">{{ g.amount|format_eu(2) }} &euro;</td>
                             <td class="text-center">
                                 <div class="dropdown">
                                     <button class="btn btn-sm btn-outline-secondary px-2 py-0"

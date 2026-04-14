@@ -100,10 +100,10 @@
                         <td class="text-center">
                             {% if cell.kg > 0 %}
                                 {% if cell.kg_ha is not none %}
-                                <span class="fw-bold">{{ "%.1f"|format(cell.kg_ha) }}</span><br>
-                                <small class="text-muted">{{ "%.1f"|format(cell.kg) }} kg</small>
+                                <span class="fw-bold">{{ cell.kg_ha|format_eu(1) }}</span><br>
+                                <small class="text-muted">{{ cell.kg|format_eu(1) }} kg</small>
                                 {% else %}
-                                <small class="text-muted">{{ "%.1f"|format(cell.kg) }} kg</small><br>
+                                <small class="text-muted">{{ cell.kg|format_eu(1) }} kg</small><br>
                                 <span class="text-muted">—</span>
                                 {% endif %}
                             {% else %}
@@ -122,10 +122,10 @@
                         <td class="text-center">
                             {% if tot.kg > 0 %}
                                 {% if tot.kg_ha is not none %}
-                                <span class="fw-bold">{{ "%.1f"|format(tot.kg_ha) }}</span><br>
-                                <small>{{ "%.1f"|format(tot.kg) }} kg</small>
+                                <span class="fw-bold">{{ tot.kg_ha|format_eu(1) }}</span><br>
+                                <small>{{ tot.kg|format_eu(1) }} kg</small>
                                 {% else %}
-                                <small>{{ "%.1f"|format(tot.kg) }} kg</small><br>
+                                <small>{{ tot.kg|format_eu(1) }} kg</small><br>
                                 <span class="text-muted">—</span>
                                 {% endif %}
                             {% else %}

@@ -162,3 +162,12 @@ class TestRowConfig:
     def test_format_sparse_row_config(self):
         text = format_sparse_row_config([[2, 3, 4, 5, 8], [1, 3, 4]])
         assert text == "A:2-5,8; B:1,3-4"
+
+
+def test_format_eu_formats_numbers_correctly():
+    from app.utils import format_eu
+
+    assert format_eu(1250.0, 2) == "1.250,00"
+    assert format_eu(12.345, 3) == "12,345"
+    assert format_eu(1000000, 0) == "1.000.000"
+    assert format_eu(None) == ""

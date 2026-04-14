@@ -104,8 +104,8 @@
                             <a href="/truffles/?{% if selected_campaign is not none %}camp={{ selected_campaign }}&{% endif %}plot_id={{ plot.id }}&plant_id={{ cell.plant.id }}"
                                class="text-decoration-none d-inline-block">
                                 <span class="badge tf-map-cell-weight {% if display_weight == 0 %}text-bg-warning{% else %}text-bg-success{% endif %}"
-                                      title="{{ '%.1f'|format(display_weight) }} g">
-                                    {{ '%.1f'|format(display_weight) }} g
+                                      title="{{ display_weight|format_eu(1) }} g">
+                                    {{ display_weight|format_eu(1) }} g
                                 </span>
                             </a>
                         </div>

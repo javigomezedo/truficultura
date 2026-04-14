@@ -12,7 +12,7 @@ from app.models.income import Income
 from app.models.irrigation import IrrigationRecord
 from app.models.plot import Plot
 from app.services.llm_adapter import LLMAdapter
-from app.utils import campaign_label, campaign_year
+from app.utils import campaign_label, campaign_year, format_eu
 
 _MAX_HISTORY_TURNS = 5
 _MAX_MESSAGE_LEN = 1000
@@ -134,7 +134,7 @@ def _normalize_text(value: str) -> str:
 
 
 def _format_eur(value: float) -> str:
-    return f"{value:.2f}€"
+    return f"{format_eu(value, 2)}€"
 
 
 def _sanitize_user_message(message: str) -> str:

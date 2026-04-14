@@ -191,7 +191,7 @@ async def test_export_expenses_csv_with_plot():
     assert row[1] == "Riego por goteo"
     assert row[2] == "Javi"
     assert row[3] == "Bancal Sur"
-    assert row[4] == "1250,00"
+    assert row[4] == "1.250,00"
     assert row[5] == "Riego"
 
 

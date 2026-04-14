@@ -11,6 +11,7 @@ from app.models.expense import Expense
 from app.models.income import Income
 from app.models.irrigation import IrrigationRecord
 from app.models.plot import Plot
+from app.utils import format_eu
 
 
 def _format_date(d: datetime.date) -> str:
@@ -18,7 +19,7 @@ def _format_date(d: datetime.date) -> str:
 
 
 def _format_num(val: float, decimals: int = 2) -> str:
-    return f"{val:.{decimals}f}".replace(".", ",")
+    return format_eu(val, decimals)
 
 
 async def _load_plots_by_id(db: AsyncSession, user_id: int) -> dict[int, str]:

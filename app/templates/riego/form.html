@@ -86,7 +86,7 @@
                             <i class="bi bi-water me-1"></i>
                             {{ _("Equivale a") }}:
                             <span id="liters_display" class="fw-semibold text-primary">
-                                {% if record %}{{ "%.1f"|format(record.water_m3 * 1000) }} L{% else %}0.0 L{% endif %}
+                                {% if record %}{{ record.water_m3 * 1000|format_eu(1) }} L{% else %}0.0 L{% endif %}
                             </span>
                         </div>
                     </div>
@@ -103,7 +103,7 @@
                             {% for e in expenses %}
                             <option value="{{ e.id }}"
                                 {% if record and record.expense_id == e.id %}selected{% endif %}>
-                                {{ e.date.strftime('%d/%m/%Y') }} — {{ e.description }} ({{ "%.2f"|format(e.amount) }} €)
+                                {{ e.date.strftime('%d/%m/%Y') }} — {{ e.description }} ({{ e.amount|format_eu(2) }} €)
                             </option>
                             {% endfor %}
                             {% endif %}
