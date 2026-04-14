@@ -36,7 +36,7 @@
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
                             <p class="tf-stat-eyebrow">{{ _("Total Gastos") }}</p>
-                            <h2 class="tf-stat-value">{{ "%.2f"|format(grand_expenses) }} &euro;</h2>
+                            <h2 class="tf-stat-value">{{ grand_expenses|format_eu(2) }} &euro;</h2>
                         </div>
                         <div class="tf-stat-icon">
                             <i class="bi bi-arrow-down-circle-fill text-danger"></i>
@@ -54,7 +54,7 @@
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
                             <p class="tf-stat-eyebrow">{{ _("Total Ingresos") }}</p>
-                            <h2 class="tf-stat-value">{{ "%.2f"|format(grand_incomes) }} &euro;</h2>
+                            <h2 class="tf-stat-value">{{ grand_incomes|format_eu(2) }} &euro;</h2>
                         </div>
                         <div class="tf-stat-icon">
                             <i class="bi bi-arrow-up-circle-fill text-primary"></i>
@@ -73,7 +73,7 @@
                         <div>
                             <p class="tf-stat-eyebrow">{{ _("Rentabilidad Total") }}</p>
                             <h2 class="tf-stat-value {% if grand_profitability < 0 %}text-negative{% endif %}">
-                                {{ "%.2f"|format(grand_profitability) }} &euro;
+                                {{ grand_profitability|format_eu(2) }} &euro;
                             </h2>
                         </div>
                         <div class="tf-stat-icon">
@@ -115,16 +115,16 @@
                             </td>
                             <td class="text-end text-danger">
                                 <a href="/expenses/?year={{ row.year }}" class="text-decoration-none text-danger">
-                                    {{ "%.2f"|format(row.expenses) }}
+                                    {{ row.expenses|format_eu(2) }}
                                 </a>
                             </td>
                             <td class="text-end text-primary">
                                 <a href="/incomes/?year={{ row.year }}" class="text-decoration-none text-primary">
-                                    {{ "%.2f"|format(row.incomes) }}
+                                    {{ row.incomes|format_eu(2) }}
                                 </a>
                             </td>
                             <td class="text-end fw-bold {% if row.profitability >= 0 %}text-positive{% else %}text-negative{% endif %}">
-                                {{ "%.2f"|format(row.profitability) }}
+                                {{ row.profitability|format_eu(2) }}
                             </td>
                         </tr>
                         {% endfor %}
@@ -132,10 +132,10 @@
                     <tfoot class="table-secondary fw-bold">
                         <tr>
                             <td>{{ _("TOTAL") }}</td>
-                            <td class="text-end text-danger">{{ "%.2f"|format(grand_expenses) }}</td>
-                            <td class="text-end text-primary">{{ "%.2f"|format(grand_incomes) }}</td>
+                            <td class="text-end text-danger">{{ grand_expenses|format_eu(2) }}</td>
+                            <td class="text-end text-primary">{{ grand_incomes|format_eu(2) }}</td>
                             <td class="text-end {% if grand_profitability >= 0 %}text-positive{% else %}text-negative{% endif %}">
-                                {{ "%.2f"|format(grand_profitability) }}
+                                {{ grand_profitability|format_eu(2) }}
                             </td>
                         </tr>
                     </tfoot>
@@ -179,11 +179,11 @@
                                 {% if r > 0 %}cell-positive
                                 {% elif r < 0 %}cell-negative
                                 {% else %}cell-zero{% endif %}"
-                                title="{{ _('Ingresos') }}: {{ '%.2f'|format(cell.incomes) }}€ | {{ _('Gastos') }}: {{ '%.2f'|format(cell.expenses) }}€">
+                                title="{{ _('Ingresos') }}: {{ cell.incomes|format_eu(2) }}€ | {{ _('Gastos') }}: {{ cell.expenses|format_eu(2) }}€">
                                 {% if r == 0 and cell.incomes == 0 and cell.expenses == 0 %}
                                 <span class="text-muted">&mdash;</span>
                                 {% else %}
-                                {{ "%.2f"|format(r) }}
+                                {{ r|format_eu(2) }}
                                 {% endif %}
                             </td>
                             {% endfor %}
@@ -191,7 +191,7 @@
                                 {% if row.total_profitability > 0 %}cell-positive
                                 {% elif row.total_profitability < 0 %}cell-negative
                                 {% else %}cell-zero{% endif %} table-secondary">
-                                {{ "%.2f"|format(row.total_profitability) }}
+                                {{ row.total_profitability|format_eu(2) }}
                             </td>
                         </tr>
                         {% endfor %}
@@ -205,14 +205,14 @@
                                 {% if pt.profitability > 0 %}cell-positive
                                 {% elif pt.profitability < 0 %}cell-negative
                                 {% else %}cell-zero{% endif %}">
-                                {{ "%.2f"|format(pt.profitability) }}
+                                {{ pt.profitability|format_eu(2) }}
                             </td>
                             {% endfor %}
                             <td class="text-end
                                 {% if grand_profitability > 0 %}cell-positive
                                 {% elif grand_profitability < 0 %}cell-negative
                                 {% else %}cell-zero{% endif %}">
-                                {{ "%.2f"|format(grand_profitability) }}
+                                {{ grand_profitability|format_eu(2) }}
                             </td>
                         </tr>
                     </tfoot>

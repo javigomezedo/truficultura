@@ -65,12 +65,12 @@
                         {% for s in summary_rows %}
                         <tr>
                             <td>{{ s.plot_name }}</td>
-                            <td>{{ '%.1f'|format(s.campaign_total) }}</td>
-                            <td>{{ '%.1f'|format(s.historical_total) }}</td>
+                            <td>{{ s.campaign_total|format_eu(1) }}</td>
+                            <td>{{ s.historical_total|format_eu(1) }}</td>
                             <td>
                                 {% if s.top_plants %}
                                     {% for label, grams in s.top_plants %}
-                                    <span class="badge text-bg-light border me-1">{{ label }}: {{ '%.1f'|format(grams) }} g</span>
+                                    <span class="badge text-bg-light border me-1">{{ label }}: {{ grams|format_eu(1) }} g</span>
                                     {% endfor %}
                                 {% else %}
                                     <span class="text-muted">—</span>
@@ -102,7 +102,7 @@
                         <td>{{ e.created_at.strftime('%d/%m/%Y %H:%M:%S') if e.created_at else '—' }}</td>
                         <td>{{ e.plot.name if e.plot else e.plot_id }}</td>
                         <td>{{ e.plant.label if e.plant else e.plant_id }}</td>
-                        <td>{{ '%.1f'|format(e.estimated_weight_grams if e.estimated_weight_grams is defined and e.estimated_weight_grams is not none else 0.0) }}</td>
+                        <td>{{ e.estimated_weight_grams if e.estimated_weight_grams is defined and e.estimated_weight_grams is not none else 0.0|format_eu(1) }}</td>
                         <td><span class="badge text-bg-secondary">{{ e.source }}</span></td>
                         <td class="text-center">
                             <form method="post"

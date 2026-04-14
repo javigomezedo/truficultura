@@ -57,9 +57,9 @@
                         </tr>
                         <tr class="table-success fw-bold">
                             <td colspan="2" class="text-end">{{ _("TOTAL") }}{% if selected_year %} {{ selected_year|campaign_label }} <small class="text-nowrap">({{ selected_year|campaign_months }})</small>{% endif %}:</td>
-                            <td class="text-end">{{ "%.3f"|format(total_kg) }} kg</td>
+                            <td class="text-end">{{ total_kg|format_eu(3) }} kg</td>
                             <td colspan="2"></td>
-                            <td class="text-end fs-6 text-success">{{ "%.2f"|format(total_euros) }} &euro;</td>
+                            <td class="text-end fs-6 text-success">{{ total_euros|format_eu(2) }} &euro;</td>
                             <td></td>
                         </tr>
                     </thead>
@@ -74,7 +74,7 @@
                                 <span class="text-muted small">&mdash;</span>
                                 {% endif %}
                             </td>
-                            <td class="text-end fw-semibold">{{ "%.3f"|format(i.amount_kg) }} kg</td>
+                            <td class="text-end fw-semibold">{{ i.amount_kg|format_eu(3) }} kg</td>
                             <td>
                                 {% if i.category %}
                                 <span class="badge bg-secondary">{{ i.category }}</span>
@@ -82,8 +82,8 @@
                                 <span class="text-muted small">&mdash;</span>
                                 {% endif %}
                             </td>
-                            <td class="text-end">{{ "%.2f"|format(i.euros_per_kg) }} &euro;</td>
-                            <td class="text-end fw-bold text-success">{{ "%.2f"|format(i.total) }} &euro;</td>
+                            <td class="text-end">{{ i.euros_per_kg|format_eu(2) }} &euro;</td>
+                            <td class="text-end fw-bold text-success">{{ i.total|format_eu(2) }} &euro;</td>
                             <td class="text-center">
                                 <div class="dropdown">
                                     <button class="btn btn-sm btn-outline-secondary px-2 py-0"

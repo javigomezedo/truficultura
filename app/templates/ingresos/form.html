@@ -119,7 +119,7 @@
                                    id="total_display"
                                    readonly
                                    placeholder="{{ _('Calculado automáticamente') }}"
-                                   value="{{ '%.2f'|format(income.total) if income else '' }}">
+                                   value="{{ income.total|format_eu(2) if income else '' }}">
                             <span class="input-group-text">&euro;</span>
                         </div>
                         <div class="form-text">{{ _("Calculado automáticamente: cantidad × €/kg") }}</div>

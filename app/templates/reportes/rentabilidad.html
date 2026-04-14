@@ -106,11 +106,11 @@
                             {% set cell = row.plots[p.id] %}
                             {% set r = cell.profitability %}
                             <td class="text-end"
-                                title="{{ _('Ingresos') }}: {{ '%.2f'|format(cell.incomes) }}€ | {{ _('Gastos') }}: {{ '%.2f'|format(cell.expenses) }}€">
+                                title="{{ _('Ingresos') }}: {{ cell.incomes|format_eu(2) }}€ | {{ _('Gastos') }}: {{ cell.expenses|format_eu(2) }}€">
                                 {% if r == 0 and cell.incomes == 0 and cell.expenses == 0 %}
                                 <span class="text-muted">&mdash;</span>
                                 {% else %}
-                                {{ "%.2f"|format(r) }}
+                                {{ r|format_eu(2) }}
                                 {% endif %}
                             </td>
                             {% endfor %}
@@ -118,7 +118,7 @@
                                 {% if row.total_profitability > 0 %}cell-positive
                                 {% elif row.total_profitability < 0 %}cell-negative
                                 {% endif %}">
-                                {{ "%.2f"|format(row.total_profitability) }}
+                                {{ row.total_profitability|format_eu(2) }}
                             </td>
                         </tr>
                         {% endfor %}
@@ -132,14 +132,14 @@
                                 {% if pt.profitability > 0 %}cell-positive
                                 {% elif pt.profitability < 0 %}cell-negative
                                 {% else %}cell-zero{% endif %}">
-                                {{ "%.2f"|format(pt.profitability) }}
+                                {{ pt.profitability|format_eu(2) }}
                             </td>
                             {% endfor %}
                             <td class="text-end
                                 {% if grand_total_profitability > 0 %}cell-positive
                                 {% elif grand_total_profitability < 0 %}cell-negative
                                 {% else %}cell-zero{% endif %}">
-                                {{ "%.2f"|format(grand_total_profitability) }}
+                                {{ grand_total_profitability|format_eu(2) }}
                             </td>
                         </tr>
                     </tfoot>
@@ -177,10 +177,10 @@
                                 {% set yt = year_totals[year] %}
                                 <tr>
                                     <td class="fw-semibold">{{ year|campaign_label }}</td>
-                                    <td class="text-end text-primary">{{ "%.2f"|format(yt.incomes) }}</td>
-                                    <td class="text-end text-danger">{{ "%.2f"|format(yt.expenses) }}</td>
+                                    <td class="text-end text-primary">{{ yt.incomes|format_eu(2) }}</td>
+                                    <td class="text-end text-danger">{{ yt.expenses|format_eu(2) }}</td>
                                     <td class="text-end fw-bold">
-                                        {{ "%.2f"|format(yt.profitability) }}
+                                        {{ yt.profitability|format_eu(2) }}
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -188,13 +188,13 @@
                             <tfoot class="table-dark fw-bold">
                                 <tr>
                                     <td>{{ _("TOTAL") }}</td>
-                                    <td class="text-end text-primary">{{ "%.2f"|format(grand_total_incomes) }}</td>
-                                    <td class="text-end text-danger">{{ "%.2f"|format(grand_total_expenses) }}</td>
+                                    <td class="text-end text-primary">{{ grand_total_incomes|format_eu(2) }}</td>
+                                    <td class="text-end text-danger">{{ grand_total_expenses|format_eu(2) }}</td>
                                     <td class="text-end
                                         {% if grand_total_profitability > 0 %}cell-positive
                                         {% elif grand_total_profitability < 0 %}cell-negative
                                         {% else %}{% endif %}">
-                                        {{ "%.2f"|format(grand_total_profitability) }}
+                                        {{ grand_total_profitability|format_eu(2) }}
                                     </td>
                                 </tr>
                             </tfoot>
@@ -228,10 +228,10 @@
                                 {% set pt = plot_totals.get(p.id, {'incomes': 0, 'expenses': 0, 'profitability': 0}) %}
                                 <tr>
                                     <td class="fw-semibold">{{ p.name }}</td>
-                                    <td class="text-end text-primary">{{ "%.2f"|format(pt.incomes) }}</td>
-                                    <td class="text-end text-danger">{{ "%.2f"|format(pt.expenses) }}</td>
+                                    <td class="text-end text-primary">{{ pt.incomes|format_eu(2) }}</td>
+                                    <td class="text-end text-danger">{{ pt.expenses|format_eu(2) }}</td>
                                     <td class="text-end fw-bold">
-                                        {{ "%.2f"|format(pt.profitability) }}
+                                        {{ pt.profitability|format_eu(2) }}
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -239,13 +239,13 @@
                             <tfoot class="table-dark fw-bold">
                                 <tr>
                                     <td>{{ _("TOTAL") }}</td>
-                                    <td class="text-end text-primary">{{ "%.2f"|format(grand_total_incomes) }}</td>
-                                    <td class="text-end text-danger">{{ "%.2f"|format(grand_total_expenses) }}</td>
+                                    <td class="text-end text-primary">{{ grand_total_incomes|format_eu(2) }}</td>
+                                    <td class="text-end text-danger">{{ grand_total_expenses|format_eu(2) }}</td>
                                     <td class="text-end
                                         {% if grand_total_profitability > 0 %}cell-positive
                                         {% elif grand_total_profitability < 0 %}cell-negative
                                         {% else %}{% endif %}">
-                                        {{ "%.2f"|format(grand_total_profitability) }}
+                                        {{ grand_total_profitability|format_eu(2) }}
                                     </td>
                                 </tr>
                             </tfoot>

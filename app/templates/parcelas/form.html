@@ -160,7 +160,7 @@
                                    class="form-control"
                                    id="percentage"
                                    name="percentage"
-                                   value="{{ "%.2f"|format(plot.percentage) if plot else '0.00' }}"
+                                   value="{{ plot.percentage|format_eu(2) if plot else '0,00' }}"
                                    readonly>
                             <span class="input-group-text">%</span>
                         </div>

@@ -37,7 +37,7 @@
                         <i class="bi bi-droplet-fill text-primary fs-2 me-3"></i>
                         <div>
                             <div class="text-muted small">{{ _("Total agua (m³)") }}</div>
-                            <div class="fw-bold fs-5">{{ "%.3f"|format(total_water_m3) }} m³</div>
+                            <div class="fw-bold fs-5">{{ total_water_m3|format_eu(3) }} m³</div>
                         </div>
                     </div>
                 </div>
@@ -50,7 +50,7 @@
                         <i class="bi bi-water text-info fs-2 me-3"></i>
                         <div>
                             <div class="text-muted small">{{ _("Total agua (litros)") }}</div>
-                            <div class="fw-bold fs-5">{{ "%.1f"|format(total_water_liters) }} L</div>
+                            <div class="fw-bold fs-5">{{ total_water_liters|format_eu(1) }} L</div>
                         </div>
                     </div>
                 </div>
@@ -126,17 +126,17 @@
                                 {{ r.plot.name if r.plot else '—' }}
                             </td>
                             <td class="text-end fw-semibold text-primary">
-                                {{ "%.3f"|format(r.water_m3) }}
+                                {{ r.water_m3|format_eu(3) }}
                             </td>
                             <td class="text-end text-muted">
-                                {{ "%.1f"|format(r.water_m3 * 1000) }}
+                                {{ (r.water_m3 * 1000)|format_eu(1) }}
                             </td>
                             <td>
                                 {% if r.expense %}
                                 <span class="small">
                                     <i class="bi bi-receipt me-1 text-muted"></i>
                                     {{ r.expense.description }}
-                                    <span class="text-danger ms-1 fw-semibold">{{ "%.2f"|format(r.expense.amount) }} €</span>
+                                    <span class="text-danger ms-1 fw-semibold">{{ r.expense.amount|format_eu(2) }} €</span>
                                 </span>
                                 {% else %}
                                 <span class="text-muted">—</span>
@@ -185,8 +185,8 @@
                     <tfoot class="table-light fw-bold">
                         <tr>
                             <td colspan="2" class="text-end">{{ _("TOTAL") }}:</td>
-                            <td class="text-end text-primary">{{ "%.3f"|format(total_water_m3) }}</td>
-                            <td class="text-end text-muted">{{ "%.1f"|format(total_water_liters) }}</td>
+                            <td class="text-end text-primary">{{ total_water_m3|format_eu(3) }}</td>
+                            <td class="text-end text-muted">{{ total_water_liters|format_eu(1) }}</td>
                             <td colspan="3"></td>
                         </tr>
                     </tfoot>

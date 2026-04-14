@@ -100,6 +100,15 @@ def campaign_months(year: int) -> str:
     return f"{start_month} {year} - {end_month} {year + 1}"
 
 
+def format_eu(value: int | float, decimals: int = 2) -> str:
+    """Format numbers in Spanish-style European format with dot thousands and comma decimals."""
+    if value is None:
+        return ""
+
+    formatted = f"{value:,.{decimals}f}"
+    return formatted.replace(",", "_").replace(".", ",").replace("_", ".")
+
+
 def row_label_from_index(n: int) -> str:
     """Convert a 0-based row index to an Excel-style column label.
 
