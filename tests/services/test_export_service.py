@@ -11,11 +11,13 @@ from app.models.expense import Expense
 from app.models.income import Income
 from app.models.irrigation import IrrigationRecord
 from app.models.plot import Plot
+from app.models.well import Well
 from app.services.export_service import (
     export_expenses_csv,
     export_incomes_csv,
     export_irrigation_csv,
     export_plots_csv,
+    export_wells_csv,
 )
 from tests.conftest import result
 
@@ -76,6 +78,18 @@ def _make_irrigation(id=1, plot_id=1, water_m3=10.5, notes=None):
         plot_id=plot_id,
         date=datetime.date(2025, 6, 15),
         water_m3=water_m3,
+        notes=notes,
+        expense_id=None,
+    )
+
+
+def _make_well(id=1, plot_id=1, wells_per_plant=3, notes=None):
+    return Well(
+        id=id,
+        user_id=1,
+        plot_id=plot_id,
+        date=datetime.date(2025, 7, 10),
+        wells_per_plant=wells_per_plant,
         notes=notes,
         expense_id=None,
     )
@@ -300,4 +314,46 @@ async def test_export_irrigation_csv_empty():
     db = _db_with_two_calls(result([]), result([]))
 
     data = await export_irrigation_csv(db, user_id=1)
+    assert data == b""
+
+
+# ---------------------------------------------------------------------------
+# export_wells_csv
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_export_wells_csv_with_data():
+    plot = _make_plot(id=1, name="Bancal Sur")
+    well = _make_well(id=1, plot_id=1, wells_per_plant=3, notes="Pozos campaña")
+    db = _db_with_two_calls(result([plot]), result([well]))
+
+    data = await export_wells_csv(db, user_id=1)
+    rows = _parse_csv(data)
+
+    assert len(rows) == 1
+    row = rows[0]
+    assert row[0] == "10/07/2025"
+    assert row[1] == "Bancal Sur"
+    assert row[2] == "3"
+    assert row[3] == "Pozos campaña"
+
+
+@pytest.mark.asyncio
+async def test_export_wells_csv_no_notes():
+    plot = _make_plot(id=1, name="Bancal Sur")
+    well = _make_well(id=1, plot_id=1, wells_per_plant=2, notes=None)
+    db = _db_with_two_calls(result([plot]), result([well]))
+
+    data = await export_wells_csv(db, user_id=1)
+    rows = _parse_csv(data)
+
+    assert rows[0][3] == ""
+
+
+@pytest.mark.asyncio
+async def test_export_wells_csv_empty():
+    db = _db_with_two_calls(result([]), result([]))
+
+    data = await export_wells_csv(db, user_id=1)
     assert data == b""

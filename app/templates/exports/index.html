@@ -34,6 +34,11 @@
             <i class="bi bi-droplet-fill text-primary me-1"></i>{{ _("Riego") }}
         </button>
     </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-export-wells" data-bs-target="#panel-export-wells" type="button" role="tab">
+            <i class="bi bi-circle-half text-secondary me-1"></i>{{ _("Pozos") }}
+        </button>
+    </li>
 </ul>
 
 <div class="tab-content" id="exportTabContent">
@@ -113,6 +118,24 @@
                     <span class="badge text-bg-light">notas</span>
                 </div>
                 <a href="/export/irrigation.csv" class="btn btn-success">
+                    <i class="bi bi-download me-1"></i>{{ _("Descargar CSV") }}
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="panel-export-wells" role="tabpanel">
+        <div class="card tf-panel shadow-sm border-0">
+            <div class="card-body p-4">
+                <h5 class="card-title mb-3">{{ _("Exportar pozos") }}</h5>
+                <p class="text-muted mb-3">{{ _("Descarga los registros de pozos en formato CSV. El vínculo interno con gastos no se exporta; solo se incluyen los datos funcionales del registro.") }}</p>
+                <div class="mb-4">
+                    <span class="badge text-bg-light me-2">fecha</span>
+                    <span class="badge text-bg-light me-2">bancal</span>
+                    <span class="badge text-bg-light me-2">pozos_por_planta</span>
+                    <span class="badge text-bg-light">notas</span>
+                </div>
+                <a href="/export/wells.csv" class="btn btn-success">
                     <i class="bi bi-download me-1"></i>{{ _("Descargar CSV") }}
                 </a>
             </div>

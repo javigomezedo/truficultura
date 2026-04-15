@@ -37,10 +37,18 @@ async def list_expenses(
     category: Optional[str] = None,
     person: Optional[str] = None,
     msg: Optional[str] = None,
+    sort: Optional[str] = Query(default=None),
+    order: Optional[str] = Query(default=None),
 ):
     year_int = int(year) if year else None
     context = await get_expenses_list_context(
-        db, year_int, current_user.id, category=category, person=person
+        db,
+        year_int,
+        current_user.id,
+        category=category,
+        person=person,
+        sort_by=sort or "date",
+        sort_order=order if order in ("asc", "desc") else "desc",
     )
 
     return templates.TemplateResponse(

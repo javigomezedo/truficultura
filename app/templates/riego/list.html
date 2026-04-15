@@ -108,9 +108,9 @@
                 <table class="table table-hover mb-0">
                     <thead class="table-dark">
                         <tr>
-                            <th>{{ _("Fecha") }}</th>
-                            <th>{{ _("Parcela") }}</th>
-                            <th class="text-end">{{ _("m³") }}</th>
+                            <th class="sortable-th"><a href="{{ sort_url(request, 'date', sort_by, sort_order) }}">{{ _("Fecha") }}{% if sort_by == 'date' %}<i class="bi bi-arrow-{{ 'up' if sort_order == 'asc' else 'down' }}-short"></i>{% endif %}</a></th>
+                            <th class="sortable-th"><a href="{{ sort_url(request, 'plot', sort_by, sort_order) }}">{{ _("Parcela") }}{% if sort_by == 'plot' %}<i class="bi bi-arrow-{{ 'up' if sort_order == 'asc' else 'down' }}-short"></i>{% endif %}</a></th>
+                            <th class="text-end sortable-th"><a href="{{ sort_url(request, 'water_m3', sort_by, sort_order) }}">{{ _("m³") }}{% if sort_by == 'water_m3' %}<i class="bi bi-arrow-{{ 'up' if sort_order == 'asc' else 'down' }}-short"></i>{% endif %}</a></th>
                             <th class="text-end">{{ _("Litros") }}</th>
                             <th>{{ _("Gasto asociado") }}</th>
                             <th>{{ _("Notas") }}</th>

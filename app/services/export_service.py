@@ -11,6 +11,7 @@ from app.models.expense import Expense
 from app.models.income import Income
 from app.models.irrigation import IrrigationRecord
 from app.models.plot import Plot
+from app.models.well import Well
 from app.utils import format_eu
 
 
@@ -116,6 +117,27 @@ async def export_irrigation_csv(db: AsyncSession, user_id: int) -> bytes:
                 _format_date(r.date),
                 plots_by_id.get(r.plot_id, ""),
                 _format_num(r.water_m3, 3),
+                r.notes or "",
+            ]
+        )
+    return buf.getvalue().encode("utf-8")
+
+
+async def export_wells_csv(db: AsyncSession, user_id: int) -> bytes:
+    plots_by_id = await _load_plots_by_id(db, user_id)
+    result = await db.execute(
+        select(Well).where(Well.user_id == user_id).order_by(Well.date)
+    )
+    records = result.scalars().all()
+
+    buf = io.StringIO()
+    writer = csv.writer(buf, delimiter=";", lineterminator="\n")
+    for r in records:
+        writer.writerow(
+            [
+                _format_date(r.date),
+                plots_by_id.get(r.plot_id, ""),
+                r.wells_per_plant,
                 r.notes or "",
             ]
         )

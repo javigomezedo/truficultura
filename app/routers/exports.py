@@ -15,6 +15,7 @@ from app.services.export_service import (
     export_incomes_csv,
     export_irrigation_csv,
     export_plots_csv,
+    export_wells_csv,
 )
 
 router = APIRouter(prefix="/export", tags=["export"])
@@ -82,4 +83,17 @@ async def download_irrigation(
         io.BytesIO(data),
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": "attachment; filename=riego.csv"},
+    )
+
+
+@router.get("/wells.csv")
+async def download_wells(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
+):
+    data = await export_wells_csv(db, current_user.id)
+    return StreamingResponse(
+        io.BytesIO(data),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": "attachment; filename=pozos.csv"},
     )

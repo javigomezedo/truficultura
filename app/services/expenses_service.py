@@ -43,6 +43,8 @@ async def get_expenses_list_context(
     user_id: int,
     category: Optional[str] = None,
     person: Optional[str] = None,
+    sort_by: str = "date",
+    sort_order: str = "desc",
 ) -> dict:
     result = await db.execute(
         select(Expense).where(Expense.user_id == user_id).order_by(Expense.date.desc())
@@ -66,6 +68,17 @@ async def get_expenses_list_context(
         expenses = [e for e in expenses if e.category == category]
     if person:
         expenses = [e for e in expenses if e.person == person]
+
+    _SORT_KEYS: dict = {
+        "date": lambda x: x.date,
+        "description": lambda x: (x.description or "").lower(),
+        "category": lambda x: (x.category or "").lower(),
+        "person": lambda x: (x.person or "").lower(),
+        "plot": lambda x: x.plot.name if x.plot else "",
+        "amount": lambda x: x.amount,
+    }
+    key_fn = _SORT_KEYS.get(sort_by, lambda x: x.date)
+    expenses.sort(key=key_fn, reverse=(sort_order == "desc"))
 
     total = sum(e.amount for e in expenses)
     current_year = year or (
@@ -109,6 +122,8 @@ async def get_expenses_list_context(
         "breakdown": breakdown,
         "general_total": general_total,
         "categories": EXPENSE_CATEGORIES,
+        "sort_by": sort_by,
+        "sort_order": sort_order,
     }
 
 
