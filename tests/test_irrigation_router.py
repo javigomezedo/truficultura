@@ -47,6 +47,44 @@ def test_irrigation_list_renders(monkeypatch) -> None:
     assert "Riego" in response.text
 
 
+def test_irrigation_list_ignores_empty_plot_id(monkeypatch) -> None:
+    fake_db = _db()
+    context_mock = AsyncMock(
+        return_value={
+            "records": [],
+            "plots": [],
+            "years": [],
+            "count": 0,
+            "selected_year": None,
+            "selected_plot": None,
+            "total_water_m3": 0,
+            "total_water_liters": 0,
+            "sort_by": "date",
+            "sort_order": "desc",
+        }
+    )
+    monkeypatch.setattr(
+        "app.routers.irrigation.get_irrigation_list_context", context_mock
+    )
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = lambda: fake_db
+    try:
+        client = TestClient(app)
+        response = client.get("/irrigation/?plot_id=")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    context_mock.assert_awaited_once_with(
+        fake_db,
+        1,
+        year=None,
+        plot_id=None,
+        sort_by="date",
+        sort_order="desc",
+    )
+
+
 def test_irrigation_new_form_renders(monkeypatch) -> None:
     fake_db = _db()
     monkeypatch.setattr(
