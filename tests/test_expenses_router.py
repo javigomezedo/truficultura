@@ -30,13 +30,18 @@ def test_expenses_list_renders(monkeypatch) -> None:
             return_value={
                 "expenses": [],
                 "plots": [],
-                "available_years": [],
+                "years": [],
                 "selected_year": None,
                 "selected_category": None,
                 "selected_person": None,
-                "totals": {},
+                "selected_plot": None,
+                "total": 0,
+                "breakdown": [],
+                "general_total": 0,
                 "categories": [],
                 "people": [],
+                "sort_by": "date",
+                "sort_order": "desc",
             }
         ),
     )
@@ -58,14 +63,18 @@ def test_expenses_list_forwards_plot_filter(monkeypatch) -> None:
         return_value={
             "expenses": [],
             "plots": [],
-            "available_years": [],
+            "years": [],
             "selected_year": None,
             "selected_category": None,
             "selected_person": None,
             "selected_plot": 7,
-            "totals": {},
+            "total": 0,
+            "breakdown": [],
+            "general_total": 0,
             "categories": [],
             "people": [],
+            "sort_by": "date",
+            "sort_order": "desc",
         }
     )
     monkeypatch.setattr("app.routers.expenses.get_expenses_list_context", context_mock)
