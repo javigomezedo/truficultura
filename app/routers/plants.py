@@ -12,7 +12,7 @@ from app.database import get_db
 from app.models.user import User
 from app.services import plants_service, truffle_events_service
 from app.services.plots_service import get_plot, list_plots
-from app.utils import campaign_year, format_sparse_row_config, parse_row_config
+from app.utils import campaign_year, parse_row_config
 
 router = APIRouter(tags=["plants"])
 templates = Jinja2Templates(directory="app/templates")
@@ -121,9 +121,7 @@ async def configure_map_form(
             "request": request,
             "plot": plot,
             "has_events": has_events,
-            "row_config_value": format_sparse_row_config(row_columns)
-            if row_columns
-            else "",
+            "row_columns": row_columns,
         },
     )
 
