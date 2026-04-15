@@ -128,11 +128,11 @@
                             </td>
                             <td>
                                 {% if r.expense %}
-                                <span class="small">
+                                <a href="/expenses/{{ r.expense.id }}/edit" class="small text-decoration-none">
                                     <i class="bi bi-receipt me-1 text-muted"></i>
                                     {{ r.expense.description }}
                                     <span class="text-danger ms-1 fw-semibold">{{ r.expense.amount|format_eu(2) }} €</span>
-                                </span>
+                                </a>
                                 {% else %}
                                 <span class="text-muted">—</span>
                                 {% endif %}
