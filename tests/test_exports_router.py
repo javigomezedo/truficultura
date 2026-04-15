@@ -119,6 +119,26 @@ def test_download_truffles_csv(monkeypatch) -> None:
     assert response.status_code == 200
     assert response.content == b"truffles"
     assert (
+        response.headers["content-disposition"] == "attachment; filename=produccion.csv"
+    )
+
+
+def test_download_all_csv_zip(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.routers.exports.export_all_csv_zip",
+        AsyncMock(return_value=b"zip-content"),
+    )
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = _db
+    try:
+        client = TestClient(app)
+        response = client.get("/export/all.zip")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.content == b"zip-content"
+    assert (
         response.headers["content-disposition"]
-        == "attachment; filename=produccion.csv"
+        == "attachment; filename=exportacion_csv.zip"
     )

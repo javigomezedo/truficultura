@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import datetime
 import io
+import zipfile
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -15,6 +16,7 @@ from app.models.plot import Plot
 from app.models.truffle_event import TruffleEvent
 from app.models.well import Well
 from app.services.export_service import (
+    export_all_csv_zip,
     export_expenses_csv,
     export_incomes_csv,
     export_irrigation_csv,
@@ -439,3 +441,53 @@ async def test_export_truffles_csv_empty():
 
     data = await export_truffles_csv(db, user_id=1)
     assert data == b""
+
+
+# ---------------------------------------------------------------------------
+# export_all_csv_zip
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_export_all_csv_zip_contains_all_files(monkeypatch):
+    monkeypatch.setattr(
+        "app.services.export_service.export_plots_csv", AsyncMock(return_value=b"p")
+    )
+    monkeypatch.setattr(
+        "app.services.export_service.export_expenses_csv", AsyncMock(return_value=b"e")
+    )
+    monkeypatch.setattr(
+        "app.services.export_service.export_incomes_csv", AsyncMock(return_value=b"i")
+    )
+    monkeypatch.setattr(
+        "app.services.export_service.export_irrigation_csv",
+        AsyncMock(return_value=b"r"),
+    )
+    monkeypatch.setattr(
+        "app.services.export_service.export_wells_csv", AsyncMock(return_value=b"w")
+    )
+    monkeypatch.setattr(
+        "app.services.export_service.export_truffles_csv", AsyncMock(return_value=b"t")
+    )
+
+    db = MagicMock()
+    data = await export_all_csv_zip(db, user_id=1)
+
+    with zipfile.ZipFile(io.BytesIO(data), "r") as zf:
+        names = sorted(zf.namelist())
+        assert names == sorted(
+            [
+                "parcelas.csv",
+                "gastos.csv",
+                "ingresos.csv",
+                "riego.csv",
+                "pozos.csv",
+                "produccion.csv",
+            ]
+        )
+        assert zf.read("parcelas.csv") == b"p"
+        assert zf.read("gastos.csv") == b"e"
+        assert zf.read("ingresos.csv") == b"i"
+        assert zf.read("riego.csv") == b"r"
+        assert zf.read("pozos.csv") == b"w"
+        assert zf.read("produccion.csv") == b"t"
