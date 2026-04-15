@@ -34,6 +34,7 @@ async def list_expenses(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_user),
     year: Optional[str] = Query(default=None),
+    plot_id: Optional[str] = Query(default=None),
     category: Optional[str] = None,
     person: Optional[str] = None,
     msg: Optional[str] = None,
@@ -41,12 +42,14 @@ async def list_expenses(
     order: Optional[str] = Query(default=None),
 ):
     year_int = int(year) if year else None
+    plot_id_int = int(plot_id) if plot_id else None
     context = await get_expenses_list_context(
         db,
         year_int,
         current_user.id,
         category=category,
         person=person,
+        plot_id=plot_id_int,
         sort_by=sort or "date",
         sort_order=order if order in ("asc", "desc") else "desc",
     )

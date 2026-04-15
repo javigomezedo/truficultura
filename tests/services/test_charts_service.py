@@ -57,3 +57,46 @@ async def test_build_charts_context_generates_serialized_series() -> None:
     assert context["income_values"].startswith("[")
     assert context["expense_values"].startswith("[")
     assert len(context["kg_ha_table"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_build_charts_context_hides_campaigns_without_plot_production() -> None:
+    plots = [
+        Plot(
+            id=1,
+            name="P1",
+            planting_date=datetime.date(2020, 1, 1),
+            area_ha=1.0,
+            percentage=100.0,
+        ),
+    ]
+    expenses = [
+        Expense(
+            id=1,
+            date=datetime.date(2024, 11, 10),
+            description="Solo gasto",
+            plot_id=1,
+            amount=25.0,
+        ),
+    ]
+    incomes = [
+        Income(
+            id=1,
+            date=datetime.date(2025, 12, 2),
+            plot_id=1,
+            amount_kg=2.0,
+            category="A",
+            euros_per_kg=20.0,
+            total=40.0,
+        ),
+    ]
+
+    db = MagicMock()
+    db.execute = AsyncMock(
+        side_effect=[result(plots), result(expenses), result(incomes)]
+    )
+
+    context = await build_charts_context(db, campaign=None, plot_id=None, user_id=1)
+
+    assert context["all_campaigns"] == [2025, 2024]
+    assert [row["year"] for row in context["kg_ha_table"]] == [2025]

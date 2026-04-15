@@ -43,6 +43,7 @@ async def get_expenses_list_context(
     user_id: int,
     category: Optional[str] = None,
     person: Optional[str] = None,
+    plot_id: Optional[int] = None,
     sort_by: str = "date",
     sort_order: str = "desc",
 ) -> dict:
@@ -68,6 +69,8 @@ async def get_expenses_list_context(
         expenses = [e for e in expenses if e.category == category]
     if person:
         expenses = [e for e in expenses if e.person == person]
+    if plot_id is not None:
+        expenses = [e for e in expenses if e.plot_id == plot_id]
 
     _SORT_KEYS: dict = {
         "date": lambda x: x.date,
@@ -118,6 +121,7 @@ async def get_expenses_list_context(
         "selected_year": year,
         "selected_category": category,
         "selected_person": person,
+        "selected_plot": plot_id,
         "current_year": current_year,
         "breakdown": breakdown,
         "general_total": general_total,
