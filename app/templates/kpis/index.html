@@ -1,0 +1,555 @@
+{% extends "base.html" %}
+
+{% block title %}KPIs — Truficultura{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+    .chart-container {
+        position: relative;
+        height: 280px;
+    }
+    .kpi-card-value {
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1.1;
+    }
+    .kpi-card-label {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #6c757d;
+    }
+    .kpi-card-sub {
+        font-size: 0.85rem;
+    }
+    .badge-trend-up   { background-color: #198754; }
+    .badge-trend-down { background-color: #dc3545; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+
+{# ------------------------------------------------------------------ #}
+{# Page header                                                         #}
+{# ------------------------------------------------------------------ #}
+<div class="tf-page-header">
+    <div>
+        <p class="tf-page-kicker">{{ _("Indicadores clave") }}</p>
+        <h1 class="tf-page-title">KPIs</h1>
+        <p class="tf-page-subtitle">{{ _("Rentabilidad, producción, eficiencia hídrica y comparativa entre bancales.") }}</p>
+    </div>
+    <div class="tf-tag"><i class="bi bi-speedometer2"></i>{{ _("Análisis global") }}</div>
+</div>
+
+{# ------------------------------------------------------------------ #}
+{# Campaign filter                                                     #}
+{# ------------------------------------------------------------------ #}
+<div class="card tf-panel shadow-sm mb-4 border-0">
+    <div class="card-body py-3">
+        <form method="get" action="/kpis/" class="row g-3 align-items-end"
+              onsubmit="event.preventDefault(); applyFilters();">
+            <div class="col-auto">
+                <label class="form-label mb-1 fw-semibold">
+                    <i class="bi bi-calendar3 me-1"></i>{{ _("Campaña") }}
+                </label>
+                <select id="campaignSelect" name="campaign" class="form-select form-select-sm"
+                        onchange="applyFilters()">
+                    <option value="" {% if selected_campaign is none %}selected{% endif %}>
+                        {{ _("Todas las campañas") }}
+                    </option>
+                    {% for cy in all_campaigns %}
+                    <option value="{{ cy }}"
+                        {% if cy == selected_campaign %}selected{% endif %}>
+                        {{ cy | campaign_label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-funnel-fill me-1"></i>{{ _("Aplicar") }}
+                </button>
+            </div>
+            {% if selected_campaign %}
+            <div class="col-auto">
+                <a href="/kpis/" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-x-circle me-1"></i>{{ _("Limpiar filtro") }}
+                </a>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+{# ------------------------------------------------------------------ #}
+{# KPI Summary cards                                                   #}
+{# ------------------------------------------------------------------ #}
+{% if kpi_summary.year is not none %}
+<div class="row g-3 mb-4">
+
+    {# ROI #}
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="kpi-card-label mb-1">
+                    <i class="bi bi-percent me-1"></i>ROI
+                    {% if selected_campaign %}
+                    <span class="badge bg-secondary ms-1">{{ selected_campaign | campaign_label }}</span>
+                    {% else %}
+                    <span class="badge bg-secondary ms-1">{{ kpi_summary.year | campaign_label }}</span>
+                    {% endif %}
+                </div>
+                {% if kpi_summary.roi_pct is not none %}
+                <div class="kpi-card-value {% if kpi_summary.roi_pct >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    {{ kpi_summary.roi_pct | format_eu(1) }}%
+                </div>
+                <div class="kpi-card-sub text-muted mt-1">
+                    {{ kpi_summary.total_incomes | format_eu }} € {{ _("ingresados") }}
+                </div>
+                {% else %}
+                <div class="kpi-card-value text-muted">—</div>
+                <div class="kpi-card-sub text-muted mt-1">{{ _("Sin gastos registrados") }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {# Precio medio €/kg #}
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="kpi-card-label mb-1">
+                    <i class="bi bi-tag me-1"></i>{{ _("Precio medio") }}
+                    {% if selected_campaign %}
+                    <span class="badge bg-secondary ms-1">{{ selected_campaign | campaign_label }}</span>
+                    {% else %}
+                    <span class="badge bg-secondary ms-1">{{ kpi_summary.year | campaign_label }}</span>
+                    {% endif %}
+                </div>
+                {% if kpi_summary.precio_medio is not none %}
+                <div class="kpi-card-value text-primary">
+                    {{ kpi_summary.precio_medio | format_eu(2) }} <small class="fs-5 fw-normal">€/kg</small>
+                </div>
+                <div class="kpi-card-sub text-muted mt-1">
+                    {{ kpi_summary.total_kg | format_eu(1) }} kg {{ _("cosechados") }}
+                </div>
+                {% else %}
+                <div class="kpi-card-value text-muted">—</div>
+                <div class="kpi-card-sub text-muted mt-1">{{ _("Sin producción registrada") }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {# kg totales #}
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="kpi-card-label mb-1">
+                    <i class="bi bi-basket me-1"></i>{{ _("kg cosechados") }}
+                    {% if selected_campaign %}
+                    <span class="badge bg-secondary ms-1">{{ selected_campaign | campaign_label }}</span>
+                    {% else %}
+                    <span class="badge bg-secondary ms-1">{{ kpi_summary.year | campaign_label }}</span>
+                    {% endif %}
+                </div>
+                {% if kpi_summary.total_kg is not none and kpi_summary.total_kg > 0 %}
+                <div class="kpi-card-value text-dark">
+                    {{ kpi_summary.total_kg | format_eu(1) }} <small class="fs-5 fw-normal">kg</small>
+                </div>
+                <div class="kpi-card-sub text-muted mt-1">
+                    {{ kpi_summary.total_expenses | format_eu }} € {{ _("en gastos") }}
+                </div>
+                {% else %}
+                <div class="kpi-card-value text-muted">—</div>
+                <div class="kpi-card-sub text-muted mt-1">{{ _("Sin producción") }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {# Crecimiento interanual #}
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="kpi-card-label mb-1">
+                    <i class="bi bi-graph-up-arrow me-1"></i>{{ _("Crecimiento") }}
+                    <span class="badge bg-secondary ms-1">{{ _("interanual") }}</span>
+                </div>
+                {% if kpi_summary.crecimiento_pct is not none %}
+                <div class="kpi-card-value {% if kpi_summary.crecimiento_pct >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    {% if kpi_summary.crecimiento_pct >= 0 %}+{% endif %}{{ kpi_summary.crecimiento_pct | format_eu(1) }}%
+                </div>
+                <div class="kpi-card-sub text-muted mt-1">{{ _("respecto a la campaña anterior") }}</div>
+                {% else %}
+                <div class="kpi-card-value text-muted">—</div>
+                <div class="kpi-card-sub text-muted mt-1">{{ _("Primera campaña o sin datos previos") }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endif %}
+
+{# ------------------------------------------------------------------ #}
+{# Trend charts                                                        #}
+{# ------------------------------------------------------------------ #}
+{% if trend | length > 0 %}
+<div class="row g-4 mb-4">
+
+    {# ROI trend #}
+    <div class="col-lg-4">
+        <div class="card tf-panel shadow-sm border-0 h-100">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-percent me-2 text-success"></i>{{ _("ROI por campaña (%%)") }}
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="roiChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Price trend #}
+    <div class="col-lg-4">
+        <div class="card tf-panel shadow-sm border-0 h-100">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-tag me-2 text-primary"></i>{{ _("Precio medio €/kg por campaña") }}
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="priceChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# kg trend #}
+    <div class="col-lg-4">
+        <div class="card tf-panel shadow-sm border-0 h-100">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-basket me-2 text-warning"></i>{{ _("kg cosechados por campaña") }}
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="kgChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endif %}
+
+{# ------------------------------------------------------------------ #}
+{# Per-plot comparison                                                 #}
+{# ------------------------------------------------------------------ #}
+{% if plot_kpi_table | length > 0 %}
+<div class="card tf-panel shadow-sm mb-4 border-0">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <h5 class="mb-0">
+            <i class="bi bi-bar-chart me-2 text-info"></i>{{ _("Comparativa entre bancales") }}
+            {% if selected_campaign %}
+            <span class="badge bg-secondary ms-2">{{ selected_campaign | campaign_label }}</span>
+            {% endif %}
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row g-4 mb-4">
+            <div class="col-lg-6">
+                <h6 class="text-muted mb-2 small text-uppercase">{{ _("kg/ha por bancal") }}</h6>
+                <div class="chart-container">
+                    <canvas id="plotKgHaChart"></canvas>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <h6 class="text-muted mb-2 small text-uppercase">{{ _("ROI (%%) por bancal") }}</h6>
+                <div class="chart-container">
+                    <canvas id="plotRoiChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-sm table-hover table-bordered mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>{{ _("Bancal") }}</th>
+                        <th class="text-end">{{ _("kg totales") }}</th>
+                        <th class="text-end">{{ _("kg/ha") }}</th>
+                        <th class="text-end">{{ _("kg/planta") }}</th>
+                        <th class="text-end">{{ _("Coste/kg") }}</th>
+                        <th class="text-end">{{ _("ROI") }}</th>
+                        <th class="text-end">{{ _("m³/kg") }}</th>
+                        <th class="text-end">{{ _("m³/planta") }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in plot_kpi_table %}
+                    <tr>
+                        <td class="fw-semibold">{{ row.plot_name }}</td>
+                        <td class="text-end">
+                            {% if row.total_kg > 0 %}{{ row.total_kg | format_eu(1) }} kg{% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if row.kg_ha is not none %}{{ row.kg_ha | format_eu(1) }}{% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if row.kg_planta is not none %}{{ row.kg_planta | format_eu(3) }}{% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if row.coste_kg is not none %}{{ row.coste_kg | format_eu(2) }} €{% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <td class="text-end {% if row.roi_pct is not none %}{% if row.roi_pct >= 0 %}text-success{% else %}text-danger{% endif %}{% endif %} fw-semibold">
+                            {% if row.roi_pct is not none %}
+                                {% if row.roi_pct >= 0 %}+{% endif %}{{ row.roi_pct | format_eu(1) }}%
+                            {% else %}<span class="text-muted fw-normal">—</span>{% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if row.m3_kg is not none %}{{ row.m3_kg | format_eu(1) }}{% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if row.m3_planta is not none %}{{ row.m3_planta | format_eu(1) }}{% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{# ------------------------------------------------------------------ #}
+{# Historical trend table                                              #}
+{# ------------------------------------------------------------------ #}
+{% if trend | length > 0 %}
+<div class="card tf-panel shadow-sm mb-4 border-0">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="bi bi-table me-2 text-secondary"></i>{{ _("Histórico de KPIs por campaña") }}
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover table-bordered mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>{{ _("Campaña") }}</th>
+                        <th class="text-end">{{ _("kg") }}</th>
+                        <th class="text-end">{{ _("Ingresos") }}</th>
+                        <th class="text-end">{{ _("Gastos") }}</th>
+                        <th class="text-end">{{ _("Rentabilidad") }}</th>
+                        <th class="text-end">ROI</th>
+                        <th class="text-end">{{ _("€/kg medio") }}</th>
+                        <th class="text-end">{{ _("Crecimiento kg") }}</th>
+                        <th class="text-end">{{ _("m³/kg") }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in trend %}
+                    <tr {% if row.year == selected_campaign %}class="table-active"{% endif %}>
+                        <td class="fw-semibold text-nowrap">{{ row.year | campaign_label }}</td>
+                        <td class="text-end">{{ row.total_kg | format_eu(1) }} kg</td>
+                        <td class="text-end text-success">{{ row.total_incomes | format_eu }} €</td>
+                        <td class="text-end text-danger">{{ row.total_expenses | format_eu }} €</td>
+                        <td class="text-end {% if row.total_incomes - row.total_expenses >= 0 %}text-success{% else %}text-danger{% endif %} fw-semibold">
+                            {{ (row.total_incomes - row.total_expenses) | format_eu }} €
+                        </td>
+                        <td class="text-end fw-semibold {% if row.roi_pct is not none %}{% if row.roi_pct >= 0 %}text-success{% else %}text-danger{% endif %}{% endif %}">
+                            {% if row.roi_pct is not none %}
+                                {% if row.roi_pct >= 0 %}+{% endif %}{{ row.roi_pct | format_eu(1) }}%
+                            {% else %}<span class="text-muted fw-normal">—</span>{% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if row.precio_medio is not none %}{{ row.precio_medio | format_eu(2) }} €{% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <td class="text-end {% if row.crecimiento_pct is not none %}{% if row.crecimiento_pct >= 0 %}text-success{% else %}text-danger{% endif %}{% endif %}">
+                            {% if row.crecimiento_pct is not none %}
+                                {% if row.crecimiento_pct >= 0 %}+{% endif %}{{ row.crecimiento_pct | format_eu(1) }}%
+                            {% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if row.m3_por_kg is not none %}{{ row.m3_por_kg | format_eu(1) }}{% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if not all_campaigns %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle me-2"></i>{{ _("No hay datos suficientes para calcular KPIs. Registra ingresos y gastos para ver los indicadores.") }}
+</div>
+{% endif %}
+
+</div><!-- /container-xl -->
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const trendLabels  = {{ trend_labels | safe }};
+const roiTrend     = {{ roi_trend | safe }};
+const priceTrend   = {{ price_trend | safe }};
+const kgTrend      = {{ kg_trend | safe }};
+const m3KgTrend    = {{ m3_kg_trend | safe }};
+const plotLabels   = {{ plot_labels | safe }};
+const plotKgHa     = {{ plot_kg_ha_values | safe }};
+const plotRoi      = {{ plot_roi_values | safe }};
+
+function nullFilter(arr) {
+    // Returns a dataset skipping null values cleanly for Chart.js
+    return arr.map(v => v === null ? NaN : v);
+}
+
+const commonLineOpts = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+        x: { ticks: { font: { size: 11 } } },
+        y: { ticks: { font: { size: 11 } } },
+    },
+};
+
+// ROI trend
+if (document.getElementById('roiChart')) {
+    new Chart(document.getElementById('roiChart'), {
+        type: 'line',
+        data: {
+            labels: trendLabels,
+            datasets: [{
+                data: nullFilter(roiTrend),
+                borderColor: '#198754',
+                backgroundColor: 'rgba(25,135,84,0.1)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 4,
+            }]
+        },
+        options: {
+            ...commonLineOpts,
+            scales: {
+                ...commonLineOpts.scales,
+                y: { ...commonLineOpts.scales.y, ticks: { callback: v => v + '%', font: { size: 11 } } }
+            }
+        }
+    });
+}
+
+// Price trend
+if (document.getElementById('priceChart')) {
+    new Chart(document.getElementById('priceChart'), {
+        type: 'line',
+        data: {
+            labels: trendLabels,
+            datasets: [{
+                data: nullFilter(priceTrend),
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13,110,253,0.1)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 4,
+            }]
+        },
+        options: {
+            ...commonLineOpts,
+            scales: {
+                ...commonLineOpts.scales,
+                y: { ...commonLineOpts.scales.y, ticks: { callback: v => v + ' €', font: { size: 11 } } }
+            }
+        }
+    });
+}
+
+// kg trend
+if (document.getElementById('kgChart')) {
+    new Chart(document.getElementById('kgChart'), {
+        type: 'bar',
+        data: {
+            labels: trendLabels,
+            datasets: [{
+                data: kgTrend,
+                backgroundColor: '#ffc107',
+                borderColor: '#d4a000',
+                borderWidth: 1,
+            }]
+        },
+        options: {
+            ...commonLineOpts,
+            scales: {
+                ...commonLineOpts.scales,
+                y: { ...commonLineOpts.scales.y, ticks: { callback: v => v + ' kg', font: { size: 11 } } }
+            }
+        }
+    });
+}
+
+// Plot kg/ha
+if (document.getElementById('plotKgHaChart')) {
+    new Chart(document.getElementById('plotKgHaChart'), {
+        type: 'bar',
+        data: {
+            labels: plotLabels,
+            datasets: [{
+                label: 'kg/ha',
+                data: nullFilter(plotKgHa),
+                backgroundColor: '#20c997',
+            }]
+        },
+        options: {
+            ...commonLineOpts,
+            plugins: { legend: { display: false } },
+            scales: {
+                ...commonLineOpts.scales,
+                y: { ...commonLineOpts.scales.y, ticks: { callback: v => v + ' kg/ha', font: { size: 11 } } }
+            }
+        }
+    });
+}
+
+// Plot ROI
+if (document.getElementById('plotRoiChart')) {
+    new Chart(document.getElementById('plotRoiChart'), {
+        type: 'bar',
+        data: {
+            labels: plotLabels,
+            datasets: [{
+                label: 'ROI %',
+                data: nullFilter(plotRoi),
+                backgroundColor: plotRoi.map(v => v === null ? '#adb5bd' : (v >= 0 ? '#198754' : '#dc3545')),
+            }]
+        },
+        options: {
+            ...commonLineOpts,
+            plugins: { legend: { display: false } },
+            scales: {
+                ...commonLineOpts.scales,
+                y: { ...commonLineOpts.scales.y, ticks: { callback: v => v + '%', font: { size: 11 } } }
+            }
+        }
+    });
+}
+
+function applyFilters() {
+    const campaign = document.getElementById('campaignSelect').value;
+    const params = new URLSearchParams();
+    if (campaign) params.set('campaign', campaign);
+    window.location.href = '/kpis/?' + params.toString();
+}
+</script>
+{% endblock %}

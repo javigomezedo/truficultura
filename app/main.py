@@ -24,6 +24,7 @@ from app.routers import (
     imports,
     incomes,
     irrigation,
+    kpis,
     plants,
     plots,
     reports,
@@ -63,6 +64,7 @@ exports.templates = templates
 plants.templates = templates
 scan.templates = templates
 wells.templates = templates
+kpis.templates = templates
 
 # Include routers
 app.include_router(auth.router)
@@ -79,6 +81,7 @@ app.include_router(wells.router)
 app.include_router(exports.router)
 app.include_router(plants.router)
 app.include_router(scan.router)
+app.include_router(kpis.router)
 
 
 @app.get("/health")
