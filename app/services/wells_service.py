@@ -58,10 +58,20 @@ async def get_wells_list_context(
     *,
     year: Optional[int] = None,
     plot_id: Optional[int] = None,
+    sort_by: str = "date",
+    sort_order: str = "desc",
 ) -> dict:
     wells = await list_wells(db, user_id, plot_id=plot_id, year=year)
     plots = await _get_all_plots(db, user_id)
     years = await _get_all_years(db, user_id)
+
+    _SORT_KEYS: dict = {
+        "date": lambda x: x.date,
+        "plot": lambda x: x.plot.name if x.plot else "",
+        "wells_per_plant": lambda x: x.wells_per_plant,
+    }
+    key_fn = _SORT_KEYS.get(sort_by, lambda x: x.date)
+    wells = sorted(wells, key=key_fn, reverse=(sort_order == "desc"))
 
     total_wells_per_plant = sum(w.wells_per_plant for w in wells)
     total_estimated_wells = sum(
@@ -78,6 +88,8 @@ async def get_wells_list_context(
         "total_wells_per_plant": total_wells_per_plant,
         "total_estimated_wells": total_estimated_wells,
         "count": len(wells),
+        "sort_by": sort_by,
+        "sort_order": sort_order,
     }
 
 

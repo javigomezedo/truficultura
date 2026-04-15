@@ -34,6 +34,16 @@
             <i class="bi bi-droplet-fill text-primary me-1"></i>{{ _("Riego") }}
         </button>
     </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-export-wells" data-bs-target="#panel-export-wells" type="button" role="tab">
+            <i class="bi bi-circle-half text-secondary me-1"></i>{{ _("Pozos") }}
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-export-truffles" data-bs-target="#panel-export-truffles" type="button" role="tab">
+            <i class="bi bi-basket-fill text-success me-1"></i>{{ _("Producción") }}
+        </button>
+    </li>
 </ul>
 
 <div class="tab-content" id="exportTabContent">
@@ -41,7 +51,7 @@
         <div class="card tf-panel shadow-sm border-0">
             <div class="card-body p-4">
                 <h5 class="card-title mb-3">{{ _("Exportar parcelas") }}</h5>
-                <p class="text-muted mb-3">{{ _("Descarga todas tus parcelas en formato CSV semicolon-delimited y sin cabecera. Incluye la columna tiene_riego (1/0) para reutilizar el archivo en la importación.") }}</p>
+                <p class="text-muted mb-3">{{ _("Descarga todas tus parcelas en formato CSV semicolon-delimited y sin cabecera. Incluye tiene_riego (1/0) y config_mapa para poder reconstruir el mapa en otro entorno.") }}</p>
                 <div class="mb-4">
                     <span class="badge text-bg-light me-2">nombre</span>
                     <span class="badge text-bg-light me-2">fecha_plantacion</span>
@@ -53,7 +63,8 @@
                     <span class="badge text-bg-light me-2">n_plantas</span>
                     <span class="badge text-bg-light me-2">superficie_ha</span>
                     <span class="badge text-bg-light me-2">inicio_produccion</span>
-                    <span class="badge text-bg-primary">tiene_riego</span>
+                    <span class="badge text-bg-primary me-2">tiene_riego</span>
+                    <span class="badge text-bg-primary">config_mapa</span>
                 </div>
                 <a href="/export/plots.csv" class="btn btn-success">
                     <i class="bi bi-download me-1"></i>{{ _("Descargar CSV") }}
@@ -113,6 +124,43 @@
                     <span class="badge text-bg-light">notas</span>
                 </div>
                 <a href="/export/irrigation.csv" class="btn btn-success">
+                    <i class="bi bi-download me-1"></i>{{ _("Descargar CSV") }}
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="panel-export-wells" role="tabpanel">
+        <div class="card tf-panel shadow-sm border-0">
+            <div class="card-body p-4">
+                <h5 class="card-title mb-3">{{ _("Exportar pozos") }}</h5>
+                <p class="text-muted mb-3">{{ _("Descarga los registros de pozos en formato CSV. El vínculo interno con gastos no se exporta; solo se incluyen los datos funcionales del registro.") }}</p>
+                <div class="mb-4">
+                    <span class="badge text-bg-light me-2">fecha</span>
+                    <span class="badge text-bg-light me-2">bancal</span>
+                    <span class="badge text-bg-light me-2">pozos_por_planta</span>
+                    <span class="badge text-bg-light">notas</span>
+                </div>
+                <a href="/export/wells.csv" class="btn btn-success">
+                    <i class="bi bi-download me-1"></i>{{ _("Descargar CSV") }}
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="panel-export-truffles" role="tabpanel">
+        <div class="card tf-panel shadow-sm border-0">
+            <div class="card-body p-4">
+                <h5 class="card-title mb-3">{{ _("Exportar producción") }}</h5>
+                <p class="text-muted mb-3">{{ _("Descarga los registros de producción activos para poder importarlos en otro entorno preservando fecha/hora, parcela, planta, peso y origen.") }}</p>
+                <div class="mb-4">
+                    <span class="badge text-bg-light me-2">fecha_hora</span>
+                    <span class="badge text-bg-light me-2">bancal</span>
+                    <span class="badge text-bg-light me-2">planta</span>
+                    <span class="badge text-bg-light me-2">peso_g</span>
+                    <span class="badge text-bg-light">origen</span>
+                </div>
+                <a href="/export/truffles.csv" class="btn btn-success">
                     <i class="bi bi-download me-1"></i>{{ _("Descargar CSV") }}
                 </a>
             </div>

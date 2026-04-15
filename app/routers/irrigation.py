@@ -31,10 +31,17 @@ async def list_view(
     year: Optional[str] = Query(default=None),
     plot_id: Optional[int] = Query(default=None),
     msg: Optional[str] = None,
+    sort: Optional[str] = Query(default=None),
+    order: Optional[str] = Query(default=None),
 ):
     year_int = int(year) if year else None
     context = await get_irrigation_list_context(
-        db, current_user.id, year=year_int, plot_id=plot_id
+        db,
+        current_user.id,
+        year=year_int,
+        plot_id=plot_id,
+        sort_by=sort or "date",
+        sort_order=order if order in ("asc", "desc") else "desc",
     )
     return templates.TemplateResponse(
         request,

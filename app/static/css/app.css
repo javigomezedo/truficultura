@@ -137,6 +137,19 @@ a:hover {
     background: linear-gradient(90deg, rgba(157, 90, 52, 0.8), rgba(233, 204, 169, 0.95));
 }
 
+.tf-navbar .nav-link.dropdown-toggle.show,
+.tf-navbar .nav-link.dropdown-toggle:focus,
+.tf-navbar .nav-link.dropdown-toggle:active {
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
+.tf-navbar .dropdown-menu .dropdown-item.active,
+.tf-navbar .dropdown-menu .dropdown-item:active {
+    color: #2f2218;
+    background-color: rgba(157, 90, 52, 0.14);
+}
+
 .tf-navbar .navbar-text {
     color: rgba(255, 247, 239, 0.8) !important;
 }
@@ -736,6 +749,19 @@ a:hover {
     padding: 3rem 1.5rem;
     text-align: center;
     color: var(--tf-text-soft);
+}
+
+/* Sortable table headers */
+.sortable-th a {
+    color: inherit;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+}
+.sortable-th a:hover {
+    opacity: 0.8;
 }
 
 .tf-import-pane-row {

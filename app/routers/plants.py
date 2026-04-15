@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Form, Query, Request
@@ -12,7 +13,7 @@ from app.database import get_db
 from app.models.user import User
 from app.services import plants_service, truffle_events_service
 from app.services.plots_service import get_plot, list_plots
-from app.utils import campaign_year, format_sparse_row_config, parse_row_config
+from app.utils import campaign_year, parse_row_config
 
 router = APIRouter(tags=["plants"])
 templates = Jinja2Templates(directory="app/templates")
@@ -121,9 +122,7 @@ async def configure_map_form(
             "request": request,
             "plot": plot,
             "has_events": has_events,
-            "row_config_value": format_sparse_row_config(row_columns)
-            if row_columns
-            else "",
+            "row_columns": row_columns,
         },
     )
 
@@ -274,6 +273,8 @@ async def list_truffle_events(
     camp: Optional[str] = Query(default=None),
     plot_id: Optional[str] = Query(default=None),
     plant_id: Optional[str] = Query(default=None),
+    sort: Optional[str] = Query(default=None),
+    order: Optional[str] = Query(default=None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_user),
 ):
@@ -331,6 +332,18 @@ async def list_truffle_events(
         events, historical_active_events
     )
 
+    _TRUFFLE_SORT_KEYS: dict = {
+        "date": lambda e: e.created_at if e.created_at else datetime.datetime.min,
+        "plot": lambda e: e.plot.name if e.plot else "",
+        "plant": lambda e: e.plant.label if e.plant else "",
+        "weight": lambda e: e.estimated_weight_grams or 0.0,
+        "source": lambda e: e.source or "",
+    }
+    sort_by = sort or "date"
+    sort_order = order if order in ("asc", "desc") else "desc"
+    sort_key_fn = _TRUFFLE_SORT_KEYS.get(sort_by, lambda e: e.created_at)
+    events = sorted(events, key=sort_key_fn, reverse=(sort_order == "desc"))
+
     return templates.TemplateResponse(
         request,
         "reportes/trufas.html",
@@ -344,6 +357,8 @@ async def list_truffle_events(
             "selected_plant_id": plant_id_int,
             "campaign_years": campaign_years,
             "summary_rows": summary_rows,
+            "sort_by": sort_by,
+            "sort_order": sort_order,
         },
     )
 

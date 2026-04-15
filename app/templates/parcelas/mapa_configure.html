@@ -10,7 +10,7 @@
             <h1 class="tf-page-title">
                 <i class="bi bi-sliders text-success me-2"></i>{{ _("Configurar mapa") }} · {{ plot.name }}
             </h1>
-            <p class="tf-page-subtitle">{{ _("Define columnas ocupadas por fila. Ejemplo: A:2-5,8; B:1,3,4") }}</p>
+            <p class="tf-page-subtitle">{{ _("Configura la parcela usando únicamente el editor visual del mapa.") }}</p>
         </div>
     </div>
 
@@ -23,11 +23,7 @@
     <div class="card tf-panel border-0 shadow-sm">
         <div class="card-body">
             <form method="post" action="/plots/{{ plot.id }}/map/configure" class="row g-3">
-                <div class="col-12">
-                    <label class="form-label">{{ _("Configuración de filas") }}</label>
-                    <input id="row-config-input" class="form-control" name="row_config" placeholder="A:2-5,8; B:1,3,4" value="{{ row_config_value if row_config_value else '' }}" {% if has_events %}disabled{% endif %}>
-                    <div class="form-text">{{ _("Formato por fila: A:2-5,8; B:1,3,4. El formato antiguo ya no está disponible.") }}</div>
-                </div>
+                <input type="hidden" id="row-config-input" name="row_config" value="" {% if has_events %}disabled{% endif %}>
 
                 <div class="col-12">
                     <div class="tf-map-editor-card border rounded-3 p-3 mb-3">
@@ -50,8 +46,6 @@
                             </span>
                         </div>
 
-                        <div id="grid-error" class="alert alert-danger d-none mb-3" role="alert"></div>
-
                         <div id="interactive-grid-wrapper" class="tf-map-editor-grid-wrapper{% if has_events %} disabled{% endif %}">
                             <div id="interactive-grid" class="tf-map-editor-grid"></div>
                             <div id="grid-handle" class="tf-map-editor-handle" title="{{ _('Arrastra para cambiar el tamaño de la cuadrícula') }}">↔</div>
@@ -60,7 +54,7 @@
                 </div>
 
                 <div class="col-md-8">
-                    <p class="text-muted small mb-1">{{ _("Consejo: usa el editor visual para dibujar la parcela y el campo de texto para ajustes avanzados.") }}</p>
+                    <p class="text-muted small mb-1">{{ _("Consejo: ajusta filas y columnas arrastrando el borde inferior y derecho de la cuadrícula.") }}</p>
                 </div>
 
                 <div class="col-md-4 d-flex align-items-end gap-2">
@@ -79,8 +73,9 @@
         var wrapper = document.getElementById("interactive-grid-wrapper");
         var handle = document.getElementById("grid-handle");
         var sizeInfo = document.getElementById("grid-size-info");
-        var errorBox = document.getElementById("grid-error");
-        if (!input || !grid || !wrapper || !handle || !sizeInfo || !errorBox) return;
+        if (!input || !grid || !wrapper || !handle || !sizeInfo) return;
+
+        var initialRowColumns = {{ (row_columns or [])|tojson }};
 
         var disabled = input.disabled;
         var state = {
@@ -98,58 +93,6 @@
                 n = Math.floor(n / 26);
             }
             return label;
-        }
-
-        function _expandColumnToken(token) {
-            token = token.trim();
-            if (!token) throw new Error("Formato incorrecto");
-            if (token.indexOf("-") >= 0) {
-                var parts = token.split("-", 2);
-                if (parts.length !== 2) throw new Error("Formato incorrecto");
-                var start = parseInt(parts[0].trim(), 10);
-                var end = parseInt(parts[1].trim(), 10);
-                if (Number.isNaN(start) || Number.isNaN(end) || start <= 0 || end <= 0 || end < start) {
-                    throw new Error("Formato incorrecto");
-                }
-                var numbers = [];
-                for (var i = start; i <= end; i += 1) numbers.push(i);
-                return numbers;
-            }
-            var value = parseInt(token, 10);
-            if (Number.isNaN(value) || value <= 0) throw new Error("Formato incorrecto");
-            return [value];
-        }
-
-        function parseRowConfig(raw) {
-            var text = (raw || "").trim();
-            if (!text) throw new Error("Debes definir al menos una fila");
-
-            var chunks = text.split(";").map(function (p) { return p.trim(); }).filter(function (p) { return p.length > 0; });
-            if (chunks.length === 0) throw new Error("Debes definir al menos una fila");
-
-            var rows = [];
-            for (var i = 0; i < chunks.length; i += 1) {
-                var chunk = chunks[i];
-                var payload = chunk.indexOf(":") >= 0 ? chunk.split(":", 2)[1].trim() : chunk;
-                if (!payload) throw new Error("Formato incorrecto");
-
-                var columns = [];
-                var tokens = payload.split(",").map(function (p) { return p.trim(); }).filter(function (p) { return p.length > 0; });
-                if (tokens.length === 0) throw new Error("Formato incorrecto");
-
-                for (var t = 0; t < tokens.length; t += 1) {
-                    var token = tokens[t];
-                    var expanded = _expandColumnToken(token);
-                    for (var j = 0; j < expanded.length; j += 1) {
-                        columns.push(expanded[j]);
-                    }
-                }
-
-                var unique = Array.from(new Set(columns)).sort(function (a, b) { return a - b; });
-                if (unique.length === 0) throw new Error("Formato incorrecto");
-                rows.push(unique);
-            }
-            return rows;
         }
 
         function _compressColumns(columns) {
@@ -183,7 +126,7 @@
 
         function normalizeRowColumns(rows) {
             if (!rows || rows.length === 0) {
-                return [[1]];
+                return { rows: [[1]], cols: 1 };
             }
             var cols = 1;
             var normalized = rows.map(function (columns) {
@@ -194,31 +137,6 @@
                 return unique;
             });
             return { rows: normalized, cols: cols };
-        }
-
-        function showError(message) {
-            if (!message) {
-                errorBox.classList.add("d-none");
-                errorBox.textContent = "";
-                return;
-            }
-            errorBox.textContent = message;
-            errorBox.classList.remove("d-none");
-        }
-
-        function setStateFromInput(raw) {
-            try {
-                var rows = parseRowConfig(raw);
-                var normalized = normalizeRowColumns(rows);
-                state.rowColumns = normalized.rows;
-                state.rows = state.rowColumns.length;
-                state.cols = Math.max(1, normalized.cols);
-                showError("");
-                return true;
-            } catch (exc) {
-                showError(exc.message || "Formato incorrecto");
-                return false;
-            }
         }
 
         function ensureValidRowColumns() {
@@ -363,16 +281,6 @@
             updateInputValue();
         }
 
-        function commitInput() {
-            var valid = setStateFromInput(input.value);
-            if (valid) {
-                ensureValidRowColumns();
-                renderGrid();
-                updateInputValue();
-            }
-            return valid;
-        }
-
         var dragState = null;
         handle.addEventListener("pointerdown", function (event) {
             if (disabled) return;
@@ -419,19 +327,13 @@
             toggleCell(row, col);
         });
 
-        input.addEventListener("input", function () {
-            if (disabled) return;
-            commitInput();
-        });
-
-        if (!setStateFromInput(input.value)) {
-            state.rowColumns = [[1]];
-            state.rows = 1;
-            state.cols = 1;
-            updateInputValue();
-        }
+        var normalizedInitial = normalizeRowColumns(initialRowColumns);
+        state.rowColumns = normalizedInitial.rows;
+        state.rows = state.rowColumns.length;
+        state.cols = Math.max(1, normalizedInitial.cols);
 
         ensureValidRowColumns();
+        updateInputValue();
         renderGrid();
     })();
 </script>

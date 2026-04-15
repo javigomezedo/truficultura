@@ -28,7 +28,11 @@ async def get_income(
 
 
 async def get_incomes_list_context(
-    db: AsyncSession, year: Optional[int], user_id: int
+    db: AsyncSession,
+    year: Optional[int],
+    user_id: int,
+    sort_by: str = "date",
+    sort_order: str = "desc",
 ) -> dict:
     result = await db.execute(
         select(Income)
@@ -46,6 +50,18 @@ async def get_incomes_list_context(
 
     total_kg = sum(i.amount_kg for i in incomes)
     total_euros = sum(i.total for i in incomes)
+
+    _SORT_KEYS: dict = {
+        "date": lambda x: x.date,
+        "plot": lambda x: x.plot.name if x.plot else "",
+        "amount_kg": lambda x: x.amount_kg,
+        "category": lambda x: (x.category or "").lower(),
+        "euros_per_kg": lambda x: x.euros_per_kg,
+        "total": lambda x: x.total,
+    }
+    key_fn = _SORT_KEYS.get(sort_by, lambda x: x.date)
+    incomes = sorted(incomes, key=key_fn, reverse=(sort_order == "desc"))
+
     current_year = year or (
         campaign_year(datetime.date.today())
         if all_incomes
@@ -59,6 +75,8 @@ async def get_incomes_list_context(
         "years": years,
         "selected_year": year,
         "current_year": current_year,
+        "sort_by": sort_by,
+        "sort_order": sort_order,
     }
 
 

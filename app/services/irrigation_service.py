@@ -69,10 +69,20 @@ async def get_irrigation_list_context(
     *,
     year: Optional[int] = None,
     plot_id: Optional[int] = None,
+    sort_by: str = "date",
+    sort_order: str = "desc",
 ) -> dict:
     records = await list_irrigation_records(db, user_id, plot_id=plot_id, year=year)
     plots = await _get_irrigable_plots(db, user_id)
     years = await _get_all_years(db, user_id)
+
+    _SORT_KEYS: dict = {
+        "date": lambda x: x.date,
+        "plot": lambda x: x.plot.name if x.plot else "",
+        "water_m3": lambda x: x.water_m3,
+    }
+    key_fn = _SORT_KEYS.get(sort_by, lambda x: x.date)
+    records = sorted(records, key=key_fn, reverse=(sort_order == "desc"))
 
     total_water_m3 = sum(r.water_m3 for r in records)
 
@@ -85,6 +95,8 @@ async def get_irrigation_list_context(
         "total_water_m3": round(total_water_m3, 3),
         "total_water_liters": round(total_water_m3 * 1000, 1),
         "count": len(records),
+        "sort_by": sort_by,
+        "sort_order": sort_order,
     }
 
 

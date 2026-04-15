@@ -7,13 +7,16 @@ import pytest
 
 from app.models.expense import Expense
 from app.models.income import Income
+from app.models.plant import Plant
 from app.models.plot import Plot
+from app.models.truffle_event import TruffleEvent
 from app.models.well import Well
 from app.services.import_service import (
     import_expenses_csv,
     import_incomes_csv,
     import_irrigation_csv,
     import_plots_csv,
+    import_truffles_csv,
     import_wells_csv,
 )
 from tests.conftest import result
@@ -40,6 +43,19 @@ def _make_plot(id=1, name="Bancal Sur", has_irrigation=True):
         production_start=None,
         percentage=100.0,
         has_irrigation=has_irrigation,
+    )
+
+
+def _make_plant(id=1, plot_id=1, label="A1"):
+    return Plant(
+        id=id,
+        user_id=1,
+        plot_id=plot_id,
+        label=label,
+        row_label="A",
+        row_order=0,
+        col_order=0,
+        visual_col=1,
     )
 
 
@@ -221,6 +237,7 @@ async def test_import_plots_csv_has_irrigation_true():
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([]))
     db.add_all = MagicMock()
+    db.flush = AsyncMock()
 
     # has_irrigation=True (column 11 = "1"), mock _recalculate_percentages
     content = _plots_csv(["Bancal Sur;01/01/2020;20;100;;;S1;50;;01/01/2023;1"])
@@ -243,6 +260,7 @@ async def test_import_plots_csv_has_irrigation_false():
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([]))
     db.add_all = MagicMock()
+    db.flush = AsyncMock()
 
     content = _plots_csv(["Bancal Sur;01/01/2020;20;100;;;S1;50;;01/01/2023;0"])
 
@@ -263,6 +281,7 @@ async def test_import_plots_csv_has_irrigation_missing():
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([]))
     db.add_all = MagicMock()
+    db.flush = AsyncMock()
 
     content = _plots_csv(["Bancal Sur;01/01/2020;20;100;;;S1;50;;01/01/2023"])
 
@@ -283,6 +302,7 @@ async def test_import_plots_csv_too_few_columns_warns():
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([]))
     db.add_all = MagicMock()
+    db.flush = AsyncMock()
 
     from unittest.mock import patch, AsyncMock as AM
 
@@ -304,6 +324,7 @@ async def test_import_plots_csv_parse_error_warns():
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([]))
     db.add_all = MagicMock()
+    db.flush = AsyncMock()
 
     from unittest.mock import patch, AsyncMock as AM
 
@@ -320,6 +341,39 @@ async def test_import_plots_csv_parse_error_warns():
     assert rows == []
     assert len(warnings) == 1
     assert "error al parsear" in warnings[0]
+
+
+@pytest.mark.asyncio
+async def test_import_plots_csv_with_map_config_calls_configure_map():
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+    db.add_all = MagicMock()
+    db.flush = AsyncMock()
+
+    from unittest.mock import AsyncMock as AM, patch
+
+    mock_configure = AM(return_value=[])
+    with (
+        patch(
+            "app.services.plants_service.configure_plot_map",
+            new=mock_configure,
+        ),
+        patch(
+            "app.services.plots_service._recalculate_percentages",
+            new=AM(return_value=None),
+        ),
+    ):
+        rows, warnings = await import_plots_csv(
+            db,
+            _plots_csv(
+                ["Bancal Sur;01/01/2020;20;100;;;S1;50;;01/01/2023;1;A:1-2; B:3"]
+            ),
+            user_id=1,
+        )
+
+    assert len(rows) == 1
+    assert warnings == []
+    mock_configure.assert_awaited_once()
 
 
 # ---------------------------------------------------------------------------
@@ -450,3 +504,68 @@ async def test_import_wells_csv_parse_error_warns():
     assert rows == []
     assert len(warnings) == 1
     assert "error al parsear" in warnings[0]
+
+
+# ---------------------------------------------------------------------------
+# import_truffles_csv
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_import_truffles_csv_success():
+    plot = _make_plot(id=10, name="Bancal Sur")
+    plant = _make_plant(id=20, plot_id=10, label="A3")
+
+    db = MagicMock()
+    db.execute = AsyncMock(side_effect=[result([plot]), result([plant])])
+    db.add_all = MagicMock()
+
+    rows, warnings = await import_truffles_csv(
+        db,
+        _plots_csv(["10/12/2025 08:15:00;Bancal Sur;A3;45,5;manual"]),
+        user_id=1,
+    )
+
+    assert warnings == []
+    assert len(rows) == 1
+    event = rows[0]
+    assert isinstance(event, TruffleEvent)
+    assert event.plot_id == 10
+    assert event.plant_id == 20
+    assert event.estimated_weight_grams == pytest.approx(45.5)
+    assert event.source == "manual"
+
+
+@pytest.mark.asyncio
+async def test_import_truffles_csv_unknown_plot_warns():
+    db = MagicMock()
+    db.execute = AsyncMock(side_effect=[result([]), result([])])
+    db.add_all = MagicMock()
+
+    rows, warnings = await import_truffles_csv(
+        db,
+        _plots_csv(["10/12/2025 08:15:00;NoExiste;A3;45,5;manual"]),
+        user_id=1,
+    )
+
+    assert rows == []
+    assert len(warnings) == 1
+    assert "NoExiste" in warnings[0]
+
+
+@pytest.mark.asyncio
+async def test_import_truffles_csv_unknown_plant_warns():
+    plot = _make_plot(id=10, name="Bancal Sur")
+    db = MagicMock()
+    db.execute = AsyncMock(side_effect=[result([plot]), result([])])
+    db.add_all = MagicMock()
+
+    rows, warnings = await import_truffles_csv(
+        db,
+        _plots_csv(["10/12/2025 08:15:00;Bancal Sur;A99;45,5;manual"]),
+        user_id=1,
+    )
+
+    assert rows == []
+    assert len(warnings) == 1
+    assert "A99" in warnings[0]

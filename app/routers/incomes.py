@@ -29,9 +29,17 @@ async def list_incomes(
     current_user: User = Depends(require_user),
     year: Optional[str] = Query(default=None),
     msg: Optional[str] = None,
+    sort: Optional[str] = Query(default=None),
+    order: Optional[str] = Query(default=None),
 ):
     year_int = int(year) if year else None
-    context = await get_incomes_list_context(db, year_int, current_user.id)
+    context = await get_incomes_list_context(
+        db,
+        year_int,
+        current_user.id,
+        sort_by=sort or "date",
+        sort_order=order if order in ("asc", "desc") else "desc",
+    )
 
     return templates.TemplateResponse(
         request,
