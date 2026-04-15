@@ -60,8 +60,15 @@ async def build_charts_context(
                 income.amount_kg
             )
 
+    # Tabla kg/ha: mostrar solo campañas con producción en al menos un bancal.
+    kg_ha_campaigns = [
+        cy
+        for cy in all_campaigns
+        if any(kg_by_cy_plot[cy][plot.id] > 0 for plot in all_plots)
+    ]
+
     kg_ha_table = []
-    for cy in all_campaigns:
+    for cy in kg_ha_campaigns:
         row_plots = {}
         for plot in all_plots:
             kg = kg_by_cy_plot[cy][plot.id]
@@ -71,7 +78,7 @@ async def build_charts_context(
 
     kg_ha_totals = {}
     for plot in all_plots:
-        total_kg = sum(kg_by_cy_plot[cy][plot.id] for cy in all_campaigns)
+        total_kg = sum(kg_by_cy_plot[cy][plot.id] for cy in kg_ha_campaigns)
         total_kg_ha = (
             total_kg / plot.area_ha if plot.area_ha and plot.area_ha > 0 else None
         )

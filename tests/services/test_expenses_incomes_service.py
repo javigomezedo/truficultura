@@ -45,6 +45,35 @@ async def test_expenses_list_context_filters_by_campaign() -> None:
 
 
 @pytest.mark.asyncio
+async def test_expenses_list_context_filters_by_plot() -> None:
+    expenses = [
+        Expense(
+            id=1,
+            date=datetime.date(2025, 6, 1),
+            description="Con bancal",
+            amount=12.0,
+            plot_id=10,
+        ),
+        Expense(
+            id=2,
+            date=datetime.date(2025, 6, 2),
+            description="Sin bancal",
+            amount=8.0,
+            plot_id=None,
+        ),
+    ]
+    db = MagicMock()
+    db.execute = AsyncMock(side_effect=[result(expenses), result([])])
+
+    context = await get_expenses_list_context(db, 2025, user_id=1, plot_id=10)
+
+    assert context["selected_plot"] == 10
+    assert len(context["expenses"]) == 1
+    assert context["expenses"][0].id == 1
+    assert context["total"] == 12.0
+
+
+@pytest.mark.asyncio
 async def test_incomes_list_context_filters_by_campaign() -> None:
     incomes = [
         Income(

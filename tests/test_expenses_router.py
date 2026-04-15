@@ -52,6 +52,37 @@ def test_expenses_list_renders(monkeypatch) -> None:
     assert "Gastos" in response.text
 
 
+def test_expenses_list_forwards_plot_filter(monkeypatch) -> None:
+    fake_db = _db()
+    context_mock = AsyncMock(
+        return_value={
+            "expenses": [],
+            "plots": [],
+            "available_years": [],
+            "selected_year": None,
+            "selected_category": None,
+            "selected_person": None,
+            "selected_plot": 7,
+            "totals": {},
+            "categories": [],
+            "people": [],
+        }
+    )
+    monkeypatch.setattr("app.routers.expenses.get_expenses_list_context", context_mock)
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = lambda: fake_db
+    try:
+        client = TestClient(app)
+        response = client.get("/expenses/?plot_id=7")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    context_mock.assert_awaited_once()
+    kwargs = context_mock.await_args.kwargs
+    assert kwargs["plot_id"] == 7
+
+
 def test_create_expense_redirects(monkeypatch) -> None:
     fake_db = _db()
     monkeypatch.setattr("app.routers.expenses.create_expense_service", AsyncMock())

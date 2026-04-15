@@ -24,54 +24,6 @@
 </div>
 
 {# ------------------------------------------------------------------ #}
-{# Filter bar                                                          #}
-{# ------------------------------------------------------------------ #}
-<div class="card tf-panel shadow-sm mb-4 border-0">
-    <div class="card-body py-3">
-        <form method="get" action="/charts/" class="row g-3 align-items-end"
-              onsubmit="event.preventDefault(); applyFilters();">
-            <div class="col-auto">
-                <label class="form-label mb-1 fw-semibold">
-                    <i class="bi bi-calendar3 me-1"></i>{{ _("Campaña") }}
-                </label>
-                <select id="campaignSelect" name="campaign" class="form-select form-select-sm"
-                        onchange="applyFilters()">
-                    <option value="" {% if selected_campaign is none %}selected{% endif %}>
-                        {{ _("Todas las campañas") }}
-                    </option>
-                    {% for cy in all_campaigns %}
-                    <option value="{{ cy }}"
-                        {% if cy == selected_campaign %}selected{% endif %}>
-                        {{ cy | campaign_label }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-auto">
-                <label class="form-label mb-1 fw-semibold">
-                    <i class="bi bi-map me-1"></i>{{ _("Bancal") }}
-                </label>
-                <select id="plotSelect" name="plot_id" class="form-select form-select-sm"
-                        onchange="applyFilters()">
-                    <option value="">{{ _("Todos los bancales") }}</option>
-                    {% for p in all_plots %}
-                    <option value="{{ p.id }}"
-                        {% if p.id == selected_plot_id %}selected{% endif %}>
-                        {{ p.name }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-auto">
-                <button type="submit" class="btn btn-primary btn-sm">
-                    <i class="bi bi-funnel-fill me-1"></i>{{ _("Aplicar") }}
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-{# ------------------------------------------------------------------ #}
 {# Section 1: Tabla kg/ha                                              #}
 {# ------------------------------------------------------------------ #}
 <div class="card tf-panel shadow-sm mb-4 border-0">
@@ -137,6 +89,54 @@
                 </tfoot>
             </table>
         </div>
+    </div>
+</div>
+
+{# ------------------------------------------------------------------ #}
+{# Filter bar                                                          #}
+{# ------------------------------------------------------------------ #}
+<div class="card tf-panel shadow-sm mb-4 border-0">
+    <div class="card-body py-3">
+        <form method="get" action="/charts/" class="row g-3 align-items-end"
+              onsubmit="event.preventDefault(); applyFilters();">
+            <div class="col-auto">
+                <label class="form-label mb-1 fw-semibold">
+                    <i class="bi bi-calendar3 me-1"></i>{{ _("Campaña") }}
+                </label>
+                <select id="campaignSelect" name="campaign" class="form-select form-select-sm"
+                        onchange="applyFilters()">
+                    <option value="" {% if selected_campaign is none %}selected{% endif %}>
+                        {{ _("Todas las campañas") }}
+                    </option>
+                    {% for cy in all_campaigns %}
+                    <option value="{{ cy }}"
+                        {% if cy == selected_campaign %}selected{% endif %}>
+                        {{ cy | campaign_label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label mb-1 fw-semibold">
+                    <i class="bi bi-map me-1"></i>{{ _("Bancal") }}
+                </label>
+                <select id="plotSelect" name="plot_id" class="form-select form-select-sm"
+                        onchange="applyFilters()">
+                    <option value="">{{ _("Todos los bancales") }}</option>
+                    {% for p in all_plots %}
+                    <option value="{{ p.id }}"
+                        {% if p.id == selected_plot_id %}selected{% endif %}>
+                        {{ p.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-funnel-fill me-1"></i>{{ _("Aplicar") }}
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 

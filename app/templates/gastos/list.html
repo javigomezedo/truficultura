@@ -100,6 +100,13 @@
                     <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>{{ cat }}</option>
                     {% endfor %}
                 </select>
+                <select name="plot_id" id="plotFilter" class="form-select form-select-sm w-auto"
+                        onchange="this.form.submit()">
+                    <option value="">{{ _("Todos los bancales") }}</option>
+                    {% for p in plots %}
+                    <option value="{{ p.id }}" {% if selected_plot == p.id %}selected{% endif %}>{{ p.name }}</option>
+                    {% endfor %}
+                </select>
                 <select name="person" id="personFilter" class="form-select form-select-sm w-auto"
                         onchange="this.form.submit()">
                     <option value="">{{ _("Todas las personas") }}</option>
@@ -107,7 +114,7 @@
                     <option value="{{ p }}" {% if selected_person == p %}selected{% endif %}>{{ p }}</option>
                     {% endfor %}
                 </select>
-                {% if selected_year or selected_category or selected_person %}
+                {% if selected_year or selected_category or selected_plot or selected_person %}
                 <a href="/expenses/" class="btn btn-sm btn-outline-secondary">
                     <i class="bi bi-x me-1"></i>{{ _("Limpiar filtros") }}
                 </a>
@@ -205,7 +212,7 @@
             <div class="tf-empty-state">
                 <i class="bi bi-inbox fs-1 d-block mb-3"></i>
                 <p class="mb-3">
-                    {% if selected_year or selected_category or selected_person %}
+                    {% if selected_year or selected_category or selected_plot or selected_person %}
                     {{ _("No hay gastos que coincidan con los filtros seleccionados.") }}
                     {% else %}
                     {{ _("No hay gastos registrados todavía.") }}
