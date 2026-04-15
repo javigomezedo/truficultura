@@ -126,7 +126,7 @@
 
         function normalizeRowColumns(rows) {
             if (!rows || rows.length === 0) {
-                return [[1]];
+                return { rows: [[1]], cols: 1 };
             }
             var cols = 1;
             var normalized = rows.map(function (columns) {

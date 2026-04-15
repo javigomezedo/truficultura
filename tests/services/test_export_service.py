@@ -10,13 +10,16 @@ import pytest
 from app.models.expense import Expense
 from app.models.income import Income
 from app.models.irrigation import IrrigationRecord
+from app.models.plant import Plant
 from app.models.plot import Plot
+from app.models.truffle_event import TruffleEvent
 from app.models.well import Well
 from app.services.export_service import (
     export_expenses_csv,
     export_incomes_csv,
     export_irrigation_csv,
     export_plots_csv,
+    export_truffles_csv,
     export_wells_csv,
 )
 from tests.conftest import result
@@ -95,6 +98,42 @@ def _make_well(id=1, plot_id=1, wells_per_plant=3, notes=None):
     )
 
 
+def _make_plant(id=1, plot_id=1, row_order=0, visual_col=1, label="A1"):
+    return Plant(
+        id=id,
+        user_id=1,
+        plot_id=plot_id,
+        label=label,
+        row_label="A",
+        row_order=row_order,
+        col_order=visual_col - 1,
+        visual_col=visual_col,
+    )
+
+
+def _make_truffle_event(
+    id=1,
+    plant_id=1,
+    plot_id=1,
+    estimated_weight_grams=42.5,
+    source="manual",
+):
+    event = TruffleEvent(
+        id=id,
+        plant_id=plant_id,
+        plot_id=plot_id,
+        user_id=1,
+        source=source,
+        estimated_weight_grams=estimated_weight_grams,
+        created_at=datetime.datetime(2025, 12, 10, 8, 15, 0, tzinfo=datetime.UTC),
+        undo_window_expires_at=datetime.datetime(
+            2025, 12, 10, 8, 15, 30, tzinfo=datetime.UTC
+        ),
+        undone_at=None,
+    )
+    return event
+
+
 def _parse_csv(data: bytes) -> list[list[str]]:
     return list(csv.reader(io.StringIO(data.decode("utf-8")), delimiter=";"))
 
@@ -114,8 +153,10 @@ def _db_with_two_calls(first_result, second_result):
 @pytest.mark.asyncio
 async def test_export_plots_csv_returns_correct_rows():
     plot = _make_plot(id=1, has_irrigation=True)
+    plant_a1 = _make_plant(id=1, plot_id=1, row_order=0, visual_col=1, label="A1")
+    plant_a2 = _make_plant(id=2, plot_id=1, row_order=0, visual_col=2, label="A2")
     db = MagicMock()
-    db.execute = AsyncMock(return_value=result([plot]))
+    db.execute = AsyncMock(side_effect=[result([plot]), result([plant_a1, plant_a2])])
 
     data = await export_plots_csv(db, user_id=1)
     rows = _parse_csv(data)
@@ -133,13 +174,14 @@ async def test_export_plots_csv_returns_correct_rows():
     assert row[8] == "1,2500"  # area_ha 4 decimals
     assert row[9] == "01/11/2023"  # production_start
     assert row[10] == "1"  # has_irrigation=True
+    assert row[11] == "A:1-2"  # map config
 
 
 @pytest.mark.asyncio
 async def test_export_plots_csv_has_irrigation_false():
     plot = _make_plot(id=1, has_irrigation=False)
     db = MagicMock()
-    db.execute = AsyncMock(return_value=result([plot]))
+    db.execute = AsyncMock(side_effect=[result([plot]), result([])])
 
     data = await export_plots_csv(db, user_id=1)
     rows = _parse_csv(data)
@@ -166,7 +208,7 @@ async def test_export_plots_csv_no_optional_fields():
         has_irrigation=False,
     )
     db = MagicMock()
-    db.execute = AsyncMock(return_value=result([plot]))
+    db.execute = AsyncMock(side_effect=[result([plot]), result([])])
 
     data = await export_plots_csv(db, user_id=1)
     rows = _parse_csv(data)
@@ -174,12 +216,13 @@ async def test_export_plots_csv_no_optional_fields():
     assert rows[0][8] == ""  # area_ha empty
     assert rows[0][9] == ""  # production_start empty
     assert rows[0][10] == "0"
+    assert rows[0][11] == ""
 
 
 @pytest.mark.asyncio
 async def test_export_plots_csv_empty():
     db = MagicMock()
-    db.execute = AsyncMock(return_value=result([]))
+    db.execute = AsyncMock(side_effect=[result([]), result([])])
 
     data = await export_plots_csv(db, user_id=1)
     assert data == b""
@@ -356,4 +399,43 @@ async def test_export_wells_csv_empty():
     db = _db_with_two_calls(result([]), result([]))
 
     data = await export_wells_csv(db, user_id=1)
+    assert data == b""
+
+
+# ---------------------------------------------------------------------------
+# export_truffles_csv
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_export_truffles_csv_with_data():
+    plot = _make_plot(id=1, name="Bancal Sur")
+    plant = _make_plant(id=1, plot_id=1, label="A1")
+    event = _make_truffle_event(
+        id=1, plant_id=1, plot_id=1, estimated_weight_grams=45.5
+    )
+    event.plot = plot
+    event.plant = plant
+
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([event]))
+
+    data = await export_truffles_csv(db, user_id=1)
+    rows = _parse_csv(data)
+
+    assert len(rows) == 1
+    row = rows[0]
+    assert row[0] == "10/12/2025 08:15:00"
+    assert row[1] == "Bancal Sur"
+    assert row[2] == "A1"
+    assert row[3] == "45,5"
+    assert row[4] == "manual"
+
+
+@pytest.mark.asyncio
+async def test_export_truffles_csv_empty():
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+
+    data = await export_truffles_csv(db, user_id=1)
     assert data == b""

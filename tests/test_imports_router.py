@@ -27,6 +27,7 @@ def test_app_registers_import_routes() -> None:
     assert "/import/plots" in paths
     assert "/import/irrigation" in paths
     assert "/import/wells" in paths
+    assert "/import/truffles" in paths
 
 
 def test_import_page_renders() -> None:
@@ -181,4 +182,38 @@ def test_upload_plots_renders_result(monkeypatch) -> None:
 
     assert response.status_code == 200
     assert "Importación de parcelas completada" in response.text
+    fake_db.commit.assert_awaited_once()
+
+
+def test_upload_truffles_renders_result(monkeypatch) -> None:
+    fake_db = _build_fake_db()
+
+    async def fake_import_truffles_csv(db, content: bytes, user_id: int):
+        return [object(), object()], ["evento omitido"]
+
+    monkeypatch.setattr(
+        "app.routers.imports.import_truffles_csv",
+        fake_import_truffles_csv,
+    )
+    app.dependency_overrides[require_user] = _override_user
+    app.dependency_overrides[get_db] = lambda: fake_db
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/import/truffles",
+            files={
+                "file": (
+                    "produccion.csv",
+                    b"10/12/2025 08:15:00;Bancal Sur;A3;45,5;manual",
+                    "text/csv",
+                )
+            },
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert "Importación de producción completada" in response.text
+    assert "evento omitido" in response.text
     fake_db.commit.assert_awaited_once()

@@ -13,6 +13,7 @@ from app.services.import_service import (
     import_incomes_csv,
     import_irrigation_csv,
     import_plots_csv,
+    import_truffles_csv,
     import_wells_csv,
 )
 
@@ -163,5 +164,32 @@ async def upload_wells(
                 "warnings": warnings,
             },
             "active_tab": "wells",
+        },
+    )
+
+
+@router.post("/truffles", response_class=HTMLResponse)
+async def upload_truffles(
+    request: Request,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
+):
+    content = await file.read()
+    rows, warnings = await import_truffles_csv(db, content, current_user.id)
+    await db.commit()
+
+    return templates.TemplateResponse(
+        request,
+        "imports/index.html",
+        {
+            "request": request,
+            "result": {
+                "type": "truffles",
+                "filename": file.filename,
+                "imported": len(rows),
+                "warnings": warnings,
+            },
+            "active_tab": "truffles",
         },
     )

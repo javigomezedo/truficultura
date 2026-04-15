@@ -101,3 +101,24 @@ def test_download_irrigation_csv(monkeypatch) -> None:
     assert response.status_code == 200
     assert response.content == b"irrigation"
     assert response.headers["content-disposition"] == "attachment; filename=riego.csv"
+
+
+def test_download_truffles_csv(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.routers.exports.export_truffles_csv",
+        AsyncMock(return_value=b"truffles"),
+    )
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = _db
+    try:
+        client = TestClient(app)
+        response = client.get("/export/truffles.csv")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.content == b"truffles"
+    assert (
+        response.headers["content-disposition"]
+        == "attachment; filename=produccion.csv"
+    )

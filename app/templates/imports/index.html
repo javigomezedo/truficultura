@@ -8,7 +8,7 @@
         <div>
             <p class="tf-page-kicker">{{ _("Operaciones masivas") }}</p>
             <h1 class="tf-page-title">{{ _("Importar datos CSV") }}</h1>
-            <p class="tf-page-subtitle">{{ _("Carga parcelas, gastos, ingresos y riego con una interfaz más clara y profesional. Los archivos se procesan puntualmente y no se almacenan en el servidor.") }}</p>
+            <p class="tf-page-subtitle">{{ _("Carga parcelas, gastos, ingresos, riego, pozos y producción con una interfaz más clara y profesional. Los archivos se procesan puntualmente y no se almacenan en el servidor.") }}</p>
         </div>
         <div class="tf-tag"><i class="bi bi-shield-check"></i>{{ _("Validación en tiempo de importación") }}</div>
     </div>
@@ -19,7 +19,7 @@
     <div class="d-flex align-items-center mb-1">
         <i class="bi {% if result.warnings %}bi-exclamation-triangle-fill{% else %}bi-check-circle-fill{% endif %} me-2 fs-5"></i>
         <strong>
-            {% if result.type == "expenses" %}{{ _("Importación de gastos completada") }}{% elif result.type == "incomes" %}{{ _("Importación de ingresos completada") }}{% elif result.type == "irrigation" %}{{ _("Importación de riego completada") }}{% elif result.type == "wells" %}{{ _("Importación de pozos completada") }}{% else %}{{ _("Importación de parcelas completada") }}{% endif %}
+            {% if result.type == "expenses" %}{{ _("Importación de gastos completada") }}{% elif result.type == "incomes" %}{{ _("Importación de ingresos completada") }}{% elif result.type == "irrigation" %}{{ _("Importación de riego completada") }}{% elif result.type == "wells" %}{{ _("Importación de pozos completada") }}{% elif result.type == "truffles" %}{{ _("Importación de producción completada") }}{% else %}{{ _("Importación de parcelas completada") }}{% endif %}
         </strong>
     </div>
     <div>
@@ -74,6 +74,13 @@
             <i class="bi bi-droplet-fill text-success me-1"></i>{{ _('Pozos') }}
         </button>
     </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link {% if active_tab == 'truffles' %}active{% endif %}"
+                id="tab-truffles" data-bs-target="#panel-truffles"
+                type="button" role="tab">
+            <i class="bi bi-basket-fill text-success me-1"></i>{{ _('Producción') }}
+        </button>
+    </li>
 </ul>
 
 <div class="tab-content" id="importTabContent">
@@ -111,6 +118,7 @@
                                 <tr><td><code>superficie_ha</code></td><td>{{ _("Superficie en ha (opcional)") }}</td><td><code>1,25</code></td></tr>
                                 <tr><td><code>inicio_produccion</code></td><td>{{ _("Inicio producción DD/MM/AAAA (opcional)") }}</td><td><code>01/11/2023</code></td></tr>
                                 <tr><td><code>tiene_riego</code></td><td>{{ _("Tiene riego (1=sí, 0=no, opcional)") }}</td><td><code>1</code></td></tr>
+                                <tr><td><code>config_mapa</code></td><td>{{ _("Configuración de mapa (opcional, formato A:1-4; B:2-5)") }}</td><td><code>A:1-4; B:2-5</code></td></tr>
                             </tbody>
                         </table>
                         <p class="text-muted small mb-0">
@@ -119,7 +127,7 @@
                         </p>
                         <div class="mt-3 rounded p-3 tf-sample-box tf-sample-box-primary">
                             <small class="text-muted d-block mb-1 fw-semibold">{{ _("Ejemplo de línea:") }}</small>
-                            <code class="small">Bancal Sur;15/03/2018;21;120;44223A021001200000FP;H-3;S2;120;1,25;01/11/2023;1</code>
+                            <code class="small">Bancal Sur;15/03/2018;21;120;44223A021001200000FP;H-3;S2;120;1,25;01/11/2023;1;A:1-4; B:2-5</code>
                         </div>
                     </div>
                 </div>
@@ -419,6 +427,74 @@
                             </div>
                             <button type="submit" class="btn btn-success w-100">
                                 <i class="bi bi-upload me-1"></i>{{ _('Importar pozos') }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade {% if active_tab == 'truffles' %}show active{% endif %}"
+         id="panel-truffles" role="tabpanel">
+        <div class="row g-3 tf-import-pane-row align-items-start">
+            <div class="col-xl-7 col-lg-6">
+                <div class="card tf-panel tf-import-format-card border-0">
+                    <div class="card-header fw-semibold">
+                        <i class="bi bi-filetype-csv me-1"></i>{{ _('Formato del archivo') }}
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-2">
+                            {{ _('Archivo CSV delimitado por <code>;</code>, sin cabecera, codificación UTF-8.') }}
+                        </p>
+                        <table class="table table-sm table-bordered small tf-import-format-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>{{ _('Columna') }}</th>
+                                    <th>{{ _('Descripción') }}</th>
+                                    <th>{{ _('Ejemplo') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><code>fecha_hora</code></td><td>{{ _('Fecha y hora (DD/MM/AAAA HH:MM:SS)') }} <span class="text-danger">*</span></td><td><code>10/12/2025 08:15:00</code></td></tr>
+                                <tr><td><code>bancal</code></td><td>{{ _('Nombre del bancal') }} <span class="text-danger">*</span></td><td><code>Bancal Sur</code></td></tr>
+                                <tr><td><code>planta</code></td><td>{{ _('Etiqueta de planta dentro del bancal') }} <span class="text-danger">*</span></td><td><code>A3</code></td></tr>
+                                <tr><td><code>peso_g</code></td><td>{{ _('Peso en gramos') }} <span class="text-danger">*</span></td><td><code>45,5</code></td></tr>
+                                <tr><td><code>origen</code></td><td>{{ _('Origen (opcional, manual/qr)') }}</td><td><code>manual</code></td></tr>
+                            </tbody>
+                        </table>
+                        <p class="text-muted small mb-0">
+                            <i class="bi bi-info-circle me-1"></i>
+                            {{ _('El bancal y la planta deben existir previamente. Las filas no válidas se omiten con aviso.') }}
+                        </p>
+                        <div class="mt-3 rounded p-3 tf-sample-box tf-sample-box-success">
+                            <small class="text-muted d-block mb-1 fw-semibold">{{ _('Ejemplo de línea:') }}</small>
+                            <code class="small">10/12/2025 08:15:00;Bancal Sur;A3;45,5;manual</code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-5 col-lg-6">
+                <div class="card tf-panel tf-import-upload-card border-0">
+                    <div class="card-header fw-semibold">
+                        <i class="bi bi-cloud-upload me-1"></i>{{ _('Subir archivo') }}
+                    </div>
+                    <div class="card-body">
+                        <form method="post" action="/import/truffles" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="truffles-file" class="form-label fw-semibold">
+                                    {{ _('Archivo CSV de producción') }}
+                                </label>
+                                <input type="file" class="form-control" id="truffles-file"
+                                       name="file" accept=".csv,text/csv" required>
+                                <div class="form-text">{{ _('Solo archivos .csv codificados en UTF-8.') }}</div>
+                            </div>
+                            <div class="alert alert-warning small py-2 mb-3">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                {{ _('Esta acción insertará todos los registros del archivo en la base de datos. Asegúrate de que el archivo no contiene duplicados.') }}
+                            </div>
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="bi bi-upload me-1"></i>{{ _('Importar producción') }}
                             </button>
                         </form>
                     </div>
