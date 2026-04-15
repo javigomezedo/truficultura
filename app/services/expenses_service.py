@@ -6,6 +6,7 @@ from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.i18n import _
 from app.models.expense import Expense, EXPENSE_CATEGORIES
 from app.models.plot import Plot
 from app.utils import campaign_year, distribute_unassigned_expenses
@@ -205,15 +206,19 @@ async def save_receipt(
     # Validate content type
     if content_type not in ALLOWED_RECEIPT_TYPES:
         raise ValueError(
-            f"Tipo de archivo no permitido: {content_type}. "
-            f"Permitidos: PDF e imágenes (JPEG, PNG, GIF, WebP)"
+            _(
+                "Tipo de archivo no permitido: {content_type}. Permitidos: PDF e imágenes (JPEG, PNG, GIF, WebP)",
+                content_type=content_type,
+            )
         )
 
     # Validate file size
     if len(file_data) > MAX_RECEIPT_SIZE:
         raise ValueError(
-            f"Archivo demasiado grande. Máximo: 5MB, "
-            f"Tamaño actual: {len(file_data) / (1024 * 1024):.1f}MB"
+            _(
+                "Archivo demasiado grande. Máximo: 5MB, Tamaño actual: {size_mb:.1f}MB",
+                size_mb=len(file_data) / (1024 * 1024),
+            )
         )
 
     expense.receipt_filename = filename

@@ -97,6 +97,37 @@ def test_create_plot_redirects_and_maps_irrigation(monkeypatch) -> None:
     assert create_mock.await_args.kwargs["has_irrigation"] is True
 
 
+def test_create_plot_redirects_in_english_when_locale_changes(monkeypatch) -> None:
+    fake_db = _db()
+    create_mock = AsyncMock()
+    monkeypatch.setattr("app.routers.plots.create_plot_service", create_mock)
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = lambda: fake_db
+    try:
+        client = TestClient(app)
+        client.post(
+            "/set-language",
+            data={"locale": "en"},
+            headers={"referer": "/plots/"},
+            follow_redirects=False,
+        )
+        response = client.post(
+            "/plots/",
+            data={
+                "name": "Bancal Sur",
+                "planting_date": "2020-03-15",
+                "num_plants": "100",
+                "has_irrigation": "true",
+            },
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert "Plot+created+successfully" in response.headers["location"]
+
+
 def test_edit_plot_not_found_redirects(monkeypatch) -> None:
     fake_db = _db()
     monkeypatch.setattr("app.routers.plots.get_plot", AsyncMock(return_value=None))

@@ -1,5 +1,6 @@
 import datetime
 from typing import Optional
+from urllib.parse import quote_plus
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -8,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import require_user
 from app.database import get_db
+from app.i18n import _
 from app.models.user import User
 from app.services.plots_service import (
     create_plot as create_plot_service,
@@ -87,7 +89,8 @@ async def create_plot(
         municipio_cod=municipio_cod or None,
     )
     return RedirectResponse(
-        url="/plots/?msg=Parcela+creada+correctamente", status_code=303
+        url=f"/plots/?msg={quote_plus(_('Parcela creada correctamente'))}",
+        status_code=303,
     )
 
 
@@ -101,7 +104,8 @@ async def edit_plot_form(
     obj = await get_plot(db, plot_id, current_user.id)
     if obj is None:
         return RedirectResponse(
-            url="/plots/?msg=Parcela+no+encontrada", status_code=303
+            url=f"/plots/?msg={quote_plus(_('Parcela no encontrada'))}",
+            status_code=303,
         )
     return templates.TemplateResponse(
         request,
@@ -138,7 +142,8 @@ async def update_plot(
     obj = await get_plot(db, plot_id, current_user.id)
     if obj is None:
         return RedirectResponse(
-            url="/plots/?msg=Parcela+no+encontrada", status_code=303
+            url=f"/plots/?msg={quote_plus(_('Parcela no encontrada'))}",
+            status_code=303,
         )
 
     await update_plot_service(
@@ -159,7 +164,8 @@ async def update_plot(
         municipio_cod=municipio_cod or None,
     )
     return RedirectResponse(
-        url="/plots/?msg=Parcela+actualizada+correctamente", status_code=303
+        url=f"/plots/?msg={quote_plus(_('Parcela actualizada correctamente'))}",
+        status_code=303,
     )
 
 
@@ -174,5 +180,6 @@ async def delete_plot(
     if obj:
         await delete_plot_service(db, obj)
     return RedirectResponse(
-        url="/plots/?msg=Parcela+eliminada+correctamente", status_code=303
+        url=f"/plots/?msg={quote_plus(_('Parcela eliminada correctamente'))}",
+        status_code=303,
     )

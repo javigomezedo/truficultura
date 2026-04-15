@@ -4,15 +4,15 @@
 <div class="container-xl">
     <div class="tf-page-header">
         <div>
-            <p class="tf-page-kicker">Administración</p>
+            <p class="tf-page-kicker">{{ _("Administración") }}</p>
             <h1 class="tf-page-title mb-0">
-                <i class="bi bi-people-fill me-2"></i>Gestión de Usuarios
+                <i class="bi bi-people-fill me-2"></i>{{ _("Gestión de Usuarios") }}
             </h1>
-            <p class="tf-page-subtitle">Control de usuarios, roles y estado de acceso.</p>
+            <p class="tf-page-subtitle">{{ _("Control de usuarios, roles y estado de acceso.") }}</p>
         </div>
         <div>
             <a href="/admin/users/create" class="btn btn-primary">
-                <i class="bi bi-person-plus me-1"></i>Crear Usuario
+                <i class="bi bi-person-plus me-1"></i>{{ _("Crear Usuario") }}
             </a>
         </div>
     </div>
@@ -20,7 +20,7 @@
     {% if request.query_params.get("error") == "no-self-delete" %}
     <div class="alert alert-danger" role="alert">
         <i class="bi bi-exclamation-triangle-fill me-2"></i>
-        No puedes desactivar tu propia cuenta.
+        {{ _("No puedes desactivar tu propia cuenta.") }}
     </div>
     {% endif %}
 
@@ -29,13 +29,13 @@
             <table class="table table-hover mb-0">
                 <thead class="table-secondary">
                     <tr>
-                        <th>Usuario</th>
-                        <th>Nombre</th>
+                        <th>{{ _("Usuario") }}</th>
+                        <th>{{ _("Nombre") }}</th>
                         <th>Email</th>
-                        <th>Rol</th>
-                        <th>Estado</th>
-                        <th>Creado</th>
-                        <th>Acciones</th>
+                        <th>{{ _("Rol") }}</th>
+                        <th>{{ _("Estado") }}</th>
+                        <th>{{ _("Creado") }}</th>
+                        <th>{{ _("Acciones") }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -44,7 +44,7 @@
                         <td>
                             <strong>{{ user.username }}</strong>
                             {% if user.id == current_user.id %}
-                            <span class="badge bg-info ms-2">Tú</span>
+                            <span class="badge bg-info ms-2">{{ _("Tú") }}</span>
                             {% endif %}
                         </td>
                         <td>
@@ -55,16 +55,16 @@
                         </td>
                         <td>
                             {% if user.role == "admin" %}
-                            <span class="badge bg-danger">Admin</span>
+                            <span class="badge bg-danger">{{ _("Admin") }}</span>
                             {% else %}
-                            <span class="badge bg-secondary">Usuario</span>
+                            <span class="badge bg-secondary">{{ _("Usuario") }}</span>
                             {% endif %}
                         </td>
                         <td>
                             {% if user.is_active %}
-                            <span class="badge bg-success">Activo</span>
+                            <span class="badge bg-success">{{ _("Activo") }}</span>
                             {% else %}
-                            <span class="badge bg-warning">Desactivado</span>
+                            <span class="badge bg-warning">{{ _("Desactivado") }}</span>
                             {% endif %}
                         </td>
                         <td>
@@ -78,13 +78,13 @@
                                         type="button"
                                         data-bs-toggle="dropdown"
                                         aria-expanded="false"
-                                        title="Acciones">
+                                        title="{{ _('Acciones') }}">
                                     <i class="bi bi-three-dots-vertical"></i>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end shadow-sm">
                                     <li>
                                         <a href="/admin/users/{{ user.id }}/edit" class="dropdown-item">
-                                            <i class="bi bi-pencil-fill me-2 text-primary"></i>Editar
+                                            <i class="bi bi-pencil-fill me-2 text-primary"></i>{{ _("Editar") }}
                                         </a>
                                     </li>
                                     <li><hr class="dropdown-divider"></li>
@@ -94,7 +94,7 @@
                                             <button type="submit"
                                                     class="dropdown-item text-warning"
                                                     {% if user.id == current_user.id %}disabled{% endif %}>
-                                                <i class="bi bi-lock-fill me-2"></i>Desactivar
+                                                <i class="bi bi-lock-fill me-2"></i>{{ _("Desactivar") }}
                                             </button>
                                         </form>
                                     </li>
@@ -102,7 +102,7 @@
                                     <li>
                                         <form method="post" action="/admin/users/{{ user.id }}/activate">
                                             <button type="submit" class="dropdown-item text-success">
-                                                <i class="bi bi-unlock-fill me-2"></i>Activar
+                                                <i class="bi bi-unlock-fill me-2"></i>{{ _("Activar") }}
                                             </button>
                                         </form>
                                     </li>
@@ -120,7 +120,7 @@
     {% if not users %}
     <div class="alert alert-info" role="alert">
         <i class="bi bi-info-circle-fill me-2"></i>
-        No hay usuarios aún.
+        {{ _("No hay usuarios aún.") }}
     </div>
     {% endif %}
 </div>

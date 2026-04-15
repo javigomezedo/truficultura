@@ -1,5 +1,6 @@
 import datetime
 from typing import Optional
+from urllib.parse import quote_plus
 
 from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -8,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import require_user
 from app.database import get_db
+from app.i18n import _
 from app.models.user import User
 from app.services.incomes_service import (
     create_income as create_income_service,
@@ -93,7 +95,8 @@ async def create_income(
         euros_per_kg=euros_per_kg,
     )
     return RedirectResponse(
-        url="/incomes/?msg=Ingreso+registrado+correctamente", status_code=303
+        url=f"/incomes/?msg={quote_plus(_('Ingreso registrado correctamente'))}",
+        status_code=303,
     )
 
 
@@ -107,7 +110,8 @@ async def edit_income_form(
     income = await get_income(db, income_id, current_user.id)
     if income is None:
         return RedirectResponse(
-            url="/incomes/?msg=Ingreso+no+encontrado", status_code=303
+            url=f"/incomes/?msg={quote_plus(_('Ingreso no encontrado'))}",
+            status_code=303,
         )
 
     plots = await list_plots(db, current_user.id)
@@ -140,7 +144,8 @@ async def update_income(
     obj = await get_income(db, income_id, current_user.id)
     if obj is None:
         return RedirectResponse(
-            url="/incomes/?msg=Ingreso+no+encontrado", status_code=303
+            url=f"/incomes/?msg={quote_plus(_('Ingreso no encontrado'))}",
+            status_code=303,
         )
 
     await update_income_service(
@@ -153,7 +158,8 @@ async def update_income(
         euros_per_kg=euros_per_kg,
     )
     return RedirectResponse(
-        url="/incomes/?msg=Ingreso+actualizado+correctamente", status_code=303
+        url=f"/incomes/?msg={quote_plus(_('Ingreso actualizado correctamente'))}",
+        status_code=303,
     )
 
 
@@ -168,5 +174,6 @@ async def delete_income(
     if obj:
         await delete_income_service(db, obj)
     return RedirectResponse(
-        url="/incomes/?msg=Ingreso+eliminado+correctamente", status_code=303
+        url=f"/incomes/?msg={quote_plus(_('Ingreso eliminado correctamente'))}",
+        status_code=303,
     )

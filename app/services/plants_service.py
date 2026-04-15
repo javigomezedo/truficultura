@@ -8,6 +8,7 @@ from typing import Optional
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.i18n import _
 from app.models.plant import Plant
 from app.models.plot import Plot
 from app.models.truffle_event import TruffleEvent
@@ -75,7 +76,7 @@ async def configure_plot_map(
     """
     if await has_active_truffle_events(db, plot.id, user_id):
         raise ValueError(
-            "No se puede regenerar el mapa: existen registros de trufas activos."
+            _("No se puede regenerar el mapa: existen registros de trufas activos.")
         )
 
     # Remove all current plants (cascade deletes any orphan truffle_events)

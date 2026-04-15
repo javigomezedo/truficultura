@@ -1,7 +1,7 @@
 import datetime
 from io import BytesIO
 from typing import Optional
-from urllib.parse import quote
+from urllib.parse import quote, quote_plus
 
 from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import require_user
 from app.database import get_db
+from app.i18n import _
 from app.models.expense import EXPENSE_CATEGORIES
 from app.models.user import User
 from app.services.expenses_service import (
@@ -109,7 +110,8 @@ async def create_expense(
         category=category,
     )
     return RedirectResponse(
-        url="/expenses/?msg=Gasto+registrado+correctamente", status_code=303
+        url=f"/expenses/?msg={quote_plus(_('Gasto registrado correctamente'))}",
+        status_code=303,
     )
 
 
@@ -123,7 +125,8 @@ async def edit_expense_form(
     expense = await get_expense(db, expense_id, current_user.id)
     if expense is None:
         return RedirectResponse(
-            url="/expenses/?msg=Gasto+no+encontrado", status_code=303
+            url=f"/expenses/?msg={quote_plus(_('Gasto no encontrado'))}",
+            status_code=303,
         )
 
     plots = await list_plots(db, current_user.id)
@@ -158,7 +161,8 @@ async def update_expense(
     obj = await get_expense(db, expense_id, current_user.id)
     if obj is None:
         return RedirectResponse(
-            url="/expenses/?msg=Gasto+no+encontrado", status_code=303
+            url=f"/expenses/?msg={quote_plus(_('Gasto no encontrado'))}",
+            status_code=303,
         )
 
     await update_expense_service(
@@ -172,7 +176,8 @@ async def update_expense(
         category=category,
     )
     return RedirectResponse(
-        url="/expenses/?msg=Gasto+actualizado+correctamente", status_code=303
+        url=f"/expenses/?msg={quote_plus(_('Gasto actualizado correctamente'))}",
+        status_code=303,
     )
 
 
@@ -187,7 +192,8 @@ async def delete_expense(
     if obj:
         await delete_expense_service(db, obj)
     return RedirectResponse(
-        url="/expenses/?msg=Gasto+eliminado+correctamente", status_code=303
+        url=f"/expenses/?msg={quote_plus(_('Gasto eliminado correctamente'))}",
+        status_code=303,
     )
 
 
@@ -203,7 +209,8 @@ async def upload_receipt(
     obj = await get_expense(db, expense_id, current_user.id)
     if obj is None:
         return RedirectResponse(
-            url="/expenses/?msg=Gasto+no+encontrado", status_code=303
+            url=f"/expenses/?msg={quote_plus(_('Gasto no encontrado'))}",
+            status_code=303,
         )
 
     try:
@@ -218,12 +225,15 @@ async def upload_receipt(
             content_type=content_type,
         )
         return RedirectResponse(
-            url=f"/expenses/{expense_id}/edit?msg=Recibo+cargado+correctamente",
+            url=(
+                f"/expenses/{expense_id}/edit?msg="
+                f"{quote_plus(_('Recibo cargado correctamente'))}"
+            ),
             status_code=303,
         )
     except ValueError as e:
         return RedirectResponse(
-            url=f"/expenses/{expense_id}/edit?msg={str(e).replace(' ', '+')}",
+            url=f"/expenses/{expense_id}/edit?msg={quote_plus(str(e))}",
             status_code=303,
         )
 
@@ -238,7 +248,8 @@ async def download_receipt(
     receipt_data = await get_receipt(db, expense_id, current_user.id)
     if receipt_data is None:
         return RedirectResponse(
-            url="/expenses/?msg=Recibo+no+encontrado", status_code=303
+            url=f"/expenses/?msg={quote_plus(_('Recibo no encontrado'))}",
+            status_code=303,
         )
 
     filename, file_content, content_type = receipt_data
@@ -260,11 +271,15 @@ async def delete_expense_receipt(
     obj = await get_expense(db, expense_id, current_user.id)
     if obj is None:
         return RedirectResponse(
-            url="/expenses/?msg=Gasto+no+encontrado", status_code=303
+            url=f"/expenses/?msg={quote_plus(_('Gasto no encontrado'))}",
+            status_code=303,
         )
 
     await delete_receipt(db, obj)
     return RedirectResponse(
-        url=f"/expenses/{expense_id}/edit?msg=Recibo+eliminado+correctamente",
+        url=(
+            f"/expenses/{expense_id}/edit?msg="
+            f"{quote_plus(_('Recibo eliminado correctamente'))}"
+        ),
         status_code=303,
     )

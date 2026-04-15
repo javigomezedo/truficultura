@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from app.i18n import set_locale
 from app.models.expense import Expense
 from app.models.income import Income
 from app.models.plant import Plant
@@ -148,6 +149,24 @@ async def test_import_expenses_csv_parse_error_warns():
     assert rows == []
     assert len(warnings) == 1
     assert "error al parsear" in warnings[0]
+
+
+@pytest.mark.asyncio
+async def test_import_expenses_csv_warning_is_translated_in_english():
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+    db.add_all = MagicMock()
+
+    set_locale("en")
+    try:
+        rows, warnings = await import_expenses_csv(
+            db, _expenses_csv(["15/11/2025;Poda"]), user_id=1
+        )
+    finally:
+        set_locale("es")
+
+    assert rows == []
+    assert warnings == ["Line 1: expected 5 columns, found 2 — skipped"]
 
 
 # ---------------------------------------------------------------------------

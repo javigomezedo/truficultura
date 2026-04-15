@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 from typing import Optional
+from urllib.parse import quote_plus
 
 from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -10,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import require_user
 from app.database import get_db
+from app.i18n import _
 from app.models.user import User
 from app.schemas.well import WellCreate, WellUpdate
 from app.services.wells_service import (
@@ -88,7 +90,8 @@ async def create_view(
     )
     await create_service(db, current_user.id, data)
     return RedirectResponse(
-        url="/wells/?msg=Pozo+registrado+correctamente", status_code=303
+        url=f"/wells/?msg={quote_plus(_('Pozo registrado correctamente'))}",
+        status_code=303,
     )
 
 
@@ -104,7 +107,8 @@ async def edit_form(
     record = await get_service(db, well_id, current_user.id)
     if record is None:
         return RedirectResponse(
-            url="/wells/?msg=Registro+no+encontrado", status_code=303
+            url=f"/wells/?msg={quote_plus(_('Registro no encontrado'))}",
+            status_code=303,
         )
     plots = await _get_all_plots(db, current_user.id)
     expenses = await get_well_expenses_for_plot(db, current_user.id, record.plot_id)
@@ -136,7 +140,8 @@ async def update_view(
     record = await get_service(db, well_id, current_user.id)
     if record is None:
         return RedirectResponse(
-            url="/wells/?msg=Registro+no+encontrado", status_code=303
+            url=f"/wells/?msg={quote_plus(_('Registro no encontrado'))}",
+            status_code=303,
         )
     data = WellUpdate(
         plot_id=plot_id,
@@ -147,7 +152,8 @@ async def update_view(
     )
     await update_service(db, record, data)
     return RedirectResponse(
-        url="/wells/?msg=Pozo+actualizado+correctamente", status_code=303
+        url=f"/wells/?msg={quote_plus(_('Pozo actualizado correctamente'))}",
+        status_code=303,
     )
 
 
@@ -160,7 +166,8 @@ async def delete_view(
 ):
     await delete_service(db, well_id, current_user.id)
     return RedirectResponse(
-        url="/wells/?msg=Pozo+eliminado+correctamente", status_code=303
+        url=f"/wells/?msg={quote_plus(_('Pozo eliminado correctamente'))}",
+        status_code=303,
     )
 
 
