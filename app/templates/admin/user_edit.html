@@ -4,12 +4,12 @@
 <div class="container-xl">
     <div class="tf-page-header">
         <div>
-            <p class="tf-page-kicker">Administración</p>
-            <h1 class="tf-page-title mb-0"><i class="bi bi-pencil-fill me-2"></i>Editar Usuario</h1>
-            <p class="tf-page-subtitle">Actualiza los datos de perfil y el rol de acceso del usuario.</p>
+            <p class="tf-page-kicker">{{ _("Administración") }}</p>
+            <h1 class="tf-page-title mb-0"><i class="bi bi-pencil-fill me-2"></i>{{ _("Editar Usuario") }}</h1>
+            <p class="tf-page-subtitle">{{ _("Actualiza los datos de perfil y el rol de acceso del usuario.") }}</p>
         </div>
         <a href="/admin/users" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-1"></i>Volver al listado
+            <i class="bi bi-arrow-left me-1"></i>{{ _("Volver al listado") }}
         </a>
     </div>
 
@@ -19,59 +19,59 @@
                 <div class="card-body p-4">
                     {% if error %}
                     <div class="alert alert-danger" role="alert">
-                        <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ error }}
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ _(error) }}
                     </div>
                     {% endif %}
 
                     <form method="post" action="/admin/users/{{ user.id }}">
                         <div class="mb-3">
-                            <label for="first_name" class="form-label fw-semibold">Nombre</label>
+                            <label for="first_name" class="form-label fw-semibold">{{ _("Nombre") }}</label>
                             <input type="text" class="form-control" id="first_name" name="first_name"
                                    value="{{ user.first_name }}" required autofocus>
                         </div>
 
                         <div class="mb-3">
-                            <label for="last_name" class="form-label fw-semibold">Apellidos</label>
+                            <label for="last_name" class="form-label fw-semibold">{{ _("Apellidos") }}</label>
                             <input type="text" class="form-control" id="last_name" name="last_name"
                                    value="{{ user.last_name }}" required>
                         </div>
 
                         <div class="mb-3">
-                            <label for="email" class="form-label fw-semibold">Email</label>
+                            <label for="email" class="form-label fw-semibold">{{ _("Email") }}</label>
                             <input type="email" class="form-control" id="email" name="email"
                                    value="{{ user.email }}" required>
                         </div>
 
                         <div class="mb-3">
-                            <label for="username" class="form-label fw-semibold">Nombre de usuario</label>
+                            <label for="username" class="form-label fw-semibold">{{ _("Nombre de usuario") }}</label>
                             <input type="text" class="form-control" id="username" name="username"
                                    value="{{ user.username }}" required>
                         </div>
 
                         <div class="mb-4">
-                            <label for="role" class="form-label fw-semibold">Rol</label>
+                            <label for="role" class="form-label fw-semibold">{{ _("Rol") }}</label>
                             <select class="form-select" id="role" name="role">
-                                <option value="user" {% if user.role == "user" %}selected{% endif %}>Usuario</option>
-                                <option value="admin" {% if user.role == "admin" %}selected{% endif %}>Administrador</option>
+                                <option value="user" {% if user.role == "user" %}selected{% endif %}>{{ _("Usuario") }}</option>
+                                <option value="admin" {% if user.role == "admin" %}selected{% endif %}>{{ _("Administrador") }}</option>
                             </select>
                         </div>
 
                         <div class="alert alert-info" role="alert">
                             <i class="bi bi-info-circle-fill me-2"></i>
-                            <strong>Estado:</strong>
+                            <strong>{{ _("Estado:") }}</strong>
                             {% if user.is_active %}
-                            <span class="badge bg-success ms-1">Activo</span>
+                            <span class="badge bg-success ms-1">{{ _("Activo") }}</span>
                             {% else %}
-                            <span class="badge bg-warning ms-1">Desactivado</span>
+                            <span class="badge bg-warning ms-1">{{ _("Desactivado") }}</span>
                             {% endif %}
                         </div>
 
                         <div class="d-flex gap-2">
                             <button type="submit" class="btn btn-primary flex-grow-1">
-                                <i class="bi bi-check-circle me-1"></i>Guardar Cambios
+                                <i class="bi bi-check-circle me-1"></i>{{ _("Guardar Cambios") }}
                             </button>
                             <a href="/admin/users" class="btn btn-outline-secondary">
-                                <i class="bi bi-x-circle me-1"></i>Cancelar
+                                <i class="bi bi-x-circle me-1"></i>{{ _("Cancelar") }}
                             </a>
                         </div>
                     </form>

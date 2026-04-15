@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth import require_admin, require_user
 from app.config import settings
 from app.database import get_db
+from app.i18n import _
 from app.models.user import User
 from app.schemas.assistant import AssistantRequest, AssistantResponse
 from app.services.assistant_service import chat, prepare_chat_context
@@ -34,7 +35,9 @@ def _get_adapter() -> OpenAIAdapter:
     if not settings.OPENAI_API_KEY:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Asistente no disponible: configura OPENAI_API_KEY en el servidor.",
+            detail=_(
+                "Asistente no disponible: configura OPENAI_API_KEY en el servidor."
+            ),
         )
     return OpenAIAdapter(api_key=settings.OPENAI_API_KEY)
 
@@ -55,8 +58,9 @@ def _enforce_rate_limit(request: Request) -> None:
     if len(recent) >= _RATE_LIMIT_MAX_REQUESTS:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Has superado el límite temporal de consultas al asistente."
-            " Inténtalo de nuevo en unos minutos.",
+            detail=_(
+                "Has superado el límite temporal de consultas al asistente. Inténtalo de nuevo en unos minutos."
+            ),
         )
 
     recent.append(now)

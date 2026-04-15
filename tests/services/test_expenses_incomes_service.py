@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from app.i18n import set_locale
 from app.models.expense import Expense
 from app.models.income import Income
 from app.services.expenses_service import (
@@ -274,6 +275,27 @@ async def test_save_receipt_file_too_large() -> None:
             file_data=large_data,
             content_type="application/pdf",
         )
+
+
+@pytest.mark.asyncio
+async def test_save_receipt_invalid_content_type_is_translated_in_english() -> None:
+    expense = Expense(
+        id=1, date=datetime.date(2025, 1, 1), description="Invoice", amount=100.0
+    )
+    db = MagicMock()
+
+    set_locale("en")
+    try:
+        with pytest.raises(ValueError, match="File type not allowed"):
+            await save_receipt(
+                db,
+                expense,
+                filename="script.exe",
+                file_data=b"malicious",
+                content_type="application/x-exe",
+            )
+    finally:
+        set_locale("es")
 
 
 @pytest.mark.asyncio

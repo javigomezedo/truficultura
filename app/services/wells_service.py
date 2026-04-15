@@ -7,6 +7,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.i18n import _
 from app.models.expense import Expense
 from app.models.plot import Plot
 from app.models.well import Well
@@ -116,7 +117,7 @@ async def create_well(db: AsyncSession, user_id: int, data: WellCreate) -> Well:
     if plot is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Parcela no encontrada",
+            detail=_("Parcela no encontrada"),
         )
 
     if data.expense_id is not None:
@@ -131,7 +132,9 @@ async def create_well(db: AsyncSession, user_id: int, data: WellCreate) -> Well:
         if expense_result.scalar_one_or_none() is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="El gasto debe pertenecer a la misma parcela y tener categoría 'Pozos'",
+                detail=_(
+                    "El gasto debe pertenecer a la misma parcela y tener categoría 'Pozos'"
+                ),
             )
 
     record = Well(
@@ -156,7 +159,7 @@ async def update_well(db: AsyncSession, record: Well, data: WellUpdate) -> Well:
         if plot_result.scalar_one_or_none() is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Parcela no encontrada",
+                detail=_("Parcela no encontrada"),
             )
         record.plot_id = data.plot_id
     if data.date is not None:
@@ -175,7 +178,9 @@ async def update_well(db: AsyncSession, record: Well, data: WellUpdate) -> Well:
         if expense_result.scalar_one_or_none() is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="El gasto debe pertenecer a la misma parcela y tener categoría 'Pozos'",
+                detail=_(
+                    "El gasto debe pertenecer a la misma parcela y tener categoría 'Pozos'"
+                ),
             )
         record.expense_id = data.expense_id
     else:

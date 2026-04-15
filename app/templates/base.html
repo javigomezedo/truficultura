@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="{{ get_current_locale() }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -50,7 +50,7 @@
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                     data-bs-target="#navbarMain" aria-controls="navbarMain"
-                    aria-expanded="false" aria-label="Toggle navigation">
+                    aria-expanded="false" aria-label="{{ _('Mostrar navegación') }}">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarMain">
@@ -156,6 +156,50 @@
                     {% endif %}
                 </ul>
                 <div class="d-flex align-items-center gap-2 ms-lg-3 tf-navbar-meta">
+                {% if request.session.get("username") %}
+                    {% set first_name = request.session.get("first_name") or request.session.get("username") %}
+                    {% set last_name = request.session.get("last_name") or "" %}
+                    <span class="navbar-text text-light small tf-navbar-user"
+                          title="{{ first_name }} {{ last_name }}">
+                        <i class="bi bi-person-circle me-1"></i>{{ first_name }}{% if last_name %} {{ last_name }}{% endif %}
+                    </span>
+                {% endif %}
+                    <div class="dropdown tf-navbar-language-dropdown">
+                        <button class="btn btn-outline-light btn-sm dropdown-toggle"
+                                type="button"
+                                data-bs-toggle="dropdown"
+                                aria-expanded="false"
+                                aria-label="{{ _('Cambiar idioma') }}"
+                                title="{{ _('Cambiar idioma') }}">
+                            <i class="bi bi-translate me-1"></i>{{ get_current_locale() | upper }}
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <form method="post" action="/set-language" class="m-0">
+                                    <input type="hidden" name="locale" value="es">
+                                    <button type="submit" class="dropdown-item {% if get_current_locale() == 'es' %}active{% endif %}">
+                                        {{ _("Español") }}
+                                    </button>
+                                </form>
+                            </li>
+                            <li>
+                                <form method="post" action="/set-language" class="m-0">
+                                    <input type="hidden" name="locale" value="en">
+                                    <button type="submit" class="dropdown-item {% if get_current_locale() == 'en' %}active{% endif %}">
+                                        {{ _("Inglés") }}
+                                    </button>
+                                </form>
+                            </li>
+                            <li>
+                                <form method="post" action="/set-language" class="m-0">
+                                    <input type="hidden" name="locale" value="fr">
+                                    <button type="submit" class="dropdown-item {% if get_current_locale() == 'fr' %}active{% endif %}">
+                                        {{ _("Francés") }}
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
                     <div class="dropdown tf-navbar-theme-dropdown">
                         <button class="btn btn-outline-light btn-sm dropdown-toggle tf-theme-toggle-icon"
                                 type="button"
@@ -184,12 +228,6 @@
                         </ul>
                     </div>
                 {% if request.session.get("username") %}
-                    {% set first_name = request.session.get("first_name") or request.session.get("username") %}
-                    {% set last_name = request.session.get("last_name") or "" %}
-                    <span class="navbar-text text-light small tf-navbar-user"
-                          title="{{ first_name }} {{ last_name }}">
-                        <i class="bi bi-person-circle me-1"></i>{{ first_name }}{% if last_name %} {{ last_name }}{% endif %}
-                    </span>
                     <form action="/logout" method="post" class="d-inline m-0">
                         <button type="submit" class="btn btn-outline-light btn-sm">
                             <i class="bi bi-box-arrow-right me-1"></i>{{ _("Salir") }}

@@ -8,6 +8,7 @@ from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.i18n import _
 from app.models.expense import Expense
 from app.models.income import Income
 from app.models.irrigation import IrrigationRecord
@@ -53,6 +54,10 @@ async def _load_plots(db: AsyncSession, user_id: int) -> dict[str, int]:
     return {p.name.lower(): p.id for p in result.scalars().all()}
 
 
+def _warning(message: str, **kwargs: object) -> str:
+    return _(message, **kwargs)
+
+
 async def import_expenses_csv(
     db: AsyncSession, content: bytes, user_id: int
 ) -> tuple[list[Expense], list[str]]:
@@ -78,7 +83,11 @@ async def import_expenses_csv(
             continue
         if len(line) < 5:
             warnings.append(
-                f"Línea {i}: se esperaban 5 columnas, se encontraron {len(line)} — omitida"
+                _warning(
+                    "Línea {line}: se esperaban 5 columnas, se encontraron {count} — omitida",
+                    line=i,
+                    count=len(line),
+                )
             )
             continue
 
@@ -91,7 +100,11 @@ async def import_expenses_csv(
             plot_id = plots.get(bancal.lower())
             if plot_id is None:
                 warnings.append(
-                    f"Línea {i}: bancal '{bancal}' no encontrado — importado sin bancal"
+                    _warning(
+                        "Línea {line}: bancal '{plot}' no encontrado — importado sin bancal",
+                        line=i,
+                        plot=bancal,
+                    )
                 )
 
         try:
@@ -105,8 +118,10 @@ async def import_expenses_csv(
                 category=categoria or None,
             )
             rows.append(row)
-        except (ValueError, KeyError) as exc:
-            warnings.append(f"Línea {i}: error al parsear — {exc} — omitida")
+        except (ValueError, KeyError):
+            warnings.append(
+                _warning("Línea {line}: error al parsear los datos — omitida", line=i)
+            )
 
     db.add_all(rows)
     return rows, warnings
@@ -136,7 +151,11 @@ async def import_incomes_csv(
             continue
         if len(line) < 5:
             warnings.append(
-                f"Línea {i}: se esperaban 5 columnas, se encontraron {len(line)} — omitida"
+                _warning(
+                    "Línea {line}: se esperaban 5 columnas, se encontraron {count} — omitida",
+                    line=i,
+                    count=len(line),
+                )
             )
             continue
 
@@ -146,7 +165,11 @@ async def import_incomes_csv(
 
         if bancal and plot_id is None:
             warnings.append(
-                f"Línea {i}: bancal '{bancal}' no encontrado — importado sin bancal"
+                _warning(
+                    "Línea {line}: bancal '{plot}' no encontrado — importado sin bancal",
+                    line=i,
+                    plot=bancal,
+                )
             )
 
         try:
@@ -161,8 +184,10 @@ async def import_incomes_csv(
                 euros_per_kg=euros_per_kg,
             )
             rows.append(row)
-        except (ValueError, KeyError) as exc:
-            warnings.append(f"Línea {i}: error al parsear — {exc} — omitida")
+        except (ValueError, KeyError):
+            warnings.append(
+                _warning("Línea {line}: error al parsear los datos — omitida", line=i)
+            )
 
     db.add_all(rows)
     return rows, warnings
@@ -201,7 +226,11 @@ async def import_plots_csv(
             continue
         if len(line) < 2:
             warnings.append(
-                f"Línea {i}: se esperaban al menos 2 columnas, se encontraron {len(line)} — omitida"
+                _warning(
+                    "Línea {line}: se esperaban al menos 2 columnas, se encontraron {count} — omitida",
+                    line=i,
+                    count=len(line),
+                )
             )
             continue
 
@@ -228,8 +257,10 @@ async def import_plots_csv(
             map_config = col(11)
             if map_config:
                 pending_map_configs.append((row, map_config))
-        except (ValueError, KeyError) as exc:
-            warnings.append(f"Línea {i}: error al parsear — {exc} — omitida")
+        except (ValueError, KeyError):
+            warnings.append(
+                _warning("Línea {line}: error al parsear los datos — omitida", line=i)
+            )
 
     db.add_all(rows)
     await db.flush()
@@ -246,9 +277,12 @@ async def import_plots_csv(
                     user_id=user_id,
                     row_columns=row_columns,
                 )
-            except ValueError as exc:
+            except ValueError:
                 warnings.append(
-                    f"Parcela '{row.name}': config_mapa inválida — {exc} — mapa omitido"
+                    _warning(
+                        "Parcela '{plot}': config_mapa inválida — mapa omitido",
+                        plot=row.name,
+                    )
                 )
 
     # Recalculate percentages after import
@@ -285,7 +319,11 @@ async def import_wells_csv(
             continue
         if len(line) < 3:
             warnings.append(
-                f"Línea {i}: se esperaban al menos 3 columnas, se encontraron {len(line)} — omitida"
+                _warning(
+                    "Línea {line}: se esperaban al menos 3 columnas, se encontraron {count} — omitida",
+                    line=i,
+                    count=len(line),
+                )
             )
             continue
 
@@ -294,13 +332,22 @@ async def import_wells_csv(
 
         if not bancal:
             warnings.append(
-                f"Línea {i}: bancal vacío — omitida (el registro de pozos siempre requiere parcela)"
+                _warning(
+                    "Línea {line}: bancal vacío — omitida (el registro de pozos siempre requiere parcela)",
+                    line=i,
+                )
             )
             continue
 
         plot = plots_obj.get(bancal.lower())
         if plot is None:
-            warnings.append(f"Línea {i}: bancal '{bancal}' no encontrado — omitida")
+            warnings.append(
+                _warning(
+                    "Línea {line}: bancal '{plot}' no encontrado — omitida",
+                    line=i,
+                    plot=bancal,
+                )
+            )
             continue
 
         try:
@@ -313,8 +360,10 @@ async def import_wells_csv(
                 expense_id=None,
             )
             rows.append(row)
-        except (ValueError, KeyError) as exc:
-            warnings.append(f"Línea {i}: error al parsear — {exc} — omitida")
+        except (ValueError, KeyError):
+            warnings.append(
+                _warning("Línea {line}: error al parsear los datos — omitida", line=i)
+            )
 
     db.add_all(rows)
     return rows, warnings
@@ -350,7 +399,11 @@ async def import_irrigation_csv(
             continue
         if len(line) < 3:
             warnings.append(
-                f"Línea {i}: se esperaban al menos 3 columnas, se encontraron {len(line)} — omitida"
+                _warning(
+                    "Línea {line}: se esperaban al menos 3 columnas, se encontraron {count} — omitida",
+                    line=i,
+                    count=len(line),
+                )
             )
             continue
 
@@ -359,18 +412,31 @@ async def import_irrigation_csv(
 
         if not bancal:
             warnings.append(
-                f"Línea {i}: bancal vacío — omitida (el riego siempre requiere parcela)"
+                _warning(
+                    "Línea {line}: bancal vacío — omitida (el riego siempre requiere parcela)",
+                    line=i,
+                )
             )
             continue
 
         plot = plots_obj.get(bancal.lower())
         if plot is None:
-            warnings.append(f"Línea {i}: bancal '{bancal}' no encontrado — omitida")
+            warnings.append(
+                _warning(
+                    "Línea {line}: bancal '{plot}' no encontrado — omitida",
+                    line=i,
+                    plot=bancal,
+                )
+            )
             continue
 
         if not plot.has_irrigation:
             warnings.append(
-                f"Línea {i}: bancal '{bancal}' no tiene riego habilitado — omitida"
+                _warning(
+                    "Línea {line}: bancal '{plot}' no tiene riego habilitado — omitida",
+                    line=i,
+                    plot=bancal,
+                )
             )
             continue
 
@@ -384,8 +450,10 @@ async def import_irrigation_csv(
                 expense_id=None,
             )
             rows.append(row)
-        except (ValueError, KeyError) as exc:
-            warnings.append(f"Línea {i}: error al parsear — {exc} — omitida")
+        except (ValueError, KeyError):
+            warnings.append(
+                _warning("Línea {line}: error al parsear los datos — omitida", line=i)
+            )
 
     db.add_all(rows)
     return rows, warnings
@@ -416,7 +484,11 @@ async def import_truffles_csv(
             continue
         if len(line) < 4:
             warnings.append(
-                f"Línea {i}: se esperaban al menos 4 columnas, se encontraron {len(line)} — omitida"
+                _warning(
+                    "Línea {line}: se esperaban al menos 4 columnas, se encontraron {count} — omitida",
+                    line=i,
+                    count=len(line),
+                )
             )
             continue
 
@@ -427,21 +499,32 @@ async def import_truffles_csv(
         origen = (line[4].strip() if len(line) > 4 else "manual") or "manual"
 
         if not bancal:
-            warnings.append(f"Línea {i}: bancal vacío — omitida")
+            warnings.append(_warning("Línea {line}: bancal vacío — omitida", line=i))
             continue
         if not planta_label:
-            warnings.append(f"Línea {i}: planta vacía — omitida")
+            warnings.append(_warning("Línea {line}: planta vacía — omitida", line=i))
             continue
 
         plot = plots.get(bancal.lower())
         if plot is None:
-            warnings.append(f"Línea {i}: bancal '{bancal}' no encontrado — omitida")
+            warnings.append(
+                _warning(
+                    "Línea {line}: bancal '{plot}' no encontrado — omitida",
+                    line=i,
+                    plot=bancal,
+                )
+            )
             continue
 
         plant = plants_by_plot_label.get((plot.id, planta_label.lower()))
         if plant is None:
             warnings.append(
-                f"Línea {i}: planta '{planta_label}' no encontrada en bancal '{bancal}' — omitida"
+                _warning(
+                    "Línea {line}: planta '{plant}' no encontrada en bancal '{plot}' — omitida",
+                    line=i,
+                    plant=planta_label,
+                    plot=bancal,
+                )
             )
             continue
 
@@ -459,8 +542,10 @@ async def import_truffles_csv(
                 undone_at=None,
             )
             rows.append(row)
-        except (ValueError, KeyError) as exc:
-            warnings.append(f"Línea {i}: error al parsear — {exc} — omitida")
+        except (ValueError, KeyError):
+            warnings.append(
+                _warning("Línea {line}: error al parsear los datos — omitida", line=i)
+            )
 
     db.add_all(rows)
     return rows, warnings

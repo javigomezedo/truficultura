@@ -63,7 +63,7 @@
                                 {% if actual > 0 and actual != p.num_plants %}
                                 <a href="/plots/{{ p.id }}/map/configure"
                                    class="text-warning ms-1"
-                                   title="El mapa tiene {{ actual }} plantas pero la parcela declara {{ p.num_plants }}. Revisa la configuración del mapa.">
+                                              title="{{ _('El mapa tiene {actual} plantas pero la parcela declara {expected}. Revisa la configuración del mapa.', actual=actual, expected=p.num_plants) }}">
                                     <i class="bi bi-exclamation-triangle-fill"></i>
                                 </a>
                                 {% endif %}

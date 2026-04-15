@@ -1,5 +1,6 @@
 import datetime
 from typing import Optional
+from urllib.parse import quote_plus
 
 from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -8,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import require_user
 from app.database import get_db
+from app.i18n import _
 from app.models.user import User
 from app.schemas.irrigation import IrrigationCreate, IrrigationUpdate
 from app.services.irrigation_service import (
@@ -86,7 +88,8 @@ async def create_view(
     )
     await create_service(db, current_user.id, data)
     return RedirectResponse(
-        url="/irrigation/?msg=Riego+registrado+correctamente", status_code=303
+        url=f"/irrigation/?msg={quote_plus(_('Riego registrado correctamente'))}",
+        status_code=303,
     )
 
 
@@ -102,7 +105,8 @@ async def edit_form(
     record = await get_irrigation_record(db, record_id, current_user.id)
     if record is None:
         return RedirectResponse(
-            url="/irrigation/?msg=Registro+no+encontrado", status_code=303
+            url=f"/irrigation/?msg={quote_plus(_('Registro no encontrado'))}",
+            status_code=303,
         )
     plots = await _get_irrigable_plots(db, current_user.id)
     expenses = await get_riego_expenses_for_plot(db, current_user.id, record.plot_id)
@@ -134,7 +138,8 @@ async def update_view(
     record = await get_irrigation_record(db, record_id, current_user.id)
     if record is None:
         return RedirectResponse(
-            url="/irrigation/?msg=Registro+no+encontrado", status_code=303
+            url=f"/irrigation/?msg={quote_plus(_('Registro no encontrado'))}",
+            status_code=303,
         )
     data = IrrigationUpdate(
         plot_id=plot_id,
@@ -145,7 +150,8 @@ async def update_view(
     )
     await update_service(db, record, data)
     return RedirectResponse(
-        url="/irrigation/?msg=Riego+actualizado+correctamente", status_code=303
+        url=f"/irrigation/?msg={quote_plus(_('Riego actualizado correctamente'))}",
+        status_code=303,
     )
 
 
@@ -158,7 +164,8 @@ async def delete_view(
 ):
     await delete_service(db, record_id, current_user.id)
     return RedirectResponse(
-        url="/irrigation/?msg=Riego+eliminado+correctamente", status_code=303
+        url=f"/irrigation/?msg={quote_plus(_('Riego eliminado correctamente'))}",
+        status_code=303,
     )
 
 

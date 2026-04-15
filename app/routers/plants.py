@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 from typing import Optional
+from urllib.parse import quote_plus
 
 from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -10,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import require_user
 from app.database import get_db
+from app.i18n import _
 from app.models.user import User
 from app.services import plants_service, truffle_events_service
 from app.services.plots_service import get_plot, list_plots
@@ -44,7 +46,10 @@ async def map_view(
 ):
     plot = await get_plot(db, plot_id, current_user.id)
     if plot is None:
-        return RedirectResponse("/plots/?msg=Parcela+no+encontrada", status_code=303)
+        return RedirectResponse(
+            f"/plots/?msg={quote_plus(_('Parcela no encontrada'))}",
+            status_code=303,
+        )
 
     selected = _parse_optional_int(campaign)
     ctx = await plants_service.get_plot_map_context(
@@ -100,7 +105,10 @@ async def configure_map_form(
 ):
     plot = await get_plot(db, plot_id, current_user.id)
     if plot is None:
-        return RedirectResponse("/plots/?msg=Parcela+no+encontrada", status_code=303)
+        return RedirectResponse(
+            f"/plots/?msg={quote_plus(_('Parcela no encontrada'))}",
+            status_code=303,
+        )
 
     has_events = await plants_service.has_active_truffle_events(
         db, plot_id, current_user.id
@@ -138,13 +146,16 @@ async def configure_map_submit(
     """row_config supports only sparse row format (e.g. A:2-5,8; B:1,3,4)."""
     plot = await get_plot(db, plot_id, current_user.id)
     if plot is None:
-        return RedirectResponse("/plots/?msg=Parcela+no+encontrada", status_code=303)
+        return RedirectResponse(
+            f"/plots/?msg={quote_plus(_('Parcela no encontrada'))}",
+            status_code=303,
+        )
 
     try:
         row_columns = parse_row_config(row_config)
     except ValueError as exc:
         return RedirectResponse(
-            f"/plots/{plot_id}/map/configure?msg={str(exc).replace(' ', '+')}",
+            f"/plots/{plot_id}/map/configure?msg={quote_plus(str(exc))}",
             status_code=303,
         )
 
@@ -154,12 +165,13 @@ async def configure_map_submit(
         )
     except ValueError as exc:
         return RedirectResponse(
-            f"/plots/{plot_id}/map/configure?msg={str(exc).replace(' ', '+')}",
+            f"/plots/{plot_id}/map/configure?msg={quote_plus(str(exc))}",
             status_code=303,
         )
 
     return RedirectResponse(
-        f"/plots/{plot_id}/map?msg=Mapa+configurado+correctamente", status_code=303
+        f"/plots/{plot_id}/map?msg={quote_plus(_('Mapa configurado correctamente'))}",
+        status_code=303,
     )
 
 
@@ -181,7 +193,8 @@ async def add_truffle_event(
     plant = await plants_service.get_plant(db, plant_id, current_user.id)
     if plant is None or plant.plot_id != plot_id:
         return RedirectResponse(
-            f"/plots/{plot_id}/map?msg=Planta+no+encontrada", status_code=303
+            f"/plots/{plot_id}/map?msg={quote_plus(_('Planta no encontrada'))}",
+            status_code=303,
         )
 
     weight = max(0.1, min(float(estimated_weight_grams), 50000.0))
@@ -196,9 +209,15 @@ async def add_truffle_event(
     )
 
     if campaign:
-        target = f"/plots/{plot_id}/map?campaign={campaign}&msg=Trufa+registrada+correctamente"
+        target = (
+            f"/plots/{plot_id}/map?campaign={campaign}&msg="
+            f"{quote_plus(_('Trufa registrada correctamente'))}"
+        )
     else:
-        target = f"/plots/{plot_id}/map?msg=Trufa+registrada+correctamente"
+        target = (
+            f"/plots/{plot_id}/map?msg="
+            f"{quote_plus(_('Trufa registrada correctamente'))}"
+        )
     return RedirectResponse(target, status_code=303)
 
 
@@ -214,14 +233,19 @@ async def undo_truffle_event(
     plant = await plants_service.get_plant(db, plant_id, current_user.id)
     if plant is None or plant.plot_id != plot_id:
         return RedirectResponse(
-            f"/plots/{plot_id}/map?msg=Planta+no+encontrada", status_code=303
+            f"/plots/{plot_id}/map?msg={quote_plus(_('Planta no encontrada'))}",
+            status_code=303,
         )
 
     undone = await truffle_events_service.undo_last_event(
         db, plant_id=plant_id, user_id=current_user.id
     )
 
-    msg = "Último+registro+eliminado" if undone else "No+hay+registro+para+deshacer"
+    msg = (
+        quote_plus(_("Último registro eliminado"))
+        if undone
+        else quote_plus(_("No hay registro para deshacer"))
+    )
     if campaign:
         target = f"/plots/{plot_id}/map?campaign={campaign}&msg={msg}"
     else:
@@ -254,9 +278,9 @@ async def delete_truffle_event_from_list(
         params.append(f"plant_id={plant_id}")
 
     msg = (
-        "msg=Registro+de+trufa+eliminado"
+        f"msg={quote_plus(_('Registro de trufa eliminado'))}"
         if deleted
-        else "msg=No+se+ha+encontrado+el+registro"
+        else f"msg={quote_plus(_('No se ha encontrado el registro'))}"
     )
     query = "&".join(params + [msg]) if params else msg
     return RedirectResponse(f"/truffles/?{query}", status_code=303)
@@ -380,12 +404,15 @@ async def download_plot_qr_pdf(
 
     plot = await get_plot(db, plot_id, current_user.id)
     if plot is None:
-        return RedirectResponse("/plots/?msg=Parcela+no+encontrada", status_code=303)
+        return RedirectResponse(
+            f"/plots/?msg={quote_plus(_('Parcela no encontrada'))}",
+            status_code=303,
+        )
 
     plants = await plants_service.list_plants(db, plot_id, current_user.id)
     if not plants:
         return RedirectResponse(
-            "/plots/?msg=La+parcela+no+tiene+plantas+configuradas",
+            f"/plots/?msg={quote_plus(_('La parcela no tiene plantas configuradas'))}",
             status_code=303,
         )
 

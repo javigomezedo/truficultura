@@ -9,7 +9,8 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.auth import NotAuthenticatedException, NotAdminException, require_user
 from app.config import settings
 from app.database import engine, get_db
-from app.i18n import get_locale, load_translations
+from fastapi import Form
+from app.i18n import set_locale, AVAILABLE_LOCALES
 from app.jinja import templates
 import app.models  # noqa: F401 - ensure models are registered
 from app.models.user import User
@@ -48,10 +49,6 @@ app = FastAPI(
 
 app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
-
-# Install default (Spanish) translations at startup
-_default_translations = load_translations("es")
-templates.env.install_gettext_translations(_default_translations, newstyle=True)
 
 # Share the templates instance (with filters) across all routers
 plots.templates = templates
@@ -100,13 +97,32 @@ async def not_admin_handler(request: Request, exc: NotAdminException):
 
 
 @app.middleware("http")
-async def i18n_middleware(request: Request, call_next):
-    """Detect browser language and install appropriate translations."""
-    accept_language = request.headers.get("accept-language")
-    locale = get_locale(accept_language)
-    translations = load_translations(locale)
-    templates.env.install_gettext_translations(translations, newstyle=True)
+async def locale_middleware(request: Request, call_next):
+    """Set the per-request locale from session (falls back to Accept-Language, then default)."""
+    session = request.scope.get("session") or {}
+    locale = session.get("locale") or request.cookies.get("locale")
+    if not locale or locale not in AVAILABLE_LOCALES:
+        from app.i18n import get_locale_from_accept
+
+        locale = get_locale_from_accept(request.headers.get("accept-language"))
+    set_locale(locale)
     response = await call_next(request)
+    return response
+
+
+@app.post("/set-language", response_class=RedirectResponse)
+async def set_language(
+    request: Request,
+    locale: str = Form(...),
+):
+    """Persist the chosen locale in the session and redirect back."""
+    selected_locale = locale if locale in AVAILABLE_LOCALES else None
+    if selected_locale:
+        request.session["locale"] = selected_locale
+    referer = request.headers.get("referer", "/")
+    response = RedirectResponse(url=referer, status_code=303)
+    if selected_locale:
+        response.set_cookie("locale", selected_locale, samesite="lax")
     return response
 
 

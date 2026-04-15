@@ -162,7 +162,7 @@
                     </div>
 
                     <form method="post" action="/expenses/{{ expense.id }}/receipt/delete" class="d-inline">
-                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Eliminar el recibo?')">
+                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('{{ _('¿Eliminar el recibo?') }}')">
                             <i class="bi bi-trash me-1"></i>{{ _("Eliminar recibo") }}
                         </button>
                     </form>
