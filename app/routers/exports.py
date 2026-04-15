@@ -11,6 +11,7 @@ from app.auth import require_user
 from app.database import get_db
 from app.models.user import User
 from app.services.export_service import (
+    export_all_csv_zip,
     export_expenses_csv,
     export_incomes_csv,
     export_irrigation_csv,
@@ -32,6 +33,19 @@ async def export_page(
         request,
         "exports/index.html",
         {"request": request},
+    )
+
+
+@router.get("/all.zip")
+async def download_all_csv_zip(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
+):
+    data = await export_all_csv_zip(db, current_user.id)
+    return StreamingResponse(
+        io.BytesIO(data),
+        media_type="application/zip",
+        headers={"Content-Disposition": "attachment; filename=exportacion_csv.zip"},
     )
 
 

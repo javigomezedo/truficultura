@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import datetime
 import io
+import zipfile
 from collections import defaultdict
 
 from sqlalchemy import select
@@ -202,3 +203,21 @@ async def export_wells_csv(db: AsyncSession, user_id: int) -> bytes:
             ]
         )
     return buf.getvalue().encode("utf-8")
+
+
+async def export_all_csv_zip(db: AsyncSession, user_id: int) -> bytes:
+    files = [
+        ("parcelas.csv", await export_plots_csv(db, user_id)),
+        ("gastos.csv", await export_expenses_csv(db, user_id)),
+        ("ingresos.csv", await export_incomes_csv(db, user_id)),
+        ("riego.csv", await export_irrigation_csv(db, user_id)),
+        ("pozos.csv", await export_wells_csv(db, user_id)),
+        ("produccion.csv", await export_truffles_csv(db, user_id)),
+    ]
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for filename, content in files:
+            zf.writestr(filename, content)
+
+    return zip_buffer.getvalue()
