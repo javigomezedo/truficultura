@@ -56,12 +56,18 @@ async def build_kpi_context(
     expenses_by_cy_plot = distribute_unassigned_expenses(expenses_raw, all_plots)
 
     # ------------------------------------------------------------------ #
-    # Aggregate incomes: kg and € per (campaign, plot)                    #
+    # Aggregate incomes:                                                    #
+    # - campaign totals include assigned + unassigned incomes              #
+    # - per-plot totals include only assigned incomes                      #
     # ------------------------------------------------------------------ #
     kg_by_cy_plot: dict = defaultdict(lambda: defaultdict(float))
     eur_by_cy_plot: dict = defaultdict(lambda: defaultdict(float))
+    total_kg_by_cy: dict = defaultdict(float)
+    total_eur_by_cy: dict = defaultdict(float)
     for income in all_incomes:
         cy = campaign_year(income.date)
+        total_kg_by_cy[cy] += income.amount_kg
+        total_eur_by_cy[cy] += income.total
         if income.plot_id is not None:
             kg_by_cy_plot[cy][income.plot_id] += income.amount_kg
             eur_by_cy_plot[cy][income.plot_id] += income.total
@@ -80,9 +86,9 @@ async def build_kpi_context(
     trend: list[dict] = []
     prev_kg: Optional[float] = None
     for cy in sorted(all_campaigns):
-        total_incomes = sum(eur_by_cy_plot[cy].values())
+        total_incomes = total_eur_by_cy[cy]
         total_expenses = sum(expenses_by_cy_plot[cy].values())
-        total_kg = sum(kg_by_cy_plot[cy].values())
+        total_kg = total_kg_by_cy[cy]
         total_m3 = sum(m3_by_cy_plot[cy].values())
 
         roi_pct = (

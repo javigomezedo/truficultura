@@ -229,3 +229,29 @@ async def test_build_kpi_context_unassigned_expense_distributed() -> None:
     rows = {r["plot_name"]: r for r in context["plot_kpi_table"]}
     assert rows["P1"]["total_expenses"] == pytest.approx(60.0)
     assert rows["P2"]["total_expenses"] == pytest.approx(40.0)
+
+
+# ------------------------------------------------------------------ #
+# Unassigned incomes are included in campaign-level KPIs             #
+# ------------------------------------------------------------------ #
+
+
+@pytest.mark.asyncio
+async def test_build_kpi_context_unassigned_income_counted_in_trend() -> None:
+    plots = [_plot(1, "P1")]
+    expenses = [_expense(1, datetime.date(2025, 6, 1), 50.0, 1)]
+    incomes = [
+        _income(1, datetime.date(2025, 6, 1), 2.0, 50.0, 1, total=100.0),
+        _income(2, datetime.date(2025, 6, 1), 1.0, 50.0, None, total=50.0),
+    ]
+    db = make_db(plots, expenses, incomes, [])
+
+    context = await build_kpi_context(db, user_id=1)
+
+    # Historical/global campaign totals must include unassigned incomes
+    assert context["trend"][0]["total_incomes"] == pytest.approx(150.0)
+    assert context["kpi_summary"]["total_incomes"] == pytest.approx(150.0)
+    assert context["kpi_summary"]["total_kg"] == pytest.approx(3.0)
+
+    # Per-plot table still reflects only assigned incomes
+    assert context["plot_kpi_table"][0]["total_incomes"] == pytest.approx(100.0)
