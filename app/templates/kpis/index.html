@@ -9,28 +9,6 @@
         position: relative;
         height: 280px;
     }
-    .kpi-legend-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 0.75rem;
-    }
-    .kpi-legend-item {
-        padding: 0.9rem 1rem;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        border-radius: 0.85rem;
-        background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
-    }
-    .kpi-legend-title {
-        font-size: 0.9rem;
-        font-weight: 700;
-        margin-bottom: 0.35rem;
-    }
-    .kpi-legend-text {
-        font-size: 0.84rem;
-        color: #6c757d;
-        margin-bottom: 0;
-        line-height: 1.45;
-    }
     .kpi-card-value {
         font-size: 2rem;
         font-weight: 700;
@@ -42,8 +20,21 @@
         letter-spacing: 0.06em;
         color: #6c757d;
     }
+    .kpi-card-label-with-campaign {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        flex-wrap: nowrap;
+        white-space: nowrap;
+    }
     .kpi-card-sub {
         font-size: 0.85rem;
+    }
+    .kpi-campaign-badge {
+        font-size: 0.52rem !important;
+        line-height: 1;
+        padding: 0.2rem 0.35rem;
+        white-space: nowrap;
     }
     .badge-trend-up   { background-color: #198754; }
     .badge-trend-down { background-color: #dc3545; }
@@ -63,60 +54,6 @@
         <p class="tf-page-subtitle">{{ _("Rentabilidad, producción, eficiencia hídrica y comparativa entre bancales.") }}</p>
     </div>
     <div class="tf-tag"><i class="bi bi-speedometer2"></i>{{ _("Análisis global") }}</div>
-</div>
-
-{# ------------------------------------------------------------------ #}
-{# KPI legend                                                          #}
-{# ------------------------------------------------------------------ #}
-<div class="card tf-panel shadow-sm mb-4 border-0">
-    <div class="card-header">
-        <h5 class="mb-0">
-            <i class="bi bi-info-circle me-2 text-primary"></i>{{ _("Qué significa cada KPI") }}
-        </h5>
-    </div>
-    <div class="card-body">
-        <p class="text-muted mb-3">
-            {{ _("Estos indicadores resumen cómo evoluciona la explotación y ayudan a detectar si la producción, la rentabilidad o el uso del agua están mejorando o empeorando.") }}
-        </p>
-        <div class="kpi-legend-grid">
-            <div class="kpi-legend-item">
-                <div class="kpi-legend-title"><i class="bi bi-percent me-1 text-success"></i>ROI</div>
-                <p class="kpi-legend-text">{{ _("Mide la rentabilidad sobre el gasto realizado. Un ROI positivo indica que los ingresos superan a los gastos; uno negativo, que la campaña pierde dinero.") }}</p>
-            </div>
-            <div class="kpi-legend-item">
-                <div class="kpi-legend-title"><i class="bi bi-tag me-1 text-primary"></i>{{ _("Precio medio €/kg") }}</div>
-                <p class="kpi-legend-text">{{ _("Indica el valor medio de venta de la trufa. Sirve para comparar campañas, calidad comercial y efecto del mercado sobre los ingresos.") }}</p>
-            </div>
-            <div class="kpi-legend-item">
-                <div class="kpi-legend-title"><i class="bi bi-basket me-1 text-warning"></i>{{ _("kg cosechados") }}</div>
-                <p class="kpi-legend-text">{{ _("Mide la producción total registrada. Es la referencia principal para evaluar volumen, evolución histórica y capacidad productiva de la finca.") }}</p>
-            </div>
-            <div class="kpi-legend-item">
-                <div class="kpi-legend-title"><i class="bi bi-graph-up-arrow me-1 text-success"></i>{{ _("Crecimiento interanual") }}</div>
-                <p class="kpi-legend-text">{{ _("Compara la producción de una campaña frente a la anterior. Ayuda a detectar mejoras, caídas y cambios de tendencia en el tiempo.") }}</p>
-            </div>
-            <div class="kpi-legend-item">
-                <div class="kpi-legend-title"><i class="bi bi-rulers me-1 text-info"></i>{{ _("kg/ha") }}</div>
-                <p class="kpi-legend-text">{{ _("Relaciona la producción con la superficie. Permite comparar bancales de distinto tamaño con una métrica homogénea.") }}</p>
-            </div>
-            <div class="kpi-legend-item">
-                <div class="kpi-legend-title"><i class="bi bi-diagram-3 me-1 text-info"></i>{{ _("kg/planta") }}</div>
-                <p class="kpi-legend-text">{{ _("Mide cuánta producción genera cada planta, en promedio. Sirve para estimar vigor productivo y comparar densidades o edades de plantación.") }}</p>
-            </div>
-            <div class="kpi-legend-item">
-                <div class="kpi-legend-title"><i class="bi bi-cash-stack me-1 text-danger"></i>{{ _("Coste/kg") }}</div>
-                <p class="kpi-legend-text">{{ _("Expresa cuánto cuesta producir cada kilo considerando los gastos imputados. Es útil para detectar bancales o campañas poco eficientes.") }}</p>
-            </div>
-            <div class="kpi-legend-item">
-                <div class="kpi-legend-title"><i class="bi bi-droplet me-1 text-primary"></i>{{ _("m³/kg") }}</div>
-                <p class="kpi-legend-text">{{ _("Relaciona el agua aplicada con la producción obtenida. Cuanto menor sea, mejor eficiencia hídrica tiene la explotación o el bancal.") }}</p>
-            </div>
-            <div class="kpi-legend-item">
-                <div class="kpi-legend-title"><i class="bi bi-moisture me-1 text-primary"></i>{{ _("m³/planta") }}</div>
-                <p class="kpi-legend-text">{{ _("Mide el consumo medio de agua por planta. Ayuda a entender intensidad de riego y a comparar parcelas con distinta densidad de plantación.") }}</p>
-            </div>
-        </div>
-    </div>
 </div>
 
 {# ------------------------------------------------------------------ #}
@@ -162,21 +99,22 @@
 {# ------------------------------------------------------------------ #}
 {# KPI Summary cards                                                   #}
 {# ------------------------------------------------------------------ #}
-{% if kpi_summary.year is not none %}
+{% if kpi_summary.total_kg is not none %}
 <div class="row g-3 mb-4">
 
     {# ROI #}
     <div class="col-sm-6 col-lg-3">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
-                <div class="kpi-card-label mb-1">
+                <div class="kpi-card-label kpi-card-label-with-campaign mb-1">
                     <i class="bi bi-percent me-1"></i>ROI
                     {% if selected_campaign %}
-                    <span class="badge bg-secondary ms-1">{{ selected_campaign | campaign_label }}</span>
+                    <span class="badge bg-secondary kpi-campaign-badge">{{ selected_campaign | campaign_label }}</span>
                     {% else %}
-                    <span class="badge bg-secondary ms-1">{{ kpi_summary.year | campaign_label }}</span>
+                    <span class="badge bg-secondary kpi-campaign-badge">{{ _("Todas las campañas") }}</span>
                     {% endif %}
                 </div>
+                <p class="small text-muted mb-2">{{ _("Ingresos ÷ Gastos. Positivo = rentable; negativo = pérdida.") }}</p>
                 {% if kpi_summary.roi_pct is not none %}
                 <div class="kpi-card-value {% if kpi_summary.roi_pct >= 0 %}text-success{% else %}text-danger{% endif %}">
                     {{ kpi_summary.roi_pct | format_eu(1) }}%
@@ -196,14 +134,15 @@
     <div class="col-sm-6 col-lg-3">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
-                <div class="kpi-card-label mb-1">
+                <div class="kpi-card-label kpi-card-label-with-campaign mb-1">
                     <i class="bi bi-tag me-1"></i>{{ _("Precio medio") }}
                     {% if selected_campaign %}
-                    <span class="badge bg-secondary ms-1">{{ selected_campaign | campaign_label }}</span>
+                    <span class="badge bg-secondary kpi-campaign-badge">{{ selected_campaign | campaign_label }}</span>
                     {% else %}
-                    <span class="badge bg-secondary ms-1">{{ kpi_summary.year | campaign_label }}</span>
+                    <span class="badge bg-secondary kpi-campaign-badge">{{ _("Todas las campañas") }}</span>
                     {% endif %}
                 </div>
+                <p class="small text-muted mb-2">{{ _("Valor medio de venta de la trufa. Refleja calidad y condiciones de mercado.") }}</p>
                 {% if kpi_summary.precio_medio is not none %}
                 <div class="kpi-card-value text-primary">
                     {{ kpi_summary.precio_medio | format_eu(2) }} <small class="fs-5 fw-normal">€/kg</small>
@@ -223,14 +162,15 @@
     <div class="col-sm-6 col-lg-3">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
-                <div class="kpi-card-label mb-1">
+                <div class="kpi-card-label kpi-card-label-with-campaign mb-1">
                     <i class="bi bi-basket me-1"></i>{{ _("kg cosechados") }}
                     {% if selected_campaign %}
-                    <span class="badge bg-secondary ms-1">{{ selected_campaign | campaign_label }}</span>
+                    <span class="badge bg-secondary kpi-campaign-badge">{{ selected_campaign | campaign_label }}</span>
                     {% else %}
-                    <span class="badge bg-secondary ms-1">{{ kpi_summary.year | campaign_label }}</span>
+                    <span class="badge bg-secondary kpi-campaign-badge">{{ _("Todas las campañas") }}</span>
                     {% endif %}
                 </div>
+                <p class="small text-muted mb-2">{{ _("Producción total registrada. Referencia principal de volumen y evolución histórica.") }}</p>
                 {% if kpi_summary.total_kg is not none and kpi_summary.total_kg > 0 %}
                 <div class="kpi-card-value text-dark">
                     {{ kpi_summary.total_kg | format_eu(1) }} <small class="fs-5 fw-normal">kg</small>
@@ -246,14 +186,16 @@
         </div>
     </div>
 
-    {# Crecimiento interanual #}
+    {# Crecimiento interanual — solo visible cuando hay campaña seleccionada #}
+    {% if selected_campaign %}
     <div class="col-sm-6 col-lg-3">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
                 <div class="kpi-card-label mb-1">
                     <i class="bi bi-graph-up-arrow me-1"></i>{{ _("Crecimiento") }}
-                    <span class="badge bg-secondary ms-1">{{ _("interanual") }}</span>
+                    <span class="badge bg-secondary ms-1 kpi-campaign-badge">{{ _("interanual") }}</span>
                 </div>
+                <p class="small text-muted mb-2">{{ _("Variación de kg producidos respecto a la campaña anterior.") }}</p>
                 {% if kpi_summary.crecimiento_pct is not none %}
                 <div class="kpi-card-value {% if kpi_summary.crecimiento_pct >= 0 %}text-success{% else %}text-danger{% endif %}">
                     {% if kpi_summary.crecimiento_pct >= 0 %}+{% endif %}{{ kpi_summary.crecimiento_pct | format_eu(1) }}%
@@ -266,6 +208,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
 </div>
 {% endif %}
@@ -283,6 +226,7 @@
                 <h6 class="mb-0">
                     <i class="bi bi-percent me-2 text-success"></i>{{ _("ROI por campaña (%%)") }}
                 </h6>
+                <p class="small text-muted mb-0 mt-1">{{ _("Rentabilidad sobre el gasto. Positivo = rentable; negativo = pérdida.") }}</p>
             </div>
             <div class="card-body">
                 <div class="chart-container">
@@ -299,6 +243,7 @@
                 <h6 class="mb-0">
                     <i class="bi bi-tag me-2 text-primary"></i>{{ _("Precio medio €/kg por campaña") }}
                 </h6>
+                <p class="small text-muted mb-0 mt-1">{{ _("Valor medio de venta de la trufa cada campaña.") }}</p>
             </div>
             <div class="card-body">
                 <div class="chart-container">
@@ -315,6 +260,7 @@
                 <h6 class="mb-0">
                     <i class="bi bi-basket me-2 text-warning"></i>{{ _("kg cosechados por campaña") }}
                 </h6>
+                <p class="small text-muted mb-0 mt-1">{{ _("Evolución de la producción total a lo largo de las campañas.") }}</p>
             </div>
             <div class="card-body">
                 <div class="chart-container">
@@ -361,13 +307,13 @@
                 <thead class="table-dark">
                     <tr>
                         <th>{{ _("Bancal") }}</th>
-                        <th class="text-end">{{ _("kg totales") }}</th>
-                        <th class="text-end">{{ _("kg/ha") }}</th>
-                        <th class="text-end">{{ _("kg/planta") }}</th>
-                        <th class="text-end">{{ _("Coste/kg") }}</th>
-                        <th class="text-end">{{ _("ROI") }}</th>
-                        <th class="text-end">{{ _("m³/kg") }}</th>
-                        <th class="text-end">{{ _("m³/planta") }}</th>
+                        <th class="text-end" data-bs-toggle="tooltip" data-bs-title="{{ _("Producción total cosechada en el periodo seleccionado.") }}">{{ _("kg totales") }}</th>
+                        <th class="text-end" data-bs-toggle="tooltip" data-bs-title="{{ _("kg por hectárea. Permite comparar bancales de distinto tamaño.") }}">{{ _("kg/ha") }}</th>
+                        <th class="text-end" data-bs-toggle="tooltip" data-bs-title="{{ _("Producción media por planta. Mide el vigor productivo.") }}">{{ _("kg/planta") }}</th>
+                        <th class="text-end" data-bs-toggle="tooltip" data-bs-title="{{ _("Gastos totales ÷ kg cosechados. Detecta bancales poco eficientes.") }}">{{ _("Coste/kg") }}</th>
+                        <th class="text-end" data-bs-toggle="tooltip" data-bs-title="{{ _("Ingresos ÷ Gastos. Positivo = rentable; negativo = pérdida.") }}">{{ _("ROI") }}</th>
+                        <th class="text-end" data-bs-toggle="tooltip" data-bs-title="{{ _("Agua aplicada por kg producido. Menor = mejor eficiencia hídrica.") }}">{{ _("m³/kg") }}</th>
+                        <th class="text-end" data-bs-toggle="tooltip" data-bs-title="{{ _("Consumo medio de agua por planta.") }}">{{ _("m³/planta") }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -422,14 +368,14 @@
                 <thead class="table-dark">
                     <tr>
                         <th>{{ _("Campaña") }}</th>
-                        <th class="text-end">{{ _("kg") }}</th>
+                        <th class="text-end" data-bs-toggle="tooltip" data-bs-title="{{ _("Producción total cosechada en la campaña.") }}">{{ _("kg") }}</th>
                         <th class="text-end">{{ _("Ingresos") }}</th>
                         <th class="text-end">{{ _("Gastos") }}</th>
-                        <th class="text-end">{{ _("Rentabilidad") }}</th>
-                        <th class="text-end">ROI</th>
-                        <th class="text-end">{{ _("€/kg medio") }}</th>
-                        <th class="text-end">{{ _("Crecimiento kg") }}</th>
-                        <th class="text-end">{{ _("m³/kg") }}</th>
+                        <th class="text-end" data-bs-toggle="tooltip" data-bs-title="{{ _("Ingresos − Gastos.") }}">{{ _("Rentabilidad") }}</th>
+                        <th class="text-end" data-bs-toggle="tooltip" data-bs-title="{{ _("Ingresos ÷ Gastos. Positivo = rentable; negativo = pérdida.") }}">ROI</th>
+                        <th class="text-end" data-bs-toggle="tooltip" data-bs-title="{{ _("Valor medio de venta de la trufa.") }}">{{ _("€/kg medio") }}</th>
+                        <th class="text-end" data-bs-toggle="tooltip" data-bs-title="{{ _("Variación de kg respecto a la campaña anterior.") }}">{{ _("Crecimiento kg") }}</th>
+                        <th class="text-end" data-bs-toggle="tooltip" data-bs-title="{{ _("Agua aplicada por kg producido. Menor = mejor eficiencia hídrica.") }}">{{ _("m³/kg") }}</th>
                     </tr>
                 </thead>
                 <tbody>
