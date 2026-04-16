@@ -115,24 +115,51 @@ async def build_kpi_context(
     trend_sorted_desc = list(reversed(trend))
 
     # ------------------------------------------------------------------ #
-    # Summary KPIs — latest campaign (or selected)                        #
+    # Summary KPIs — selected campaign, or aggregate of all campaigns    #
     # ------------------------------------------------------------------ #
     if selected_campaign is not None and any(
         t["year"] == selected_campaign for t in trend
     ):
         latest = next(t for t in trend if t["year"] == selected_campaign)
+        kpi_summary = {
+            "roi_pct": latest.get("roi_pct"),
+            "precio_medio": latest.get("precio_medio"),
+            "total_kg": latest.get("total_kg"),
+            "crecimiento_pct": latest.get("crecimiento_pct"),
+            "total_incomes": latest.get("total_incomes"),
+            "total_expenses": latest.get("total_expenses"),
+            "year": latest.get("year"),
+        }
+    elif trend:
+        # Aggregate across all campaigns
+        agg_kg = sum(t["total_kg"] for t in trend)
+        agg_incomes = sum(t["total_incomes"] for t in trend)
+        agg_expenses = sum(t["total_expenses"] for t in trend)
+        agg_roi = (
+            (agg_incomes - agg_expenses) / agg_expenses * 100.0
+            if agg_expenses > 0
+            else None
+        )
+        agg_precio = agg_incomes / agg_kg if agg_kg > 0 else None
+        kpi_summary = {
+            "roi_pct": agg_roi,
+            "precio_medio": agg_precio,
+            "total_kg": agg_kg,
+            "crecimiento_pct": None,
+            "total_incomes": agg_incomes,
+            "total_expenses": agg_expenses,
+            "year": None,  # no single campaign
+        }
     else:
-        latest = trend[-1] if trend else {}
-
-    kpi_summary = {
-        "roi_pct": latest.get("roi_pct"),
-        "precio_medio": latest.get("precio_medio"),
-        "total_kg": latest.get("total_kg"),
-        "crecimiento_pct": latest.get("crecimiento_pct"),
-        "total_incomes": latest.get("total_incomes"),
-        "total_expenses": latest.get("total_expenses"),
-        "year": latest.get("year"),
-    }
+        kpi_summary = {
+            "roi_pct": None,
+            "precio_medio": None,
+            "total_kg": None,
+            "crecimiento_pct": None,
+            "total_incomes": None,
+            "total_expenses": None,
+            "year": None,
+        }
 
     # ------------------------------------------------------------------ #
     # Chart.js trend data                                                  #
