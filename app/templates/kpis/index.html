@@ -38,6 +38,26 @@
     }
     .badge-trend-up   { background-color: #198754; }
     .badge-trend-down { background-color: #dc3545; }
+    th.kpi-hint {
+        cursor: help;
+        white-space: nowrap;
+    }
+    th.kpi-hint .bi-info-circle {
+        font-size: 0.72rem;
+        opacity: 0.5;
+        vertical-align: middle;
+        margin-left: 0.2rem;
+    }
+    .kpi-table-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem 1.2rem;
+        font-size: 0.78rem;
+        color: #6c757d;
+    }
+    .kpi-table-legend-item strong {
+        color: #495057;
+    }
 </style>
 {% endblock %}
 
@@ -302,18 +322,27 @@
             </div>
         </div>
 
+        <p class="text-muted small mb-1 mt-1"><i class="bi bi-info-circle me-1 text-primary"></i>{{ _("Pasa el ratón sobre cada columna para ver su definición.") }}</p>
+        <div class="kpi-table-legend mb-2">
+            <span class="kpi-table-legend-item"><strong>kg/ha</strong> — {{ _("kg por hectárea") }}</span>
+            <span class="kpi-table-legend-item"><strong>kg/planta</strong> — {{ _("producción media por planta") }}</span>
+            <span class="kpi-table-legend-item"><strong>Coste/kg</strong> — {{ _("gastos ÷ kg cosechados") }}</span>
+            <span class="kpi-table-legend-item"><strong>ROI</strong> — {{ _("(ingresos − gastos) ÷ gastos") }}</span>
+            <span class="kpi-table-legend-item"><strong>m³/kg</strong> — {{ _("agua aplicada por kg producido") }}</span>
+            <span class="kpi-table-legend-item"><strong>m³/planta</strong> — {{ _("consumo medio de agua por planta") }}</span>
+        </div>
         <div class="table-responsive">
             <table class="table table-sm table-hover table-bordered mb-0">
                 <thead class="table-dark">
                     <tr>
                         <th>{{ _("Bancal") }}</th>
-                        <th class="text-end" data-bs-toggle="tooltip" data-bs-title="{{ _("Producción total cosechada en el periodo seleccionado.") }}">{{ _("kg totales") }}</th>
-                        <th class="text-end" data-bs-toggle="tooltip" data-bs-title="{{ _("kg por hectárea. Permite comparar bancales de distinto tamaño.") }}">{{ _("kg/ha") }}</th>
-                        <th class="text-end" data-bs-toggle="tooltip" data-bs-title="{{ _("Producción media por planta. Mide el vigor productivo.") }}">{{ _("kg/planta") }}</th>
-                        <th class="text-end" data-bs-toggle="tooltip" data-bs-title="{{ _("Gastos totales ÷ kg cosechados. Detecta bancales poco eficientes.") }}">{{ _("Coste/kg") }}</th>
-                        <th class="text-end" data-bs-toggle="tooltip" data-bs-title="{{ _("Ingresos ÷ Gastos. Positivo = rentable; negativo = pérdida.") }}">{{ _("ROI") }}</th>
-                        <th class="text-end" data-bs-toggle="tooltip" data-bs-title="{{ _("Agua aplicada por kg producido. Menor = mejor eficiencia hídrica.") }}">{{ _("m³/kg") }}</th>
-                        <th class="text-end" data-bs-toggle="tooltip" data-bs-title="{{ _("Consumo medio de agua por planta.") }}">{{ _("m³/planta") }}</th>
+                        <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Producción total cosechada en el periodo seleccionado.") }}">{{ _("kg totales") }} <i class="bi bi-info-circle"></i></th>
+                        <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("kg por hectárea. Permite comparar bancales de distinto tamaño.") }}">{{ _("kg/ha") }} <i class="bi bi-info-circle"></i></th>
+                        <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Producción media por planta. Mide el vigor productivo.") }}">{{ _("kg/planta") }} <i class="bi bi-info-circle"></i></th>
+                        <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Gastos totales ÷ kg cosechados. Detecta bancales poco eficientes.") }}">{{ _("Coste/kg") }} <i class="bi bi-info-circle"></i></th>
+                        <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Ingresos ÷ Gastos. Positivo = rentable; negativo = pérdida.") }}">{{ _("ROI") }} <i class="bi bi-info-circle"></i></th>
+                        <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Agua aplicada por kg producido. Menor = mejor eficiencia hídrica.") }}">{{ _("m³/kg") }} <i class="bi bi-info-circle"></i></th>
+                        <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Consumo medio de agua por planta.") }}">{{ _("m³/planta") }} <i class="bi bi-info-circle"></i></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -362,20 +391,28 @@
             <i class="bi bi-table me-2 text-secondary"></i>{{ _("Histórico de KPIs por campaña") }}
         </h5>
     </div>
-    <div class="card-body p-0">
+    <div class="card-body">
+        <p class="text-muted small mb-1"><i class="bi bi-info-circle me-1 text-primary"></i>{{ _("Pasa el ratón sobre cada columna para ver su definición.") }}</p>
+        <div class="kpi-table-legend mb-2">
+            <span class="kpi-table-legend-item"><strong>Rentabilidad</strong> — {{ _("ingresos − gastos") }}</span>
+            <span class="kpi-table-legend-item"><strong>ROI</strong> — {{ _("(ingresos − gastos) ÷ gastos") }}</span>
+            <span class="kpi-table-legend-item"><strong>€/kg medio</strong> — {{ _("precio medio de venta") }}</span>
+            <span class="kpi-table-legend-item"><strong>Crecimiento kg</strong> — {{ _("variación vs campaña anterior") }}</span>
+            <span class="kpi-table-legend-item"><strong>m³/kg</strong> — {{ _("agua aplicada por kg producido") }}</span>
+        </div>
         <div class="table-responsive">
             <table class="table table-sm table-hover table-bordered mb-0">
                 <thead class="table-dark">
                     <tr>
                         <th>{{ _("Campaña") }}</th>
-                        <th class="text-end" data-bs-toggle="tooltip" data-bs-title="{{ _("Producción total cosechada en la campaña.") }}">{{ _("kg") }}</th>
+                        <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Producción total cosechada en la campaña.") }}">{{ _("kg") }} <i class="bi bi-info-circle"></i></th>
                         <th class="text-end">{{ _("Ingresos") }}</th>
                         <th class="text-end">{{ _("Gastos") }}</th>
-                        <th class="text-end" data-bs-toggle="tooltip" data-bs-title="{{ _("Ingresos − Gastos.") }}">{{ _("Rentabilidad") }}</th>
-                        <th class="text-end" data-bs-toggle="tooltip" data-bs-title="{{ _("Ingresos ÷ Gastos. Positivo = rentable; negativo = pérdida.") }}">ROI</th>
-                        <th class="text-end" data-bs-toggle="tooltip" data-bs-title="{{ _("Valor medio de venta de la trufa.") }}">{{ _("€/kg medio") }}</th>
-                        <th class="text-end" data-bs-toggle="tooltip" data-bs-title="{{ _("Variación de kg respecto a la campaña anterior.") }}">{{ _("Crecimiento kg") }}</th>
-                        <th class="text-end" data-bs-toggle="tooltip" data-bs-title="{{ _("Agua aplicada por kg producido. Menor = mejor eficiencia hídrica.") }}">{{ _("m³/kg") }}</th>
+                        <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Ingresos − Gastos.") }}">{{ _("Rentabilidad") }} <i class="bi bi-info-circle"></i></th>
+                        <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Ingresos ÷ Gastos. Positivo = rentable; negativo = pérdida.") }}">ROI <i class="bi bi-info-circle"></i></th>
+                        <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Valor medio de venta de la trufa.") }}">{{ _("€/kg medio") }} <i class="bi bi-info-circle"></i></th>
+                        <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Variación de kg respecto a la campaña anterior.") }}">{{ _("Crecimiento kg") }} <i class="bi bi-info-circle"></i></th>
+                        <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Agua aplicada por kg producido. Menor = mejor eficiencia hídrica.") }}">{{ _("m³/kg") }} <i class="bi bi-info-circle"></i></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -573,5 +610,10 @@ function applyFilters() {
     if (campaign) params.set('campaign', campaign);
     window.location.href = '/kpis/?' + params.toString();
 }
+
+// Inicializar tooltips de Bootstrap
+document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+    new bootstrap.Tooltip(el, { trigger: 'hover' });
+});
 </script>
 {% endblock %}
