@@ -59,8 +59,14 @@ class TestRequireAdmin:
         request.session = {"user_id": 1}
 
         admin_user = User(
-            id=1, username="admin", first_name="Admin", last_name="User",
-            email="admin@example.com", hashed_password="hash", role="admin", is_active=True
+            id=1,
+            username="admin",
+            first_name="Admin",
+            last_name="User",
+            email="admin@example.com",
+            hashed_password="hash",
+            role="admin",
+            is_active=True,
         )
 
         db = MagicMock()
@@ -84,8 +90,14 @@ class TestRequireAdmin:
         request.session = {"user_id": 2}
 
         user = User(
-            id=2, username="user", first_name="Regular", last_name="User",
-            email="user@example.com", hashed_password="hash", role="user", is_active=True
+            id=2,
+            username="user",
+            first_name="Regular",
+            last_name="User",
+            email="user@example.com",
+            hashed_password="hash",
+            role="user",
+            is_active=True,
         )
 
         db = MagicMock()
@@ -146,34 +158,119 @@ class TestRequireAdmin:
         assert result.is_active is False
 
 
+class TestGetCurrentUserResilience:
+    """Tests for transient DB connection failures during session user lookup."""
+
+    @pytest.mark.asyncio
+    async def test_get_current_user_retries_once_on_transient_connection_error(self):
+        request = MagicMock()
+        request.session = {"user_id": 1}
+
+        user = User(
+            id=1,
+            username="admin",
+            first_name="Admin",
+            last_name="User",
+            email="admin@example.com",
+            hashed_password="hash",
+            role="admin",
+            is_active=True,
+        )
+
+        db = MagicMock()
+        db.rollback = AsyncMock()
+
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none = MagicMock(return_value=user)
+
+        transient_error = Exception("connection was closed in the middle of operation")
+        db.execute = AsyncMock(side_effect=[transient_error, mock_result])
+
+        from app.auth import get_current_user
+
+        result = await get_current_user(request, db)
+
+        assert result is user
+        assert db.execute.await_count == 2
+        db.rollback.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_get_current_user_clears_session_when_transient_error_persists(self):
+        request = MagicMock()
+        request.session = {"user_id": 1}
+
+        db = MagicMock()
+        db.rollback = AsyncMock()
+
+        transient_error = Exception("connection was closed in the middle of operation")
+        db.execute = AsyncMock(side_effect=[transient_error, transient_error])
+
+        from app.auth import get_current_user
+
+        result = await get_current_user(request, db)
+
+        assert result is None
+        assert request.session == {}
+        assert db.execute.await_count == 2
+        db.rollback.assert_awaited_once()
+
+
 class TestUserModel:
     """Tests for User model with role and is_active fields"""
 
     def test_user_accepts_role_parameter(self):
         """Test that User accepts role parameter"""
-        user = User(id=1, username="test", first_name="Test", last_name="User",
-                    email="test@example.com", hashed_password="hash", role="user")
+        user = User(
+            id=1,
+            username="test",
+            first_name="Test",
+            last_name="User",
+            email="test@example.com",
+            hashed_password="hash",
+            role="user",
+        )
 
         assert user.role == "user"
 
     def test_user_accepts_is_active_parameter(self):
         """Test that User accepts is_active parameter"""
-        user = User(id=1, username="test", first_name="Test", last_name="User",
-                    email="test@example.com", hashed_password="hash", is_active=True)
+        user = User(
+            id=1,
+            username="test",
+            first_name="Test",
+            last_name="User",
+            email="test@example.com",
+            hashed_password="hash",
+            is_active=True,
+        )
 
         assert user.is_active is True
 
     def test_user_can_have_admin_role(self):
         """Test that users can have 'admin' role"""
-        user = User(id=1, username="admin", first_name="Admin", last_name="User",
-                    email="admin@example.com", hashed_password="hash", role="admin")
+        user = User(
+            id=1,
+            username="admin",
+            first_name="Admin",
+            last_name="User",
+            email="admin@example.com",
+            hashed_password="hash",
+            role="admin",
+        )
 
         assert user.role == "admin"
 
     def test_user_can_be_deactivated(self):
         """Test that users can be deactivated"""
-        user = User(id=1, username="inactive", first_name="Inactive", last_name="User",
-                    email="inactive@example.com", hashed_password="hash", is_active=False)
+        user = User(
+            id=1,
+            username="inactive",
+            first_name="Inactive",
+            last_name="User",
+            email="inactive@example.com",
+            hashed_password="hash",
+            is_active=False,
+        )
 
         assert user.is_active is False
 
@@ -184,32 +281,48 @@ class TestUserProfileFields:
     def test_user_stores_first_name(self):
         """Test that User stores first_name correctly"""
         user = User(
-            id=1, username="javier", first_name="Javier", last_name="Gómez",
-            email="javier@example.com", hashed_password="hash"
+            id=1,
+            username="javier",
+            first_name="Javier",
+            last_name="Gómez",
+            email="javier@example.com",
+            hashed_password="hash",
         )
         assert user.first_name == "Javier"
 
     def test_user_stores_last_name(self):
         """Test that User stores last_name correctly"""
         user = User(
-            id=1, username="javier", first_name="Javier", last_name="Gómez",
-            email="javier@example.com", hashed_password="hash"
+            id=1,
+            username="javier",
+            first_name="Javier",
+            last_name="Gómez",
+            email="javier@example.com",
+            hashed_password="hash",
         )
         assert user.last_name == "Gómez"
 
     def test_user_stores_email(self):
         """Test that User stores email correctly"""
         user = User(
-            id=1, username="javier", first_name="Javier", last_name="Gómez",
-            email="javier@example.com", hashed_password="hash"
+            id=1,
+            username="javier",
+            first_name="Javier",
+            last_name="Gómez",
+            email="javier@example.com",
+            hashed_password="hash",
         )
         assert user.email == "javier@example.com"
 
     def test_user_with_unicode_names(self):
         """Test that User handles unicode characters in names"""
         user = User(
-            id=1, username="juan", first_name="Juan", last_name="García López",
-            email="juan@example.com", hashed_password="hash"
+            id=1,
+            username="juan",
+            first_name="Juan",
+            last_name="García López",
+            email="juan@example.com",
+            hashed_password="hash",
         )
         assert user.first_name == "Juan"
         assert user.last_name == "García López"
@@ -217,8 +330,12 @@ class TestUserProfileFields:
     def test_user_profile_display_format(self):
         """Test user profile can be displayed as 'FirstName LastName (email)'"""
         user = User(
-            id=1, username="carlos", first_name="Carlos", last_name="Martinez",
-            email="carlos@example.com", hashed_password="hash"
+            id=1,
+            username="carlos",
+            first_name="Carlos",
+            last_name="Martinez",
+            email="carlos@example.com",
+            hashed_password="hash",
         )
         profile_display = f"{user.first_name} {user.last_name} ({user.email})"
         assert profile_display == "Carlos Martinez (carlos@example.com)"
