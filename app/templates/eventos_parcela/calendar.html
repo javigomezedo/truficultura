@@ -52,7 +52,7 @@
         </div>
         <div class="d-flex gap-2 align-items-center">
             <div class="btn-group" role="group" aria-label="{{ _('Selector de vista') }}">
-                <a href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}&year={{ selected_year }}&month={{ selected_month }}&view={{ view }}"
+                <a href="/plot-events/calendar-view?{{ nav_query }}"
                    class="btn btn-sm btn-primary">
                     <i class="bi bi-calendar3 me-1"></i>{{ _("Calendario") }}
                 </a>
@@ -63,11 +63,11 @@
             </div>
             {# toggle mes/año #}
             <div class="btn-group" role="group">
-                <a href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}&year={{ selected_year }}&month={{ selected_month }}&view=month"
+                <a href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}&year={{ selected_year }}&month={{ selected_month }}&view=month{% for t in selected_event_types %}&event_type={{ t }}{% endfor %}"
                    class="btn btn-sm {% if view == 'month' %}btn-primary{% else %}btn-outline-primary{% endif %}">
                     <i class="bi bi-calendar3 me-1"></i>{{ _("Mes") }}
                 </a>
-                <a href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}&year={{ selected_year }}&month={{ selected_month }}&view=year"
+                <a href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}&year={{ selected_year }}&month={{ selected_month }}&view=year{% for t in selected_event_types %}&event_type={{ t }}{% endfor %}"
                    class="btn btn-sm {% if view == 'year' %}btn-primary{% else %}btn-outline-primary{% endif %}">
                     <i class="bi bi-calendar-range me-1"></i>{{ _("Año") }}
                 </a>
@@ -112,6 +112,38 @@
                         {% endfor %}
                     </select>
                 </div>
+                <div class="tf-filter-item">
+                    <label class="form-label">{{ _("Tipo") }}</label>
+                    <div class="dropdown w-100" data-bs-auto-close="outside">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start"
+                                type="button"
+                                data-bs-toggle="dropdown"
+                                aria-expanded="false">
+                            {% if selected_event_types %}
+                                {{ _("Tipos") }}: {{ selected_event_types|length }}
+                            {% else %}
+                                {{ _("Todos") }}
+                            {% endif %}
+                        </button>
+                        <div class="dropdown-menu tf-type-menu shadow-sm">
+                            {% for event_type in event_types %}
+                            <div class="form-check">
+                                <input class="form-check-input tf-event-type-check"
+                                       type="checkbox"
+                                       value="{{ event_type }}"
+                                       id="calendar-event-type-{{ loop.index }}"
+                                       {% if event_type in selected_event_types %}checked{% endif %}>
+                                <label class="form-check-label" for="calendar-event-type-{{ loop.index }}">{{ event_type }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div id="tf-event-types-hidden">
+                        {% for event_type in selected_event_types %}
+                        <input type="hidden" name="event_type" value="{{ event_type }}">
+                        {% endfor %}
+                    </div>
+                </div>
             </form>
 
             <div class="border-top mt-3 pt-2">
@@ -135,12 +167,12 @@
 
     <div class="d-flex justify-content-between align-items-center mb-2">
         <a class="btn btn-outline-secondary btn-sm"
-           href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}&year={{ prev_year }}&month={{ prev_month }}&view=month">
+              href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}&year={{ prev_year }}&month={{ prev_month }}&view=month{% for t in selected_event_types %}&event_type={{ t }}{% endfor %}">
             &laquo; {{ _("Anterior") }}
         </a>
         <span class="fw-semibold">{{ month_name }} {{ selected_year }}</span>
         <a class="btn btn-outline-secondary btn-sm"
-           href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}&year={{ next_year }}&month={{ next_month }}&view=month">
+              href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}&year={{ next_year }}&month={{ next_month }}&view=month{% for t in selected_event_types %}&event_type={{ t }}{% endfor %}">
             {{ _("Siguiente") }} &raquo;
         </a>
     </div>
@@ -188,12 +220,12 @@
 
     <div class="d-flex justify-content-between align-items-center mb-3">
         <a class="btn btn-outline-secondary btn-sm"
-           href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}&year={{ selected_year - 1 }}&view=year">
+              href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}&year={{ selected_year - 1 }}&view=year{% for t in selected_event_types %}&event_type={{ t }}{% endfor %}">
             &laquo; {{ selected_year - 1 }}
         </a>
         <span class="fw-semibold fs-5">{{ selected_year }}</span>
         <a class="btn btn-outline-secondary btn-sm"
-           href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}&year={{ selected_year + 1 }}&view=year">
+              href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}&year={{ selected_year + 1 }}&view=year{% for t in selected_event_types %}&event_type={{ t }}{% endfor %}">
             {{ selected_year + 1 }} &raquo;
         </a>
     </div>
@@ -207,7 +239,7 @@
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header py-2 d-flex justify-content-between align-items-center
                             {% if m == selected_month %}bg-primary text-white{% else %}bg-light{% endif %}">
-                    <a href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}&year={{ selected_year }}&month={{ m }}&view=month"
+                    <a href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}&year={{ selected_year }}&month={{ m }}&view=month{% for t in selected_event_types %}&event_type={{ t }}{% endfor %}"
                        class="fw-semibold text-decoration-none {% if m == selected_month %}text-white{% endif %}">
                         {{ month_names[m] }}
                     </a>
@@ -239,7 +271,7 @@
                                             {% set _ = ns.types.append(evt.event_type) %}
                                         {% endif %}
                                     {% endfor %}
-                                    <a href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}&year={{ selected_year }}&month={{ m }}&view=month"
+                                                <a href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}&year={{ selected_year }}&month={{ m }}&view=month{% for t in selected_event_types %}&event_type={{ t }}{% endfor %}"
                                        class="text-decoration-none d-flex flex-column align-items-center gap-1"
                                        title="{{ day_events | length }} {{ _('evento(s)') }} · {{ ns.types | length }} {{ _('tipo(s)') }}">
                                         <span>{{ day }}</span>
@@ -275,10 +307,36 @@
     const form = document.querySelector('form[action="/plot-events/calendar-view"]');
     if (!form) return;
 
+    const checks = form.querySelectorAll('.tf-event-type-check');
+    const hiddenContainer = form.querySelector('#tf-event-types-hidden');
     const autoSubmitSelects = form.querySelectorAll('.tf-autosubmit-select');
+
+    const syncHiddenInputs = () => {
+        if (!hiddenContainer) return;
+        hiddenContainer.innerHTML = '';
+        checks.forEach((check) => {
+            if (check.checked) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'event_type';
+                input.value = check.value;
+                hiddenContainer.appendChild(input);
+            }
+        });
+    };
+
+    checks.forEach((check) => {
+        check.addEventListener('change', () => {
+            syncHiddenInputs();
+            form.submit();
+        });
+    });
+
     autoSubmitSelects.forEach((select) => {
         select.addEventListener('change', () => form.submit());
     });
+
+    form.addEventListener('submit', syncHiddenInputs);
 })();
 </script>
 {% endblock %}

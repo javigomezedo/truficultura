@@ -412,6 +412,46 @@ def test_plot_events_calendar_json_accepts_empty_plot_id(monkeypatch) -> None:
     assert response.json()["count"] == 0
 
 
+def test_plot_events_calendar_json_passes_event_type_filter(monkeypatch) -> None:
+    fake_db = _db()
+    get_events_mock = AsyncMock(return_value=[])
+    monkeypatch.setattr("app.routers.plot_events.get_plot_events", get_events_mock)
+
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = lambda: fake_db
+    try:
+        client = TestClient(app)
+        response = client.get("/plot-events/calendar/?event_type=poda")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    kwargs = get_events_mock.await_args.kwargs
+    assert kwargs["event_types"] is not None
+    assert len(kwargs["event_types"]) == 1
+    assert kwargs["event_types"][0].value == "poda"
+
+
+def test_plot_events_calendar_json_passes_event_type_filter(monkeypatch) -> None:
+    fake_db = _db()
+    get_events_mock = AsyncMock(return_value=[])
+    monkeypatch.setattr("app.routers.plot_events.get_plot_events", get_events_mock)
+
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = lambda: fake_db
+    try:
+        client = TestClient(app)
+        response = client.get("/plot-events/calendar/?event_type=poda")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    kwargs = get_events_mock.await_args.kwargs
+    assert kwargs["event_types"] is not None
+    assert len(kwargs["event_types"]) == 1
+    assert kwargs["event_types"][0].value == "poda"
+
+
 def test_plot_events_calendar_view_renders(monkeypatch) -> None:
     fake_db = _db()
     monkeypatch.setattr(
@@ -431,3 +471,59 @@ def test_plot_events_calendar_view_renders(monkeypatch) -> None:
 
     assert response.status_code == 200
     assert "Calendario de eventos" in response.text
+
+
+def test_plot_events_calendar_view_renders_event_type_filter_and_passes_it(
+    monkeypatch,
+) -> None:
+    fake_db = _db()
+    get_events_mock = AsyncMock(return_value=[])
+    monkeypatch.setattr("app.routers.plot_events.get_plot_events", get_events_mock)
+    monkeypatch.setattr(
+        "app.routers.plot_events._get_all_plots", AsyncMock(return_value=[])
+    )
+
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = lambda: fake_db
+    try:
+        client = TestClient(app)
+        response = client.get(
+            "/plot-events/calendar-view?year=2025&month=6&event_type=poda"
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert "Tipos: 1" in response.text
+    kwargs = get_events_mock.await_args.kwargs
+    assert kwargs["event_types"] is not None
+    assert len(kwargs["event_types"]) == 1
+    assert kwargs["event_types"][0].value == "poda"
+
+
+def test_plot_events_calendar_view_renders_event_type_filter_and_passes_it(
+    monkeypatch,
+) -> None:
+    fake_db = _db()
+    get_events_mock = AsyncMock(return_value=[])
+    monkeypatch.setattr("app.routers.plot_events.get_plot_events", get_events_mock)
+    monkeypatch.setattr(
+        "app.routers.plot_events._get_all_plots", AsyncMock(return_value=[])
+    )
+
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = lambda: fake_db
+    try:
+        client = TestClient(app)
+        response = client.get(
+            "/plot-events/calendar-view?year=2025&month=6&event_type=poda"
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert "Tipos: 1" in response.text
+    kwargs = get_events_mock.await_args.kwargs
+    assert kwargs["event_types"] is not None
+    assert len(kwargs["event_types"]) == 1
+    assert kwargs["event_types"][0].value == "poda"

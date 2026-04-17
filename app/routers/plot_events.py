@@ -3,7 +3,7 @@ from __future__ import annotations
 import calendar as pycalendar
 import datetime
 from typing import Optional
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlencode
 
 from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -225,13 +225,16 @@ async def calendar_json(
     plot_id: Optional[str] = Query(default=None),
     year: Optional[int] = Query(default=None),
     month: Optional[int] = Query(default=None),
+    event_type: Optional[list[str]] = Query(default=None),
 ):
     selected_plot = _parse_optional_int(plot_id)
+    event_types = _parse_event_types(event_type)
 
     records = await get_plot_events(
         db,
         current_user.id,
         plot_id=selected_plot,
+        event_types=event_types,
     )
 
     filtered = []
@@ -267,6 +270,7 @@ async def calendar_view(
     plot_id: Optional[str] = Query(default=None),
     year: Optional[int] = Query(default=None),
     month: Optional[int] = Query(default=None),
+    event_type: Optional[list[str]] = Query(default=None),
     view: str = Query(default="month"),
     msg: Optional[str] = None,
 ):
@@ -285,12 +289,26 @@ async def calendar_view(
     if view not in ("month", "year"):
         view = "month"
 
+    event_types = _parse_event_types(event_type)
+
     records = await get_plot_events(
         db,
         current_user.id,
         plot_id=plot_id,
+        event_types=event_types,
     )
     plots = await _get_all_plots(db, current_user.id)
+
+    selected_event_types = [item.value for item in event_types or []]
+    base_nav_params = {
+        "plot_id": plot_id or "",
+        "year": selected_year,
+        "month": selected_month,
+        "view": view,
+    }
+    if selected_event_types:
+        base_nav_params["event_type"] = selected_event_types
+    nav_query = urlencode(base_nav_params, doseq=True)
 
     cal = pycalendar.Calendar(firstweekday=0)
 
@@ -364,6 +382,9 @@ async def calendar_view(
             "year_options": year_options,
             "event_labels": EVENT_LABELS,
             "event_colors": EVENT_COLORS,
+            "event_types": [item.value for item in EventType],
+            "selected_event_types": selected_event_types,
+            "nav_query": nav_query,
             "msg": msg,
         },
     )
