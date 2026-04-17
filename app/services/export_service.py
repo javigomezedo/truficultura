@@ -15,6 +15,7 @@ from app.models.income import Income
 from app.models.irrigation import IrrigationRecord
 from app.models.plant import Plant
 from app.models.plot import Plot
+from app.models.plot_event import PlotEvent
 from app.models.truffle_event import TruffleEvent
 from app.models.well import Well
 from app.utils import format_eu, format_sparse_row_config
@@ -205,6 +206,34 @@ async def export_wells_csv(db: AsyncSession, user_id: int) -> bytes:
     return buf.getvalue().encode("utf-8")
 
 
+async def export_plot_events_csv(db: AsyncSession, user_id: int) -> bytes:
+    plots_by_id = await _load_plots_by_id(db, user_id)
+    result = await db.execute(
+        select(PlotEvent)
+        .where(
+            PlotEvent.user_id == user_id,
+            PlotEvent.related_irrigation_id.is_(None),
+            PlotEvent.related_well_id.is_(None),
+        )
+        .order_by(PlotEvent.date)
+    )
+    events = result.scalars().all()
+
+    buf = io.StringIO()
+    writer = csv.writer(buf, delimiter=";", lineterminator="\n")
+    for e in events:
+        writer.writerow(
+            [
+                _format_date(e.date),
+                plots_by_id.get(e.plot_id, ""),
+                e.event_type,
+                e.notes or "",
+                "1" if e.is_recurring else "0",
+            ]
+        )
+    return buf.getvalue().encode("utf-8")
+
+
 async def export_all_csv_zip(db: AsyncSession, user_id: int) -> bytes:
     files = [
         ("parcelas.csv", await export_plots_csv(db, user_id)),
@@ -213,6 +242,7 @@ async def export_all_csv_zip(db: AsyncSession, user_id: int) -> bytes:
         ("riego.csv", await export_irrigation_csv(db, user_id)),
         ("pozos.csv", await export_wells_csv(db, user_id)),
         ("produccion.csv", await export_truffles_csv(db, user_id)),
+        ("labores.csv", await export_plot_events_csv(db, user_id)),
     ]
 
     zip_buffer = io.BytesIO()

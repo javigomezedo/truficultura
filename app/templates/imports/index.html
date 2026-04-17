@@ -19,7 +19,7 @@
     <div class="d-flex align-items-center mb-1">
         <i class="bi {% if result.warnings %}bi-exclamation-triangle-fill{% else %}bi-check-circle-fill{% endif %} me-2 fs-5"></i>
         <strong>
-            {% if result.type == "expenses" %}{{ _("Importación de gastos completada") }}{% elif result.type == "incomes" %}{{ _("Importación de ingresos completada") }}{% elif result.type == "irrigation" %}{{ _("Importación de riego completada") }}{% elif result.type == "wells" %}{{ _("Importación de pozos completada") }}{% elif result.type == "truffles" %}{{ _("Importación de producción completada") }}{% else %}{{ _("Importación de parcelas completada") }}{% endif %}
+            {% if result.type == "all_zip" %}{{ _("Importación de ZIP completada") }}{% elif result.type == "expenses" %}{{ _("Importación de gastos completada") }}{% elif result.type == "incomes" %}{{ _("Importación de ingresos completada") }}{% elif result.type == "irrigation" %}{{ _("Importación de riego completada") }}{% elif result.type == "wells" %}{{ _("Importación de pozos completada") }}{% elif result.type == "truffles" %}{{ _("Importación de producción completada") }}{% elif result.type == "plot_events" %}{{ _("Importación de labores completada") }}{% else %}{{ _("Importación de parcelas completada") }}{% endif %}
         </strong>
     </div>
     <div>
@@ -33,12 +33,25 @@
         {% for w in result.warnings %}<li>{{ w }}</li>{% endfor %}
     </ul>
     {% endif %}
+    {% if result.details %}
+    <hr>
+    <ul class="mb-0 small">
+        {% for d in result.details %}<li>{{ d }}</li>{% endfor %}
+    </ul>
+    {% endif %}
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ _('Cerrar') }}"></button>
 </div>
 {% endif %}
 
 <!-- Tabs -->
 <ul class="nav nav-tabs mb-4" id="importTabs" role="tablist" data-manual-tabs data-tabs-target="#importTabContent">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link {% if active_tab == 'all_zip' %}active{% endif %}"
+                id="tab-all-zip" data-bs-target="#panel-all-zip"
+                type="button" role="tab">
+            <i class="bi bi-file-earmark-zip-fill text-warning me-1"></i>{{ _("Todo en ZIP") }}
+        </button>
+    </li>
     <li class="nav-item" role="presentation">
         <button class="nav-link {% if not active_tab or active_tab == 'plots' %}active{% endif %}"
                 id="tab-plots" data-bs-target="#panel-plots"
@@ -81,9 +94,68 @@
             <i class="bi bi-basket-fill text-success me-1"></i>{{ _('Producción') }}
         </button>
     </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link {% if active_tab == 'plot_events' %}active{% endif %}"
+                id="tab-plot-events" data-bs-target="#panel-plot-events"
+                type="button" role="tab">
+            <i class="bi bi-calendar2-check-fill text-secondary me-1"></i>{{ _('Labores') }}
+        </button>
+    </li>
 </ul>
 
 <div class="tab-content" id="importTabContent">
+
+    <!-- ── TODO EN ZIP ── -->
+    <div class="tab-pane fade {% if active_tab == 'all_zip' %}show active{% endif %}"
+         id="panel-all-zip" role="tabpanel">
+        <div class="row g-3 tf-import-pane-row align-items-start">
+            <div class="col-xl-7 col-lg-6">
+                <div class="card tf-panel tf-import-format-card border-0">
+                    <div class="card-header fw-semibold">
+                        <i class="bi bi-file-earmark-zip me-1"></i>{{ _("Formato del archivo") }}
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-2">
+                            {{ _("Archivo ZIP que puede incluir uno o varios CSV de exportación para importación masiva.") }}
+                        </p>
+                        <p class="text-muted small mb-2">
+                            {{ _("Nombres soportados: parcelas.csv, gastos.csv, ingresos.csv, riego.csv, pozos.csv, produccion.csv, labores.csv.") }}
+                        </p>
+                        <p class="text-muted small mb-0">
+                            <i class="bi bi-info-circle me-1"></i>
+                            {{ _("Si el ZIP incluye parcelas.csv, se procesa primero para facilitar importaciones dependientes (riego, pozos, labores y producción).") }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-5 col-lg-6">
+                <div class="card tf-panel tf-import-upload-card border-0">
+                    <div class="card-header fw-semibold">
+                        <i class="bi bi-cloud-upload me-1"></i>{{ _("Subir archivo") }}
+                    </div>
+                    <div class="card-body">
+                        <form method="post" action="/import/all.zip" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="all-zip-file" class="form-label fw-semibold">
+                                    {{ _("Archivo ZIP de importación") }}
+                                </label>
+                                <input type="file" class="form-control" id="all-zip-file"
+                                       name="file" accept=".zip,application/zip" required>
+                                <div class="form-text">{{ _("Solo archivos .zip") }}</div>
+                            </div>
+                            <div class="alert alert-warning small py-2 mb-3">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                {{ _("Se importarán de forma acumulativa todos los CSV compatibles encontrados en el ZIP.") }}
+                            </div>
+                            <button type="submit" class="btn btn-warning w-100">
+                                <i class="bi bi-upload me-1"></i>{{ _("Importar ZIP") }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- ── PARCELAS ── -->
     <div class="tab-pane fade {% if not active_tab or active_tab == 'plots' %}show active{% endif %}"
@@ -495,6 +567,75 @@
                             </div>
                             <button type="submit" class="btn btn-success w-100">
                                 <i class="bi bi-upload me-1"></i>{{ _('Importar producción') }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── LABORES ── -->
+    <div class="tab-pane fade {% if active_tab == 'plot_events' %}show active{% endif %}"
+         id="panel-plot-events" role="tabpanel">
+        <div class="row g-3 tf-import-pane-row align-items-start">
+            <div class="col-xl-7 col-lg-6">
+                <div class="card tf-panel tf-import-format-card border-0">
+                    <div class="card-header fw-semibold">
+                        <i class="bi bi-filetype-csv me-1"></i>{{ _('Formato del archivo') }}
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-2">
+                            {{ _('Archivo CSV delimitado por <code>;</code>, sin cabecera, codificación UTF-8.') }}
+                        </p>
+                        <table class="table table-sm table-bordered small tf-import-format-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>{{ _('Columna') }}</th>
+                                    <th>{{ _('Descripción') }}</th>
+                                    <th>{{ _('Ejemplo') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><code>fecha</code></td><td>{{ _('Fecha (DD/MM/AAAA)') }} <span class="text-danger">*</span></td><td><code>15/03/2025</code></td></tr>
+                                <tr><td><code>bancal</code></td><td>{{ _('Nombre del bancal') }} <span class="text-danger">*</span></td><td><code>Bancal Sur</code></td></tr>
+                                <tr><td><code>tipo_evento</code></td><td>{{ _('Tipo de labor') }} <span class="text-danger">*</span></td><td><code>poda</code></td></tr>
+                                <tr><td><code>notas</code></td><td>{{ _('Notas (opcional)') }}</td><td><code>Primera pasada</code></td></tr>
+                                <tr><td><code>es_recurrente</code></td><td>{{ _('Recurrente (1=sí, 0=no, opcional)') }}</td><td><code>1</code></td></tr>
+                            </tbody>
+                        </table>
+                        <p class="text-muted small mb-0">
+                            <i class="bi bi-info-circle me-1"></i>
+                            {{ _('Valores permitidos para tipo_evento: labrado, picado, poda, vallado, installed_drip, riego, pozo. Los eventos únicos (vallado, installed_drip) se omiten si ya existen para esa parcela.') }}
+                        </p>
+                        <div class="mt-3 rounded p-3 tf-sample-box tf-sample-box-secondary">
+                            <small class="text-muted d-block mb-1 fw-semibold">{{ _('Ejemplo de línea:') }}</small>
+                            <code class="small">15/03/2025;Bancal Sur;poda;Primera pasada;1</code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-5 col-lg-6">
+                <div class="card tf-panel tf-import-upload-card border-0">
+                    <div class="card-header fw-semibold">
+                        <i class="bi bi-cloud-upload me-1"></i>{{ _('Subir archivo') }}
+                    </div>
+                    <div class="card-body">
+                        <form method="post" action="/import/plot_events" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="plot-events-file" class="form-label fw-semibold">
+                                    {{ _('Archivo CSV de labores') }}
+                                </label>
+                                <input type="file" class="form-control" id="plot-events-file"
+                                       name="file" accept=".csv,text/csv" required>
+                                <div class="form-text">{{ _('Solo archivos .csv codificados en UTF-8.') }}</div>
+                            </div>
+                            <div class="alert alert-warning small py-2 mb-3">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                {{ _('Esta acción insertará todos los registros del archivo en la base de datos. Asegúrate de que el archivo no contiene duplicados.') }}
+                            </div>
+                            <button type="submit" class="btn btn-secondary w-100">
+                                <i class="bi bi-upload me-1"></i>{{ _('Importar labores') }}
                             </button>
                         </form>
                     </div>

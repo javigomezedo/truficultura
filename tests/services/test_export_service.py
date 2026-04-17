@@ -13,6 +13,7 @@ from app.models.income import Income
 from app.models.irrigation import IrrigationRecord
 from app.models.plant import Plant
 from app.models.plot import Plot
+from app.models.plot_event import PlotEvent
 from app.models.truffle_event import TruffleEvent
 from app.models.well import Well
 from app.services.export_service import (
@@ -20,6 +21,7 @@ from app.services.export_service import (
     export_expenses_csv,
     export_incomes_csv,
     export_irrigation_csv,
+    export_plot_events_csv,
     export_plots_csv,
     export_truffles_csv,
     export_wells_csv,
@@ -134,6 +136,30 @@ def _make_truffle_event(
         undone_at=None,
     )
     return event
+
+
+def _make_plot_event(
+    id=1,
+    plot_id=1,
+    event_type="poda",
+    notes="Primera pasada",
+    is_recurring=True,
+    related_irrigation_id=None,
+    related_well_id=None,
+):
+    return PlotEvent(
+        id=id,
+        user_id=1,
+        plot_id=plot_id,
+        event_type=event_type,
+        date=datetime.date(2025, 3, 15),
+        notes=notes,
+        is_recurring=is_recurring,
+        related_irrigation_id=related_irrigation_id,
+        related_well_id=related_well_id,
+        created_at=datetime.datetime(2025, 3, 15, 10, 0, 0, tzinfo=datetime.UTC),
+        updated_at=datetime.datetime(2025, 3, 15, 10, 0, 0, tzinfo=datetime.UTC),
+    )
 
 
 def _parse_csv(data: bytes) -> list[list[str]]:
@@ -469,6 +495,10 @@ async def test_export_all_csv_zip_contains_all_files(monkeypatch):
     monkeypatch.setattr(
         "app.services.export_service.export_truffles_csv", AsyncMock(return_value=b"t")
     )
+    monkeypatch.setattr(
+        "app.services.export_service.export_plot_events_csv",
+        AsyncMock(return_value=b"l"),
+    )
 
     db = MagicMock()
     data = await export_all_csv_zip(db, user_id=1)
@@ -483,6 +513,7 @@ async def test_export_all_csv_zip_contains_all_files(monkeypatch):
                 "riego.csv",
                 "pozos.csv",
                 "produccion.csv",
+                "labores.csv",
             ]
         )
         assert zf.read("parcelas.csv") == b"p"
@@ -491,3 +522,39 @@ async def test_export_all_csv_zip_contains_all_files(monkeypatch):
         assert zf.read("riego.csv") == b"r"
         assert zf.read("pozos.csv") == b"w"
         assert zf.read("produccion.csv") == b"t"
+        assert zf.read("labores.csv") == b"l"
+
+
+# ---------------------------------------------------------------------------
+# export_plot_events_csv
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_export_plot_events_csv_with_data():
+    plot = _make_plot(id=1, name="Bancal Sur")
+    regular_event = _make_plot_event(
+        id=1,
+        plot_id=1,
+        event_type="poda",
+        notes="Primera pasada",
+        is_recurring=True,
+    )
+    db = _db_with_two_calls(
+        result([plot]),
+        result([regular_event]),
+    )
+
+    data = await export_plot_events_csv(db, user_id=1)
+    rows = _parse_csv(data)
+
+    assert len(rows) == 1
+    assert rows[0] == ["15/03/2025", "Bancal Sur", "poda", "Primera pasada", "1"]
+
+
+@pytest.mark.asyncio
+async def test_export_plot_events_csv_empty():
+    db = _db_with_two_calls(result([]), result([]))
+
+    data = await export_plot_events_csv(db, user_id=1)
+    assert data == b""

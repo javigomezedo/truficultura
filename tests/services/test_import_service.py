@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import datetime
+import io
+import zipfile
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -10,12 +12,15 @@ from app.models.expense import Expense
 from app.models.income import Income
 from app.models.plant import Plant
 from app.models.plot import Plot
+from app.models.plot_event import PlotEvent
 from app.models.truffle_event import TruffleEvent
 from app.models.well import Well
 from app.services.import_service import (
+    import_all_csv_zip,
     import_expenses_csv,
     import_incomes_csv,
     import_irrigation_csv,
+    import_plot_events_csv,
     import_plots_csv,
     import_truffles_csv,
     import_wells_csv,
@@ -78,6 +83,14 @@ def _expenses_csv(rows: list[str]) -> bytes:
 
 def _incomes_csv(rows: list[str]) -> bytes:
     return "\n".join(rows).encode("utf-8")
+
+
+def _zip_bytes(files: dict[str, bytes]) -> bytes:
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for name, content in files.items():
+            zf.writestr(name, content)
+    return buffer.getvalue()
 
 
 # ---------------------------------------------------------------------------
@@ -588,3 +601,158 @@ async def test_import_truffles_csv_unknown_plant_warns():
     assert rows == []
     assert len(warnings) == 1
     assert "A99" in warnings[0]
+
+
+# ---------------------------------------------------------------------------
+# import_plot_events_csv
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_import_plot_events_csv_success_and_defaults_recurring():
+    plot = _make_plot(id=10, name="Bancal Sur")
+
+    db = MagicMock()
+    db.execute = AsyncMock(side_effect=[result([plot]), result([])])
+    db.add_all = MagicMock()
+
+    rows, warnings = await import_plot_events_csv(
+        db,
+        _plots_csv(["15/03/2025;Bancal Sur;poda;Primera pasada"]),
+        user_id=1,
+    )
+
+    assert warnings == []
+    assert len(rows) == 1
+    event = rows[0]
+    assert isinstance(event, PlotEvent)
+    assert event.plot_id == 10
+    assert event.event_type == "poda"
+    assert event.notes == "Primera pasada"
+    assert event.is_recurring is True
+
+
+@pytest.mark.asyncio
+async def test_import_plot_events_csv_unknown_plot_warns():
+    db = MagicMock()
+    db.execute = AsyncMock(side_effect=[result([]), result([])])
+    db.add_all = MagicMock()
+
+    rows, warnings = await import_plot_events_csv(
+        db,
+        _plots_csv(["15/03/2025;NoExiste;poda;Primera pasada;1"]),
+        user_id=1,
+    )
+
+    assert rows == []
+    assert len(warnings) == 1
+    assert "NoExiste" in warnings[0]
+
+
+@pytest.mark.asyncio
+async def test_import_plot_events_csv_invalid_event_type_warns():
+    plot = _make_plot(id=10, name="Bancal Sur")
+
+    db = MagicMock()
+    db.execute = AsyncMock(side_effect=[result([plot]), result([])])
+    db.add_all = MagicMock()
+
+    rows, warnings = await import_plot_events_csv(
+        db,
+        _plots_csv(["15/03/2025;Bancal Sur;no_valido;Primera pasada;1"]),
+        user_id=1,
+    )
+
+    assert rows == []
+    assert len(warnings) == 1
+    assert "no_valido" in warnings[0]
+
+
+@pytest.mark.asyncio
+async def test_import_plot_events_csv_one_time_duplicate_warns():
+    plot = _make_plot(id=10, name="Bancal Sur")
+
+    db = MagicMock()
+    db.execute = AsyncMock(side_effect=[result([plot]), result([(10, "vallado")])])
+    db.add_all = MagicMock()
+
+    rows, warnings = await import_plot_events_csv(
+        db,
+        _plots_csv(["15/03/2025;Bancal Sur;vallado;Cerrado perimetral;0"]),
+        user_id=1,
+    )
+
+    assert rows == []
+    assert len(warnings) == 1
+    assert "ya existe" in warnings[0]
+
+
+# ---------------------------------------------------------------------------
+# import_all_csv_zip
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_import_all_csv_zip_imports_supported_files(monkeypatch):
+    async def fake_import_plots_csv(db, content: bytes, user_id: int):
+        return [object(), object()], []
+
+    async def fake_import_expenses_csv(db, content: bytes, user_id: int):
+        return [object()], ["aviso gastos"]
+
+    async def fake_import_plot_events_csv(db, content: bytes, user_id: int):
+        return [object(), object(), object()], []
+
+    monkeypatch.setattr(
+        "app.services.import_service.import_plots_csv", fake_import_plots_csv
+    )
+    monkeypatch.setattr(
+        "app.services.import_service.import_expenses_csv", fake_import_expenses_csv
+    )
+    monkeypatch.setattr(
+        "app.services.import_service.import_plot_events_csv",
+        fake_import_plot_events_csv,
+    )
+
+    db = MagicMock()
+    zip_content = _zip_bytes(
+        {
+            "parcelas.csv": b"p",
+            "gastos.csv": b"e",
+            "labores.csv": b"l",
+            "README.txt": b"ignored",
+        }
+    )
+
+    imported_by_file, warnings = await import_all_csv_zip(db, zip_content, user_id=1)
+
+    assert imported_by_file == {
+        "parcelas.csv": 2,
+        "gastos.csv": 1,
+        "labores.csv": 3,
+    }
+    assert len(warnings) == 1
+    assert warnings[0].startswith("gastos.csv:")
+
+
+@pytest.mark.asyncio
+async def test_import_all_csv_zip_invalid_zip_returns_warning():
+    db = MagicMock()
+
+    imported_by_file, warnings = await import_all_csv_zip(db, b"not-a-zip", user_id=1)
+
+    assert imported_by_file == {}
+    assert len(warnings) == 1
+    assert "ZIP no es válido" in warnings[0]
+
+
+@pytest.mark.asyncio
+async def test_import_all_csv_zip_without_supported_files_warns():
+    db = MagicMock()
+    zip_content = _zip_bytes({"foo.txt": b"bar"})
+
+    imported_by_file, warnings = await import_all_csv_zip(db, zip_content, user_id=1)
+
+    assert imported_by_file == {}
+    assert len(warnings) == 1
+    assert "no contiene archivos CSV compatibles" in warnings[0]

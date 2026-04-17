@@ -25,6 +25,7 @@ def test_app_registers_import_routes() -> None:
     assert "/import/expenses" in paths
     assert "/import/incomes" in paths
     assert "/import/plots" in paths
+    assert "/import/all.zip" in paths
     assert "/import/irrigation" in paths
     assert "/import/wells" in paths
     assert "/import/truffles" in paths
@@ -216,4 +217,39 @@ def test_upload_truffles_renders_result(monkeypatch) -> None:
     assert response.status_code == 200
     assert "Importación de producción completada" in response.text
     assert "evento omitido" in response.text
+    fake_db.commit.assert_awaited_once()
+
+
+def test_upload_all_zip_renders_result(monkeypatch) -> None:
+    fake_db = _build_fake_db()
+
+    async def fake_import_all_csv_zip(db, content: bytes, user_id: int):
+        return {"parcelas.csv": 2, "gastos.csv": 1}, ["gastos.csv: aviso de prueba"]
+
+    monkeypatch.setattr(
+        "app.routers.imports.import_all_csv_zip",
+        fake_import_all_csv_zip,
+    )
+    app.dependency_overrides[require_user] = _override_user
+    app.dependency_overrides[get_db] = lambda: fake_db
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/import/all.zip",
+            files={
+                "file": (
+                    "importacion.zip",
+                    b"PK\x03\x04dummy",
+                    "application/zip",
+                )
+            },
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert "Importación de ZIP completada" in response.text
+    assert "gastos.csv: aviso de prueba" in response.text
+    assert "parcelas: 2" in response.text
     fake_db.commit.assert_awaited_once()
