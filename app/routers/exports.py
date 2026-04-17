@@ -15,6 +15,7 @@ from app.services.export_service import (
     export_expenses_csv,
     export_incomes_csv,
     export_irrigation_csv,
+    export_plot_events_csv,
     export_plots_csv,
     export_truffles_csv,
     export_wells_csv,
@@ -124,4 +125,17 @@ async def download_truffles(
         io.BytesIO(data),
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": "attachment; filename=produccion.csv"},
+    )
+
+
+@router.get("/plot_events.csv")
+async def download_plot_events(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
+):
+    data = await export_plot_events_csv(db, current_user.id)
+    return StreamingResponse(
+        io.BytesIO(data),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": "attachment; filename=labores.csv"},
     )

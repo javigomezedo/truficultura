@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import datetime
 import io
+import zipfile
 from typing import Optional
 
 from sqlalchemy import select
@@ -14,6 +15,7 @@ from app.models.income import Income
 from app.models.irrigation import IrrigationRecord
 from app.models.plant import Plant
 from app.models.plot import Plot
+from app.models.plot_event import PlotEvent
 from app.models.truffle_event import TruffleEvent
 from app.models.well import Well
 from app.utils import parse_row_config
@@ -549,3 +551,201 @@ async def import_truffles_csv(
 
     db.add_all(rows)
     return rows, warnings
+
+
+async def import_plot_events_csv(
+    db: AsyncSession, content: bytes, user_id: int
+) -> tuple[list[PlotEvent], list[str]]:
+    """Parse plot events (labores) CSV and persist rows.
+
+    Expected format (semicolon-delimited, no header):
+        fecha;bancal;tipo_evento;notas[;es_recurrente]
+
+    - fecha:         DD/MM/YYYY (required)
+    - bancal:        plot name (required)
+    - tipo_evento:   one of labrado, picado, poda, vallado, installed_drip, riego, pozo (required)
+    - notas:         optional free text notes
+    - es_recurrente: 1 or 0 (optional; inferred from event type if omitted)
+
+    Rows are skipped with a warning if:
+    - the plot is not found for the current user
+    - tipo_evento is not a recognised EventType value
+    - a one-time event (vallado, installed_drip) already exists for that plot
+    """
+    from app.schemas.plot_event import EventType
+    from app.services.plot_events_service import (
+        ONE_TIME_EVENT_TYPES,
+        _is_recurring_by_type,
+    )
+
+    plots_result = await db.execute(select(Plot).where(Plot.user_id == user_id))
+    plots: dict[str, Plot] = {p.name.lower(): p for p in plots_result.scalars().all()}
+
+    # Pre-load existing one-time events to avoid duplicates
+    one_time_values = {et.value for et in ONE_TIME_EVENT_TYPES}
+    existing_one_time_result = await db.execute(
+        select(PlotEvent.plot_id, PlotEvent.event_type).where(
+            PlotEvent.user_id == user_id,
+            PlotEvent.event_type.in_(one_time_values),
+        )
+    )
+    existing_one_time: set[tuple[int, str]] = {
+        (plot_id, event_type) for plot_id, event_type in existing_one_time_result.all()
+    }
+
+    rows: list[PlotEvent] = []
+    warnings: list[str] = []
+    now = datetime.datetime.now(datetime.timezone.utc)
+
+    reader = csv.reader(io.StringIO(content.decode("utf-8")), delimiter=";")
+    for i, line in enumerate(reader, 1):
+        if not any(line):
+            continue
+        if len(line) < 3:
+            warnings.append(
+                _warning(
+                    "Línea {line}: se esperaban al menos 3 columnas, se encontraron {count} — omitida",
+                    line=i,
+                    count=len(line),
+                )
+            )
+            continue
+
+        fecha_s = line[0].strip()
+        bancal = line[1].strip()
+        tipo_s = line[2].strip().lower()
+        notas = line[3].strip() if len(line) > 3 else None
+        recurrente_s = line[4].strip() if len(line) > 4 else ""
+
+        if not bancal:
+            warnings.append(_warning("Línea {line}: bancal vacío — omitida", line=i))
+            continue
+
+        plot = plots.get(bancal.lower())
+        if plot is None:
+            warnings.append(
+                _warning(
+                    "Línea {line}: bancal '{plot}' no encontrado — omitida",
+                    line=i,
+                    plot=bancal,
+                )
+            )
+            continue
+
+        try:
+            event_type = EventType(tipo_s)
+        except ValueError:
+            warnings.append(
+                _warning(
+                    "Línea {line}: tipo de evento '{tipo}' no reconocido — omitida",
+                    line=i,
+                    tipo=tipo_s,
+                )
+            )
+            continue
+
+        if event_type in ONE_TIME_EVENT_TYPES:
+            key = (plot.id, event_type.value)
+            if key in existing_one_time:
+                warnings.append(
+                    _warning(
+                        "Línea {line}: el evento '{tipo}' ya existe para '{plot}' (solo se permite uno) — omitida",
+                        line=i,
+                        tipo=event_type.value,
+                        plot=bancal,
+                    )
+                )
+                continue
+            existing_one_time.add(key)
+
+        is_recurring = (
+            bool(int(recurrente_s))
+            if recurrente_s in ("0", "1")
+            else _is_recurring_by_type(event_type)
+        )
+
+        try:
+            row = PlotEvent(
+                user_id=user_id,
+                plot_id=plot.id,
+                event_type=event_type.value,
+                date=_parse_date(fecha_s),
+                notes=notas or None,
+                is_recurring=is_recurring,
+                created_at=now,
+                updated_at=now,
+            )
+            rows.append(row)
+        except (ValueError, KeyError):
+            warnings.append(
+                _warning("Línea {line}: error al parsear los datos — omitida", line=i)
+            )
+
+    db.add_all(rows)
+    return rows, warnings
+
+
+async def import_all_csv_zip(
+    db: AsyncSession, content: bytes, user_id: int
+) -> tuple[dict[str, int], list[str]]:
+    """Import all supported CSV files found in a ZIP payload.
+
+    Supported filenames:
+    - parcelas.csv
+    - gastos.csv
+    - ingresos.csv
+    - riego.csv
+    - pozos.csv
+    - produccion.csv
+    - labores.csv
+    """
+    try:
+        zf = zipfile.ZipFile(io.BytesIO(content))
+    except zipfile.BadZipFile:
+        return {}, [_warning("El archivo ZIP no es válido")]
+
+    importers: list[tuple[str, object]] = [
+        ("parcelas.csv", import_plots_csv),
+        ("gastos.csv", import_expenses_csv),
+        ("ingresos.csv", import_incomes_csv),
+        ("riego.csv", import_irrigation_csv),
+        ("pozos.csv", import_wells_csv),
+        ("produccion.csv", import_truffles_csv),
+        ("labores.csv", import_plot_events_csv),
+    ]
+
+    imported_by_file: dict[str, int] = {}
+    warnings: list[str] = []
+
+    with zf:
+        names_by_basename: dict[str, str] = {
+            member.filename.rsplit("/", 1)[-1].lower(): member.filename
+            for member in zf.infolist()
+            if not member.is_dir()
+        }
+
+        for filename, importer in importers:
+            member_name = names_by_basename.get(filename)
+            if not member_name:
+                continue
+
+            try:
+                file_content = zf.read(member_name)
+                rows, file_warnings = await importer(db, file_content, user_id)
+                imported_by_file[filename] = len(rows)
+                warnings.extend([f"{filename}: {w}" for w in file_warnings])
+            except (UnicodeDecodeError, ValueError) as exc:
+                warnings.append(
+                    _warning(
+                        "{file}: error al procesar el archivo ({error})",
+                        file=filename,
+                        error=str(exc),
+                    )
+                )
+
+    if not imported_by_file:
+        warnings.append(
+            _warning("El ZIP no contiene archivos CSV compatibles para importar")
+        )
+
+    return imported_by_file, warnings
