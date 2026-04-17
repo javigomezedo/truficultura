@@ -30,6 +30,59 @@ def _parse_optional_int(value: Optional[str]) -> Optional[int]:
         return None
 
 
+def _build_map_summary_rows(
+    rows,
+    *,
+    selected_campaign: Optional[int],
+    sort_by: str,
+    sort_order: str,
+) -> list[dict]:
+    summary_rows: list[dict] = []
+    for row in rows:
+        for cell in row.cells:
+            if cell.plant is None:
+                continue
+            display_grams = (
+                float(cell.campaign_weight_grams)
+                if selected_campaign is not None
+                else float(cell.total_weight_grams)
+            )
+            summary_rows.append(
+                {
+                    "plant_id": cell.plant.id,
+                    "label": cell.plant.label,
+                    "row_label": row.row_label,
+                    "visual_col": cell.visual_col,
+                    "campaign_weight_grams": float(cell.campaign_weight_grams),
+                    "total_weight_grams": float(cell.total_weight_grams),
+                    "display_weight_grams": display_grams,
+                }
+            )
+
+    allowed_sort_fields = {
+        "label",
+        "row_label",
+        "visual_col",
+        "display_weight_grams",
+        "total_weight_grams",
+        "campaign_weight_grams",
+    }
+    selected_sort = (
+        sort_by if sort_by in allowed_sort_fields else "display_weight_grams"
+    )
+    reverse = sort_order == "desc"
+
+    summary_rows.sort(
+        key=lambda item: (
+            item[selected_sort],
+            item["label"],
+            item["plant_id"],
+        ),
+        reverse=reverse,
+    )
+    return summary_rows
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Plant map — view
 # ─────────────────────────────────────────────────────────────────────────────
@@ -40,6 +93,8 @@ async def map_view(
     request: Request,
     plot_id: int,
     campaign: Optional[str] = Query(default=None),
+    sort: Optional[str] = Query(default=None),
+    order: Optional[str] = Query(default=None),
     msg: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_user),
@@ -54,6 +109,15 @@ async def map_view(
     selected = _parse_optional_int(campaign)
     ctx = await plants_service.get_plot_map_context(
         db, plot, user_id=current_user.id, selected_campaign=selected
+    )
+
+    sort_by = sort or "display_weight_grams"
+    sort_order = order if order in ("asc", "desc") else "desc"
+    summary_rows = _build_map_summary_rows(
+        ctx.get("rows", []),
+        selected_campaign=selected,
+        sort_by=sort_by,
+        sort_order=sort_order,
     )
 
     year_events = await truffle_events_service.list_events(
@@ -86,6 +150,9 @@ async def map_view(
             "msg": msg,
             "has_events": has_events,
             "campaign_years": campaign_years,
+            "summary_rows": summary_rows,
+            "sort_by": sort_by,
+            "sort_order": sort_order,
             **ctx,
         },
     )

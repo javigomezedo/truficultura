@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("Eventos de Parcela") }} &mdash; Truficultura{% endblock %}
+
+{% block extra_head %}
+<style>
+    .tf-events-filters-card {
+        position: relative;
+        z-index: 40;
+    }
+    .tf-events-table-card {
+        position: relative;
+        z-index: 1;
+    }
+    .tf-type-menu {
+        min-width: 240px;
+        max-height: 260px;
+        overflow-y: auto;
+        padding: .5rem .75rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="tf-page-header">
+        <div>
+            <p class="tf-page-kicker">{{ _("Seguimiento") }}</p>
+            <h1 class="tf-page-title">
+                <i class="bi bi-calendar-event me-2"></i>{{ _("Eventos de Parcela") }}
+            </h1>
+            <p class="tf-page-subtitle">{{ records|length }} {{ _("registro(s)") }}</p>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            <div class="btn-group" role="group" aria-label="{{ _('Selector de vista') }}">
+                <a href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}"
+                   class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-calendar3 me-1"></i>{{ _("Calendario") }}
+                </a>
+                <a href="/plot-events/list"
+                   class="btn btn-sm btn-primary">
+                    <i class="bi bi-list-ul me-1"></i>{{ _("Lista") }}
+                </a>
+            </div>
+            <a href="/plot-events/new" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i>{{ _("Nuevo evento") }}
+            </a>
+        </div>
+    </div>
+
+    {% if msg %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        {{ _(msg) }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
+    <div class="card tf-panel tf-panel-overflow-visible tf-filters-card tf-events-filters-card shadow-sm mb-3 border-0">
+        <div class="card-body py-3">
+            <form method="get" action="/plot-events/list" class="tf-filters-form">
+                <div class="tf-filter-item">
+                    <label class="form-label">{{ _("Parcela") }}</label>
+                    <select name="plot_id" class="form-select form-select-sm tf-autosubmit-select">
+                        <option value="">{{ _("Todas las parcelas") }}</option>
+                        {% for p in plots %}
+                        <option value="{{ p.id }}" {% if selected_plot == p.id %}selected{% endif %}>{{ p.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="tf-filter-item">
+                    <label class="form-label">{{ _("Campaña") }}</label>
+                    <select name="campaign" class="form-select form-select-sm tf-autosubmit-select">
+                        <option value="">{{ _("Todas las campañas") }}</option>
+                        {% for cy in campaign_options %}
+                        <option value="{{ cy }}" {% if selected_campaign == cy %}selected{% endif %}>{{ cy|campaign_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="tf-filter-item">
+                    <label class="form-label">{{ _("Tipo") }}</label>
+                    <div class="dropdown w-100" data-bs-auto-close="outside">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start"
+                                type="button"
+                                data-bs-toggle="dropdown"
+                                aria-expanded="false">
+                            {% if selected_event_types %}
+                                {{ _("Tipos") }}: {{ selected_event_types|length }}
+                            {% else %}
+                                {{ _("Todos") }}
+                            {% endif %}
+                        </button>
+                        <div class="dropdown-menu tf-type-menu shadow-sm">
+                            {% for event_type in event_types %}
+                            <div class="form-check">
+                                <input class="form-check-input tf-event-type-check"
+                                       type="checkbox"
+                                       value="{{ event_type }}"
+                                       id="event-type-{{ loop.index }}"
+                                       {% if event_type in selected_event_types %}checked{% endif %}>
+                                <label class="form-check-label" for="event-type-{{ loop.index }}">{{ event_type }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div id="tf-event-types-hidden">
+                        {% for event_type in selected_event_types %}
+                        <input type="hidden" name="event_type" value="{{ event_type }}">
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2 ms-lg-auto">
+                    <a class="btn btn-sm btn-outline-secondary" href="/plot-events/list">{{ _("Limpiar") }}</a>
+                    <button
+                        class="btn btn-sm btn-outline-secondary"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#eventsAdvancedMode"
+                        aria-expanded="false"
+                        aria-controls="eventsAdvancedMode"
+                    >
+                        <i class="bi bi-sliders me-1"></i>{{ _("Modo avanzado") }}
+                    </button>
+                </div>
+            </form>
+
+            <div class="collapse mt-2" id="eventsAdvancedMode">
+                <div class="alert alert-light border mb-0 py-2 px-3">
+                    <div class="small text-muted mb-2">{{ _("Opciones técnicas") }}</div>
+                    <a class="btn btn-sm btn-outline-secondary" href="/plot-events/calendar/?plot_id={{ selected_plot or '' }}">{{ _("Ver calendario (JSON)") }}</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card tf-panel tf-panel-overflow-visible tf-events-table-card shadow-sm border-0">
+        <div class="card-body p-0">
+            {% if records %}
+            <div class="table-responsive tf-table-responsive-dropdown">
+                <table class="table table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>{{ _("Fecha") }}</th>
+                            <th>{{ _("Parcela") }}</th>
+                            <th>{{ _("Tipo") }}</th>
+                            <th>{{ _("Notas") }}</th>
+                            <th class="text-end">{{ _("Acciones") }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in records %}
+                        <tr>
+                            <td class="text-nowrap">{{ r.date.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ r.plot.name if r.plot else '—' }}</td>
+                            <td>
+                                {{ r.event_type }}
+                                {% if r.related_irrigation_id or r.related_well_id %}
+                                <span class="badge text-bg-secondary ms-2">{{ _("enlazado") }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ r.notes or '—' }}</td>
+                            <td class="text-end text-nowrap">
+                                {% if r.related_irrigation_id or r.related_well_id %}
+                                <div class="d-inline-flex flex-wrap justify-content-end gap-1">
+                                    {% if r.related_irrigation_id %}
+                                    <a href="/irrigation/{{ r.related_irrigation_id }}/edit"
+                                       class="btn btn-sm btn-outline-primary"
+                                       title="{{ _('Ir al detalle de riego') }}">
+                                        <i class="bi bi-droplet-half me-1"></i>{{ _('Ver riego') }}
+                                    </a>
+                                    {% endif %}
+                                    {% if r.related_well_id %}
+                                    <a href="/wells/{{ r.related_well_id }}/edit"
+                                       class="btn btn-sm btn-outline-primary"
+                                       title="{{ _('Ir al detalle de pozo') }}">
+                                        <i class="bi bi-moisture me-1"></i>{{ _('Ver pozo') }}
+                                    </a>
+                                    {% endif %}
+                                </div>
+                                {% else %}
+                                <div class="dropdown d-inline-block">
+                                    <button class="btn btn-sm btn-outline-secondary px-2 py-0"
+                                            type="button"
+                                            data-bs-toggle="dropdown"
+                                            aria-expanded="false"
+                                            title="{{ _('Acciones') }}">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                        <li>
+                                            <a href="/plot-events/{{ r.id }}/edit" class="dropdown-item">
+                                                <i class="bi bi-pencil-fill me-2 text-primary"></i>{{ _('Editar') }}
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <form method="post" action="/plot-events/{{ r.id }}/delete" onsubmit="return confirm('{{ _('¿Eliminar este evento?') }}')">
+                                                <button class="dropdown-item text-danger" type="submit">
+                                                    <i class="bi bi-trash-fill me-2"></i>{{ _('Eliminar') }}
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="tf-empty-state">
+                <i class="bi bi-calendar-x fs-1 d-block mb-2 opacity-25"></i>
+                <p>{{ _("No hay eventos para los filtros seleccionados") }}.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(() => {
+    const form = document.querySelector('form[action="/plot-events/list"]');
+    if (!form) return;
+
+    const checks = form.querySelectorAll('.tf-event-type-check');
+    const hiddenContainer = form.querySelector('#tf-event-types-hidden');
+    const autoSubmitSelects = form.querySelectorAll('.tf-autosubmit-select');
+
+    const syncHiddenInputs = () => {
+        if (!hiddenContainer) return;
+        hiddenContainer.innerHTML = '';
+        checks.forEach((check) => {
+            if (check.checked) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'event_type';
+                input.value = check.value;
+                hiddenContainer.appendChild(input);
+            }
+        });
+    };
+
+    checks.forEach((check) => {
+        check.addEventListener('change', () => {
+            syncHiddenInputs();
+            form.submit();
+        });
+    });
+
+    autoSubmitSelects.forEach((select) => {
+        select.addEventListener('change', () => form.submit());
+    });
+
+    form.addEventListener('submit', syncHiddenInputs);
+})();
+</script>
+{% endblock %}

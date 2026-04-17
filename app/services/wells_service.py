@@ -110,6 +110,8 @@ async def get_well_expenses_for_plot(
 
 
 async def create_well(db: AsyncSession, user_id: int, data: WellCreate) -> Well:
+    from app.services.plot_events_service import sync_plot_event_from_well
+
     plot_result = await db.execute(
         select(Plot).where(Plot.id == data.plot_id, Plot.user_id == user_id)
     )
@@ -147,10 +149,13 @@ async def create_well(db: AsyncSession, user_id: int, data: WellCreate) -> Well:
     )
     db.add(record)
     await db.flush()
+    await sync_plot_event_from_well(db, record)
     return record
 
 
 async def update_well(db: AsyncSession, record: Well, data: WellUpdate) -> Well:
+    from app.services.plot_events_service import sync_plot_event_from_well
+
     target_plot_id = data.plot_id if data.plot_id is not None else record.plot_id
     if data.plot_id is not None:
         plot_result = await db.execute(
@@ -191,11 +196,15 @@ async def update_well(db: AsyncSession, record: Well, data: WellUpdate) -> Well:
     elif "notes" in data.model_fields_set:
         record.notes = None
     await db.flush()
+    await sync_plot_event_from_well(db, record)
     return record
 
 
 async def delete_well(db: AsyncSession, well_id: int, user_id: int) -> None:
+    from app.services.plot_events_service import delete_plot_event_for_well
+
     record = await get_well(db, well_id, user_id)
     if record is not None:
+        await delete_plot_event_for_well(db, well_id, user_id)
         await db.delete(record)
         await db.flush()

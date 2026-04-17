@@ -1,5 +1,5 @@
 """
-seed_full_demo.py — Genera un dataset completo y realista de 10 años / 10 parcelas.
+seed_full_demo.py — Genera un dataset completo y realista de demo.
 
 Incluye: parcelas, plantas, eventos de trufa, ingresos (por venta de trufa),
 gastos (por categoría, asignados y generales), pozos y registros de riego.
@@ -25,9 +25,11 @@ from app.models.income import Income
 from app.models.irrigation import IrrigationRecord
 from app.models.plant import Plant
 from app.models.plot import Plot
+from app.models.plot_event import PlotEvent
 from app.models.truffle_event import TruffleEvent
 from app.models.user import User
 from app.models.well import Well
+from app.schemas.plot_event import EventType
 from app.utils import campaign_label, row_label_from_index
 
 # ---------------------------------------------------------------------------
@@ -44,6 +46,16 @@ PLOT_SPECS = [
     ("Monte Bajo", 1.20, 4, (6, 9)),
     ("Cerro Pelado", 2.00, 7, (7, 12)),
     ("Lindero Este", 1.65, 6, (6, 10)),
+    ("Dehesa Alta", 2.95, 9, (8, 13)),
+    ("Dehesa Baja", 1.70, 6, (7, 10)),
+    ("Solana del Medio", 2.25, 7, (7, 11)),
+    ("Valhondo", 3.60, 11, (9, 15)),
+    ("La Noguera", 1.35, 5, (6, 9)),
+    ("Barranco Frío", 2.55, 8, (8, 12)),
+    ("El Chaparral", 4.05, 12, (10, 15)),
+    ("Las Lomas", 1.95, 7, (7, 11)),
+    ("Camino Viejo", 2.80, 9, (8, 13)),
+    ("Fuente Seca", 1.55, 5, (6, 10)),
 ]
 
 EXPENSE_CATEGORIES = [
@@ -102,6 +114,7 @@ class SeedSummary:
     wells: int = 0
     irrigation: int = 0
     truffle_events: int = 0
+    plot_events: int = 0
     campaigns: list[int] = field(default_factory=list)
 
 
@@ -465,6 +478,146 @@ def _make_irrigation_for_plot(
     return records
 
 
+def _make_plot_events_for_plot(
+    rng: random.Random,
+    user_id: int,
+    plot_id: int,
+    planting_date: dt.date,
+    campaign_years: list[int],
+) -> list[PlotEvent]:
+    """
+    Genera eventos de gestión agrícola (poda, labrado, picado) por campaña.
+
+    Lógica realista:
+    - Labrado (tilling): 1-2 veces al año, otoño (sep-nov)
+    - Picado (digging): 1-2 veces al año, primavera (mar-may) y/o verano
+    - Poda (pruning): cada 1-3 años, invierno (dic-feb) o primavera temprana
+    """
+    events: list[PlotEvent] = []
+    for cy in campaign_years:
+        age = cy - planting_date.year
+        if age < 0:
+            continue
+
+        created_at = dt.datetime(
+            cy,
+            rng.randint(5, 12),
+            rng.randint(1, 28),
+            rng.randint(8, 18),
+            rng.randint(0, 59),
+            tzinfo=dt.timezone.utc,
+        )
+
+        # Labrado: casi todos los años
+        n_tilling = rng.randint(1, 2)
+        for _ in range(n_tilling):
+            events.append(
+                PlotEvent(
+                    user_id=user_id,
+                    plot_id=plot_id,
+                    event_type=EventType.LABRADO.value,
+                    date=_random_date_in_campaign(rng, cy, 9, 11),
+                    notes=rng.choice(
+                        ["", "Laboreo superficial", "Pase de cultivador", ""]
+                    ),
+                    created_at=created_at,
+                    updated_at=created_at,
+                )
+            )
+
+        # Picado: la mayoría de años, principio de campaña
+        if rng.random() < 0.80:
+            n_digging = rng.randint(1, 2)
+            for _ in range(n_digging):
+                # Primavera (abr-jun) del año cy o inicio de temporada
+                month = rng.randint(4, 6)
+                events.append(
+                    PlotEvent(
+                        user_id=user_id,
+                        plot_id=plot_id,
+                        event_type=EventType.PICADO.value,
+                        date=dt.date(cy, month, rng.randint(1, 28)),
+                        notes=rng.choice(
+                            ["", "Picado con motoazada", "Aireación suelo", ""]
+                        ),
+                        created_at=created_at,
+                        updated_at=created_at,
+                    )
+                )
+
+        # Poda: cada 1-3 años, más frecuente en parcelas jóvenes
+        prune_prob = 0.70 if age <= 5 else 0.40
+        if rng.random() < prune_prob:
+            # Invierno: dic del año anterior o ene-feb del año cy+1
+            month = rng.choice([12, 1, 2])
+            year = cy if month == 12 else cy + 1
+            try:
+                pdate = dt.date(year, month, rng.randint(1, 28))
+            except ValueError:
+                pdate = dt.date(year, month, 28)
+            events.append(
+                PlotEvent(
+                    user_id=user_id,
+                    plot_id=plot_id,
+                    event_type=EventType.PODA.value,
+                    date=pdate,
+                    notes=rng.choice(["", "Poda formación", "Poda mantenimiento", ""]),
+                    created_at=created_at,
+                    updated_at=created_at,
+                )
+            )
+
+    return events
+
+
+def _timestamp_for_date(date_value: dt.date) -> dt.datetime:
+    return dt.datetime.combine(
+        date_value,
+        dt.time(hour=12, minute=0, tzinfo=dt.timezone.utc),
+    )
+
+
+def _make_linked_plot_events_for_records(
+    user_id: int,
+    plot_id: int,
+    irrigation_records: list[IrrigationRecord],
+    well_records: list[Well],
+) -> list[PlotEvent]:
+    events: list[PlotEvent] = []
+
+    for record in irrigation_records:
+        timestamp = _timestamp_for_date(record.date)
+        events.append(
+            PlotEvent(
+                user_id=user_id,
+                plot_id=plot_id,
+                event_type=EventType.RIEGO.value,
+                date=record.date,
+                notes=record.notes or "Riego generado desde seed",
+                related_irrigation_id=record.id,
+                created_at=timestamp,
+                updated_at=timestamp,
+            )
+        )
+
+    for record in well_records:
+        timestamp = _timestamp_for_date(record.date)
+        events.append(
+            PlotEvent(
+                user_id=user_id,
+                plot_id=plot_id,
+                event_type=EventType.POZO.value,
+                date=record.date,
+                notes=record.notes or "Pozo generado desde seed",
+                related_well_id=record.id,
+                created_at=timestamp,
+                updated_at=timestamp,
+            )
+        )
+
+    return events
+
+
 def _make_truffle_events_for_plot(
     rng: random.Random,
     user_id: int,
@@ -533,18 +686,20 @@ async def seed(args: argparse.Namespace) -> SeedSummary:
     rng = random.Random(args.seed)
     summary = SeedSummary()
 
-    # Campaign range: 10 years ending at current campaign
+    # Campaign range ending at current campaign
     today = dt.date.today()
     current_cy = today.year if today.month >= 5 else today.year - 1
-    start_cy = args.start_campaign if args.start_campaign else current_cy - 9
+    start_cy = (
+        args.start_campaign
+        if args.start_campaign is not None
+        else current_cy - max(args.years, 1) + 1
+    )
     campaign_years = list(range(start_cy, current_cy + 1))
     summary.campaigns = campaign_years
 
     async with AsyncSessionLocal() as session:
         user = await _resolve_user(session, args.user_id)
         uid = user.id
-
-        all_new_plots: list[Plot] = []
 
         specs = PLOT_SPECS[: args.plots]
 
@@ -601,9 +756,11 @@ async def seed(args: argparse.Namespace) -> SeedSummary:
             # Wells
             ws = _make_wells_for_plot(rng, uid, plot.id, planting_date, campaign_years)
             session.add_all(ws)
+            await session.flush()
             summary.wells += len(ws)
 
             # Irrigation
+            irr: list[IrrigationRecord] = []
             if has_irrigation:
                 irr = _make_irrigation_for_plot(
                     rng,
@@ -615,6 +772,7 @@ async def seed(args: argparse.Namespace) -> SeedSummary:
                     campaign_years,
                 )
                 session.add_all(irr)
+                await session.flush()
                 summary.irrigation += len(irr)
 
             # Truffle events
@@ -624,7 +782,14 @@ async def seed(args: argparse.Namespace) -> SeedSummary:
             session.add_all(evts)
             summary.truffle_events += len(evts)
 
-            all_new_plots.append(plot)
+            # Plot management events (poda, labrado, picado)
+            pevts = _make_plot_events_for_plot(
+                rng, uid, plot.id, planting_date, campaign_years
+            )
+            linked_pevts = _make_linked_plot_events_for_records(uid, plot.id, irr, ws)
+            session.add_all(pevts + linked_pevts)
+            summary.plot_events += len(pevts) + len(linked_pevts)
+
             summary.plots += 1
 
         # General (unassigned) expenses
@@ -656,7 +821,7 @@ def _build_parser() -> argparse.ArgumentParser:
     default_start = (today.year if today.month >= 5 else today.year - 1) - 9
 
     p = argparse.ArgumentParser(
-        description="Genera un dataset completo de demo (10 años / 10 parcelas)."
+        description="Genera un dataset completo de demo para validar la aplicación."
     )
     p.add_argument(
         "--user-id",
@@ -665,13 +830,22 @@ def _build_parser() -> argparse.ArgumentParser:
         help="ID del usuario destino (por defecto: primer usuario)",
     )
     p.add_argument(
-        "--plots", type=int, default=10, help="Número de parcelas (máx 10, default 10)"
+        "--plots",
+        type=int,
+        default=10,
+        help=f"Número de parcelas (máx {len(PLOT_SPECS)}, default 10)",
+    )
+    p.add_argument(
+        "--years",
+        type=int,
+        default=10,
+        help="Número de campañas hasta la actual (default 10)",
     )
     p.add_argument(
         "--start-campaign",
         type=int,
         default=None,
-        help=f"Campaña inicial (default: {default_start})",
+        help=f"Campaña inicial (si no se indica, se calculan las últimas campañas; referencia actual: {default_start})",
     )
     p.add_argument(
         "--seed", type=int, default=42, help="Semilla aleatoria para reproducibilidad"
@@ -695,6 +869,7 @@ async def _main_async(args: argparse.Namespace) -> None:
     print(f"  Pozos:           {summary.wells}")
     print(f"  Riego:           {summary.irrigation}")
     print(f"  Eventos trufa:   {summary.truffle_events}")
+    print(f"  Eventos parcela: {summary.plot_events}")
     print("─────────────────────────────────────────────────────────\n")
 
 

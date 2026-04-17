@@ -10,9 +10,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.expense import Expense
 from app.models.income import Income
 from app.models.irrigation import IrrigationRecord
+from app.models.plant import Plant
 from app.models.plot import Plot
+from app.models.plot_event import PlotEvent
+from app.models.truffle_event import TruffleEvent
+from app.models.well import Well
+from app.schemas.plot_event import EventType
 from app.services.llm_adapter import LLMAdapter
-from app.utils import campaign_label, campaign_year, format_eu
+from app.utils import (
+    campaign_label,
+    campaign_year,
+    distribute_unassigned_expenses,
+    format_eu,
+)
 
 _MAX_HISTORY_TURNS = 5
 _MAX_MESSAGE_LEN = 1000
@@ -20,6 +30,13 @@ _MAX_MESSAGE_LEN = 1000
 _APP_KNOWLEDGE = """Eres el asistente de Truficultura, una aplicación web para gestionar \
 explotaciones trufícolas. Respondes siempre en español, con claridad y concisión. \
 No ejecutas acciones: solo explicas y consultas datos en modo lectura.
+
+REGLAS DE RESPUESTA:
+- Si en el contexto aparecen "DATOS ACTUALES DEL USUARIO", debes responder usando esos datos.
+- No digas que no tienes acceso a los datos si la información relevante ya está resumida en el contexto.
+- Solo indica que falta información cuando el dato no esté registrado o no aparezca en el contexto agregado.
+- Si preguntan por categorías de gasto, categorías de ingreso, personas con más gasto o resúmenes por parcela, utiliza los apartados agregados del contexto para responder directamente.
+- Si el usuario pide un resumen, prioriza dar la respuesta con cifras y después, si hace falta, aclara limitaciones concretas.
 
 MÓDULOS DE LA APLICACIÓN:
 - Parcelas: gestión de bancales (nombre, número de plantas, referencia catastral, sector, \
@@ -79,6 +96,26 @@ _DATA_KEYWORDS = {
     "mis gastos",
     "mi produccion",
     "mis riegos",
+    "tengo alguna parcela",
+    "tengo parcelas",
+    "categorias de gasto",
+    "categoria de gasto",
+    "categorias de ingreso",
+    "categoria de ingreso",
+    "facturacion",
+    "resumen por parcela",
+    "gastos por persona",
+    "persona acumula mas gasto",
+    "persona acumula mas gastos",
+    "rentabilidad ajustada",
+    "gastos generales",
+    "parcela tiene peor rentabilidad",
+    "riego activo",
+    "baja produccion",
+    "produccion registrada",
+    "retorno",
+    "labores relevantes",
+    "parcelas tienen vallado",
 }
 
 _USAGE_KEYWORDS = {
@@ -101,6 +138,23 @@ _DATA_PATTERNS = [
         r"\b(cuanto|cuantos|cual|cuales)\b.*\b(tengo|he|llevo|fue|es|han sido)\b"
     ),
     re.compile(r"\b(mejor|peor)\b.*\b(campana|parcela)\b"),
+    re.compile(r"\b(tengo|hay)\b.*\b(parcela|parcelas)\b.*\b(con|sin)\b"),
+    re.compile(r"\b(categoria|categorias)\b.*\b(gasto|gastos|ingreso|ingresos)\b"),
+    re.compile(r"\b(resumen)\b.*\b(parcela|parcelas)\b"),
+    re.compile(r"\b(persona|personas)\b.*\b(gasto|gastos)\b"),
+    re.compile(
+        r"\b(peor|mejor)\b.*\b(rentabilidad)\b.*\b(ajustada|gastos generales)\b"
+    ),
+    re.compile(r"\b(gastos generales)\b.*\b(parcela|parcelas|rentabilidad)\b"),
+    re.compile(
+        r"\b(parcela|parcelas)\b.*\b(tiene|tienen)\b.*\b(riego|riego activo)\b.*\b(produccion|rentabilidad|baja)\b"
+    ),
+    re.compile(
+        r"\b(que|cuales)\b.*\b(parcela|parcelas)\b.*\b(tiene|tienen)\b.*\b(vallado|pozo|labores|riego|produccion|rentabilidad)\b"
+    ),
+    re.compile(
+        r"\b(donde)\b.*\b(gasto|gastando|gastos)\b.*\b(retorno|rentabilidad|menos)\b"
+    ),
 ]
 
 _PROMPT_INJECTION_PATTERNS = [
@@ -117,9 +171,16 @@ _SOURCES_USAGE = [
 
 _SOURCES_DATA = [
     "db:plots",
+    "db:plants",
+    "db:truffle_events",
+    "db:plot_events",
+    "db:wells",
     "db:incomes",
     "db:expenses",
     "db:irrigation",
+    "analytics:profitability_distributed",
+    "analytics:kpi_snapshot",
+    "analytics:charts_snapshot",
     "utils:campaign_year",
     "utils:campaign_label",
 ]
@@ -214,7 +275,32 @@ async def _build_user_context(db: AsyncSession, user_id: int) -> str:
     )
     irrigations = irrigation_result.scalars().all()
 
-    if not plots and not incomes and not expenses and not irrigations:
+    plot_events_result = await db.execute(
+        select(PlotEvent).where(PlotEvent.user_id == user_id)
+    )
+    plot_events = plot_events_result.scalars().all()
+
+    wells_result = await db.execute(select(Well).where(Well.user_id == user_id))
+    wells = wells_result.scalars().all()
+
+    plants_result = await db.execute(select(Plant).where(Plant.user_id == user_id))
+    plants = plants_result.scalars().all()
+
+    truffle_events_result = await db.execute(
+        select(TruffleEvent).where(TruffleEvent.user_id == user_id)
+    )
+    truffle_events = truffle_events_result.scalars().all()
+
+    if (
+        not plots
+        and not incomes
+        and not expenses
+        and not irrigations
+        and not plot_events
+        and not wells
+        and not plants
+        and not truffle_events
+    ):
         return "Sin datos registrados aún."
 
     income_by_campaign: dict[int, float] = defaultdict(float)
@@ -241,6 +327,99 @@ async def _build_user_context(db: AsyncSession, user_id: int) -> str:
         irrigation_by_campaign[campaign_year(record.date)] += water
         irrigation_by_plot[record.plot_id] += water
 
+    income_kg_by_campaign: dict[int, float] = defaultdict(float)
+    incomes_by_category: dict[str, dict[str, float]] = defaultdict(
+        lambda: {"kg": 0.0, "eur": 0.0}
+    )
+    for inc in incomes:
+        cy = campaign_year(inc.date)
+        income_kg_by_campaign[cy] += inc.amount_kg
+        category = inc.category or "Sin categoría"
+        incomes_by_category[category]["kg"] += inc.amount_kg
+        incomes_by_category[category]["eur"] += inc.total
+
+    expenses_by_category: dict[str, float] = defaultdict(float)
+    expenses_by_person: dict[str, float] = defaultdict(float)
+    for exp in expenses:
+        category = exp.category or "Sin categoría"
+        person = exp.person or "Sin persona"
+        expenses_by_category[category] += exp.amount
+        expenses_by_person[person] += exp.amount
+
+    wells_by_campaign: dict[int, int] = defaultdict(int)
+    wells_by_plot: dict[int, int] = defaultdict(int)
+    for well in wells:
+        wells_by_campaign[campaign_year(well.date)] += well.wells_per_plant
+        wells_by_plot[well.plot_id] += well.wells_per_plant
+
+    plants_by_plot: dict[int, int] = defaultdict(int)
+    plant_labels_by_id: dict[int, str] = {}
+    for plant in plants:
+        plants_by_plot[plant.plot_id] += 1
+        if getattr(plant, "id", None) is not None and getattr(plant, "label", None):
+            plant_labels_by_id[int(plant.id)] = str(plant.label)
+
+    production_by_plot: dict[int, float] = defaultdict(float)
+    production_by_campaign: dict[int, float] = defaultdict(float)
+    qr_events_by_plant: dict[int, int] = defaultdict(int)
+    production_events_total = 0
+    production_events_qr = 0
+    production_events_manual = 0
+    estimated_weight_grams_total = 0.0
+    for event in truffle_events:
+        if event.undone_at is not None:
+            continue
+        production_events_total += 1
+        estimated_weight_grams_total += event.estimated_weight_grams
+        production_by_plot[event.plot_id] += event.estimated_weight_grams
+        campaign = campaign_year(event.created_at.date())
+        production_by_campaign[campaign] += event.estimated_weight_grams
+        if event.source == "qr":
+            production_events_qr += 1
+            qr_events_by_plant[event.plant_id] += 1
+        else:
+            production_events_manual += 1
+
+    fence_events_by_plot: dict[int, int] = defaultdict(int)
+    management_events_by_campaign: dict[int, dict[str, int]] = defaultdict(
+        lambda: defaultdict(int)
+    )
+    for event in plot_events:
+        campaign = campaign_year(event.date)
+        management_events_by_campaign[campaign][event.event_type] += 1
+        if event.event_type == EventType.VALLADO.value:
+            fence_events_by_plot[event.plot_id] += 1
+
+    management_events_totals: dict[str, int] = defaultdict(int)
+    for per_campaign in management_events_by_campaign.values():
+        for event_type, count in per_campaign.items():
+            management_events_totals[event_type] += count
+
+    expenses_raw: dict[int, dict[int | None, float]] = defaultdict(
+        lambda: defaultdict(float)
+    )
+    for exp in expenses:
+        expenses_raw[campaign_year(exp.date)][exp.plot_id] += exp.amount
+    distributed_expenses_by_campaign_plot = distribute_unassigned_expenses(
+        expenses_raw, plots
+    )
+
+    distributed_expenses_by_campaign: dict[int, float] = {
+        cy: sum(plot_amounts.values())
+        for cy, plot_amounts in distributed_expenses_by_campaign_plot.items()
+    }
+
+    distributed_plot_profitability: dict[int, float] = defaultdict(float)
+    for plot in plots:
+        incomes_plot = income_by_plot.get(plot.id, 0.0)
+        expenses_plot_distributed = sum(
+            distributed_expenses_by_campaign_plot.get(cy, {}).get(plot.id, 0.0)
+            for cy in distributed_expenses_by_campaign_plot.keys()
+        )
+        distributed_plot_profitability[plot.id] = (
+            incomes_plot - expenses_plot_distributed
+        )
+
     per_plot_rows: list[tuple[int, str, float, float, float]] = []
     for plot in plots:
         incomes_plot = income_by_plot.get(plot.id, 0.0)
@@ -259,9 +438,29 @@ async def _build_user_context(db: AsyncSession, user_id: int) -> str:
     if plots:
         names = ", ".join(p.name for p in plots)
         total_plants = sum(p.num_plants for p in plots)
+        irrigated_plots = sum(1 for p in plots if p.has_irrigation)
+        total_area_ha = sum((p.area_ha or 0.0) for p in plots)
+        with_sector = sum(1 for p in plots if (p.sector or "").strip())
+        with_cadastral = sum(1 for p in plots if (p.cadastral_ref or "").strip())
         lines.append(
             f"Parcelas ({len(plots)}): {names}. Total plantas: {total_plants}."
         )
+        lines.append(
+            "Gestión de parcelas: "
+            f"{irrigated_plots}/{len(plots)} con riego, "
+            f"{with_sector} con sector, {with_cadastral} con referencia catastral, "
+            f"superficie total {format_eu(total_area_ha, 2)} ha."
+        )
+        lines.append("Ficha de parcelas (resumen):")
+        for plot in sorted(plots, key=lambda p: p.name)[:10]:
+            lines.append(
+                f"  {plot.name}: num={plot.plot_num or 'N/A'} | "
+                f"sector={plot.sector or 'N/A'} | "
+                f"catastral={plot.cadastral_ref or 'N/A'} | "
+                f"hidrante={plot.hydrant or 'N/A'} | "
+                f"riego={'sí' if plot.has_irrigation else 'no'} | "
+                f"área={format_eu(plot.area_ha, 2) if plot.area_ha else 'N/A'} ha."
+            )
 
     lines.append(
         "Resumen global: "
@@ -274,11 +473,105 @@ async def _build_user_context(db: AsyncSession, user_id: int) -> str:
     if total_irrigation > 0:
         lines.append(f"Riego total registrado: {total_irrigation:.2f} m3.")
 
+    if wells:
+        lines.append(
+            f"Pozos/labores de pozo registradas: {len(wells)} (total pozos por planta acumulados: {sum(w.wells_per_plant for w in wells)})."
+        )
+
+    if plants:
+        lines.append(
+            f"Mapa de plantas: {len(plants)} etiquetas de planta registradas en {len(set(p.plot_id for p in plants))} parcelas."
+        )
+
+    if production_events_total > 0:
+        lines.append(
+            "Producción (eventos trufa): "
+            f"{production_events_total} eventos activos | "
+            f"manual {production_events_manual} | QR {production_events_qr} | "
+            f"peso estimado {estimated_weight_grams_total:.1f} g."
+        )
+
+    if qr_events_by_plant:
+        top_qr_plants = sorted(
+            qr_events_by_plant.items(), key=lambda item: item[1], reverse=True
+        )[:5]
+        lines.append(
+            "QR (plantas más escaneadas): "
+            + " | ".join(
+                f"{plant_labels_by_id.get(plant_id, f'plant#{plant_id}')}: {count}"
+                for plant_id, count in top_qr_plants
+            )
+            + "."
+        )
+
+    if management_events_totals:
+        lines.append(
+            "Historial de labores (totales): "
+            + ", ".join(
+                f"{event_type} {count}"
+                for event_type, count in sorted(management_events_totals.items())
+            )
+            + "."
+        )
+
+    if incomes_by_category:
+        top_income_categories = sorted(
+            incomes_by_category.items(),
+            key=lambda item: item[1]["eur"],
+            reverse=True,
+        )[:3]
+        lines.append(
+            "Ingresos por categoría (top): "
+            + " | ".join(
+                f"{cat}: {_format_eur(vals['eur'])} ({format_eu(vals['kg'], 2)} kg)"
+                for cat, vals in top_income_categories
+            )
+            + "."
+        )
+
+    if expenses_by_category:
+        top_expense_categories = sorted(
+            expenses_by_category.items(), key=lambda item: item[1], reverse=True
+        )
+        lines.append(
+            "Gastos por categoría: "
+            + " | ".join(
+                f"{cat}: {_format_eur(amount)}"
+                for cat, amount in top_expense_categories
+            )
+            + "."
+        )
+
+    if expenses_by_person:
+        top_expense_people = sorted(
+            expenses_by_person.items(), key=lambda item: item[1], reverse=True
+        )
+        lines.append(
+            "Gastos por persona: "
+            + " | ".join(
+                f"{person}: {_format_eur(amount)}"
+                for person, amount in top_expense_people
+            )
+            + "."
+        )
+
+    fenced_plot_names = [
+        plot.name for plot in plots if fence_events_by_plot.get(plot.id, 0) > 0
+    ]
+    if fenced_plot_names:
+        lines.append(
+            "Parcelas con vallado registrado: " + ", ".join(fenced_plot_names) + "."
+        )
+    else:
+        lines.append("No hay eventos de vallado registrados por parcela.")
+
     all_years = sorted(
         set(
             list(income_by_campaign.keys())
             + list(expense_by_campaign.keys())
             + list(irrigation_by_campaign.keys())
+            + list(distributed_expenses_by_campaign.keys())
+            + list(income_kg_by_campaign.keys())
         ),
         reverse=True,
     )
@@ -286,24 +579,69 @@ async def _build_user_context(db: AsyncSession, user_id: int) -> str:
         lines.append("Resumen por campaña (valores agregados):")
 
         campaign_profitability: list[tuple[int, float]] = []
+        campaign_profitability_distributed: list[tuple[int, float]] = []
         for year in all_years:
             inc = income_by_campaign.get(year, 0.0)
             exp = expense_by_campaign.get(year, 0.0)
             profit = inc - exp
+            exp_distributed = distributed_expenses_by_campaign.get(year, exp)
+            profit_distributed = inc - exp_distributed
             water = irrigation_by_campaign.get(year, 0.0)
             campaign_profitability.append((year, profit))
+            campaign_profitability_distributed.append((year, profit_distributed))
             lines.append(
                 f"  {campaign_label(year)}: ingresos {_format_eur(inc)} | "
                 f"gastos {_format_eur(exp)} | rentabilidad {_format_eur(profit)}"
+                + (
+                    f" | rentab. ajustada {_format_eur(profit_distributed)}"
+                    if exp_distributed != exp
+                    else ""
+                )
                 + (f" | riego {water:.2f} m3" if water > 0 else "")
+                + (
+                    f" | pozos/planta {wells_by_campaign.get(year, 0)}"
+                    if wells_by_campaign.get(year, 0) > 0
+                    else ""
+                )
+                + (
+                    f" | prod. estimada {production_by_campaign.get(year, 0.0):.1f} g"
+                    if production_by_campaign.get(year, 0.0) > 0
+                    else ""
+                )
+                + (
+                    f" | kg vendidos {format_eu(income_kg_by_campaign.get(year, 0.0), 2)}"
+                    if income_kg_by_campaign.get(year, 0.0) > 0
+                    else ""
+                )
             )
+
+            events_snapshot = management_events_by_campaign.get(year)
+            if events_snapshot:
+                lines.append(
+                    "    labores: "
+                    + ", ".join(
+                        f"{event_type} {count}"
+                        for event_type, count in sorted(events_snapshot.items())
+                    )
+                )
 
         best_year, best_value = max(campaign_profitability, key=lambda item: item[1])
         worst_year, worst_value = min(campaign_profitability, key=lambda item: item[1])
+        best_year_adj, best_value_adj = max(
+            campaign_profitability_distributed, key=lambda item: item[1]
+        )
+        worst_year_adj, worst_value_adj = min(
+            campaign_profitability_distributed, key=lambda item: item[1]
+        )
         lines.append(
             "Campañas destacadas: "
             f"mejor {campaign_label(best_year)} ({_format_eur(best_value)}), "
             f"peor {campaign_label(worst_year)} ({_format_eur(worst_value)})."
+        )
+        lines.append(
+            "Campañas destacadas (rentabilidad ajustada): "
+            f"mejor {campaign_label(best_year_adj)} ({_format_eur(best_value_adj)}), "
+            f"peor {campaign_label(worst_year_adj)} ({_format_eur(worst_value_adj)})."
         )
 
     if per_plot_rows:
@@ -312,13 +650,90 @@ async def _build_user_context(db: AsyncSession, user_id: int) -> str:
             per_plot_rows,
             key=lambda row: row[4],
             reverse=True,
-        )[:3]:
+        ):
             water = irrigation_by_plot.get(plot_id, 0.0)
             lines.append(
                 f"  {name}: ingresos {_format_eur(inc)} | gastos {_format_eur(exp)} | "
                 f"rentabilidad {_format_eur(profitability)}"
                 + (f" | riego {water:.2f} m3" if water > 0 else "")
+                + (
+                    f" | pozos/planta {wells_by_plot.get(plot_id, 0)}"
+                    if wells_by_plot.get(plot_id, 0) > 0
+                    else ""
+                )
+                + (
+                    f" | prod. estimada {production_by_plot.get(plot_id, 0.0):.1f} g"
+                    if production_by_plot.get(plot_id, 0.0) > 0
+                    else ""
+                )
+                + (
+                    f" | mapa {plants_by_plot.get(plot_id, 0)} plantas"
+                    if plants_by_plot.get(plot_id, 0) > 0
+                    else ""
+                )
+                + (
+                    f" | vallado {fence_events_by_plot.get(plot_id, 0)}"
+                    if fence_events_by_plot.get(plot_id, 0) > 0
+                    else ""
+                )
             )
+
+        distributed_top = sorted(
+            (
+                (
+                    plot.id,
+                    plot.name,
+                    distributed_plot_profitability.get(plot.id, 0.0),
+                )
+                for plot in plots
+            ),
+            key=lambda item: item[2],
+            reverse=True,
+        )
+        lines.append("Resumen por parcela (rentabilidad ajustada):")
+        for _, name, profitability in distributed_top:
+            lines.append(
+                f"  {name}: rentabilidad ajustada {_format_eur(profitability)}"
+            )
+
+    total_income_kg = sum(inc.amount_kg for inc in incomes)
+    roi_pct = (
+        ((total_incomes - total_expenses) / total_expenses) * 100.0
+        if total_expenses > 0
+        else None
+    )
+    water_per_kg = (total_irrigation / total_income_kg) if total_income_kg > 0 else None
+    average_price = (total_incomes / total_income_kg) if total_income_kg > 0 else None
+    growth_pct = None
+    if len(all_years) >= 2:
+        latest_year = all_years[0]
+        previous_year = all_years[1]
+        latest_kg = income_kg_by_campaign.get(latest_year, 0.0)
+        previous_kg = income_kg_by_campaign.get(previous_year, 0.0)
+        if previous_kg > 0:
+            growth_pct = ((latest_kg - previous_kg) / previous_kg) * 100.0
+    lines.append(
+        "KPIs rápidos: "
+        f"ROI {format_eu(roi_pct, 2) if roi_pct is not None else 'N/A'}% | "
+        f"€/kg medio {format_eu(average_price, 2) if average_price is not None else 'N/A'} | "
+        f"m3/kg {format_eu(water_per_kg, 2) if water_per_kg is not None else 'N/A'} | "
+        f"crec. kg {format_eu(growth_pct, 2) if growth_pct is not None else 'N/A'}% | "
+        f"kg totales vendidos {format_eu(total_income_kg, 2)}."
+    )
+
+    weekly_points = len(
+        {(inc.date.isocalendar().year, inc.date.isocalendar().week) for inc in incomes}
+    )
+    lines.append(
+        "Gráficas disponibles (resumen): "
+        f"{len(all_years)} campañas comparables, "
+        f"{weekly_points} puntos semanales de ingreso para evolución, "
+        f"{len(expenses_by_category)} categorías de gasto y {len(incomes_by_category)} categorías de ingreso."
+    )
+    lines.append(
+        "Comparativas gráficas clave: evolución semanal, acumulado de ingresos, mix por categorías, "
+        "comparativa ingresos vs gastos por parcela y tendencia KPI por campaña."
+    )
 
     return "\n".join(lines) if lines else "Sin datos registrados aún."
 

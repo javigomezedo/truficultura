@@ -78,53 +78,64 @@
     </div>
 
     <!-- Filter bar -->
-    <div class="card tf-panel shadow-sm mb-3 border-0">
-        <div class="card-body py-2">
-            <form method="get" action="/expenses/" class="d-flex gap-2 align-items-center flex-wrap">
-                <label class="form-label mb-0 fw-semibold text-nowrap">
-                    <i class="bi bi-funnel me-1"></i>{{ _("Filtrar:") }}
-                </label>
-                <select name="year" id="yearFilter" class="form-select form-select-sm w-auto"
+    <div class="card tf-panel tf-filters-card shadow-sm mb-3 border-0">
+        <div class="card-body py-3">
+            <form method="get" action="/expenses/" class="tf-filters-form">
+                <div class="tf-filter-item tf-filter-item--compact">
+                    <label for="yearFilter" class="form-label">{{ _("Campaña") }}</label>
+                    <select name="year" id="yearFilter" class="form-select form-select-sm"
                         onchange="this.form.submit()">
                     <option value="">{{ _("Todas las campañas") }}</option>
                     {% for y in years %}
                     <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y|campaign_label }}</option>
                     {% endfor %}
-                </select>
-                <select name="category" id="categoryFilter" class="form-select form-select-sm w-auto"
+                    </select>
+                </div>
+                <div class="tf-filter-item tf-filter-item--compact">
+                    <label for="categoryFilter" class="form-label">{{ _("Categoría") }}</label>
+                    <select name="category" id="categoryFilter" class="form-select form-select-sm"
                         onchange="this.form.submit()">
                     <option value="">{{ _("Todas las categorías") }}</option>
                     {% for cat in categories %}
                     <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>{{ cat }}</option>
                     {% endfor %}
-                </select>
-                <select name="plot_id" id="plotFilter" class="form-select form-select-sm w-auto"
+                    </select>
+                </div>
+                <div class="tf-filter-item tf-filter-item--compact">
+                    <label for="plotFilter" class="form-label">{{ _("Bancal") }}</label>
+                    <select name="plot_id" id="plotFilter" class="form-select form-select-sm"
                         onchange="this.form.submit()">
                     <option value="">{{ _("Todos los bancales") }}</option>
                     {% for p in plots %}
                     <option value="{{ p.id }}" {% if selected_plot == p.id %}selected{% endif %}>{{ p.name }}</option>
                     {% endfor %}
-                </select>
-                <select name="person" id="personFilter" class="form-select form-select-sm w-auto"
+                    </select>
+                </div>
+                <div class="tf-filter-item tf-filter-item--compact">
+                    <label for="personFilter" class="form-label">{{ _("Persona") }}</label>
+                    <select name="person" id="personFilter" class="form-select form-select-sm"
                         onchange="this.form.submit()">
                     <option value="">{{ _("Todas las personas") }}</option>
                     {% for p in people %}
                     <option value="{{ p }}" {% if selected_person == p %}selected{% endif %}>{{ p }}</option>
                     {% endfor %}
-                </select>
+                    </select>
+                </div>
                 {% if selected_year or selected_category or selected_plot or selected_person %}
-                <a href="/expenses/" class="btn btn-sm btn-outline-secondary">
-                    <i class="bi bi-x me-1"></i>{{ _("Limpiar filtros") }}
-                </a>
+                <div class="tf-filter-actions">
+                    <a href="/expenses/" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-x me-1"></i>{{ _("Limpiar filtros") }}
+                    </a>
+                </div>
                 {% endif %}
             </form>
         </div>
     </div>
 
-    <div class="card tf-panel shadow-sm border-0">
+    <div class="card tf-panel tf-panel-overflow-visible shadow-sm border-0">
         <div class="card-body p-0">
             {% if expenses %}
-            <div class="table-responsive">
+            <div class="table-responsive tf-table-responsive-dropdown">
                 <table class="table table-hover mb-0">
                     <thead class="table-dark">
                         <tr>

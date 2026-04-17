@@ -1,0 +1,365 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if plot %}{{ _("Detalle analítico") }} · {{ plot.name }}{% else %}{{ _("Detalle analítico") }}{% endif %} &mdash; Truficultura
+{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+    .chart-container {
+        position: relative;
+        min-height: 280px;
+    }
+
+    .tf-help-tip-btn {
+        width: 1.75rem;
+        height: 1.75rem;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        line-height: 1;
+        padding: 0;
+    }
+
+    .tf-help-tip {
+        position: relative;
+        display: inline-flex;
+    }
+
+    .tf-help-tip-text {
+        position: absolute;
+        top: calc(100% + 0.35rem);
+        left: 0;
+        z-index: 30;
+        min-width: 260px;
+        max-width: min(420px, 80vw);
+        background: #1f2937;
+        color: #f8fafc;
+        border-radius: 0.5rem;
+        padding: 0.55rem 0.7rem;
+        font-size: 0.82rem;
+        line-height: 1.35;
+        box-shadow: 0 10px 20px rgba(15, 23, 42, 0.25);
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-2px);
+        transition: opacity 0.15s ease, transform 0.15s ease;
+    }
+
+    .tf-help-tip-text::before {
+        content: "";
+        position: absolute;
+        top: -6px;
+        left: 12px;
+        width: 10px;
+        height: 10px;
+        background: #1f2937;
+        transform: rotate(45deg);
+    }
+
+    .tf-help-tip:hover .tf-help-tip-text {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="tf-page-header">
+        <div>
+            <p class="tf-page-kicker">{{ _("Analítica por parcela") }}</p>
+            <h1 class="tf-page-title">
+                <i class="bi bi-diagram-3 me-2"></i>
+                {% if plot %}{{ plot.name }}{% else %}{{ _("Parcela no encontrada") }}{% endif %}
+            </h1>
+            {% if plot %}
+            <p class="tf-page-subtitle">{{ _("Serie temporal y relación agua-producción") }}</p>
+            {% endif %}
+        </div>
+        <a href="/plot-analytics/" class="btn btn-outline-secondary">{{ _("Volver al análisis") }}</a>
+    </div>
+
+    {% if not plot %}
+    <div class="alert alert-warning" role="alert">{{ _("No existe una parcela con ese identificador para este usuario") }}.</div>
+    {% elif not dataset %}
+    <div class="alert alert-info" role="alert">{{ _("No hay campañas con datos para esta parcela") }}.</div>
+    {% else %}
+
+    <div class="row g-3 mb-3">
+        <div class="col-12">
+            <div class="card tf-panel shadow-sm border-0">
+                <div class="card-header d-flex align-items-center gap-2">
+                    <div class="tf-help-tip">
+                        <button
+                            type="button"
+                            class="btn btn-outline-secondary btn-sm tf-help-tip-btn"
+                            aria-label="{{ _('Ayuda sobre Insights automáticos') }}"
+                            aria-describedby="help-plot-insights"
+                        >?</button>
+                        <div class="tf-help-tip-text" id="help-plot-insights" role="tooltip">
+                            {{ _('Resumen automático en lenguaje natural con señales destacadas de la serie histórica de la parcela.') }}
+                        </div>
+                    </div>
+                    <h6 class="mb-0">{{ _("Insights automáticos") }}</h6>
+                </div>
+                <div class="card-body">
+                    {% if insights and insights.messages %}
+                    <ul class="mb-0">
+                        {% for message in insights.messages %}
+                        <li>{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted mb-0">{{ _("Sin insights disponibles") }}.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card tf-panel shadow-sm border-0 h-100">
+                <div class="card-header d-flex align-items-center gap-2">
+                    <div class="tf-help-tip">
+                        <button
+                            type="button"
+                            class="btn btn-outline-secondary btn-sm tf-help-tip-btn"
+                            aria-label="{{ _('Ayuda sobre Producción y agua por campaña') }}"
+                            aria-describedby="help-plot-production-water"
+                        >?</button>
+                        <div class="tf-help-tip-text" id="help-plot-production-water" role="tooltip">
+                            {{ _('Compara por campaña la evolución de producción y agua para ver tendencias y posibles desajustes entre ambas.') }}
+                        </div>
+                    </div>
+                    <h6 class="mb-0">{{ _("Producción y agua por campaña") }}</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chartProductionWater"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card tf-panel shadow-sm border-0 h-100">
+                <div class="card-header d-flex align-items-center gap-2">
+                    <div class="tf-help-tip">
+                        <button
+                            type="button"
+                            class="btn btn-outline-secondary btn-sm tf-help-tip-btn"
+                            aria-label="{{ _('Ayuda sobre Scatter agua vs producción') }}"
+                            aria-describedby="help-plot-scatter"
+                        >?</button>
+                        <div class="tf-help-tip-text" id="help-plot-scatter" role="tooltip">
+                            {{ _('Cada punto es una campaña: permite ver si más agua se traduce en más producción y detectar campañas atípicas.') }}
+                        </div>
+                    </div>
+                    <h6 class="mb-0">{{ _("Scatter agua vs producción") }}</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chartScatter"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card tf-panel shadow-sm border-0 mb-3">
+        <div class="card-header d-flex align-items-center gap-2">
+            <div class="tf-help-tip">
+                <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm tf-help-tip-btn"
+                    aria-label="{{ _('Ayuda sobre Eventos de manejo por campaña') }}"
+                    aria-describedby="help-plot-management"
+                >?</button>
+                <div class="tf-help-tip-text" id="help-plot-management" role="tooltip">
+                    {{ _('Muestra cuántas labores (poda, labrado y picado) se realizaron en cada campaña para relacionarlas con resultados.') }}
+                </div>
+            </div>
+            <h6 class="mb-0">{{ _("Eventos de manejo por campaña") }}</h6>
+        </div>
+        <div class="card-body">
+            <div class="chart-container">
+                <canvas id="chartManagement"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="card tf-panel shadow-sm border-0">
+        <div class="card-header d-flex align-items-center gap-2">
+            <div class="tf-help-tip">
+                <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm tf-help-tip-btn"
+                    aria-label="{{ _('Ayuda sobre tabla de detalle por campaña') }}"
+                    aria-describedby="help-plot-detail-table"
+                >?</button>
+                <div class="tf-help-tip-text" id="help-plot-detail-table" role="tooltip">
+                    {{ _('Tabla base por campaña con producción, agua y recuento de eventos de manejo para revisar el detalle numérico.') }}
+                </div>
+            </div>
+            <h6 class="mb-0">{{ _("Detalle por campaña") }}</h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>{{ _("Campaña") }}</th>
+                            <th class="text-end">{{ _("Producción (kg)") }}</th>
+                            <th class="text-end">{{ _("Agua (m3)") }}</th>
+                            <th class="text-end">{{ _("Poda") }}</th>
+                            <th class="text-end">{{ _("Labrado") }}</th>
+                            <th class="text-end">{{ _("Picado") }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in dataset %}
+                        <tr>
+                            <td>{{ row.campaign_year|campaign_label }}</td>
+                            <td class="text-end">{{ row.total_production_kg }}</td>
+                            <td class="text-end">{{ row.total_water_m3 }}</td>
+                            <td class="text-end">{{ row.pruning_events_count }}</td>
+                            <td class="text-end">{{ row.tilling_events_count }}</td>
+                            <td class="text-end">{{ row.digging_events_count }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if plot and dataset %}
+<script>
+(function () {
+    'use strict';
+
+    const labelsRaw = {{ labels | tojson }};
+    const labels = labelsRaw.map((year) => `${year}/${String((year + 1) % 100).padStart(2, '0')}`);
+    const productionSeries = {{ production_series | tojson }};
+    const waterSeries = {{ water_series | tojson }};
+    const pruningSeries = {{ pruning_series | tojson }};
+    const tillingSeries = {{ tilling_series | tojson }};
+    const diggingSeries = {{ digging_series | tojson }};
+    const scatterPoints = {{ scatter_points | tojson }};
+
+    const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+    };
+
+    new Chart(document.getElementById('chartProductionWater'), {
+        data: {
+            labels,
+            datasets: [
+                {
+                    type: 'line',
+                    label: '{{ _("Producción (kg)") }}',
+                    data: productionSeries,
+                    borderColor: '#5c7c35',
+                    backgroundColor: 'rgba(92, 124, 53, 0.2)',
+                    tension: 0.2,
+                    yAxisID: 'y',
+                },
+                {
+                    type: 'bar',
+                    label: '{{ _("Agua (m3)") }}',
+                    data: waterSeries,
+                    borderColor: '#496f77',
+                    backgroundColor: 'rgba(73, 111, 119, 0.35)',
+                    yAxisID: 'y1',
+                }
+            ]
+        },
+        options: {
+            ...commonOptions,
+            interaction: { mode: 'index', intersect: false },
+            scales: {
+                y: { position: 'left', beginAtZero: true },
+                y1: { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false } },
+            }
+        }
+    });
+
+    new Chart(document.getElementById('chartScatter'), {
+        type: 'scatter',
+        data: {
+            datasets: [
+                {
+                    label: '{{ _("Agua vs producción") }}',
+                    data: scatterPoints,
+                    borderColor: '#af7a2f',
+                    backgroundColor: 'rgba(175, 122, 47, 0.5)',
+                    pointRadius: 5,
+                }
+            ]
+        },
+        options: {
+            ...commonOptions,
+            parsing: {
+                xAxisKey: 'x',
+                yAxisKey: 'y',
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        title: (items) => {
+                            if (!items.length) return '';
+                            const year = items[0].raw.campaign_year;
+                            return `${year}/${String((year + 1) % 100).padStart(2, '0')}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { title: { display: true, text: '{{ _("Agua (m3)") }}' }, beginAtZero: true },
+                y: { title: { display: true, text: '{{ _("Producción (kg)") }}' }, beginAtZero: true }
+            }
+        }
+    });
+
+    new Chart(document.getElementById('chartManagement'), {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: '{{ _("Poda") }}',
+                    data: pruningSeries,
+                    backgroundColor: 'rgba(92, 124, 53, 0.7)',
+                },
+                {
+                    label: '{{ _("Labrado") }}',
+                    data: tillingSeries,
+                    backgroundColor: 'rgba(154, 63, 51, 0.7)',
+                },
+                {
+                    label: '{{ _("Picado") }}',
+                    data: diggingSeries,
+                    backgroundColor: 'rgba(73, 111, 119, 0.7)',
+                }
+            ]
+        },
+        options: {
+            ...commonOptions,
+            scales: {
+                y: { beginAtZero: true, ticks: { precision: 0 } }
+            }
+        }
+    });
+})();
+</script>
+{% endif %}
+{% endblock %}

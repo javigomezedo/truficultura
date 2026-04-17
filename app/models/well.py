@@ -11,6 +11,7 @@ from app.database import Base
 if TYPE_CHECKING:
     from app.models.expense import Expense
     from app.models.plot import Plot
+    from app.models.plot_event import PlotEvent
     from app.models.user import User
 
 
@@ -38,3 +39,6 @@ class Well(Base):
     user: Mapped[Optional["User"]] = relationship("User", back_populates="wells")
     plot: Mapped["Plot"] = relationship("Plot", back_populates="wells", lazy="joined")
     expense: Mapped[Optional["Expense"]] = relationship("Expense", lazy="joined")
+    plot_events: Mapped[list["PlotEvent"]] = relationship(
+        "PlotEvent", back_populates="related_well"
+    )
