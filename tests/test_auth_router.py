@@ -67,6 +67,18 @@ def test_register_page_renders_without_session() -> None:
     assert "Crear cuenta" in response.text
 
 
+def test_invalid_session_cookie_redirects_to_login_without_500() -> None:
+    app.dependency_overrides.clear()
+    client = TestClient(app)
+    # Simulate stale/corrupted signed cookie from a previous deployment.
+    client.cookies.set("session", "this-is-not-a-valid-signed-session")
+
+    response = client.get("/", follow_redirects=False)
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/login"
+
+
 def test_register_page_redirects_with_session(monkeypatch) -> None:
     db = _fake_db()
     user = User(
