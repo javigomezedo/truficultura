@@ -28,7 +28,9 @@ from app.routers import (
     incomes,
     irrigation,
     kpis,
+    plot_analytics,
     plants,
+    plot_events,
     plots,
     reports,
     scan,
@@ -68,6 +70,8 @@ plants.templates = templates
 scan.templates = templates
 wells.templates = templates
 kpis.templates = templates
+plot_events.templates = templates
+plot_analytics.templates = templates
 
 # Include routers
 app.include_router(auth.router)
@@ -81,6 +85,8 @@ app.include_router(charts.router)
 app.include_router(imports.router)
 app.include_router(irrigation.router)
 app.include_router(wells.router)
+app.include_router(plot_events.router)
+app.include_router(plot_analytics.router)
 app.include_router(exports.router)
 app.include_router(plants.router)
 app.include_router(scan.router)

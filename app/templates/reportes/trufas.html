@@ -11,35 +11,42 @@
         </div>
     </div>
 
-    <div class="card tf-panel border-0 shadow-sm mb-3">
-        <div class="card-body py-2">
-            <form class="d-flex gap-2 align-items-center flex-wrap" method="get" action="/truffles/">
-                <label class="form-label mb-0 fw-semibold text-nowrap">
-                    <i class="bi bi-funnel me-1"></i>{{ _("Filtrar:") }}
-                </label>
-                <select name="camp" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+    <div class="card tf-panel tf-filters-card border-0 shadow-sm mb-3">
+        <div class="card-body py-3">
+            <form class="tf-filters-form" method="get" action="/truffles/">
+                <div class="tf-filter-item tf-filter-item--compact">
+                    <label class="form-label">{{ _("Campaña") }}</label>
+                    <select name="camp" class="form-select form-select-sm" onchange="this.form.submit()">
                         <option value="">{{ _("Todas las campañas") }}</option>
                         {% for y in campaign_years %}
                         <option value="{{ y }}" {% if selected_campaign == y %}selected{% endif %}>{{ y|campaign_label }}</option>
                         {% endfor %}
                     </select>
-                <select class="form-select form-select-sm w-auto" name="plot_id" onchange="this.form.submit()">
+                </div>
+                <div class="tf-filter-item tf-filter-item--compact">
+                    <label class="form-label">{{ _("Parcela") }}</label>
+                    <select class="form-select form-select-sm" name="plot_id" onchange="this.form.submit()">
                     <option value="">{{ _("Todas las parcelas") }}</option>
                     {% for p in plots %}
                     <option value="{{ p.id }}" {% if selected_plot_id == p.id %}selected{% endif %}>{{ p.name }}</option>
                     {% endfor %}
-                </select>
-                <select class="form-select form-select-sm w-auto" name="plant_id" onchange="this.form.submit()" {% if selected_plot_id is none %}disabled{% endif %}>
+                    </select>
+                </div>
+                <div class="tf-filter-item tf-filter-item--compact">
+                    <label class="form-label">{{ _("Planta") }}</label>
+                    <select class="form-select form-select-sm" name="plant_id" onchange="this.form.submit()" {% if selected_plot_id is none %}disabled{% endif %}>
                     <option value="">{{ _("Todas las plantas") }}</option>
                     {% for p in plants_for_filter %}
                     <option value="{{ p.id }}" {% if selected_plant_id == p.id %}selected{% endif %}>{{ p.label }}</option>
                     {% endfor %}
-                </select>
-                <button class="btn btn-sm btn-primary" type="submit">{{ _("Filtrar") }}</button>
+                    </select>
+                </div>
                 {% if selected_campaign is not none or selected_plot_id is not none or selected_plant_id is not none %}
-                <a href="/truffles/" class="btn btn-sm btn-outline-secondary">
-                    <i class="bi bi-x me-1"></i>{{ _("Limpiar filtros") }}
-                </a>
+                <div class="tf-filter-actions">
+                    <a href="/truffles/" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-x me-1"></i>{{ _("Limpiar filtros") }}
+                    </a>
+                </div>
                 {% endif %}
             </form>
         </div>

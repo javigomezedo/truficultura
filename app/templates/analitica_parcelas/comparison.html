@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("Comparación de parcelas") }} &mdash; Truficultura{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+    .chart-container {
+        position: relative;
+        min-height: 340px;
+    }
+
+    .tf-help-tip-btn {
+        width: 1.75rem;
+        height: 1.75rem;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        line-height: 1;
+        padding: 0;
+    }
+
+    .tf-help-tip {
+        position: relative;
+        display: inline-flex;
+    }
+
+    .tf-help-tip-text {
+        position: absolute;
+        top: calc(100% + 0.35rem);
+        left: 0;
+        z-index: 30;
+        min-width: 260px;
+        max-width: min(420px, 80vw);
+        background: #1f2937;
+        color: #f8fafc;
+        border-radius: 0.5rem;
+        padding: 0.55rem 0.7rem;
+        font-size: 0.82rem;
+        line-height: 1.35;
+        box-shadow: 0 10px 20px rgba(15, 23, 42, 0.25);
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-2px);
+        transition: opacity 0.15s ease, transform 0.15s ease;
+    }
+
+    .tf-help-tip-text::before {
+        content: "";
+        position: absolute;
+        top: -6px;
+        left: 12px;
+        width: 10px;
+        height: 10px;
+        background: #1f2937;
+        transform: rotate(45deg);
+    }
+
+    .tf-help-tip:hover .tf-help-tip-text {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="tf-page-header">
+        <div>
+            <p class="tf-page-kicker">{{ _("Analítica") }}</p>
+            <h1 class="tf-page-title"><i class="bi bi-bar-chart-steps me-2"></i>{{ _("Comparación de parcelas") }}</h1>
+            <p class="tf-page-subtitle">{{ _("Eficiencia hídrica y ranking por parcela") }}</p>
+        </div>
+        <a href="/plot-analytics/" class="btn btn-outline-secondary">{{ _("Volver al análisis") }}</a>
+    </div>
+
+    <div class="card tf-panel tf-filters-card shadow-sm mb-3 border-0">
+        <div class="card-body py-3">
+            <form method="get" action="/plot-analytics/comparison-view" class="tf-filters-form">
+                <div class="tf-filter-item tf-filter-item--compact">
+                    <label class="form-label">{{ _("Campaña desde") }}</label>
+                    <select class="form-select form-select-sm tf-autosubmit-select" name="campaign_from">
+                        <option value="">{{ _("Sin filtro") }}</option>
+                        {% for cy in campaign_options %}
+                        <option value="{{ cy }}" {% if selected_campaign_from == cy %}selected{% endif %}>{{ cy|campaign_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="tf-filter-item tf-filter-item--compact">
+                    <label class="form-label">{{ _("Campaña hasta") }}</label>
+                    <select class="form-select form-select-sm tf-autosubmit-select" name="campaign_to">
+                        <option value="">{{ _("Sin filtro") }}</option>
+                        {% for cy in campaign_options %}
+                        <option value="{{ cy }}" {% if selected_campaign_to == cy %}selected{% endif %}>{{ cy|campaign_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% if selected_campaign_from or selected_campaign_to %}
+                <div class="tf-filter-actions">
+                    <a href="/plot-analytics/comparison-view" class="btn btn-sm btn-outline-secondary">{{ _("Limpiar filtros") }}</a>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    {% if comparison.plots_included == 0 %}
+    <div class="card tf-panel shadow-sm border-0">
+        <div class="card-body tf-empty-state">
+            <i class="bi bi-bar-chart-line fs-1 d-block mb-2 opacity-25"></i>
+            <p>{{ _("No hay datos suficientes para comparar parcelas. Se necesitan ingresos y riegos registrados.") }}</p>
+        </div>
+    </div>
+    {% else %}
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <div class="card tf-stat-card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="text-muted small">{{ _("Parcelas comparadas") }}</div>
+                    <div class="fw-bold fs-5">{{ comparison.plots_included }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card tf-stat-card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="text-muted small">{{ _("Puntos de muestra") }}</div>
+                    <div class="fw-bold fs-5">{{ comparison.sample_size }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card tf-stat-card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="text-muted small">{{ _("Mejor eficiencia (kg/m3)") }}</div>
+                    <div class="fw-bold fs-5">
+                        {% if comparison.efficiency_ranking %}
+                            {% set best = comparison.efficiency_ranking[0] %}
+                            {% if best.kg_per_m3 is not none %}
+                                {{ best.kg_per_m3 }} <small class="text-muted fw-normal">— {{ best.plot_name }}</small>
+                            {% else %}—{% endif %}
+                        {% else %}—{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card tf-panel shadow-sm border-0 mb-3">
+        <div class="card-body">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="tf-help-tip">
+                    <button
+                        type="button"
+                        class="btn btn-outline-secondary btn-sm tf-help-tip-btn"
+                        aria-label="{{ _('Ayuda sobre Agua vs producción por parcela y campaña') }}"
+                        aria-describedby="help-scatter-comparison"
+                    >?</button>
+                    <div class="tf-help-tip-text" id="help-scatter-comparison" role="tooltip">
+                        {{ _('Cada punto representa una campaña de una parcela. Eje X: agua aplicada; eje Y: producción. Sirve para detectar parcelas más eficientes.') }}
+                    </div>
+                </div>
+                <h3 class="h6 mb-0">{{ _("Agua vs producción por parcela y campaña") }}</h3>
+            </div>
+            <div class="chart-container">
+                <canvas id="scatterChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="card tf-panel shadow-sm border-0 mb-3">
+        <div class="card-body">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="tf-help-tip">
+                    <button
+                        type="button"
+                        class="btn btn-outline-secondary btn-sm tf-help-tip-btn"
+                        aria-label="{{ _('Ayuda sobre Ranking de eficiencia hídrica') }}"
+                        aria-describedby="help-ranking-comparison"
+                    >?</button>
+                    <div class="tf-help-tip-text" id="help-ranking-comparison" role="tooltip">
+                        {{ _('Ordena parcelas por kg/m3 (producción total dividida entre agua total). Un valor más alto indica mejor eficiencia hídrica.') }}
+                    </div>
+                </div>
+                <h3 class="h6 mb-0">{{ _("Ranking de eficiencia hídrica") }}</h3>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>{{ _("Parcela") }}</th>
+                            <th class="text-end">{{ _("Campañas") }}</th>
+                            <th class="text-end">{{ _("Producción total (kg)") }}</th>
+                            <th class="text-end">{{ _("Agua total (m3)") }}</th>
+                            <th class="text-end">{{ _("kg / m3") }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in comparison.efficiency_ranking %}
+                        <tr>
+                            <td class="text-muted">{{ loop.index }}</td>
+                            <td>
+                                <a href="/plot-analytics/plot/{{ row.plot_id }}">{{ row.plot_name }}</a>
+                            </td>
+                            <td class="text-end">{{ row.sample_size }}</td>
+                            <td class="text-end">{{ row.total_production_kg }}</td>
+                            <td class="text-end">{{ row.total_water_m3 }}</td>
+                            <td class="text-end fw-semibold">
+                                {% if row.kg_per_m3 is not none %}{{ row.kg_per_m3 }}{% else %}—{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% endif %}
+</div>
+
+{% if comparison.plots_included > 0 %}
+<script>
+(function () {
+    const rawPoints = {{ comparison.points | tojson }};
+
+    const plotNames = [...new Set(rawPoints.map(p => p.plot_name))].sort();
+    const palette = [
+        "#2563eb","#16a34a","#dc2626","#d97706","#7c3aed",
+        "#0891b2","#be185d","#65a30d","#ea580c","#6366f1"
+    ];
+
+    const datasets = plotNames.map((name, i) => ({
+        label: name,
+        data: rawPoints
+            .filter(p => p.plot_name === name)
+            .map(p => ({ x: p.x, y: p.y, campaign: p.campaign_year })),
+        backgroundColor: palette[i % palette.length] + "cc",
+        pointRadius: 7,
+        pointHoverRadius: 10,
+    }));
+
+    const ctx = document.getElementById("scatterChart").getContext("2d");
+    new Chart(ctx, {
+        type: "scatter",
+        data: { datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function (item) {
+                            const d = item.raw;
+                            return `${item.dataset.label} (${d.campaign}): ${d.x} m3 → ${d.y} kg`;
+                        }
+                    }
+                },
+                legend: { position: "bottom" }
+            },
+            scales: {
+                x: {
+                    title: { display: true, text: "{{ _('Agua (m3)') }}" }
+                },
+                y: {
+                    title: { display: true, text: "{{ _('Producción (kg)') }}" }
+                }
+            }
+        }
+    });
+})();
+</script>
+{% endif %}
+
+<script>
+(() => {
+    const form = document.querySelector('form[action="/plot-analytics/comparison-view"]');
+    if (!form) return;
+
+    const selects = form.querySelectorAll('.tf-autosubmit-select');
+    selects.forEach((select) => {
+        select.addEventListener('change', () => form.submit());
+    });
+})();
+</script>
+{% endblock %}

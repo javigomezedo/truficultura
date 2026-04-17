@@ -61,11 +61,31 @@
                             <i class="bi bi-house-fill"></i> {{ _("Inicio") }}
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if '/plots' in request.url.path %}active{% endif %}"
-                           href="/plots/">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if '/plots' in request.url.path or '/plot-analytics' in request.url.path or '/plot-events' in request.url.path %}active{% endif %}"
+                           href="#"
+                           role="button"
+                           data-bs-toggle="dropdown"
+                           aria-expanded="false">
                             <i class="bi bi-map-fill"></i> {{ _("Parcelas") }}
                         </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item {% if request.url.path.startswith('/plots') %}active{% endif %}" href="/plots/">
+                                    <i class="bi bi-map text-secondary me-1"></i> {{ _("Gestión de parcelas") }}
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if '/plot-analytics' in request.url.path %}active{% endif %}" href="/plot-analytics/">
+                                    <i class="bi bi-bar-chart-steps text-primary me-1"></i> {{ _("Rendimiento por parcela") }}
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if '/plot-events' in request.url.path %}active{% endif %}" href="/plot-events/">
+                                    <i class="bi bi-calendar2-check text-success me-1"></i> {{ _("Historial de labores") }}
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if '/truffles' in request.url.path %}active{% endif %}"
@@ -282,6 +302,10 @@
             <p class="tf-assistant-helper mb-2">
                 {{ _("Pregúntame sobre uso de la app y sobre tus datos (modo lectura).") }}
             </p>
+            <details class="tf-assistant-suggestions" id="assistantSuggestions">
+                <summary>{{ _("Ideas de preguntas") }}</summary>
+                <div class="tf-assistant-suggestions-list" id="assistantSuggestionsList"></div>
+            </details>
             <div class="tf-assistant-messages" id="assistantMessages" aria-live="polite"></div>
             <form id="assistantForm" class="tf-assistant-form" autocomplete="off">
                 <label for="assistantInput" class="form-label mb-1">{{ _("Tu pregunta") }}</label>

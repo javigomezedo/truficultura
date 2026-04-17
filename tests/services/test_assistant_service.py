@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -51,6 +52,71 @@ def test_classify_intent_datos_with_total_question() -> None:
     assert _classify_intent("¿Cuánto he gastado en total?") == "datos"
 
 
+def test_classify_intent_datos_with_parcela_con_vallado() -> None:
+    assert _classify_intent("¿Tengo alguna parcela con vallado?") == "datos"
+
+
+def test_classify_intent_datos_with_expense_categories() -> None:
+    assert (
+        _classify_intent(
+            "¿Qué categorías de gasto son las más altas y qué persona acumula más gastos?"
+        )
+        == "datos"
+    )
+
+
+def test_classify_intent_datos_with_income_categories() -> None:
+    assert (
+        _classify_intent("¿Qué categorías de ingreso aportan más facturación?")
+        == "datos"
+    )
+
+
+def test_classify_intent_datos_with_summary_by_plot() -> None:
+    assert (
+        _classify_intent(
+            "Dame un resumen por parcela con ingresos, gastos, rentabilidad, agua aplicada y si tiene vallado"
+        )
+        == "datos"
+    )
+
+
+def test_classify_intent_datos_with_adjusted_profitability() -> None:
+    assert (
+        _classify_intent(
+            "¿Qué parcela tiene peor rentabilidad ajustada si repartimos los gastos generales?"
+        )
+        == "datos"
+    )
+
+
+def test_classify_intent_datos_with_irrigation_and_low_profitability() -> None:
+    assert (
+        _classify_intent(
+            "¿Qué parcela tiene riego activo pero baja producción o rentabilidad?"
+        )
+        == "datos"
+    )
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "¿Qué parcela tiene peor rentabilidad ajustada si repartimos los gastos generales?",
+        "¿Cuál fue mi mejor campaña y por qué indicadores destaca?",
+        "¿Qué categorías de gasto son las más altas y qué persona acumula más gastos?",
+        "¿Qué categorías de ingreso aportan más facturación y cuáles más kilos?",
+        "¿Cuánto de mi producción registrada viene por QR frente a registro manual?",
+        "¿Qué parcelas tienen vallado, pozo o labores relevantes registradas?",
+        "Dame un resumen por parcela con ingresos, gastos, rentabilidad, agua aplicada y si tiene vallado.",
+        "¿Qué parcela tiene riego activo pero baja producción o rentabilidad?",
+        "¿Dónde parece que estoy gastando más y obteniendo menos retorno?",
+    ],
+)
+def test_classify_intent_datos_for_all_suggested_questions(question: str) -> None:
+    assert _classify_intent(question) == "datos"
+
+
 def test_classify_intent_uso_for_how_to_register() -> None:
     assert _classify_intent("¿Cómo registrar un gasto?") == "uso"
 
@@ -61,7 +127,10 @@ def test_classify_intent_uso_for_how_to_register() -> None:
 def test_compose_messages_without_user_context() -> None:
     msgs = _compose_messages("Hola", [], "")
     assert msgs[0]["role"] == "system"
-    assert "DATOS ACTUALES" not in msgs[0]["content"]
+    assert (
+        "DATOS ACTUALES DEL USUARIO (solo lectura, valores agregados):"
+        not in msgs[0]["content"]
+    )
     assert msgs[-1] == {"role": "user", "content": "Hola"}
 
 
@@ -148,6 +217,23 @@ async def test_chat_datos_queries_db_with_user_id() -> None:
         water_m3=120.0,
         user_id=1,
     )
+    fence_event = SimpleNamespace(
+        plot_id=1,
+        event_type="vallado",
+        date=datetime.date(2025, 8, 5),
+    )
+    well = SimpleNamespace(
+        plot_id=1, date=datetime.date(2025, 8, 10), wells_per_plant=2
+    )
+    plant = SimpleNamespace(plot_id=1)
+    truffle_event = SimpleNamespace(
+        plot_id=1,
+        plant_id=11,
+        source="qr",
+        estimated_weight_grams=12.5,
+        created_at=datetime.datetime(2025, 11, 1, 10, 0, 0),
+        undone_at=None,
+    )
 
     db = MagicMock()
     db.execute = AsyncMock(
@@ -156,6 +242,10 @@ async def test_chat_datos_queries_db_with_user_id() -> None:
             result([income]),  # incomes query
             result([expense]),  # expenses query
             result([irrigation]),  # irrigation query
+            result([fence_event]),  # plot_events query
+            result([well]),  # wells query
+            result([plant]),  # plants query
+            result([truffle_event]),  # truffle_events query
         ]
     )
 
@@ -170,7 +260,7 @@ async def test_chat_datos_queries_db_with_user_id() -> None:
         adapter=adapter,
     )
 
-    assert db.execute.call_count == 4
+    assert db.execute.call_count == 8
     assert result_data["intent"] == "datos"
     adapter.complete.assert_awaited_once()
 
@@ -185,13 +275,28 @@ async def test_chat_datos_queries_db_with_user_id() -> None:
     assert "2025/26" in system_content
     assert "Resumen global" in system_content
     assert "Riego total registrado" in system_content
+    assert "vallado registrado" in system_content
+    assert "Mapa de plantas" in system_content
+    assert "Producción (eventos trufa)" in system_content
+    assert "KPIs rápidos" in system_content
     assert result_data["traceability"]["data_scope"] == "aggregated-user-data"
 
 
 @pytest.mark.asyncio
 async def test_chat_datos_no_records_returns_graceful_context() -> None:
     db = MagicMock()
-    db.execute = AsyncMock(side_effect=[result([]), result([]), result([]), result([])])
+    db.execute = AsyncMock(
+        side_effect=[
+            result([]),
+            result([]),
+            result([]),
+            result([]),
+            result([]),
+            result([]),
+            result([]),
+            result([]),
+        ]
+    )
 
     adapter = MagicMock(spec=LLMAdapter)
     adapter.complete = AsyncMock(return_value="Sin datos aún.")
@@ -259,7 +364,18 @@ async def test_prepare_chat_context_uso_does_not_query_db() -> None:
 @pytest.mark.asyncio
 async def test_prepare_chat_context_datos_queries_db() -> None:
     db = MagicMock()
-    db.execute = AsyncMock(side_effect=[result([]), result([]), result([]), result([])])
+    db.execute = AsyncMock(
+        side_effect=[
+            result([]),
+            result([]),
+            result([]),
+            result([]),
+            result([]),
+            result([]),
+            result([]),
+            result([]),
+        ]
+    )
 
     data = await prepare_chat_context(
         db=db,
@@ -269,6 +385,10 @@ async def test_prepare_chat_context_datos_queries_db() -> None:
     )
 
     assert data["intent"] == "datos"
-    assert db.execute.call_count == 4
+    assert db.execute.call_count == 8
     assert data["traceability"]["data_scope"] == "aggregated-user-data"
     assert "db:plots" in data["traceability"]["sources"]
+    assert "db:plot_events" in data["traceability"]["sources"]
+    assert "db:wells" in data["traceability"]["sources"]
+    assert "db:plants" in data["traceability"]["sources"]
+    assert "db:truffle_events" in data["traceability"]["sources"]

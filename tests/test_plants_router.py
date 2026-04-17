@@ -55,6 +55,115 @@ def test_map_view_renders(monkeypatch) -> None:
     assert 'onchange="this.form.submit()"' in response.text
 
 
+def test_map_view_renders_summary_table_sorted_by_grams_desc(monkeypatch) -> None:
+    db = _db()
+    plant_a1 = SimpleNamespace(id=1, label="A1")
+    plant_a2 = SimpleNamespace(id=2, label="A2")
+    row = SimpleNamespace(
+        row_label="A",
+        cells=[
+            SimpleNamespace(
+                plant=plant_a1,
+                visual_col=1,
+                campaign_weight_grams=10.0,
+                total_weight_grams=100.0,
+            ),
+            SimpleNamespace(
+                plant=plant_a2,
+                visual_col=2,
+                campaign_weight_grams=25.0,
+                total_weight_grams=80.0,
+            ),
+        ],
+    )
+
+    monkeypatch.setattr("app.routers.plants.get_plot", AsyncMock(return_value=_plot()))
+    monkeypatch.setattr(
+        "app.routers.plants.plants_service.get_plot_map_context",
+        AsyncMock(
+            return_value={"rows": [row], "selected_campaign": 2025, "has_plants": True}
+        ),
+    )
+    monkeypatch.setattr(
+        "app.routers.plants.plants_service.has_active_truffle_events",
+        AsyncMock(return_value=False),
+    )
+    monkeypatch.setattr(
+        "app.routers.plants.truffle_events_service.list_events",
+        AsyncMock(return_value=[]),
+    )
+
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = lambda: db
+    try:
+        client = TestClient(app)
+        response = client.get("/plots/10/map?campaign=2025")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert "Resumen de gramos por planta" in response.text
+    pos_a2 = response.text.find('<td class="fw-semibold">A2</td>')
+    pos_a1 = response.text.find('<td class="fw-semibold">A1</td>')
+    assert pos_a2 != -1
+    assert pos_a1 != -1
+    assert pos_a2 < pos_a1
+
+
+def test_map_view_summary_table_sorts_by_label_asc(monkeypatch) -> None:
+    db = _db()
+    plant_a1 = SimpleNamespace(id=1, label="A1")
+    plant_b1 = SimpleNamespace(id=2, label="B1")
+    row = SimpleNamespace(
+        row_label="A",
+        cells=[
+            SimpleNamespace(
+                plant=plant_b1,
+                visual_col=2,
+                campaign_weight_grams=40.0,
+                total_weight_grams=80.0,
+            ),
+            SimpleNamespace(
+                plant=plant_a1,
+                visual_col=1,
+                campaign_weight_grams=10.0,
+                total_weight_grams=100.0,
+            ),
+        ],
+    )
+
+    monkeypatch.setattr("app.routers.plants.get_plot", AsyncMock(return_value=_plot()))
+    monkeypatch.setattr(
+        "app.routers.plants.plants_service.get_plot_map_context",
+        AsyncMock(
+            return_value={"rows": [row], "selected_campaign": 2025, "has_plants": True}
+        ),
+    )
+    monkeypatch.setattr(
+        "app.routers.plants.plants_service.has_active_truffle_events",
+        AsyncMock(return_value=False),
+    )
+    monkeypatch.setattr(
+        "app.routers.plants.truffle_events_service.list_events",
+        AsyncMock(return_value=[]),
+    )
+
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = lambda: db
+    try:
+        client = TestClient(app)
+        response = client.get("/plots/10/map?campaign=2025&sort=label&order=asc")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    pos_a1 = response.text.find('<td class="fw-semibold">A1</td>')
+    pos_b1 = response.text.find('<td class="fw-semibold">B1</td>')
+    assert pos_a1 != -1
+    assert pos_b1 != -1
+    assert pos_a1 < pos_b1
+
+
 def test_configure_map_submit_redirects_on_invalid_format(monkeypatch) -> None:
     db = _db()
     monkeypatch.setattr("app.routers.plants.get_plot", AsyncMock(return_value=_plot()))

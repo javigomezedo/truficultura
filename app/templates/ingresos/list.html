@@ -18,32 +18,34 @@
     </div>
 
     <!-- Filter bar -->
-    <div class="card tf-panel shadow-sm mb-3 border-0">
-        <div class="card-body py-2">
-            <form method="get" action="/incomes/" class="d-flex gap-2 align-items-center flex-wrap">
-                <label for="yearFilter" class="form-label mb-0 fw-semibold text-nowrap">
-                    <i class="bi bi-funnel me-1"></i>{{ _("Filtrar por campaña:") }}
-                </label>
-                <select name="year" id="yearFilter" class="form-select form-select-sm w-auto"
+    <div class="card tf-panel tf-filters-card shadow-sm mb-3 border-0">
+        <div class="card-body py-3">
+            <form method="get" action="/incomes/" class="tf-filters-form">
+                <div class="tf-filter-item tf-filter-item--compact">
+                    <label for="yearFilter" class="form-label">{{ _("Campaña") }}</label>
+                    <select name="year" id="yearFilter" class="form-select form-select-sm"
                         onchange="this.form.submit()">
                     <option value="">{{ _("Todas las campañas") }}</option>
                     {% for y in years %}
                     <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y|campaign_label }}</option>
                     {% endfor %}
-                </select>
+                    </select>
+                </div>
                 {% if selected_year %}
-                <a href="/incomes/" class="btn btn-sm btn-outline-secondary">
-                    <i class="bi bi-x me-1"></i>{{ _("Limpiar filtro") }}
-                </a>
+                <div class="tf-filter-actions">
+                    <a href="/incomes/" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-x me-1"></i>{{ _("Limpiar filtros") }}
+                    </a>
+                </div>
                 {% endif %}
             </form>
         </div>
     </div>
 
-    <div class="card tf-panel shadow-sm border-0">
+    <div class="card tf-panel tf-panel-overflow-visible shadow-sm border-0">
         <div class="card-body p-0">
             {% if incomes %}
-            <div class="table-responsive">
+            <div class="table-responsive tf-table-responsive-dropdown">
                 <table class="table table-hover mb-0">
                     <thead class="table-dark">
                         <tr>

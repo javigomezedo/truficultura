@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if record %}{{ _("Editar evento") }}{% else %}{{ _("Nuevo evento") }}{% endif %} &mdash; Truficultura
+{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="tf-page-header">
+        <div>
+            <p class="tf-page-kicker">{{ _("Seguimiento") }}</p>
+            <h1 class="tf-page-title">
+                <i class="bi bi-pencil-square me-2"></i>
+                {% if record %}{{ _("Editar evento") }}{% else %}{{ _("Nuevo evento") }}{% endif %}
+            </h1>
+        </div>
+        <a href="/plot-events/" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>{{ _("Volver al listado") }}
+        </a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-xl-10">
+            <div class="card tf-panel shadow-sm border-0">
+                <div class="card-body p-4">
+                    <form action="{{ action }}" method="post">
+                        {% if not record %}
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">{{ _("Parcela") }} <span class="text-danger">*</span></label>
+                            <select class="form-select" name="plot_id" required>
+                                <option value="">{{ _("— Selecciona una parcela —") }}</option>
+                                {% for p in plots %}
+                                <option value="{{ p.id }}">{{ p.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">{{ _("Tipo de evento") }} <span class="text-danger">*</span></label>
+                                <select class="form-select" name="event_type" required>
+                                    {% for event_type in event_types %}
+                                    <option value="{{ event_type.value if event_type.value is defined else event_type }}" {% if record and record.event_type == (event_type.value if event_type.value is defined else event_type) %}selected{% endif %}>
+                                        {{ event_type.value if event_type.value is defined else event_type }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">{{ _("Fecha") }} <span class="text-danger">*</span></label>
+                                <input class="form-control" type="date" name="date" value="{{ record.date.isoformat() if record else '' }}" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">{{ _("Notas") }}</label>
+                                <textarea class="form-control" rows="3" name="notes">{{ record.notes if record and record.notes else '' }}</textarea>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <div class="d-flex gap-2 justify-content-end">
+                            <a class="btn btn-outline-secondary" href="/plot-events/">{{ _("Cancelar") }}</a>
+                            <button class="btn btn-primary" type="submit">
+                                <i class="bi bi-check-circle me-1"></i>
+                                {% if record %}{{ _("Guardar cambios") }}{% else %}{{ _("Registrar evento") }}{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

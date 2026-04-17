@@ -229,9 +229,15 @@ async def test_create_success() -> None:
 
     data = IrrigationCreate(plot_id=1, date=datetime.date(2025, 6, 1), water_m3=12.5)
 
-    record = await create_irrigation_record(db, user_id=1, data=data)
+    with patch(
+        "app.services.plot_events_service.sync_plot_event_from_irrigation",
+        new=AsyncMock(),
+    ) as sync_mock:
+        record = await create_irrigation_record(db, user_id=1, data=data)
+
     db.add.assert_called_once()
     db.flush.assert_awaited()
+    sync_mock.assert_awaited_once()
     assert record.water_m3 == 12.5
     assert record.user_id == 1
 
@@ -248,11 +254,16 @@ async def test_update_irrigation_record() -> None:
     db.flush = AsyncMock()
 
     data = IrrigationUpdate(water_m3=20.0, notes="Actualizado")
-    updated = await update_irrigation_record(db, record, data)
+    with patch(
+        "app.services.plot_events_service.sync_plot_event_from_irrigation",
+        new=AsyncMock(),
+    ) as sync_mock:
+        updated = await update_irrigation_record(db, record, data)
 
     assert updated.water_m3 == 20.0
     assert updated.notes == "Actualizado"
     db.flush.assert_awaited()
+    sync_mock.assert_awaited_once()
 
 
 # ---------------------------------------------------------------------------
@@ -280,5 +291,11 @@ async def test_delete_success() -> None:
     db.delete = AsyncMock()
     db.flush = AsyncMock()
 
-    await delete_irrigation_record(db, record_id=1, user_id=1)
+    with patch(
+        "app.services.plot_events_service.delete_plot_event_for_irrigation",
+        new=AsyncMock(),
+    ) as delete_event_mock:
+        await delete_irrigation_record(db, record_id=1, user_id=1)
+
     db.delete.assert_awaited_once_with(record)
+    delete_event_mock.assert_awaited_once_with(db, 1, 1)

@@ -119,6 +119,8 @@ async def get_riego_expenses_for_plot(
 async def create_irrigation_record(
     db: AsyncSession, user_id: int, data: IrrigationCreate
 ) -> IrrigationRecord:
+    from app.services.plot_events_service import sync_plot_event_from_irrigation
+
     # Validate plot belongs to user and has irrigation enabled
     plot_result = await db.execute(
         select(Plot).where(Plot.id == data.plot_id, Plot.user_id == user_id)
@@ -163,12 +165,15 @@ async def create_irrigation_record(
     )
     db.add(record)
     await db.flush()
+    await sync_plot_event_from_irrigation(db, record)
     return record
 
 
 async def update_irrigation_record(
     db: AsyncSession, record: IrrigationRecord, data: IrrigationUpdate
 ) -> IrrigationRecord:
+    from app.services.plot_events_service import sync_plot_event_from_irrigation
+
     if data.date is not None:
         record.date = data.date
     if data.water_m3 is not None:
@@ -184,13 +189,17 @@ async def update_irrigation_record(
     elif "notes" in data.model_fields_set:
         record.notes = None
     await db.flush()
+    await sync_plot_event_from_irrigation(db, record)
     return record
 
 
 async def delete_irrigation_record(
     db: AsyncSession, record_id: int, user_id: int
 ) -> None:
+    from app.services.plot_events_service import delete_plot_event_for_irrigation
+
     record = await get_irrigation_record(db, record_id, user_id)
     if record is not None:
+        await delete_plot_event_for_irrigation(db, record_id, user_id)
         await db.delete(record)
         await db.flush()

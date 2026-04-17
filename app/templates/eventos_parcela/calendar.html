@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("Calendario de eventos") }} &mdash; Truficultura{% endblock %}
+
+{% block extra_head %}
+<style>
+    .tf-cal-cell {
+        min-width: 110px;
+        height: 110px;
+        vertical-align: top;
+    }
+    .tf-cal-day-num {
+        font-weight: 600;
+        font-size: .85rem;
+    }
+    .tf-cal-event-pill {
+        font-size: .7rem;
+        border-radius: .25rem;
+        padding: 1px 5px;
+        margin-bottom: 2px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-left-width: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    /* mini-month (year view) */
+    .tf-mini-cal table { width: 100%; font-size: .7rem; }
+    .tf-mini-cal th { text-align: center; padding: 1px 0; }
+    .tf-mini-cal td { text-align: center; padding: 1px; line-height: 1.4; position: relative; }
+    .tf-dot-row { display: inline-flex; align-items: center; gap: 2px; max-width: 24px; flex-wrap: wrap; justify-content: center; }
+    .tf-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #2563eb; }
+    .tf-legend-item { display: inline-flex; align-items: center; gap: .4rem; margin-right: .9rem; margin-bottom: .35rem; font-size: .82rem; }
+    .tf-legend-swatch { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="tf-page-header">
+        <div>
+            <p class="tf-page-kicker">{{ _("Seguimiento") }}</p>
+            <h1 class="tf-page-title"><i class="bi bi-calendar3 me-2"></i>{{ _("Calendario de eventos") }}</h1>
+            <p class="tf-page-subtitle">
+                {% if view == "year" %}
+                    {{ selected_year }}
+                {% else %}
+                    {{ month_name }} {{ selected_year }}
+                {% endif %}
+            </p>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            <div class="btn-group" role="group" aria-label="{{ _('Selector de vista') }}">
+                <a href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}&year={{ selected_year }}&month={{ selected_month }}&view={{ view }}"
+                   class="btn btn-sm btn-primary">
+                    <i class="bi bi-calendar3 me-1"></i>{{ _("Calendario") }}
+                </a>
+                <a href="/plot-events/list"
+                   class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-list-ul me-1"></i>{{ _("Lista") }}
+                </a>
+            </div>
+            {# toggle mes/año #}
+            <div class="btn-group" role="group">
+                <a href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}&year={{ selected_year }}&month={{ selected_month }}&view=month"
+                   class="btn btn-sm {% if view == 'month' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    <i class="bi bi-calendar3 me-1"></i>{{ _("Mes") }}
+                </a>
+                <a href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}&year={{ selected_year }}&month={{ selected_month }}&view=year"
+                   class="btn btn-sm {% if view == 'year' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    <i class="bi bi-calendar-range me-1"></i>{{ _("Año") }}
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {% if msg %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        {{ _(msg) }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
+    {# ── filters ──────────────────────────────────────────────────────── #}
+    <div class="card tf-panel tf-filters-card shadow-sm mb-3 border-0">
+        <div class="card-body py-3">
+            <form method="get" action="/plot-events/calendar-view" class="tf-filters-form">
+                <input type="hidden" name="view" value="{{ view }}">
+                <div class="tf-filter-item tf-filter-item--compact">
+                    <label class="form-label">{{ _("Parcela") }}</label>
+                    <select name="plot_id" class="form-select form-select-sm tf-autosubmit-select">
+                        <option value="">{{ _("Todas las parcelas") }}</option>
+                        {% for p in plots %}
+                        <option value="{{ p.id }}" {% if selected_plot == p.id %}selected{% endif %}>{{ p.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="tf-filter-item tf-filter-item--compact">
+                    <label class="form-label">{{ _("Año") }}</label>
+                    <select class="form-select form-select-sm tf-autosubmit-select" name="year">
+                        {% for y in year_options %}
+                        <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="tf-filter-item tf-filter-item--compact">
+                    <label class="form-label">{{ _("Mes") }}</label>
+                    <select class="form-select form-select-sm tf-autosubmit-select" name="month">
+                        {% for m in month_options %}
+                        <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>{{ month_names[m] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+
+            <div class="border-top mt-3 pt-2">
+                <div class="small text-muted mb-2">{{ _("Leyenda de colores por evento") }}</div>
+                <div>
+                    {% for event_type, label in event_labels.items() %}
+                    <span class="tf-legend-item">
+                        <span class="tf-legend-swatch" style="background-color: {{ event_colors.get(event_type, '#64748b') }};"></span>
+                        <span>{{ label }}</span>
+                    </span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ══════════════════════════════════════════════════════════════════
+       MONTH VIEW
+    ══════════════════════════════════════════════════════════════════ #}
+    {% if view == "month" %}
+
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <a class="btn btn-outline-secondary btn-sm"
+           href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}&year={{ prev_year }}&month={{ prev_month }}&view=month">
+            &laquo; {{ _("Anterior") }}
+        </a>
+        <span class="fw-semibold">{{ month_name }} {{ selected_year }}</span>
+        <a class="btn btn-outline-secondary btn-sm"
+           href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}&year={{ next_year }}&month={{ next_month }}&view=month">
+            {{ _("Siguiente") }} &raquo;
+        </a>
+    </div>
+
+    <div class="card tf-panel shadow-sm border-0">
+        <div class="card-body p-2">
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>L</th><th>M</th><th>X</th><th>J</th><th>V</th><th>S</th><th>D</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for week in month_grid %}
+                        <tr>
+                            {% for day in week %}
+                            <td class="tf-cal-cell">
+                                {% if day != 0 %}
+                                <div class="tf-cal-day-num mb-1">{{ day }}</div>
+                                {% for e in events_by_day.get(day, []) %}
+                                <div class="tf-cal-event-pill" style="border-left-color: {{ event_colors.get(e.event_type, '#64748b') }};">
+                                    <span class="fw-semibold">{{ event_labels.get(e.event_type, e.event_type) }}</span>
+                                    {% if e.related_irrigation_id or e.related_well_id %}
+                                    <span class="badge text-bg-secondary ms-1" style="font-size:.6rem">{{ _("↔") }}</span>
+                                    {% endif %}
+                                    {% if e.notes %}<div class="text-muted">{{ e.notes }}</div>{% endif %}
+                                </div>
+                                {% endfor %}
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {# ══════════════════════════════════════════════════════════════════
+       YEAR VIEW
+    ══════════════════════════════════════════════════════════════════ #}
+    {% else %}
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <a class="btn btn-outline-secondary btn-sm"
+           href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}&year={{ selected_year - 1 }}&view=year">
+            &laquo; {{ selected_year - 1 }}
+        </a>
+        <span class="fw-semibold fs-5">{{ selected_year }}</span>
+        <a class="btn btn-outline-secondary btn-sm"
+           href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}&year={{ selected_year + 1 }}&view=year">
+            {{ selected_year + 1 }} &raquo;
+        </a>
+    </div>
+
+    <div class="row g-3">
+        {% for m in range(1, 13) %}
+        {% set grid = year_grids[m] %}
+        {% set ebd = events_by_month_day[m] %}
+        {% set total = ebd.values() | sum(start=[]) | list | length %}
+        <div class="col-md-4 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header py-2 d-flex justify-content-between align-items-center
+                            {% if m == selected_month %}bg-primary text-white{% else %}bg-light{% endif %}">
+                    <a href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}&year={{ selected_year }}&month={{ m }}&view=month"
+                       class="fw-semibold text-decoration-none {% if m == selected_month %}text-white{% endif %}">
+                        {{ month_names[m] }}
+                    </a>
+                    {% if total > 0 %}
+                    <span class="badge {% if m == selected_month %}text-bg-light{% else %}text-bg-primary{% endif %}">
+                        {{ total }}
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="card-body p-2 tf-mini-cal">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>L</th><th>M</th><th>X</th><th>J</th><th>V</th><th>S</th><th>D</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for week in grid %}
+                            <tr>
+                                {% for day in week %}
+                                <td>
+                                    {% if day != 0 %}
+                                    {% set has_events = ebd.get(day, []) | length > 0 %}
+                                    {% if has_events %}
+                                    {% set day_events = ebd.get(day, []) %}
+                                    {% set ns = namespace(types=[]) %}
+                                    {% for evt in day_events %}
+                                        {% if evt.event_type not in ns.types %}
+                                            {% set _ = ns.types.append(evt.event_type) %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    <a href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}&year={{ selected_year }}&month={{ m }}&view=month"
+                                       class="text-decoration-none d-flex flex-column align-items-center gap-1"
+                                       title="{{ day_events | length }} {{ _('evento(s)') }} · {{ ns.types | length }} {{ _('tipo(s)') }}">
+                                        <span>{{ day }}</span>
+                                        <span class="tf-dot-row">
+                                            {% for event_type in ns.types[:6] %}
+                                            <span class="tf-dot" style="background: {{ event_colors.get(event_type, '#2563eb') }};"></span>
+                                            {% endfor %}
+                                        </span>
+                                    </a>
+                                    {% else %}
+                                    <span class="text-muted">{{ day }}</span>
+                                    {% endif %}
+                                    {% endif %}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(() => {
+    const form = document.querySelector('form[action="/plot-events/calendar-view"]');
+    if (!form) return;
+
+    const autoSubmitSelects = form.querySelectorAll('.tf-autosubmit-select');
+    autoSubmitSelects.forEach((select) => {
+        select.addEventListener('change', () => form.submit());
+    });
+})();
+</script>
+{% endblock %}

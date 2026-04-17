@@ -1,0 +1,691 @@
+from __future__ import annotations
+
+import datetime
+from collections import defaultdict
+from typing import Optional
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.income import Income
+from app.models.irrigation import IrrigationRecord
+from app.models.plot import Plot
+from app.models.plot_event import PlotEvent
+from app.models.well import Well
+from app.schemas.plot_event import EventType
+from app.utils import campaign_year
+
+
+def _campaign_end_date(year: int) -> datetime.date:
+    return datetime.date(year + 1, 4, 30)
+
+
+def _safe_ratio(numerator: float, denominator: float) -> Optional[float]:
+    if denominator <= 0:
+        return None
+    return numerator / denominator
+
+
+def _days_since_last(
+    last_date: Optional[datetime.date], campaign_year_value: int
+) -> Optional[int]:
+    if last_date is None:
+        return None
+    return (_campaign_end_date(campaign_year_value) - last_date).days
+
+
+def _split_by_quantiles(rows: list[dict], metric_key: str) -> tuple[float, float]:
+    sorted_rows = sorted(rows, key=lambda row: row[metric_key])
+    n = len(sorted_rows)
+    low_cut = sorted_rows[max(int(n * 0.33) - 1, 0)][metric_key]
+    high_cut = sorted_rows[max(int(n * 0.66) - 1, 0)][metric_key]
+    return low_cut, high_cut
+
+
+def _water_band_summary(rows: list[dict]) -> list[dict]:
+    if not rows:
+        return []
+
+    low_cut, high_cut = _split_by_quantiles(rows, "total_water_m3")
+    bands = defaultdict(list)
+    for row in rows:
+        water = row["total_water_m3"]
+        if water <= low_cut:
+            band = "bajo"
+        elif water <= high_cut:
+            band = "medio"
+        else:
+            band = "alto"
+        bands[band].append(row["total_production_kg"])
+
+    summary = []
+    for key in ("bajo", "medio", "alto"):
+        values = bands.get(key, [])
+        summary.append(
+            {
+                "band": key,
+                "count": len(values),
+                "avg_production_kg": round(sum(values) / len(values), 3)
+                if values
+                else 0.0,
+            }
+        )
+    return summary
+
+
+def _build_plot_insights(dataset: list[dict]) -> dict:
+    if not dataset:
+        return {
+            "status": "no_data",
+            "messages": ["Sin campañas con datos para esta parcela."],
+            "best_campaign_year": None,
+            "best_campaign_production_kg": None,
+        }
+
+    best_row = max(dataset, key=lambda row: row["total_production_kg"])
+    avg_production = sum(row["total_production_kg"] for row in dataset) / len(dataset)
+    avg_water = sum(row["total_water_m3"] for row in dataset) / len(dataset)
+
+    trend = "stable"
+    if len(dataset) >= 2:
+        first = dataset[0]["total_production_kg"]
+        last = dataset[-1]["total_production_kg"]
+        if last > first:
+            trend = "up"
+        elif last < first:
+            trend = "down"
+
+    messages = [
+        f"Campaña con mayor producción: {best_row['campaign_year']} ({round(best_row['total_production_kg'], 3)} kg).",
+        f"Producción media: {round(avg_production, 3)} kg por campaña.",
+        f"Riego medio: {round(avg_water, 3)} m3 por campaña.",
+    ]
+
+    if len(dataset) < 3:
+        messages.append(
+            "Muestra limitada: conviene al menos 3 campañas para conclusiones robustas."
+        )
+
+    return {
+        "status": "ok",
+        "messages": messages,
+        "best_campaign_year": best_row["campaign_year"],
+        "best_campaign_production_kg": round(best_row["total_production_kg"], 3),
+        "average_production_kg": round(avg_production, 3),
+        "average_water_m3": round(avg_water, 3),
+        "trend": trend,
+    }
+
+
+async def get_plot_detail_context(
+    db: AsyncSession,
+    user_id: int,
+    plot_id: int,
+    *,
+    campaign_from: Optional[int] = None,
+    campaign_to: Optional[int] = None,
+) -> Optional[dict]:
+    plot_result = await db.execute(
+        select(Plot).where(Plot.id == plot_id, Plot.user_id == user_id)
+    )
+    plot = plot_result.scalar_one_or_none()
+    if plot is None:
+        return None
+
+    dataset = await get_campaign_dataset(
+        db,
+        user_id,
+        campaign_from=campaign_from,
+        campaign_to=campaign_to,
+        plot_ids=[plot_id],
+    )
+
+    labels = [row["campaign_year"] for row in dataset]
+    production_series = [row["total_production_kg"] for row in dataset]
+    water_series = [row["total_water_m3"] for row in dataset]
+    pruning_series = [row["pruning_events_count"] for row in dataset]
+    tilling_series = [row["tilling_events_count"] for row in dataset]
+    digging_series = [row["digging_events_count"] for row in dataset]
+
+    scatter_points = [
+        {
+            "x": row["total_water_m3"],
+            "y": row["total_production_kg"],
+            "campaign_year": row["campaign_year"],
+        }
+        for row in dataset
+        if row["total_water_m3"] > 0 and row["total_production_kg"] > 0
+    ]
+
+    insights = _build_plot_insights(dataset)
+
+    return {
+        "plot": plot,
+        "dataset": dataset,
+        "labels": labels,
+        "production_series": production_series,
+        "water_series": water_series,
+        "pruning_series": pruning_series,
+        "tilling_series": tilling_series,
+        "digging_series": digging_series,
+        "scatter_points": scatter_points,
+        "insights": insights,
+    }
+
+
+async def get_campaign_dataset(
+    db: AsyncSession,
+    user_id: int,
+    *,
+    campaign_from: Optional[int] = None,
+    campaign_to: Optional[int] = None,
+    plot_ids: Optional[list[int]] = None,
+) -> list[dict]:
+    plots_stmt = select(Plot).where(Plot.user_id == user_id)
+    if plot_ids:
+        plots_stmt = plots_stmt.where(Plot.id.in_(plot_ids))
+    plots_result = await db.execute(plots_stmt.order_by(Plot.name))
+    plots = plots_result.scalars().all()
+
+    if not plots:
+        return []
+
+    plot_map = {plot.id: plot for plot in plots}
+
+    incomes_result = await db.execute(
+        select(Income).where(
+            Income.user_id == user_id, Income.plot_id.in_(plot_map.keys())
+        )
+    )
+    incomes = incomes_result.scalars().all()
+
+    irrigation_result = await db.execute(
+        select(IrrigationRecord).where(
+            IrrigationRecord.user_id == user_id,
+            IrrigationRecord.plot_id.in_(plot_map.keys()),
+        )
+    )
+    irrigation_records = irrigation_result.scalars().all()
+
+    wells_result = await db.execute(
+        select(Well).where(Well.user_id == user_id, Well.plot_id.in_(plot_map.keys()))
+    )
+    wells = wells_result.scalars().all()
+
+    events_result = await db.execute(
+        select(PlotEvent).where(
+            PlotEvent.user_id == user_id,
+            PlotEvent.plot_id.in_(plot_map.keys()),
+        )
+    )
+    events = events_result.scalars().all()
+
+    agg: dict[tuple[int, int], dict] = {}
+
+    def get_row(plot_id: int, cy: int) -> dict:
+        key = (plot_id, cy)
+        if key not in agg:
+            plot = plot_map[plot_id]
+            agg[key] = {
+                "user_id": user_id,
+                "plot_id": plot_id,
+                "plot_name": plot.name,
+                "campaign_year": cy,
+                "num_plants": plot.num_plants,
+                "has_irrigation": plot.has_irrigation,
+                "total_production_kg": 0.0,
+                "production_kg_per_plant": None,
+                "total_water_m3": 0.0,
+                "total_water_liters": 0.0,
+                "irrigation_events_count": 0,
+                "water_m3_per_plant": None,
+                "pruning_events_count": 0,
+                "tilling_events_count": 0,
+                "digging_events_count": 0,
+                "days_since_last_pruning": None,
+                "days_since_last_tilling": None,
+                "days_since_last_digging": None,
+                "well_events_count": 0,
+                "wells_per_plant_total": 0,
+                "_last_pruning": None,
+                "_last_tilling": None,
+                "_last_digging": None,
+            }
+        return agg[key]
+
+    for income in incomes:
+        if income.plot_id is None:
+            continue
+        cy = campaign_year(income.date)
+        row = get_row(income.plot_id, cy)
+        row["total_production_kg"] += income.amount_kg
+
+    for item in irrigation_records:
+        cy = campaign_year(item.date)
+        row = get_row(item.plot_id, cy)
+        row["total_water_m3"] += item.water_m3
+        row["irrigation_events_count"] += 1
+
+    for item in wells:
+        cy = campaign_year(item.date)
+        row = get_row(item.plot_id, cy)
+        row["well_events_count"] += 1
+        row["wells_per_plant_total"] += item.wells_per_plant
+
+    for event in events:
+        cy = campaign_year(event.date)
+        row = get_row(event.plot_id, cy)
+        if event.event_type == EventType.PODA.value:
+            row["pruning_events_count"] += 1
+            row["_last_pruning"] = max(filter(None, [row["_last_pruning"], event.date]))
+        elif event.event_type == EventType.LABRADO.value:
+            row["tilling_events_count"] += 1
+            row["_last_tilling"] = max(filter(None, [row["_last_tilling"], event.date]))
+        elif event.event_type == EventType.PICADO.value:
+            row["digging_events_count"] += 1
+            row["_last_digging"] = max(filter(None, [row["_last_digging"], event.date]))
+
+    rows = list(agg.values())
+
+    for row in rows:
+        row["total_production_kg"] = round(row["total_production_kg"], 3)
+        row["total_water_m3"] = round(row["total_water_m3"], 3)
+        row["total_water_liters"] = round(row["total_water_m3"] * 1000, 1)
+
+        row["production_kg_per_plant"] = _safe_ratio(
+            row["total_production_kg"], float(row["num_plants"])
+        )
+        if row["production_kg_per_plant"] is not None:
+            row["production_kg_per_plant"] = round(row["production_kg_per_plant"], 5)
+
+        row["water_m3_per_plant"] = _safe_ratio(
+            row["total_water_m3"], float(row["num_plants"])
+        )
+        if row["water_m3_per_plant"] is not None:
+            row["water_m3_per_plant"] = round(row["water_m3_per_plant"], 5)
+
+        row["days_since_last_pruning"] = _days_since_last(
+            row["_last_pruning"], row["campaign_year"]
+        )
+        row["days_since_last_tilling"] = _days_since_last(
+            row["_last_tilling"], row["campaign_year"]
+        )
+        row["days_since_last_digging"] = _days_since_last(
+            row["_last_digging"], row["campaign_year"]
+        )
+
+        row.pop("_last_pruning", None)
+        row.pop("_last_tilling", None)
+        row.pop("_last_digging", None)
+
+    if campaign_from is not None:
+        rows = [row for row in rows if row["campaign_year"] >= campaign_from]
+    if campaign_to is not None:
+        rows = [row for row in rows if row["campaign_year"] <= campaign_to]
+
+    rows.sort(key=lambda item: (item["campaign_year"], item["plot_name"]))
+    return rows
+
+
+async def get_irrigation_vs_production_analysis(
+    db: AsyncSession,
+    user_id: int,
+    *,
+    campaign_from: Optional[int] = None,
+    campaign_to: Optional[int] = None,
+    plot_ids: Optional[list[int]] = None,
+) -> dict:
+    rows = await get_campaign_dataset(
+        db,
+        user_id,
+        campaign_from=campaign_from,
+        campaign_to=campaign_to,
+        plot_ids=plot_ids,
+    )
+
+    pairs = [
+        row
+        for row in rows
+        if row["total_water_m3"] > 0 and row["total_production_kg"] > 0
+    ]
+
+    if not pairs:
+        return {
+            "sample_size": 0,
+            "avg_water_m3": 0.0,
+            "avg_production_kg": 0.0,
+            "water_bands": [],
+        }
+
+    avg_water = sum(row["total_water_m3"] for row in pairs) / len(pairs)
+    avg_production = sum(row["total_production_kg"] for row in pairs) / len(pairs)
+
+    water_bands = _water_band_summary(pairs)
+
+    return {
+        "sample_size": len(pairs),
+        "avg_water_m3": round(avg_water, 3),
+        "avg_production_kg": round(avg_production, 3),
+        "water_bands": water_bands,
+    }
+
+
+async def get_pruning_vs_production_analysis(
+    db: AsyncSession,
+    user_id: int,
+    *,
+    campaign_from: Optional[int] = None,
+    campaign_to: Optional[int] = None,
+    plot_ids: Optional[list[int]] = None,
+) -> dict:
+    rows = await get_campaign_dataset(
+        db,
+        user_id,
+        campaign_from=campaign_from,
+        campaign_to=campaign_to,
+        plot_ids=plot_ids,
+    )
+    pairs = [row for row in rows if row["total_production_kg"] > 0]
+
+    with_pruning = [
+        row["total_production_kg"] for row in pairs if row["pruning_events_count"] > 0
+    ]
+    without_pruning = [
+        row["total_production_kg"] for row in pairs if row["pruning_events_count"] == 0
+    ]
+
+    avg_with = round(sum(with_pruning) / len(with_pruning), 3) if with_pruning else 0.0
+    avg_without = (
+        round(sum(without_pruning) / len(without_pruning), 3)
+        if without_pruning
+        else 0.0
+    )
+
+    delta = None
+    if avg_without > 0:
+        delta = round(((avg_with - avg_without) / avg_without) * 100, 3)
+
+    return {
+        "sample_size": len(pairs),
+        "with_pruning_count": len(with_pruning),
+        "without_pruning_count": len(without_pruning),
+        "avg_production_with_pruning": avg_with,
+        "avg_production_without_pruning": avg_without,
+        "delta_percent": delta,
+    }
+
+
+async def get_tilling_digging_vs_production_analysis(
+    db: AsyncSession,
+    user_id: int,
+    *,
+    campaign_from: Optional[int] = None,
+    campaign_to: Optional[int] = None,
+    plot_ids: Optional[list[int]] = None,
+) -> dict:
+    rows = await get_campaign_dataset(
+        db,
+        user_id,
+        campaign_from=campaign_from,
+        campaign_to=campaign_to,
+        plot_ids=plot_ids,
+    )
+    pairs = [row for row in rows if row["total_production_kg"] > 0]
+
+    groups = {
+        "sin_labrado_ni_picado": [],
+        "solo_labrado": [],
+        "solo_picado": [],
+        "labrado_y_picado": [],
+    }
+    for row in pairs:
+        has_tilling = row["tilling_events_count"] > 0
+        has_digging = row["digging_events_count"] > 0
+        if has_tilling and has_digging:
+            group_key = "labrado_y_picado"
+        elif has_tilling:
+            group_key = "solo_labrado"
+        elif has_digging:
+            group_key = "solo_picado"
+        else:
+            group_key = "sin_labrado_ni_picado"
+        groups[group_key].append(row["total_production_kg"])
+
+    summary = []
+    for key in (
+        "sin_labrado_ni_picado",
+        "solo_labrado",
+        "solo_picado",
+        "labrado_y_picado",
+    ):
+        values = groups[key]
+        summary.append(
+            {
+                "group": key,
+                "count": len(values),
+                "avg_production_kg": round(sum(values) / len(values), 3)
+                if values
+                else 0.0,
+            }
+        )
+
+    return {
+        "sample_size": len(pairs),
+        "groups": summary,
+    }
+
+
+async def detect_irrigation_thresholds(
+    db: AsyncSession,
+    user_id: int,
+    *,
+    campaign_from: Optional[int] = None,
+    campaign_to: Optional[int] = None,
+    plot_ids: Optional[list[int]] = None,
+) -> dict:
+    rows = await get_campaign_dataset(
+        db,
+        user_id,
+        campaign_from=campaign_from,
+        campaign_to=campaign_to,
+        plot_ids=plot_ids,
+    )
+    pairs = [
+        row
+        for row in rows
+        if row["total_water_m3"] > 0 and row["total_production_kg"] > 0
+    ]
+    if len(pairs) < 3:
+        return {
+            "sample_size": len(pairs),
+            "status": "insufficient_data",
+            "plateau_start_m3": None,
+            "marginal_gains": [],
+        }
+
+    sorted_pairs = sorted(pairs, key=lambda row: row["total_water_m3"])
+    marginal_gains: list[dict] = []
+    plateau_start = None
+
+    for previous, current in zip(sorted_pairs, sorted_pairs[1:]):
+        water_delta = current["total_water_m3"] - previous["total_water_m3"]
+        production_delta = (
+            current["total_production_kg"] - previous["total_production_kg"]
+        )
+        gain_per_m3 = None
+        if water_delta > 0:
+            gain_per_m3 = round(production_delta / water_delta, 5)
+            if plateau_start is None and gain_per_m3 <= 0.02:
+                plateau_start = current["total_water_m3"]
+
+        marginal_gains.append(
+            {
+                "from_water_m3": previous["total_water_m3"],
+                "to_water_m3": current["total_water_m3"],
+                "water_delta": round(water_delta, 3),
+                "production_delta": round(production_delta, 3),
+                "gain_per_m3": gain_per_m3,
+            }
+        )
+
+    return {
+        "sample_size": len(pairs),
+        "status": "ok",
+        "plateau_start_m3": plateau_start,
+        "water_bands": _water_band_summary(pairs),
+        "marginal_gains": marginal_gains,
+    }
+
+
+async def get_multi_plot_comparison(
+    db: AsyncSession,
+    user_id: int,
+    *,
+    campaign_from: Optional[int] = None,
+    campaign_to: Optional[int] = None,
+    plot_ids: Optional[list[int]] = None,
+) -> dict:
+    dataset = await get_campaign_dataset(
+        db,
+        user_id,
+        campaign_from=campaign_from,
+        campaign_to=campaign_to,
+        plot_ids=plot_ids,
+    )
+
+    points = [
+        {
+            "x": row["total_water_m3"],
+            "y": row["total_production_kg"],
+            "plot_id": row["plot_id"],
+            "plot_name": row["plot_name"],
+            "campaign_year": row["campaign_year"],
+            "kg_per_m3": round(row["total_production_kg"] / row["total_water_m3"], 5)
+            if row["total_water_m3"] > 0
+            else None,
+        }
+        for row in dataset
+        if row["total_water_m3"] > 0 and row["total_production_kg"] > 0
+    ]
+
+    ranking_map: dict[int, dict] = {}
+    for point in points:
+        item = ranking_map.setdefault(
+            point["plot_id"],
+            {
+                "plot_id": point["plot_id"],
+                "plot_name": point["plot_name"],
+                "sample_size": 0,
+                "total_production_kg": 0.0,
+                "total_water_m3": 0.0,
+            },
+        )
+        item["sample_size"] += 1
+        item["total_production_kg"] += point["y"]
+        item["total_water_m3"] += point["x"]
+
+    ranking = []
+    for item in ranking_map.values():
+        kg_per_m3 = None
+        if item["total_water_m3"] > 0:
+            kg_per_m3 = round(item["total_production_kg"] / item["total_water_m3"], 5)
+        ranking.append(
+            {
+                **item,
+                "total_production_kg": round(item["total_production_kg"], 3),
+                "total_water_m3": round(item["total_water_m3"], 3),
+                "kg_per_m3": kg_per_m3,
+            }
+        )
+
+    ranking.sort(
+        key=lambda row: (
+            row["kg_per_m3"] is None,
+            -(row["kg_per_m3"] or 0.0),
+            row["plot_name"],
+        )
+    )
+
+    return {
+        "sample_size": len(points),
+        "plots_included": len(ranking),
+        "points": points,
+        "efficiency_ranking": ranking,
+    }
+
+
+async def get_multi_plot_comparison(
+    db: AsyncSession,
+    user_id: int,
+    *,
+    campaign_from: Optional[int] = None,
+    campaign_to: Optional[int] = None,
+    plot_ids: Optional[list[int]] = None,
+) -> dict:
+    dataset = await get_campaign_dataset(
+        db,
+        user_id,
+        campaign_from=campaign_from,
+        campaign_to=campaign_to,
+        plot_ids=plot_ids,
+    )
+
+    points = [
+        {
+            "x": row["total_water_m3"],
+            "y": row["total_production_kg"],
+            "plot_id": row["plot_id"],
+            "plot_name": row["plot_name"],
+            "campaign_year": row["campaign_year"],
+            "kg_per_m3": round(row["total_production_kg"] / row["total_water_m3"], 5)
+            if row["total_water_m3"] > 0
+            else None,
+        }
+        for row in dataset
+        if row["total_water_m3"] > 0 and row["total_production_kg"] > 0
+    ]
+
+    ranking_map: dict[int, dict] = {}
+    for point in points:
+        item = ranking_map.setdefault(
+            point["plot_id"],
+            {
+                "plot_id": point["plot_id"],
+                "plot_name": point["plot_name"],
+                "sample_size": 0,
+                "total_production_kg": 0.0,
+                "total_water_m3": 0.0,
+            },
+        )
+        item["sample_size"] += 1
+        item["total_production_kg"] += point["y"]
+        item["total_water_m3"] += point["x"]
+
+    ranking = []
+    for item in ranking_map.values():
+        kg_per_m3 = None
+        if item["total_water_m3"] > 0:
+            kg_per_m3 = round(item["total_production_kg"] / item["total_water_m3"], 5)
+        ranking.append(
+            {
+                **item,
+                "total_production_kg": round(item["total_production_kg"], 3),
+                "total_water_m3": round(item["total_water_m3"], 3),
+                "kg_per_m3": kg_per_m3,
+            }
+        )
+
+    ranking.sort(
+        key=lambda row: (
+            row["kg_per_m3"] is None,
+            -(row["kg_per_m3"] or 0.0),
+            row["plot_name"],
+        )
+    )
+
+    return {
+        "sample_size": len(points),
+        "plots_included": len(ranking),
+        "points": points,
+        "efficiency_ranking": ranking,
+    }

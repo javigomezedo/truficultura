@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -137,21 +137,26 @@ async def test_create_well() -> None:
     db.flush = AsyncMock()
     db.execute = AsyncMock(return_value=result([plot]))
 
-    well = await create_well(
-        db,
-        user_id=1,
-        data=WellCreate(
-            plot_id=1,
-            date=datetime.date(2025, 6, 15),
-            wells_per_plant=5,
-            expense_id=None,
-            notes="Test",
-        ),
-    )
+    with patch(
+        "app.services.plot_events_service.sync_plot_event_from_well",
+        new=AsyncMock(),
+    ) as sync_mock:
+        well = await create_well(
+            db,
+            user_id=1,
+            data=WellCreate(
+                plot_id=1,
+                date=datetime.date(2025, 6, 15),
+                wells_per_plant=5,
+                expense_id=None,
+                notes="Test",
+            ),
+        )
 
     assert well.user_id == 1
     assert well.wells_per_plant == 5
     db.add.assert_called_once()
+    sync_mock.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -168,20 +173,25 @@ async def test_update_well() -> None:
     db = MagicMock()
     db.flush = AsyncMock()
 
-    updated_well = await update_well(
-        db,
-        record=existing_well,
-        data=WellUpdate(
-            plot_id=None,
-            date=datetime.date(2025, 6, 16),
-            wells_per_plant=10,
-            expense_id=None,
-            notes="Updated",
-        ),
-    )
+    with patch(
+        "app.services.plot_events_service.sync_plot_event_from_well",
+        new=AsyncMock(),
+    ) as sync_mock:
+        updated_well = await update_well(
+            db,
+            record=existing_well,
+            data=WellUpdate(
+                plot_id=None,
+                date=datetime.date(2025, 6, 16),
+                wells_per_plant=10,
+                expense_id=None,
+                notes="Updated",
+            ),
+        )
 
     assert updated_well.plot_id == 1
     assert updated_well.wells_per_plant == 10
+    sync_mock.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -200,7 +210,12 @@ async def test_delete_well() -> None:
     db.delete = AsyncMock()
     db.flush = AsyncMock()
 
-    await delete_well(db, 1, user_id=1)
+    with patch(
+        "app.services.plot_events_service.delete_plot_event_for_well",
+        new=AsyncMock(),
+    ) as delete_event_mock:
+        await delete_well(db, 1, user_id=1)
 
     db.delete.assert_awaited_once_with(well)
     db.flush.assert_awaited_once()
+    delete_event_mock.assert_awaited_once_with(db, 1, 1)
