@@ -1,7 +1,10 @@
 from contextlib import asynccontextmanager
+import binascii
+import json
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
+from itsdangerous import BadSignature, BadTimeSignature, SignatureExpired
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
@@ -111,6 +114,31 @@ async def locale_middleware(request: Request, call_next):
     set_locale(locale)
     response = await call_next(request)
     return response
+
+
+@app.middleware("http")
+async def recover_invalid_session_cookie(request: Request, call_next):
+    """Recover gracefully if a stale/corrupted signed session cookie is received.
+
+    This can happen across deployments when a client keeps an old cookie that
+    can no longer be decoded. Instead of returning a 500, clear the session
+    cookie and force re-authentication.
+    """
+    try:
+        return await call_next(request)
+    except (
+        BadSignature,
+        BadTimeSignature,
+        SignatureExpired,
+        binascii.Error,
+        json.JSONDecodeError,
+        UnicodeDecodeError,
+    ):
+        if "session" not in request.cookies:
+            raise
+        response = RedirectResponse(url="/login", status_code=303)
+        response.delete_cookie("session")
+        return response
 
 
 @app.post("/set-language", response_class=RedirectResponse)
