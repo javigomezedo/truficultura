@@ -1,7 +1,7 @@
 import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 class PlotBase(BaseModel):
@@ -17,8 +17,16 @@ class PlotBase(BaseModel):
     production_start: Optional[datetime.date] = None
     percentage: float = 0.0
     has_irrigation: bool = False
+    water_flow_lps: Optional[float] = None
     provincia_cod: Optional[str] = None
     municipio_cod: Optional[str] = None
+
+    @field_validator("water_flow_lps")
+    @classmethod
+    def validate_water_flow_lps(cls, value: Optional[float]) -> Optional[float]:
+        if value is not None and value <= 0:
+            raise ValueError("water_flow_lps must be greater than 0")
+        return value
 
 
 class PlotCreate(PlotBase):
@@ -38,8 +46,16 @@ class PlotUpdate(BaseModel):
     production_start: Optional[datetime.date] = None
     percentage: Optional[float] = None
     has_irrigation: Optional[bool] = None
+    water_flow_lps: Optional[float] = None
     provincia_cod: Optional[str] = None
     municipio_cod: Optional[str] = None
+
+    @field_validator("water_flow_lps")
+    @classmethod
+    def validate_water_flow_lps(cls, value: Optional[float]) -> Optional[float]:
+        if value is not None and value <= 0:
+            raise ValueError("water_flow_lps must be greater than 0")
+        return value
 
 
 class PlotResponse(PlotBase):

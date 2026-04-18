@@ -86,6 +86,7 @@ def test_create_plot_redirects_and_maps_irrigation(monkeypatch) -> None:
                 "planting_date": "2020-03-15",
                 "num_plants": "100",
                 "has_irrigation": "true",
+                "water_flow_lps": "2.2",
             },
             follow_redirects=False,
         )
@@ -95,6 +96,7 @@ def test_create_plot_redirects_and_maps_irrigation(monkeypatch) -> None:
     assert response.status_code == 303
     assert "Parcela+creada+correctamente" in response.headers["location"]
     assert create_mock.await_args.kwargs["has_irrigation"] is True
+    assert create_mock.await_args.kwargs["water_flow_lps"] == 2.2
 
 
 def test_create_plot_redirects_in_english_when_locale_changes(monkeypatch) -> None:
@@ -221,6 +223,32 @@ def test_update_plot_redirects_and_maps_irrigation_false(monkeypatch) -> None:
     assert response.status_code == 303
     assert "Parcela+actualizada+correctamente" in response.headers["location"]
     assert update_mock.await_args.kwargs["has_irrigation"] is False
+    assert update_mock.await_args.kwargs["water_flow_lps"] is None
+
+
+def test_create_plot_redirects_with_validation_message(monkeypatch) -> None:
+    fake_db = _db()
+    create_mock = AsyncMock(side_effect=ValueError("Caudal inválido"))
+    monkeypatch.setattr("app.routers.plots.create_plot_service", create_mock)
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = lambda: fake_db
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/plots/",
+            data={
+                "name": "Bancal Sur",
+                "planting_date": "2020-03-15",
+                "num_plants": "100",
+                "has_irrigation": "true",
+            },
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert response.headers["location"].startswith("/plots/new?msg=")
 
 
 def test_delete_plot_redirects(monkeypatch) -> None:

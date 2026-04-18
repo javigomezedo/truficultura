@@ -10,6 +10,13 @@ from app.models.plant import Plant
 from app.models.plot import Plot
 
 
+def _validate_irrigation_flow(has_irrigation: bool, water_flow_lps: Optional[float]) -> None:
+    if has_irrigation and water_flow_lps is None:
+        raise ValueError("El caudal de riego (L/s) es obligatorio cuando la parcela tiene riego")
+    if water_flow_lps is not None and water_flow_lps <= 0:
+        raise ValueError("El caudal de riego (L/s) debe ser mayor que 0")
+
+
 async def list_plots(db: AsyncSession, user_id: int) -> list[Plot]:
     result = await db.execute(
         select(Plot).where(Plot.user_id == user_id).order_by(Plot.name)
@@ -72,9 +79,12 @@ async def create_plot(
     area_ha: Optional[float],
     production_start: Optional[datetime.date],
     has_irrigation: bool = False,
+    water_flow_lps: Optional[float] = None,
     provincia_cod: Optional[str] = None,
     municipio_cod: Optional[str] = None,
 ) -> Plot:
+    _validate_irrigation_flow(has_irrigation, water_flow_lps)
+
     new_plot = Plot(
         user_id=user_id,
         name=name,
@@ -89,6 +99,7 @@ async def create_plot(
         production_start=production_start,
         percentage=0.0,
         has_irrigation=has_irrigation,
+        water_flow_lps=water_flow_lps,
         provincia_cod=provincia_cod or None,
         municipio_cod=municipio_cod or None,
     )
@@ -116,9 +127,12 @@ async def update_plot(
     area_ha: Optional[float],
     production_start: Optional[datetime.date],
     has_irrigation: bool = False,
+    water_flow_lps: Optional[float] = None,
     provincia_cod: Optional[str] = None,
     municipio_cod: Optional[str] = None,
 ) -> Plot:
+    _validate_irrigation_flow(has_irrigation, water_flow_lps)
+
     plot.name = name
     plot.polygon = polygon
     plot.plot_num = plot_num
@@ -130,6 +144,7 @@ async def update_plot(
     plot.area_ha = area_ha
     plot.production_start = production_start
     plot.has_irrigation = has_irrigation
+    plot.water_flow_lps = water_flow_lps
     plot.provincia_cod = provincia_cod or None
     plot.municipio_cod = municipio_cod or None
     await db.flush()

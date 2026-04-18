@@ -66,6 +66,7 @@ async def test_create_update_delete_plot() -> None:
         planting_date=datetime.date(2021, 2, 3),
         area_ha=1.5,
         production_start=datetime.date(2024, 1, 1),
+        water_flow_lps=2.5,
         provincia_cod="44",
         municipio_cod="223",
     )
@@ -74,6 +75,7 @@ async def test_create_update_delete_plot() -> None:
     db.flush.assert_awaited()
     assert created.name == "Bancal Sur"
     assert created.plot_num == "42"
+    assert created.water_flow_lps == 2.5
     assert created.provincia_cod == "44"
     assert created.municipio_cod == "223"
 
@@ -90,12 +92,14 @@ async def test_create_update_delete_plot() -> None:
         planting_date=datetime.date(2021, 3, 3),
         area_ha=1.8,
         production_start=datetime.date(2024, 2, 1),
+        water_flow_lps=3.0,
         provincia_cod="44",
         municipio_cod="224",
     )
 
     assert updated.name == "Bancal Sur 2"
     assert updated.plot_num == "43"
+    assert updated.water_flow_lps == 3.0
     assert updated.provincia_cod == "44"
     assert updated.municipio_cod == "224"
 
@@ -125,3 +129,55 @@ async def test_get_plant_counts_by_plot_empty() -> None:
     counts = await get_plant_counts_by_plot(db, user_id=99)
 
     assert counts == {}
+
+
+@pytest.mark.asyncio
+async def test_create_plot_requires_water_flow_when_irrigation_enabled() -> None:
+    db = MagicMock()
+    db.flush = AsyncMock()
+
+    with pytest.raises(ValueError, match="obligatorio"):
+        await create_plot(
+            db,
+            user_id=1,
+            name="Bancal Este",
+            polygon="2",
+            plot_num="11",
+            cadastral_ref="",
+            hydrant="",
+            sector="",
+            num_plants=10,
+            planting_date=datetime.date(2020, 1, 1),
+            area_ha=1.0,
+            production_start=None,
+            has_irrigation=True,
+            water_flow_lps=None,
+            provincia_cod=None,
+            municipio_cod=None,
+        )
+
+
+@pytest.mark.asyncio
+async def test_create_plot_rejects_non_positive_water_flow() -> None:
+    db = MagicMock()
+    db.flush = AsyncMock()
+
+    with pytest.raises(ValueError, match="mayor que 0"):
+        await create_plot(
+            db,
+            user_id=1,
+            name="Bancal Este",
+            polygon="2",
+            plot_num="11",
+            cadastral_ref="",
+            hydrant="",
+            sector="",
+            num_plants=10,
+            planting_date=datetime.date(2020, 1, 1),
+            area_ha=1.0,
+            production_start=None,
+            has_irrigation=True,
+            water_flow_lps=0,
+            provincia_cod=None,
+            municipio_cod=None,
+        )

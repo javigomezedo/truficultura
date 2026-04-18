@@ -73,3 +73,24 @@ def test_sqlalchemy_database_url_removes_sslmode_key():
 
     assert "sslmode=" not in settings.SQLALCHEMY_DATABASE_URL
     assert settings.SQLALCHEMY_DATABASE_URL.endswith("connect_timeout=10&ssl=require")
+
+
+def test_aemet_settings_defaults():
+    settings = Settings(SECRET_KEY="secret")
+
+    assert settings.AEMET_BASE_URL == "https://opendata.aemet.es/opendata/api"
+    assert settings.AEMET_TIMEOUT_SECONDS == 30.0
+    assert settings.AEMET_API_KEY is None
+
+
+def test_aemet_settings_override_values():
+    settings = Settings(
+        SECRET_KEY="secret",
+        AEMET_API_KEY="abc123",
+        AEMET_BASE_URL="https://example.test/aemet",
+        AEMET_TIMEOUT_SECONDS=12.5,
+    )
+
+    assert settings.AEMET_API_KEY == "abc123"
+    assert settings.AEMET_BASE_URL == "https://example.test/aemet"
+    assert settings.AEMET_TIMEOUT_SECONDS == 12.5

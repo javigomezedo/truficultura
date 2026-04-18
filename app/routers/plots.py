@@ -66,28 +66,36 @@ async def create_plot(
     area_ha: Optional[float] = Form(None),
     production_start: Optional[datetime.date] = Form(None),
     has_irrigation: Optional[str] = Form(None),
+    water_flow_lps: Optional[float] = Form(None),
     provincia_cod: Optional[str] = Form(None),
     municipio_cod: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_user),
 ):
-    await create_plot_service(
-        db,
-        user_id=current_user.id,
-        name=name,
-        polygon=polygon,
-        plot_num=plot_num,
-        cadastral_ref=cadastral_ref,
-        hydrant=hydrant,
-        sector=sector,
-        num_plants=num_plants,
-        planting_date=planting_date,
-        area_ha=area_ha,
-        production_start=production_start,
-        has_irrigation=has_irrigation == "true",
-        provincia_cod=provincia_cod or None,
-        municipio_cod=municipio_cod or None,
-    )
+    try:
+        await create_plot_service(
+            db,
+            user_id=current_user.id,
+            name=name,
+            polygon=polygon,
+            plot_num=plot_num,
+            cadastral_ref=cadastral_ref,
+            hydrant=hydrant,
+            sector=sector,
+            num_plants=num_plants,
+            planting_date=planting_date,
+            area_ha=area_ha,
+            production_start=production_start,
+            has_irrigation=has_irrigation == "true",
+            water_flow_lps=water_flow_lps,
+            provincia_cod=provincia_cod or None,
+            municipio_cod=municipio_cod or None,
+        )
+    except ValueError as exc:
+        return RedirectResponse(
+            url=f"/plots/new?msg={quote_plus(str(exc))}",
+            status_code=303,
+        )
     return RedirectResponse(
         url=f"/plots/?msg={quote_plus(_('Parcela creada correctamente'))}",
         status_code=303,
@@ -134,6 +142,7 @@ async def update_plot(
     area_ha: Optional[float] = Form(None),
     production_start: Optional[datetime.date] = Form(None),
     has_irrigation: Optional[str] = Form(None),
+    water_flow_lps: Optional[float] = Form(None),
     provincia_cod: Optional[str] = Form(None),
     municipio_cod: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
@@ -146,23 +155,30 @@ async def update_plot(
             status_code=303,
         )
 
-    await update_plot_service(
-        db,
-        obj,
-        name=name,
-        polygon=polygon,
-        plot_num=plot_num,
-        cadastral_ref=cadastral_ref,
-        hydrant=hydrant,
-        sector=sector,
-        num_plants=num_plants,
-        planting_date=planting_date,
-        area_ha=area_ha,
-        production_start=production_start,
-        has_irrigation=has_irrigation == "true",
-        provincia_cod=provincia_cod or None,
-        municipio_cod=municipio_cod or None,
-    )
+    try:
+        await update_plot_service(
+            db,
+            obj,
+            name=name,
+            polygon=polygon,
+            plot_num=plot_num,
+            cadastral_ref=cadastral_ref,
+            hydrant=hydrant,
+            sector=sector,
+            num_plants=num_plants,
+            planting_date=planting_date,
+            area_ha=area_ha,
+            production_start=production_start,
+            has_irrigation=has_irrigation == "true",
+            water_flow_lps=water_flow_lps,
+            provincia_cod=provincia_cod or None,
+            municipio_cod=municipio_cod or None,
+        )
+    except ValueError as exc:
+        return RedirectResponse(
+            url=f"/plots/{plot_id}/edit?msg={quote_plus(str(exc))}",
+            status_code=303,
+        )
     return RedirectResponse(
         url=f"/plots/?msg={quote_plus(_('Parcela actualizada correctamente'))}",
         status_code=303,

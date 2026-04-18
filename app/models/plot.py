@@ -39,6 +39,7 @@ class Plot(Base):
     )
     percentage: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     has_irrigation: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    water_flow_lps: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     provincia_cod: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
     municipio_cod: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
 
