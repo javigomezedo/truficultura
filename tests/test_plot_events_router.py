@@ -184,6 +184,26 @@ def test_plot_events_create_redirects(monkeypatch) -> None:
     assert create_mock.await_count == 1
 
 
+def test_plot_events_new_form_prefills_plot_and_date_from_query(monkeypatch) -> None:
+    fake_db = _db()
+    monkeypatch.setattr(
+        "app.routers.plot_events._get_all_plots",
+        AsyncMock(return_value=[SimpleNamespace(id=2, name="Parcela 2")]),
+    )
+
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = lambda: fake_db
+    try:
+        client = TestClient(app)
+        response = client.get("/plot-events/new?date=2025-06-20&plot_id=2")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert 'value="2025-06-20"' in response.text
+    assert '<option value="2" selected>' in response.text
+
+
 def test_plot_events_edit_not_found_redirects(monkeypatch) -> None:
     fake_db = _db()
     monkeypatch.setattr(
@@ -471,6 +491,76 @@ def test_plot_events_calendar_view_renders(monkeypatch) -> None:
 
     assert response.status_code == 200
     assert "Calendario de eventos" in response.text
+
+
+def test_plot_events_calendar_view_day_cells_link_to_new_form(monkeypatch) -> None:
+    fake_db = _db()
+    monkeypatch.setattr(
+        "app.routers.plot_events.get_plot_events", AsyncMock(return_value=[])
+    )
+    monkeypatch.setattr(
+        "app.routers.plot_events._get_all_plots", AsyncMock(return_value=[])
+    )
+
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = lambda: fake_db
+    try:
+        client = TestClient(app)
+        response = client.get("/plot-events/calendar-view?year=2025&month=6&plot_id=2")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert "/plot-events/new?date=2025-06-20&plot_id=2" in response.text
+
+
+def test_plot_events_calendar_view_day_links_preserve_event_type_filters(
+    monkeypatch,
+) -> None:
+    fake_db = _db()
+    monkeypatch.setattr(
+        "app.routers.plot_events.get_plot_events", AsyncMock(return_value=[])
+    )
+    monkeypatch.setattr(
+        "app.routers.plot_events._get_all_plots", AsyncMock(return_value=[])
+    )
+
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = lambda: fake_db
+    try:
+        client = TestClient(app)
+        response = client.get(
+            "/plot-events/calendar-view?year=2025&month=6&plot_id=2&event_type=poda"
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert "/plot-events/new?date=2025-06-20&plot_id=2&event_type=poda" in response.text
+
+
+def test_plot_events_calendar_view_highlights_today(monkeypatch) -> None:
+    fake_db = _db()
+    today = datetime.date.today()
+    monkeypatch.setattr(
+        "app.routers.plot_events.get_plot_events", AsyncMock(return_value=[])
+    )
+    monkeypatch.setattr(
+        "app.routers.plot_events._get_all_plots", AsyncMock(return_value=[])
+    )
+
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = lambda: fake_db
+    try:
+        client = TestClient(app)
+        response = client.get(
+            f"/plot-events/calendar-view?year={today.year}&month={today.month}"
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert "tf-cal-cell--today" in response.text
 
 
 def test_plot_events_calendar_view_renders_event_type_filter_and_passes_it(

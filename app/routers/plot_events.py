@@ -5,7 +5,7 @@ import datetime
 from typing import Optional
 from urllib.parse import quote_plus, urlencode
 
-from fastapi import APIRouter, Depends, Form, Query, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
@@ -52,14 +52,8 @@ MONTH_LABELS = {
     12: _("Diciembre"),
 }
 
-EVENT_LABELS = {
-    EventType.LABRADO.value: _("Labrado"),
-    EventType.PICADO.value: _("Picado"),
-    EventType.PODA.value: _("Poda"),
-    EventType.VALLADO.value: _("Vallado"),
-    EventType.INSTALLED_DRIP.value: _("Instalación de riego"),
-    EventType.RIEGO.value: _("Riego"),
-    EventType.POZO.value: _("Pozo"),
+EVENT_LABEL_OVERRIDES = {
+    EventType.INSTALLED_DRIP.value: _("Instalación de Riego"),
 }
 
 EVENT_COLORS = {
@@ -105,6 +99,16 @@ def _parse_optional_int(value: Optional[str]) -> Optional[int]:
         return None
 
 
+def _event_type_label(event_type: str) -> str:
+    return EVENT_LABEL_OVERRIDES.get(
+        event_type, event_type.replace("_", " ").capitalize()
+    )
+
+
+def _event_labels_map() -> dict[str, str]:
+    return {item.value: _event_type_label(item.value) for item in EventType}
+
+
 async def _get_all_plots(db: AsyncSession, user_id: int) -> list[Plot]:
     result = await db.execute(
         select(Plot).where(Plot.user_id == user_id).order_by(Plot.name)
@@ -126,6 +130,7 @@ async def list_view(
     campaign: Optional[str] = Query(default=None),
     event_type: Optional[list[str]] = Query(default=None),
     msg: Optional[str] = None,
+    msg_type: str = Query(default="success"),
 ):
     selected_plot = _parse_optional_int(plot_id)
     selected_campaign = _parse_optional_int(campaign)
@@ -167,6 +172,7 @@ async def list_view(
         )
 
     plots = await _get_all_plots(db, current_user.id)
+    event_labels = _event_labels_map()
 
     return templates.TemplateResponse(
         request,
@@ -176,11 +182,13 @@ async def list_view(
             "records": records,
             "plots": plots,
             "event_types": [item.value for item in EventType],
+            "event_labels": event_labels,
             "campaign_options": campaign_options,
             "selected_campaign": selected_campaign,
             "selected_plot": selected_plot,
             "selected_event_types": [item.value for item in event_types or []],
             "msg": msg,
+            "msg_type": msg_type,
         },
     )
 
@@ -273,6 +281,7 @@ async def calendar_view(
     event_type: Optional[list[str]] = Query(default=None),
     view: str = Query(default="month"),
     msg: Optional[str] = None,
+    msg_type: str = Query(default="success"),
 ):
     parsed_plot_id: Optional[int] = None
     if plot_id and plot_id.strip():
@@ -297,6 +306,7 @@ async def calendar_view(
         plot_id=plot_id,
         event_types=event_types,
     )
+    event_labels = _event_labels_map()
     plots = await _get_all_plots(db, current_user.id)
 
     selected_event_types = [item.value for item in event_types or []]
@@ -356,6 +366,8 @@ async def calendar_view(
         year_options.append(selected_year)
         year_options.sort()
 
+    today = datetime.date.today()
+
     return templates.TemplateResponse(
         request,
         "eventos_parcela/calendar.html",
@@ -380,12 +392,16 @@ async def calendar_view(
             "month_names": MONTH_LABELS,
             "month_options": list(range(1, 13)),
             "year_options": year_options,
-            "event_labels": EVENT_LABELS,
+            "event_labels": event_labels,
             "event_colors": EVENT_COLORS,
             "event_types": [item.value for item in EventType],
             "selected_event_types": selected_event_types,
+            "today_year": today.year,
+            "today_month": today.month,
+            "today_day": today.day,
             "nav_query": nav_query,
             "msg": msg,
+            "msg_type": msg_type,
         },
     )
 
@@ -395,8 +411,40 @@ async def new_form(
     request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_user),
+    date: Optional[datetime.date] = Query(default=None),
+    plot_id: Optional[str] = Query(default=None),
+    event_type: Optional[list[str]] = Query(default=None),
+    view_mode: str = Query(default="list"),
 ):
+    selected_plot = _parse_optional_int(plot_id)
+    event_types = _parse_event_types(event_type)
+    selected_event_types = [item.value for item in event_types or []]
+
+    focus_date = date or datetime.date.today()
+
+    # Determine view mode for back button
+    if view_mode not in ("month", "year", "list"):
+        view_mode = "list"
+
+    if view_mode == "year":
+        back_view = "year"
+    else:
+        back_view = "month"
+
+    back_params = {
+        "plot_id": selected_plot or "",
+        "year": focus_date.year,
+        "month": focus_date.month,
+        "view": back_view,
+    }
+    if selected_event_types:
+        back_params["event_type"] = selected_event_types
+    back_to_calendar_url = (
+        f"/plot-events/calendar-view?{urlencode(back_params, doseq=True)}"
+    )
+
     plots = await _get_all_plots(db, current_user.id)
+    event_labels = _event_labels_map()
     return templates.TemplateResponse(
         request,
         "eventos_parcela/form.html",
@@ -404,7 +452,13 @@ async def new_form(
             "request": request,
             "record": None,
             "plots": plots,
+            "selected_plot": selected_plot,
+            "selected_date": date,
+            "selected_event_types": selected_event_types,
+            "back_to_calendar_url": back_to_calendar_url,
+            "view_mode": view_mode,
             "event_types": MANUAL_EVENT_TYPES,
+            "event_labels": event_labels,
             "action": "/plot-events/",
         },
     )
@@ -417,6 +471,7 @@ async def create_view(
     event_type: str = Form(...),
     date: datetime.date = Form(...),
     notes: Optional[str] = Form(None),
+    view_mode: str = Form(default="list"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_user),
 ):
@@ -426,12 +481,29 @@ async def create_view(
         date=date,
         notes=notes or None,
     )
-    await create_plot_event(db, current_user.id, data)
+    try:
+        await create_plot_event(db, current_user.id, data)
+    except HTTPException as e:
+        # Capture validation errors and redirect with error message
+        if view_mode == "month":
+            redirect_url = f"/plot-events/calendar-view?year={date.year}&month={date.month}&msg={quote_plus(e.detail)}&msg_type=error"
+        elif view_mode == "year":
+            redirect_url = f"/plot-events/calendar-view?year={date.year}&view=year&msg={quote_plus(e.detail)}&msg_type=error"
+        else:  # list
+            redirect_url = (
+                f"/plot-events/list?msg={quote_plus(e.detail)}&msg_type=error"
+            )
+        return RedirectResponse(url=redirect_url, status_code=303)
 
-    return RedirectResponse(
-        url=f"/plot-events/list?msg={quote_plus(_('Evento registrado correctamente'))}",
-        status_code=303,
-    )
+    # Determine redirect URL based on view_mode
+    if view_mode == "month":
+        redirect_url = f"/plot-events/calendar-view?year={date.year}&month={date.month}&msg={quote_plus(_('Evento registrado correctamente'))}&msg_type=success"
+    elif view_mode == "year":
+        redirect_url = f"/plot-events/calendar-view?year={date.year}&view=year&msg={quote_plus(_('Evento registrado correctamente'))}&msg_type=success"
+    else:  # list
+        redirect_url = f"/plot-events/list?msg={quote_plus(_('Evento registrado correctamente'))}&msg_type=success"
+
+    return RedirectResponse(url=redirect_url, status_code=303)
 
 
 @router.get("/{event_id}/edit", response_class=HTMLResponse)
@@ -454,6 +526,7 @@ async def edit_form(
         )
 
     plots = await _get_all_plots(db, current_user.id)
+    event_labels = _event_labels_map()
     return templates.TemplateResponse(
         request,
         "eventos_parcela/form.html",
@@ -462,6 +535,7 @@ async def edit_form(
             "record": record,
             "plots": plots,
             "event_types": MANUAL_EVENT_TYPES,
+            "event_labels": event_labels,
             "action": f"/plot-events/{event_id}/edit",
         },
     )
@@ -480,12 +554,12 @@ async def update_view(
     record = await get_plot_event(db, event_id, current_user.id)
     if record is None:
         return RedirectResponse(
-            url=f"/plot-events/list?msg={quote_plus(_('Evento no encontrado'))}",
+            url=f"/plot-events/list?msg={quote_plus(_('Evento no encontrado'))}&msg_type=error",
             status_code=303,
         )
     if _is_linked_event(record):
         return RedirectResponse(
-            url=f"/plot-events/list?msg={quote_plus(_('Este evento está enlazado y no se puede editar desde aquí'))}",
+            url=f"/plot-events/list?msg={quote_plus(_('Este evento está enlazado y no se puede editar desde aquí'))}&msg_type=error",
             status_code=303,
         )
 
@@ -494,10 +568,17 @@ async def update_view(
         date=date,
         notes=notes or None,
     )
-    await update_plot_event(db, record, data)
+    try:
+        await update_plot_event(db, record, data)
+    except HTTPException as e:
+        # Capture validation errors and redirect with error message
+        return RedirectResponse(
+            url=f"/plot-events/list?msg={quote_plus(e.detail)}&msg_type=error",
+            status_code=303,
+        )
 
     return RedirectResponse(
-        url=f"/plot-events/list?msg={quote_plus(_('Evento actualizado correctamente'))}",
+        url=f"/plot-events/list?msg={quote_plus(_('Evento actualizado correctamente'))}&msg_type=success",
         status_code=303,
     )
 
@@ -512,12 +593,12 @@ async def delete_view(
     record = await get_plot_event(db, event_id, current_user.id)
     if record is not None and _is_linked_event(record):
         return RedirectResponse(
-            url=f"/plot-events/list?msg={quote_plus(_('Este evento está enlazado y no se puede eliminar desde aquí'))}",
+            url=f"/plot-events/list?msg={quote_plus(_('Este evento está enlazado y no se puede eliminar desde aquí'))}&msg_type=error",
             status_code=303,
         )
 
     await delete_plot_event(db, event_id, current_user.id)
     return RedirectResponse(
-        url=f"/plot-events/list?msg={quote_plus(_('Evento eliminado correctamente'))}",
+        url=f"/plot-events/list?msg={quote_plus(_('Evento eliminado correctamente'))}&msg_type=success",
         status_code=303,
     )

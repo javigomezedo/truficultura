@@ -14,7 +14,7 @@
                 {% if record %}{{ _("Editar evento") }}{% else %}{{ _("Nuevo evento") }}{% endif %}
             </h1>
         </div>
-        <a href="/plot-events/" class="btn btn-outline-secondary">
+        <a href="{{ back_to_calendar_url if back_to_calendar_url else '/plot-events/' }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-1"></i>{{ _("Volver al listado") }}
         </a>
     </div>
@@ -24,13 +24,14 @@
             <div class="card tf-panel shadow-sm border-0">
                 <div class="card-body p-4">
                     <form action="{{ action }}" method="post">
+                        <input type="hidden" name="view_mode" value="{{ view_mode }}">
                         {% if not record %}
                         <div class="mb-3">
                             <label class="form-label fw-semibold">{{ _("Parcela") }} <span class="text-danger">*</span></label>
                             <select class="form-select" name="plot_id" required>
                                 <option value="">{{ _("— Selecciona una parcela —") }}</option>
                                 {% for p in plots %}
-                                <option value="{{ p.id }}">{{ p.name }}</option>
+                                <option value="{{ p.id }}" {% if selected_plot and selected_plot == p.id %}selected{% endif %}>{{ p.name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -42,14 +43,14 @@
                                 <select class="form-select" name="event_type" required>
                                     {% for event_type in event_types %}
                                     <option value="{{ event_type.value if event_type.value is defined else event_type }}" {% if record and record.event_type == (event_type.value if event_type.value is defined else event_type) %}selected{% endif %}>
-                                        {{ event_type.value if event_type.value is defined else event_type }}
+                                        {{ event_labels.get((event_type.value if event_type.value is defined else event_type), (event_type.value if event_type.value is defined else event_type).replace('_', ' ')|capitalize) }}
                                     </option>
                                     {% endfor %}
                                 </select>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">{{ _("Fecha") }} <span class="text-danger">*</span></label>
-                                <input class="form-control" type="date" name="date" value="{{ record.date.isoformat() if record else '' }}" required>
+                                <input class="form-control" type="date" name="date" value="{{ record.date.isoformat() if record else (selected_date.isoformat() if selected_date else '') }}" required>
                             </div>
                             <div class="col-12">
                                 <label class="form-label fw-semibold">{{ _("Notas") }}</label>

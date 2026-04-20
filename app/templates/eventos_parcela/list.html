@@ -42,14 +42,14 @@
                     <i class="bi bi-list-ul me-1"></i>{{ _("Lista") }}
                 </a>
             </div>
-            <a href="/plot-events/new" class="btn btn-primary">
+            <a href="/plot-events/new?view_mode=list" class="btn btn-sm btn-primary">
                 <i class="bi bi-plus-circle me-1"></i>{{ _("Nuevo evento") }}
             </a>
         </div>
     </div>
 
     {% if msg %}
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
+    <div class="alert {% if msg_type == 'error' %}alert-danger{% else %}alert-success{% endif %} alert-dismissible fade show" role="alert">
         {{ _(msg) }}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
@@ -97,7 +97,7 @@
                                        value="{{ event_type }}"
                                        id="event-type-{{ loop.index }}"
                                        {% if event_type in selected_event_types %}checked{% endif %}>
-                                <label class="form-check-label" for="event-type-{{ loop.index }}">{{ event_type }}</label>
+                                <label class="form-check-label" for="event-type-{{ loop.index }}">{{ event_labels.get(event_type, event_type.replace('_', ' ')|capitalize) }}</label>
                             </div>
                             {% endfor %}
                         </div>
@@ -108,27 +108,7 @@
                         {% endfor %}
                     </div>
                 </div>
-                <div class="d-flex flex-wrap gap-2 ms-lg-auto">
-                    <a class="btn btn-sm btn-outline-secondary" href="/plot-events/list">{{ _("Limpiar") }}</a>
-                    <button
-                        class="btn btn-sm btn-outline-secondary"
-                        type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#eventsAdvancedMode"
-                        aria-expanded="false"
-                        aria-controls="eventsAdvancedMode"
-                    >
-                        <i class="bi bi-sliders me-1"></i>{{ _("Modo avanzado") }}
-                    </button>
-                </div>
             </form>
-
-            <div class="collapse mt-2" id="eventsAdvancedMode">
-                <div class="alert alert-light border mb-0 py-2 px-3">
-                    <div class="small text-muted mb-2">{{ _("Opciones técnicas") }}</div>
-                    <a class="btn btn-sm btn-outline-secondary" href="/plot-events/calendar/?plot_id={{ selected_plot or '' }}">{{ _("Ver calendario (JSON)") }}</a>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -152,7 +132,7 @@
                             <td class="text-nowrap">{{ r.date.strftime('%d/%m/%Y') }}</td>
                             <td>{{ r.plot.name if r.plot else '—' }}</td>
                             <td>
-                                {{ r.event_type }}
+                                {{ event_labels.get(r.event_type, r.event_type.replace('_', ' ')|capitalize) }}
                                 {% if r.related_irrigation_id or r.related_well_id %}
                                 <span class="badge text-bg-secondary ms-2">{{ _("enlazado") }}</span>
                                 {% endif %}
