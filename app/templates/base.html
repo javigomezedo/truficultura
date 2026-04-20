@@ -265,7 +265,7 @@
     </nav>
 
     <!-- Flash message -->
-    {% if msg %}
+    {% if msg and (msg_type|default('success')) != 'error' %}
     <div class="alert alert-success alert-dismissible fade show alert-flash" role="alert" id="flashMsg">
         <i class="bi bi-check-circle-fill me-2"></i>{{ msg | replace('+', ' ') }}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ _('Cerrar') }}"></button>

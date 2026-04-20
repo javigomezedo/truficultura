@@ -33,6 +33,96 @@
     .tf-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #2563eb; }
     .tf-legend-item { display: inline-flex; align-items: center; gap: .4rem; margin-right: .9rem; margin-bottom: .35rem; font-size: .82rem; }
     .tf-legend-swatch { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .tf-filter-item--type {
+        flex: 0 1 16rem;
+        min-width: 14rem;
+    }
+    .tf-type-menu {
+        max-height: 260px;
+        overflow-y: auto;
+        padding: .55rem .9rem;
+    }
+    .tf-type-menu .form-check {
+        padding-left: 1.75rem;
+        margin-bottom: .35rem;
+    }
+    .tf-type-menu .form-check:last-child {
+        margin-bottom: 0;
+    }
+    .tf-type-menu .form-check .form-check-input {
+        margin-left: -1.55rem;
+    }
+    .tf-filter-item--type .dropdown-menu {
+        width: 100%;
+        min-width: 100%;
+        max-width: 100%;
+    }
+    .tf-filter-item--type .dropdown-toggle {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .tf-day-add-link { color: inherit; text-decoration: none; }
+    .tf-day-add-link:hover { text-decoration: underline; }
+    .tf-calendar-filters-card {
+        position: relative;
+        z-index: 40;
+    }
+    .tf-calendar-content-card {
+        position: relative;
+        z-index: 1;
+    }
+    .tf-cal-cell--today {
+        background: #fff7ed;
+        box-shadow: inset 0 0 0 2px #fb923c;
+    }
+    .tf-day-current {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 1.35rem;
+        height: 1.35rem;
+        border-radius: 999px;
+        background: #ea580c;
+        color: #fff;
+        font-weight: 700;
+    }
+    .tf-mini-day-current {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.2rem;
+        height: 1.2rem;
+        border-radius: 999px;
+        border: 1px solid #ea580c;
+        background: #fff7ed;
+        color: #9a3412;
+        font-weight: 700;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        .tf-cal-cell--today {
+            background: rgba(251, 146, 60, 0.2);
+            box-shadow: inset 0 0 0 2px #fdba74;
+        }
+        .tf-day-current {
+            background: #fdba74;
+            color: #431407;
+            box-shadow: 0 0 0 1px rgba(67, 20, 7, 0.35);
+        }
+        .tf-mini-day-current {
+            border-color: #fdba74;
+            background: #431407;
+            color: #fed7aa;
+        }
+    }
+
+    @media (max-width: 991.98px) {
+        .tf-filter-item--type {
+            flex: 1 1 100%;
+            min-width: 0;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -76,14 +166,14 @@
     </div>
 
     {% if msg %}
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
+    <div class="alert {% if msg_type == 'error' %}alert-danger{% else %}alert-success{% endif %} alert-dismissible fade show" role="alert">
         {{ _(msg) }}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     {% endif %}
 
     {# ── filters ──────────────────────────────────────────────────────── #}
-    <div class="card tf-panel tf-filters-card shadow-sm mb-3 border-0">
+    <div class="card tf-panel tf-panel-overflow-visible tf-filters-card tf-calendar-filters-card shadow-sm mb-3 border-0">
         <div class="card-body py-3">
             <form method="get" action="/plot-events/calendar-view" class="tf-filters-form">
                 <input type="hidden" name="view" value="{{ view }}">
@@ -112,7 +202,7 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="tf-filter-item">
+                <div class="tf-filter-item tf-filter-item--type">
                     <label class="form-label">{{ _("Tipo") }}</label>
                     <div class="dropdown w-100" data-bs-auto-close="outside">
                         <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 text-start"
@@ -133,7 +223,7 @@
                                        value="{{ event_type }}"
                                        id="calendar-event-type-{{ loop.index }}"
                                        {% if event_type in selected_event_types %}checked{% endif %}>
-                                <label class="form-check-label" for="calendar-event-type-{{ loop.index }}">{{ event_type }}</label>
+                                <label class="form-check-label" for="calendar-event-type-{{ loop.index }}">{{ event_labels.get(event_type, event_type.replace('_', ' ')|capitalize) }}</label>
                             </div>
                             {% endfor %}
                         </div>
@@ -177,7 +267,7 @@
         </a>
     </div>
 
-    <div class="card tf-panel shadow-sm border-0">
+    <div class="card tf-panel tf-calendar-content-card shadow-sm border-0">
         <div class="card-body p-2">
             <div class="table-responsive">
                 <table class="table table-bordered align-middle mb-0">
@@ -190,9 +280,16 @@
                         {% for week in month_grid %}
                         <tr>
                             {% for day in week %}
-                            <td class="tf-cal-cell">
+                            <td class="tf-cal-cell{% if day != 0 and selected_year == today_year and selected_month == today_month and day == today_day %} tf-cal-cell--today{% endif %}">
                                 {% if day != 0 %}
-                                <div class="tf-cal-day-num mb-1">{{ day }}</div>
+                                {% set day_iso = '%04d-%02d-%02d'|format(selected_year, selected_month, day) %}
+                                <div class="tf-cal-day-num mb-1">
+                                    <a class="tf-day-add-link"
+                                       href="/plot-events/new?date={{ day_iso }}{% if selected_plot %}&plot_id={{ selected_plot }}{% endif %}{% for t in selected_event_types %}&event_type={{ t }}{% endfor %}&view_mode=month"
+                                       title="{{ _('Añadir evento en esta fecha') }}">
+                                        <span class="{% if selected_year == today_year and selected_month == today_month and day == today_day %}tf-day-current{% endif %}">{{ day }}</span>
+                                    </a>
+                                </div>
                                 {% for e in events_by_day.get(day, []) %}
                                 <div class="tf-cal-event-pill" style="border-left-color: {{ event_colors.get(e.event_type, '#64748b') }};">
                                     <span class="fw-semibold">{{ event_labels.get(e.event_type, e.event_type) }}</span>
@@ -262,6 +359,7 @@
                                 {% for day in week %}
                                 <td>
                                     {% if day != 0 %}
+                                    {% set day_iso = '%04d-%02d-%02d'|format(selected_year, m, day) %}
                                     {% set has_events = ebd.get(day, []) | length > 0 %}
                                     {% if has_events %}
                                     {% set day_events = ebd.get(day, []) %}
@@ -271,10 +369,10 @@
                                             {% set _ = ns.types.append(evt.event_type) %}
                                         {% endif %}
                                     {% endfor %}
-                                                <a href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}&year={{ selected_year }}&month={{ m }}&view=month{% for t in selected_event_types %}&event_type={{ t }}{% endfor %}"
+                                    <a href="/plot-events/new?date={{ day_iso }}{% if selected_plot %}&plot_id={{ selected_plot }}{% endif %}{% for t in selected_event_types %}&event_type={{ t }}{% endfor %}&view_mode=year"
                                        class="text-decoration-none d-flex flex-column align-items-center gap-1"
                                        title="{{ day_events | length }} {{ _('evento(s)') }} · {{ ns.types | length }} {{ _('tipo(s)') }}">
-                                        <span>{{ day }}</span>
+                                        <span class="{% if selected_year == today_year and m == today_month and day == today_day %}tf-mini-day-current{% endif %}">{{ day }}</span>
                                         <span class="tf-dot-row">
                                             {% for event_type in ns.types[:6] %}
                                             <span class="tf-dot" style="background: {{ event_colors.get(event_type, '#2563eb') }};"></span>
@@ -282,7 +380,11 @@
                                         </span>
                                     </a>
                                     {% else %}
-                                    <span class="text-muted">{{ day }}</span>
+                                    <a href="/plot-events/new?date={{ day_iso }}{% if selected_plot %}&plot_id={{ selected_plot }}{% endif %}{% for t in selected_event_types %}&event_type={{ t }}{% endfor %}&view_mode=year"
+                                       class="text-muted text-decoration-none"
+                                       title="{{ _('Añadir evento en esta fecha') }}">
+                                        <span class="{% if selected_year == today_year and m == today_month and day == today_day %}tf-mini-day-current{% endif %}">{{ day }}</span>
+                                    </a>
                                     {% endif %}
                                     {% endif %}
                                 </td>
