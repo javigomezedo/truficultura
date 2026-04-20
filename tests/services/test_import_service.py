@@ -13,6 +13,7 @@ from app.models.income import Income
 from app.models.plant import Plant
 from app.models.plot import Plot
 from app.models.plot_event import PlotEvent
+from app.models.recurring_expense import RecurringExpense
 from app.models.truffle_event import TruffleEvent
 from app.models.well import Well
 from app.services.import_service import (
@@ -22,6 +23,7 @@ from app.services.import_service import (
     import_irrigation_csv,
     import_plot_events_csv,
     import_plots_csv,
+    import_recurring_expenses_csv,
     import_truffles_csv,
     import_wells_csv,
 )
@@ -794,6 +796,9 @@ async def test_import_all_csv_zip_imports_supported_files(monkeypatch):
     async def fake_import_plot_events_csv(db, content: bytes, user_id: int):
         return [object(), object(), object()], []
 
+    async def fake_import_recurring_expenses_csv(db, content: bytes, user_id: int):
+        return [object()], []
+
     monkeypatch.setattr(
         "app.services.import_service.import_plots_csv", fake_import_plots_csv
     )
@@ -804,6 +809,10 @@ async def test_import_all_csv_zip_imports_supported_files(monkeypatch):
         "app.services.import_service.import_plot_events_csv",
         fake_import_plot_events_csv,
     )
+    monkeypatch.setattr(
+        "app.services.import_service.import_recurring_expenses_csv",
+        fake_import_recurring_expenses_csv,
+    )
 
     db = MagicMock()
     zip_content = _zip_bytes(
@@ -811,6 +820,7 @@ async def test_import_all_csv_zip_imports_supported_files(monkeypatch):
             "parcelas.csv": b"p",
             "gastos.csv": b"e",
             "labores.csv": b"l",
+            "gastos_recurrentes.csv": b"rec",
             "README.txt": b"ignored",
         }
     )
@@ -821,6 +831,7 @@ async def test_import_all_csv_zip_imports_supported_files(monkeypatch):
         "parcelas.csv": 2,
         "gastos.csv": 1,
         "labores.csv": 3,
+        "gastos_recurrentes.csv": 1,
     }
     assert len(warnings) == 1
     assert warnings[0].startswith("gastos.csv:")
@@ -847,3 +858,118 @@ async def test_import_all_csv_zip_without_supported_files_warns():
     assert imported_by_file == {}
     assert len(warnings) == 1
     assert "no contiene archivos CSV compatibles" in warnings[0]
+
+
+# ---------------------------------------------------------------------------
+# import_recurring_expenses_csv
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_import_recurring_expenses_csv_success():
+    plot = Plot(
+        id=5,
+        user_id=1,
+        name="Bancal Sur",
+        planting_date=datetime.date(2020, 1, 1),
+        percentage=100.0,
+    )
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([plot]))
+    db.add_all = MagicMock()
+
+    csv_content = b"Seguro finca;annual;Bancal Sur;Javi;Seguros;350,00;1\n"
+    rows, warnings = await import_recurring_expenses_csv(db, csv_content, user_id=1)
+
+    assert len(rows) == 1
+    assert len(warnings) == 0
+    r = rows[0]
+    assert r.description == "Seguro finca"
+    assert r.frequency == "annual"
+    assert r.plot_id == 5
+    assert r.person == "Javi"
+    assert r.category == "Seguros"
+    assert r.amount == 350.0
+    assert r.is_active is True
+    assert r.last_run_date is None
+
+
+@pytest.mark.asyncio
+async def test_import_recurring_expenses_csv_no_plot():
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+    db.add_all = MagicMock()
+
+    csv_content = b"Agua corriente;monthly;;;;25,50;0\n"
+    rows, warnings = await import_recurring_expenses_csv(db, csv_content, user_id=1)
+
+    assert len(rows) == 1
+    assert rows[0].plot_id is None
+    assert rows[0].frequency == "monthly"
+    assert rows[0].is_active is False
+
+
+@pytest.mark.asyncio
+async def test_import_recurring_expenses_csv_unknown_plot_warns():
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+    db.add_all = MagicMock()
+
+    csv_content = b"Gasto;monthly;Parcela Inexistente;Javi;Cat;100,00;1\n"
+    rows, warnings = await import_recurring_expenses_csv(db, csv_content, user_id=1)
+
+    assert len(rows) == 1
+    assert rows[0].plot_id is None
+    assert any("bancal" in w.lower() or "Parcela Inexistente" in w for w in warnings)
+
+
+@pytest.mark.asyncio
+async def test_import_recurring_expenses_csv_invalid_frequency_warns_and_defaults():
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+    db.add_all = MagicMock()
+
+    csv_content = b"Gasto;trimestral;;;Cat;50,00;1\n"
+    rows, warnings = await import_recurring_expenses_csv(db, csv_content, user_id=1)
+
+    assert len(rows) == 1
+    assert rows[0].frequency == "monthly"  # fallback
+    assert any("trimestral" in w for w in warnings)
+
+
+@pytest.mark.asyncio
+async def test_import_recurring_expenses_csv_empty_concepto_skips():
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+    db.add_all = MagicMock()
+
+    csv_content = b";monthly;;;Cat;50,00;1\n"
+    rows, warnings = await import_recurring_expenses_csv(db, csv_content, user_id=1)
+
+    assert len(rows) == 0
+    assert len(warnings) == 1
+
+
+@pytest.mark.asyncio
+async def test_import_recurring_expenses_csv_too_few_columns_skips():
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+    db.add_all = MagicMock()
+
+    csv_content = b"Gasto;monthly\n"
+    rows, warnings = await import_recurring_expenses_csv(db, csv_content, user_id=1)
+
+    assert len(rows) == 0
+    assert len(warnings) == 1
+
+
+@pytest.mark.asyncio
+async def test_import_recurring_expenses_csv_empty_file():
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+    db.add_all = MagicMock()
+
+    rows, warnings = await import_recurring_expenses_csv(db, b"", user_id=1)
+
+    assert rows == []
+    assert warnings == []

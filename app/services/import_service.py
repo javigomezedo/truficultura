@@ -16,6 +16,7 @@ from app.models.irrigation import IrrigationRecord
 from app.models.plant import Plant
 from app.models.plot import Plot
 from app.models.plot_event import PlotEvent
+from app.models.recurring_expense import FREQUENCIES, RecurringExpense
 from app.models.truffle_event import TruffleEvent
 from app.models.well import Well
 from app.utils import parse_row_config
@@ -693,6 +694,110 @@ async def import_plot_events_csv(
     return rows, warnings
 
 
+async def import_recurring_expenses_csv(
+    db: AsyncSession, content: bytes, user_id: int
+) -> tuple[list[RecurringExpense], list[str]]:
+    """Parse recurring expenses CSV and persist rows.
+
+    Expected format (semicolon-delimited, no header):
+        concepto;frecuencia;bancal;persona;categoria;cantidad;activo
+
+    - concepto:   description text
+    - frecuencia: weekly / monthly / annual
+    - bancal:     plot name (optional)
+    - persona:    person name (optional)
+    - categoria:  expense category (optional)
+    - cantidad:   amount in European format (e.g. 125,00)
+    - activo:     1 or 0 (optional, defaults to 1)
+    """
+    plots = await _load_plots(db, user_id)
+    rows: list[RecurringExpense] = []
+    warnings: list[str] = []
+
+    reader = csv.reader(io.StringIO(content.decode("utf-8")), delimiter=";")
+    for i, line in enumerate(reader, 1):
+        if not any(line):
+            continue
+        if len(line) < 6:
+            warnings.append(
+                _warning(
+                    "L\u00ednea {line}: se esperaban al menos 6 columnas, se recibieron {cols} \u2014 omitida",
+                    line=i,
+                    cols=len(line),
+                )
+            )
+            continue
+
+        concepto_s = line[0].strip()
+        frecuencia_s = line[1].strip().lower()
+        bancal_s = line[2].strip() if len(line) > 2 else ""
+        persona_s = line[3].strip() if len(line) > 3 else ""
+        categoria_s = line[4].strip() if len(line) > 4 else ""
+        cantidad_s = line[5].strip() if len(line) > 5 else "0"
+        activo_s = line[6].strip() if len(line) > 6 else "1"
+
+        if not concepto_s:
+            warnings.append(
+                _warning(
+                    "L\u00ednea {line}: el concepto est\u00e1 vac\u00edo \u2014 omitida",
+                    line=i,
+                )
+            )
+            continue
+
+        if frecuencia_s not in FREQUENCIES:
+            warnings.append(
+                _warning(
+                    "L\u00ednea {line}: frecuencia '{val}' desconocida, se usar\u00e1 'monthly'",
+                    line=i,
+                    val=frecuencia_s,
+                )
+            )
+            frecuencia_s = "monthly"
+
+        plot_id: Optional[int] = None
+        if bancal_s:
+            plot_id = plots.get(bancal_s.lower())
+            if plot_id is None:
+                warnings.append(
+                    _warning(
+                        "L\u00ednea {line}: bancal '{bancal}' no encontrado \u2014 se registra sin bancal",
+                        line=i,
+                        bancal=bancal_s,
+                    )
+                )
+
+        try:
+            amount = _parse_num(cantidad_s)
+        except (ValueError, AttributeError):
+            warnings.append(
+                _warning(
+                    "L\u00ednea {line}: cantidad '{val}' no es un n\u00famero v\u00e1lido \u2014 omitida",
+                    line=i,
+                    val=cantidad_s,
+                )
+            )
+            continue
+
+        is_active = activo_s != "0"
+
+        obj = RecurringExpense(
+            user_id=user_id,
+            description=concepto_s,
+            frequency=frecuencia_s,
+            plot_id=plot_id,
+            person=persona_s,
+            category=categoria_s or None,
+            amount=amount,
+            is_active=is_active,
+            last_run_date=None,
+        )
+        rows.append(obj)
+
+    db.add_all(rows)
+    return rows, warnings
+
+
 async def import_all_csv_zip(
     db: AsyncSession, content: bytes, user_id: int
 ) -> tuple[dict[str, int], list[str]]:
@@ -706,6 +811,7 @@ async def import_all_csv_zip(
     - pozos.csv
     - produccion.csv
     - labores.csv
+    - gastos_recurrentes.csv
     """
     try:
         zf = zipfile.ZipFile(io.BytesIO(content))
@@ -720,6 +826,7 @@ async def import_all_csv_zip(
         ("pozos.csv", import_wells_csv),
         ("produccion.csv", import_truffles_csv),
         ("labores.csv", import_plot_events_csv),
+        ("gastos_recurrentes.csv", import_recurring_expenses_csv),
     ]
 
     imported_by_file: dict[str, int] = {}

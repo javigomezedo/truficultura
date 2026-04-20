@@ -253,3 +253,36 @@ def test_upload_all_zip_renders_result(monkeypatch) -> None:
     assert "gastos.csv: aviso de prueba" in response.text
     assert "parcelas: 2" in response.text
     fake_db.commit.assert_awaited_once()
+
+
+def test_upload_recurring_expenses_renders_result(monkeypatch) -> None:
+    fake_db = _build_fake_db()
+
+    async def fake_import_recurring_expenses_csv(db, content: bytes, user_id: int):
+        return [object(), object()], []
+
+    monkeypatch.setattr(
+        "app.routers.imports.import_recurring_expenses_csv",
+        fake_import_recurring_expenses_csv,
+    )
+    app.dependency_overrides[require_user] = _override_user
+    app.dependency_overrides[get_db] = lambda: fake_db
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/import/recurring_expenses",
+            files={
+                "file": (
+                    "gastos_recurrentes.csv",
+                    b"Seguro finca;annual;Bancal Sur;Javi;Seguros;350,00;1",
+                    "text/csv",
+                )
+            },
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert "Importación de gastos recurrentes completada" in response.text
+    fake_db.commit.assert_awaited_once()

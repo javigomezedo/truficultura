@@ -123,6 +123,27 @@ def test_download_truffles_csv(monkeypatch) -> None:
     )
 
 
+def test_download_recurring_expenses_csv(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.routers.exports.export_recurring_expenses_csv",
+        AsyncMock(return_value=b"recurrentes"),
+    )
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = _db
+    try:
+        client = TestClient(app)
+        response = client.get("/export/recurring_expenses.csv")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.content == b"recurrentes"
+    assert (
+        response.headers["content-disposition"]
+        == "attachment; filename=gastos_recurrentes.csv"
+    )
+
+
 def test_download_all_csv_zip(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.routers.exports.export_all_csv_zip",

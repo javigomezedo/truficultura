@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from app.models.irrigation import IrrigationRecord
     from app.models.plot import Plot
     from app.models.plot_event import PlotEvent
+    from app.models.recurring_expense import RecurringExpense
     from app.models.well import Well
 
 
@@ -57,4 +58,7 @@ class User(Base):
     )
     plot_events: Mapped[List["PlotEvent"]] = relationship(
         "PlotEvent", back_populates="user", lazy="select"
+    )
+    recurring_expenses: Mapped[List["RecurringExpense"]] = relationship(
+        "RecurringExpense", back_populates="user", lazy="select"
     )
