@@ -408,13 +408,104 @@ async def test_import_plots_csv_with_map_config_calls_configure_map():
     mock_configure.assert_awaited_once()
 
 
-# ---------------------------------------------------------------------------
-# import_irrigation_csv
-# ---------------------------------------------------------------------------
+@pytest.mark.asyncio
+async def test_import_plots_csv_with_recinto_and_caudal_riego():
+    """Columns 12 and 13 are recinto and caudal_riego."""
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+    db.add_all = MagicMock()
+    db.flush = AsyncMock()
+
+    # nombre;fecha;pol;par;ref;hidrante;sector;plantas;ha;inicio;riego;mapa;recinto;caudal
+    content = _plots_csv(["Bancal Sur;01/01/2020;20;100;;;S1;50;;01/01/2023;0;;3;7,50"])
+
+    from unittest.mock import patch, AsyncMock as AM
+
+    with patch(
+        "app.services.plots_service._recalculate_percentages",
+        new=AM(return_value=None),
+    ):
+        rows, warnings = await import_plots_csv(db, content, user_id=1)
+
+    assert len(rows) == 1
+    assert rows[0].recinto == "3"
+    assert rows[0].caudal_riego == pytest.approx(7.5)
+    assert warnings == []
 
 
 @pytest.mark.asyncio
-async def test_import_irrigation_csv_success():
+async def test_import_plots_csv_recinto_caudal_backwards_compat():
+    """Old CSV with 11 columns (no recinto/caudal_riego) → defaults applied."""
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+    db.add_all = MagicMock()
+    db.flush = AsyncMock()
+
+    content = _plots_csv(["Bancal Sur;01/01/2020;20;100;;;S1;50;;01/01/2023;0"])
+
+    from unittest.mock import patch, AsyncMock as AM
+
+    with patch(
+        "app.services.plots_service._recalculate_percentages",
+        new=AM(return_value=None),
+    ):
+        rows, warnings = await import_plots_csv(db, content, user_id=1)
+
+    assert len(rows) == 1
+    assert rows[0].recinto == "1"  # default
+    assert rows[0].caudal_riego is None  # default
+    assert warnings == []
+
+
+@pytest.mark.asyncio
+async def test_import_plots_csv_with_provincia_municipio():
+    """Columns 14 and 15 are provincia_cod and municipio_cod."""
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+    db.add_all = MagicMock()
+    db.flush = AsyncMock()
+
+    # nombre;fecha;pol;par;ref;hidrante;sector;plantas;ha;inicio;riego;mapa;recinto;caudal;prov;mun
+    content = _plots_csv(
+        ["Bancal Sur;01/01/2020;20;100;;;S1;50;;01/01/2023;0;;1;;44;223"]
+    )
+
+    from unittest.mock import patch, AsyncMock as AM
+
+    with patch(
+        "app.services.plots_service._recalculate_percentages",
+        new=AM(return_value=None),
+    ):
+        rows, warnings = await import_plots_csv(db, content, user_id=1)
+
+    assert len(rows) == 1
+    assert rows[0].provincia_cod == "44"
+    assert rows[0].municipio_cod == "223"
+    assert warnings == []
+
+
+@pytest.mark.asyncio
+async def test_import_plots_csv_provincia_municipio_backwards_compat():
+    """Old CSV without provincia/municipio columns → both default to None."""
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+    db.add_all = MagicMock()
+    db.flush = AsyncMock()
+
+    content = _plots_csv(["Bancal Sur;01/01/2020;20;100;;;S1;50;;01/01/2023;0"])
+
+    from unittest.mock import patch, AsyncMock as AM
+
+    with patch(
+        "app.services.plots_service._recalculate_percentages",
+        new=AM(return_value=None),
+    ):
+        rows, warnings = await import_plots_csv(db, content, user_id=1)
+
+    assert len(rows) == 1
+    assert rows[0].provincia_cod is None
+    assert rows[0].municipio_cod is None
+    assert warnings == []
     plot = _make_plot(id=1, name="Bancal Sur", has_irrigation=True)
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([plot]))

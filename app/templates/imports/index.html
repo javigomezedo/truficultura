@@ -191,6 +191,10 @@
                                 <tr><td><code>inicio_produccion</code></td><td>{{ _("Inicio producción DD/MM/AAAA (opcional)") }}</td><td><code>01/11/2023</code></td></tr>
                                 <tr><td><code>tiene_riego</code></td><td>{{ _("Tiene riego (1=sí, 0=no, opcional)") }}</td><td><code>1</code></td></tr>
                                 <tr><td><code>config_mapa</code></td><td>{{ _("Configuración de mapa (opcional, formato A:1-4; B:2-5)") }}</td><td><code>A:1-4; B:2-5</code></td></tr>
+                                <tr><td><code>recinto</code></td><td>{{ _("Recinto SIGPAC (opcional, por defecto 1)") }}</td><td><code>1</code></td></tr>
+                                <tr><td><code>caudal_riego</code></td><td>{{ _("Caudal de riego en m³/h (opcional)") }}</td><td><code>7,5</code></td></tr>
+                                <tr><td><code>provincia_cod</code></td><td>{{ _("Código de provincia INE (opcional)") }}</td><td><code>44</code></td></tr>
+                                <tr><td><code>municipio_cod</code></td><td>{{ _("Código de municipio INE (opcional)") }}</td><td><code>223</code></td></tr>
                             </tbody>
                         </table>
                         <p class="text-muted small mb-0">
@@ -199,7 +203,7 @@
                         </p>
                         <div class="mt-3 rounded p-3 tf-sample-box tf-sample-box-primary">
                             <small class="text-muted d-block mb-1 fw-semibold">{{ _("Ejemplo de línea:") }}</small>
-                            <code class="small">Bancal Sur;15/03/2018;21;120;44223A021001200000FP;H-3;S2;120;1,25;01/11/2023;1;A:1-4; B:2-5</code>
+                            <code class="small">Bancal Sur;15/03/2018;21;120;44223A021001200000FP;H-3;S2;120;1,25;01/11/2023;1;A:1-4; B:2-5;1;7,5;44;223</code>
                         </div>
                     </div>
                 </div>

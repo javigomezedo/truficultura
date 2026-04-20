@@ -34,7 +34,15 @@ from tests.conftest import result
 # ---------------------------------------------------------------------------
 
 
-def _make_plot(id=1, name="Bancal Sur", has_irrigation=False):
+def _make_plot(
+    id=1,
+    name="Bancal Sur",
+    has_irrigation=False,
+    recinto="1",
+    caudal_riego=None,
+    provincia_cod=None,
+    municipio_cod=None,
+):
     return Plot(
         id=id,
         user_id=1,
@@ -50,6 +58,10 @@ def _make_plot(id=1, name="Bancal Sur", has_irrigation=False):
         production_start=datetime.date(2023, 11, 1),
         percentage=100.0,
         has_irrigation=has_irrigation,
+        recinto=recinto,
+        caudal_riego=caudal_riego,
+        provincia_cod=provincia_cod,
+        municipio_cod=municipio_cod,
     )
 
 
@@ -203,6 +215,10 @@ async def test_export_plots_csv_returns_correct_rows():
     assert row[9] == "01/11/2023"  # production_start
     assert row[10] == "1"  # has_irrigation=True
     assert row[11] == "A:1-2"  # map config
+    assert row[12] == "1"  # recinto default
+    assert row[13] == ""  # caudal_riego empty
+    assert row[14] == ""  # provincia_cod empty
+    assert row[15] == ""  # municipio_cod empty
 
 
 @pytest.mark.asyncio
@@ -215,6 +231,32 @@ async def test_export_plots_csv_has_irrigation_false():
     rows = _parse_csv(data)
 
     assert rows[0][10] == "0"
+
+
+@pytest.mark.asyncio
+async def test_export_plots_csv_with_caudal_riego():
+    plot = _make_plot(id=1, recinto="3", caudal_riego=4.75)
+    db = MagicMock()
+    db.execute = AsyncMock(side_effect=[result([plot]), result([])])
+
+    data = await export_plots_csv(db, user_id=1)
+    rows = _parse_csv(data)
+
+    assert rows[0][12] == "3"  # recinto
+    assert rows[0][13] == "4,75"  # caudal_riego EU format
+
+
+@pytest.mark.asyncio
+async def test_export_plots_csv_with_provincia_municipio():
+    plot = _make_plot(id=1, provincia_cod="44", municipio_cod="223")
+    db = MagicMock()
+    db.execute = AsyncMock(side_effect=[result([plot]), result([])])
+
+    data = await export_plots_csv(db, user_id=1)
+    rows = _parse_csv(data)
+
+    assert rows[0][14] == "44"  # provincia_cod
+    assert rows[0][15] == "223"  # municipio_cod
 
 
 @pytest.mark.asyncio

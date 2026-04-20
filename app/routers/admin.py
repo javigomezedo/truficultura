@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from typing import Optional
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -60,6 +61,7 @@ async def create_user(
     email: str = Form(...),
     password: str = Form(...),
     role: str = Form(default="user"),
+    comunidad_regantes: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
@@ -120,6 +122,7 @@ async def create_user(
         hashed_password=hash_password(password),
         role=role,
         is_active=True,
+        comunidad_regantes=(comunidad_regantes == "on"),
     )
     db.add(new_user)
     await db.commit()
@@ -156,6 +159,7 @@ async def update_user(
     last_name: str = Form(...),
     email: str = Form(...),
     role: str = Form(...),
+    comunidad_regantes: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
@@ -223,6 +227,7 @@ async def update_user(
     user.last_name = last_name.strip()
     user.email = email
     user.role = role
+    user.comunidad_regantes = comunidad_regantes == "on"
     await db.commit()
 
     return RedirectResponse("/admin/users", status_code=303)

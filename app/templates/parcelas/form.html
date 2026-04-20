@@ -29,6 +29,93 @@
                 <input type="hidden" name="_method" value="POST">
                 {% endif %}
 
+                {# ── SECCIÓN 1: Búsqueda SIGPAC ─────────────────────────────── #}
+                <h6 class="text-uppercase text-muted fw-semibold small mb-3">
+                    <i class="bi bi-search me-1"></i>{{ _("Búsqueda SIGPAC") }}
+                </h6>
+                <div class="row g-3 mb-2">
+                    <!-- Provincia -->
+                    <div class="col-md-4">
+                        <label for="provincia_cod" class="form-label fw-semibold">{{ _("Provincia") }}</label>
+                        <select class="form-select"
+                                id="provincia_cod"
+                                name="provincia_cod"
+                                data-initial="{{ plot.provincia_cod if plot and plot.provincia_cod else '' }}">
+                            <option value="">{{ _("— Selecciona provincia —") }}</option>
+                        </select>
+                    </div>
+
+                    <!-- Municipio -->
+                    <div class="col-md-4">
+                        <label for="municipio_cod" class="form-label fw-semibold">{{ _("Municipio") }}</label>
+                        <select class="form-select"
+                                id="municipio_cod"
+                                name="municipio_cod"
+                                data-initial="{{ plot.municipio_cod if plot and plot.municipio_cod else '' }}">
+                            <option value="">{{ _("— Selecciona municipio —") }}</option>
+                        </select>
+                    </div>
+
+                    <!-- Polígono -->
+                    <div class="col-md-2">
+                        <label for="polygon" class="form-label fw-semibold">{{ _("Polígono") }}</label>
+                        <input type="text"
+                               class="form-control"
+                               id="polygon"
+                               name="polygon"
+                               value="{{ plot.polygon if plot else '' }}"
+                               placeholder="{{ _('Ej: 25') }}">
+                    </div>
+
+                    <!-- Parcela nº -->
+                    <div class="col-md-2">
+                        <label for="plot_num" class="form-label fw-semibold">{{ _("Parcela nº") }}</label>
+                        <input type="text"
+                               class="form-control"
+                               id="plot_num"
+                               name="plot_num"
+                               value="{{ plot.plot_num if plot else '' }}"
+                               placeholder="{{ _('Ej: 12') }}">
+                    </div>
+
+                    <!-- Recinto -->
+                    <div class="col-md-2">
+                        <label for="recinto" class="form-label fw-semibold">{{ _("Recinto") }}</label>
+                        <input type="text"
+                               class="form-control"
+                               id="recinto"
+                               name="recinto"
+                               value="{{ plot.recinto if plot else '1' }}"
+                               placeholder="1">
+                        <div class="form-text small text-muted mt-1">{{ _("Normalmente 1") }}</div>
+                    </div>
+
+                    <!-- Botones SIGPAC -->
+                    <div class="col-md-10 d-flex align-items-end gap-2">
+                        <button type="button" class="btn btn-outline-primary" id="btn-sigpac-fill">
+                            <span id="sigpac-spinner" class="spinner-border spinner-border-sm me-1 d-none" role="status"></span>
+                            <i class="bi bi-cloud-download me-1" id="sigpac-fill-icon"></i>
+                            {{ _("Autocompletar desde SIGPAC") }}
+                        </button>
+                        <button type="button"
+                                class="btn btn-outline-secondary"
+                                id="btn-sigpac-details">
+                            <span id="sigpac-details-spinner" class="spinner-border spinner-border-sm me-1 d-none" role="status"></span>
+                            <i class="bi bi-info-circle me-1" id="sigpac-details-icon"></i>
+                            {{ _("Ver datos SIGPAC") }}
+                        </button>
+                    </div>
+                    <div class="col-12">
+                        <div id="sigpac-status" class="d-none"></div>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                {# ── SECCIÓN 2: Datos genéricos ──────────────────────────────── #}
+                <h6 class="text-uppercase text-muted fw-semibold small mb-3">
+                    <i class="bi bi-card-text me-1"></i>{{ _("Datos de la parcela") }}
+                </h6>
                 <div class="row g-3">
                     <!-- Nombre -->
                     <div class="col-md-6">
@@ -44,42 +131,8 @@
                                placeholder="{{ _('Ej: Bancal Norte') }}">
                     </div>
 
-                    <!-- Sector -->
-                    <div class="col-md-6">
-                        <label for="sector" class="form-label fw-semibold">{{ _("Sector") }}</label>
-                        <input type="text"
-                               class="form-control"
-                               id="sector"
-                               name="sector"
-                               value="{{ plot.sector if plot else '' }}"
-                               placeholder="{{ _('Ej: A1') }}">
-                    </div>
-
-                    <!-- Polígono -->
-                    <div class="col-md-4">
-                        <label for="polygon" class="form-label fw-semibold">{{ _("Polígono") }}</label>
-                        <input type="text"
-                               class="form-control"
-                               id="polygon"
-                               name="polygon"
-                               value="{{ plot.polygon if plot else '' }}"
-                               placeholder="{{ _('Ej: 5') }}">
-                    </div>
-
-                    <!-- Parcela (número dentro del polígono) -->
-                    <div class="col-md-4">
-                        <label for="plot_num" class="form-label fw-semibold">{{ _("Parcela nº") }}</label>
-                        <input type="text"
-                               class="form-control"
-                               id="plot_num"
-                               name="plot_num"
-                               value="{{ plot.plot_num if plot else '' }}"
-                               placeholder="{{ _('Ej: 120') }}">
-                        <div class="form-text small text-muted mt-1">{{ _("Número de parcela dentro del polígono") }}</div>
-                    </div>
-
                     <!-- Referencia Catastral -->
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label for="cadastral_ref" class="form-label fw-semibold">{{ _("Ref. Catastral") }}</label>
                         <input type="text"
                                class="form-control"
@@ -88,40 +141,7 @@
                                value="{{ plot.cadastral_ref if plot else '' }}"
                                placeholder="{{ _('Ej: 44223A021001200000FP') }}"
                                title="{{ _('Identificador único del catastro') }}">
-                        <div class="form-text small text-muted mt-1">{{ _("Identificador único del catastro") }}</div>
-                    </div>
-
-                    <!-- Provincia (Catastro) -->
-                    <div class="col-md-4">
-                        <label for="provincia_cod" class="form-label fw-semibold">{{ _("Provincia (Catastro)") }}</label>
-                        <select class="form-select"
-                                id="provincia_cod"
-                                name="provincia_cod"
-                                data-initial="{{ plot.provincia_cod if plot and plot.provincia_cod else '' }}">
-                            <option value="">{{ _("— Selecciona provincia —") }}</option>
-                        </select>
-                    </div>
-
-                    <!-- Municipio (Catastro) -->
-                    <div class="col-md-4">
-                        <label for="municipio_cod" class="form-label fw-semibold">{{ _("Municipio (Catastro)") }}</label>
-                        <select class="form-select"
-                                id="municipio_cod"
-                                name="municipio_cod"
-                                data-initial="{{ plot.municipio_cod if plot and plot.municipio_cod else '' }}">
-                            <option value="">{{ _("— Selecciona municipio —") }}</option>
-                        </select>
-                    </div>
-
-                    <!-- Hidrante -->
-                    <div class="col-md-4">
-                        <label for="hydrant" class="form-label fw-semibold">{{ _("Hidrante") }}</label>
-                        <input type="text"
-                               class="form-control"
-                               id="hydrant"
-                               name="hydrant"
-                               value="{{ plot.hydrant if plot else '' }}"
-                               placeholder="{{ _('Ej: H-03') }}">
+                        <div class="form-text small text-muted mt-1">{{ _("Se puede autocompletar desde SIGPAC") }}</div>
                     </div>
 
                     <!-- N. Plantas -->
@@ -150,6 +170,7 @@
                                    placeholder="{{ _('Opcional') }}">
                             <span class="input-group-text">ha</span>
                         </div>
+                        <div class="form-text small text-muted mt-1">{{ _("Se puede autocompletar desde SIGPAC") }}</div>
                     </div>
 
                     <!-- Porcentaje -->
@@ -191,14 +212,53 @@
                     </div>
                 </div>
 
+                {# ── SECCIÓN 3: Comunidad de Regantes (condicional) ──────────── #}
+                {% if current_user and current_user.comunidad_regantes %}
                 <hr class="my-4">
-
-                <!-- Riego -->
+                <h6 class="text-uppercase text-muted fw-semibold small mb-3">
+                    <i class="bi bi-droplet-fill me-1"></i>{{ _("Comunidad de Regantes de Sarrión") }}
+                </h6>
                 <div class="row g-3 mb-2">
-                    <div class="col-12">
-                        <h6 class="text-uppercase text-muted fw-semibold small mb-2">
-                            <i class="bi bi-droplet-fill me-1"></i>{{ _("Riego") }}
-                        </h6>
+                    <!-- Sector -->
+                    <div class="col-md-3">
+                        <label for="sector" class="form-label fw-semibold">{{ _("Sector") }}</label>
+                        <input type="text"
+                               class="form-control"
+                               id="sector"
+                               name="sector"
+                               value="{{ plot.sector if plot else '' }}"
+                               placeholder="{{ _('Ej: A1') }}">
+                    </div>
+
+                    <!-- Hidrante -->
+                    <div class="col-md-3">
+                        <label for="hydrant" class="form-label fw-semibold">{{ _("Hidrante") }}</label>
+                        <input type="text"
+                               class="form-control"
+                               id="hydrant"
+                               name="hydrant"
+                               value="{{ plot.hydrant if plot else '' }}"
+                               placeholder="{{ _('Ej: H-03') }}">
+                    </div>
+
+                    <!-- Caudal de riego -->
+                    <div class="col-md-3">
+                        <label for="caudal_riego" class="form-label fw-semibold">{{ _("Caudal riego (m³/h)") }}</label>
+                        <div class="input-group">
+                            <input type="number"
+                                   class="form-control"
+                                   id="caudal_riego"
+                                   name="caudal_riego"
+                                   value="{{ plot.caudal_riego if plot and plot.caudal_riego is not none else '' }}"
+                                   min="0"
+                                   step="0.01"
+                                   placeholder="{{ _('Opcional') }}">
+                            <span class="input-group-text">m³/h</span>
+                        </div>
+                    </div>
+
+                    <!-- Tiene riego instalado -->
+                    <div class="col-md-3 d-flex align-items-end pb-1">
                         <div class="form-check">
                             <input class="form-check-input"
                                    type="checkbox"
@@ -207,14 +267,18 @@
                                    value="true"
                                    {% if plot and plot.has_irrigation %}checked{% endif %}>
                             <label class="form-check-label fw-semibold" for="has_irrigation">
-                                {{ _("Tiene sistema de riego instalado") }}
+                                {{ _("¿Tiene riego instalado?") }}
                             </label>
-                            <div class="form-text text-muted small">
-                                {{ _("Activa esta opción para poder registrar riegos en esta parcela.") }}
-                            </div>
                         </div>
                     </div>
                 </div>
+                {% else %}
+                {# Hidden fields to preserve defaults when section is not shown #}
+                <input type="hidden" name="sector" value="{{ plot.sector if plot else '' }}">
+                <input type="hidden" name="hydrant" value="{{ plot.hydrant if plot else '' }}">
+                <input type="hidden" name="has_irrigation" value="{{ 'true' if plot and plot.has_irrigation else '' }}">
+                <input type="hidden" name="caudal_riego" value="{{ plot.caudal_riego if plot and plot.caudal_riego is not none else '' }}">
+                {% endif %}
 
                 <hr class="my-4">
 
@@ -233,11 +297,34 @@
         </div>
     </div>
 </div>
+
+{# ── Modal SIGPAC ─────────────────────────────────────────────────────────── #}
+<div class="modal fade" id="sigpacModal" tabindex="-1" aria-labelledby="sigpacModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="sigpacModalLabel">
+                    <i class="bi bi-map me-2"></i>{{ _("Información SIGPAC") }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Cerrar') }}"></button>
+            </div>
+            <div class="modal-body" id="sigpac-modal-body">
+                {# Populated by JS #}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-1"></i>{{ _("Cerrar") }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
 (function () {
+    // ── Geo dropdowns ──────────────────────────────────────────────────────
     const GEO_URL = "/static/js/catastro_geo.json";
     const selProv = document.getElementById("provincia_cod");
     const selMun  = document.getElementById("municipio_cod");
@@ -263,16 +350,199 @@
         .then(data => {
             window._catGeo = data;
             data.provinces.forEach(p => selProv.appendChild(new Option(p.name, p.code)));
-
             if (INIT_PROV) {
                 selectByValue(selProv, INIT_PROV);
                 loadMunicipios(INIT_PROV, INIT_MUN);
             }
-
             selProv.addEventListener('change', function () {
                 loadMunicipios(this.value, null);
             });
         });
+
+    // ── SIGPAC lookup ──────────────────────────────────────────────────────
+    const btnFill           = document.getElementById('btn-sigpac-fill');
+    const btnDetails        = document.getElementById('btn-sigpac-details');
+    const spinner           = document.getElementById('sigpac-spinner');
+    const fillIcon          = document.getElementById('sigpac-fill-icon');
+    const detailsSpinner    = document.getElementById('sigpac-details-spinner');
+    const detailsIcon       = document.getElementById('sigpac-details-icon');
+    const statusDiv         = document.getElementById('sigpac-status');
+
+    function setStatus(msg, type) {
+        statusDiv.className = `alert alert-${type} py-2 px-3 small`;
+        statusDiv.textContent = msg;
+        statusDiv.classList.remove('d-none');
+    }
+
+    function getSigpacParams() {
+        return {
+            provincia: selProv.value,
+            municipio: selMun.value,
+            poligono:  document.getElementById('polygon').value.trim(),
+            parcela:   document.getElementById('plot_num').value.trim(),
+            recinto:   document.getElementById('recinto').value.trim() || '1',
+        };
+    }
+
+    async function fetchSigpac() {
+        const { provincia, municipio, poligono, parcela, recinto } = getSigpacParams();
+        if (!provincia || !municipio || !poligono || !parcela) {
+            setStatus('{{ _("Selecciona provincia, municipio, polígono y parcela antes de consultar SIGPAC.") }}', 'warning');
+            return null;
+        }
+        statusDiv.classList.add('d-none');
+        const params = new URLSearchParams({ provincia, municipio, poligono, parcela, recinto });
+        let resp, data;
+        try {
+            resp = await fetch(`/plots/sigpac-lookup?${params}`);
+            data = await resp.json();
+        } catch (e) {
+            setStatus('{{ _("No se pudo conectar con SIGPAC. Inténtalo de nuevo.") }}', 'danger');
+            return null;
+        }
+        if (!resp.ok || data.error) {
+            setStatus(data.error || '{{ _("Error al conectar con SIGPAC.") }}', 'danger');
+            return null;
+        }
+        window._sigpacDetails = data.details;
+        return data;
+    }
+
+    btnFill.addEventListener('click', async function () {
+        spinner.classList.remove('d-none');
+        fillIcon.classList.add('d-none');
+        btnFill.disabled = true;
+        btnDetails.disabled = true;
+
+        try {
+            const data = await fetchSigpac();
+            if (!data) return;
+
+            if (data.autocomplete.cadastral_ref) {
+                document.getElementById('cadastral_ref').value = data.autocomplete.cadastral_ref;
+            }
+            if (data.autocomplete.area_ha !== null && data.autocomplete.area_ha !== undefined) {
+                document.getElementById('area_ha').value = data.autocomplete.area_ha;
+            }
+            setStatus('{{ _("Datos autocompletados correctamente desde SIGPAC.") }}', 'success');
+        } catch (err) {
+            setStatus('{{ _("Error inesperado al consultar SIGPAC.") }}', 'danger');
+        } finally {
+            spinner.classList.add('d-none');
+            fillIcon.classList.remove('d-none');
+            btnFill.disabled = false;
+            btnDetails.disabled = false;
+        }
+    });
+
+    btnDetails.addEventListener('click', async function () {
+        detailsSpinner.classList.remove('d-none');
+        detailsIcon.classList.add('d-none');
+        btnDetails.disabled = true;
+        btnFill.disabled = true;
+
+        try {
+            const data = await fetchSigpac();
+            if (!data) return;
+            renderSigpacModal(data.details);
+            const modal = new bootstrap.Modal(document.getElementById('sigpacModal'));
+            modal.show();
+        } catch (err) {
+            setStatus('{{ _("Error inesperado al consultar SIGPAC.") }}', 'danger');
+        } finally {
+            detailsSpinner.classList.add('d-none');
+            detailsIcon.classList.remove('d-none');
+            btnDetails.disabled = false;
+            btnFill.disabled = false;
+        }
+    });
+
+    // ── SIGPAC modal render ────────────────────────────────────────────────
+    function esc(s) {
+        if (s === null || s === undefined) return '—';
+        const div = document.createElement('div');
+        div.appendChild(document.createTextNode(String(s)));
+        return div.innerHTML;
+    }
+
+    function renderSigpacModal(d) {
+        const body = document.getElementById('sigpac-modal-body');
+        const p = d.parcela || {};
+        const recintos = d.recintos || [];
+        const incs = d.incidencias_texto || [];
+
+        let html = '';
+
+        // Banner vigencia
+        html += `<div class="bg-primary text-white rounded p-2 mb-3 small fw-semibold">
+            <i class="bi bi-calendar-check me-1"></i>
+            La siguiente información es la vigente en SigPac a fecha: ${esc(d.vigencia)}
+        </div>`;
+
+        // Fechas
+        html += `<div class="d-flex gap-3 mb-3 small">
+            <span class="badge bg-secondary py-2 px-3"><i class="bi bi-airplane me-1"></i>Fecha de vuelo: ${esc(d.fecha_vuelo)}</span>
+            <span class="badge bg-secondary py-2 px-3"><i class="bi bi-map me-1"></i>Fecha cartografía catastral: ${esc(d.fecha_cartografia)}</span>
+        </div>`;
+
+        // Tabla datos parcela
+        html += `<h6 class="fw-semibold text-center bg-primary text-white py-2 rounded-top mb-0 small">Datos parcela</h6>
+        <div class="table-responsive mb-3">
+        <table class="table table-sm table-bordered mb-0">
+            <thead class="table-primary">
+                <tr>
+                    <th>Provincia</th><th>Municipio</th><th>Agregado</th><th>Zona</th>
+                    <th>Polígono</th><th>Parcela</th><th>Superficie (ha)</th><th>Referencia Catastral</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>${esc(p.provincia)}</td><td>${esc(p.municipio)}</td>
+                    <td>${esc(p.agregado)}</td><td>${esc(p.zona)}</td>
+                    <td>${esc(p.poligono)}</td><td>${esc(p.parcela)}</td>
+                    <td>${esc(p.superficie_ha)}</td>
+                    <td><strong>${esc(p.referencia_cat)}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+        </div>`;
+
+        // Tabla recintos
+        if (recintos.length > 0) {
+            html += `<h6 class="fw-semibold text-center bg-primary text-white py-2 rounded-top mb-0 small">Recintos</h6>
+            <div class="table-responsive mb-3">
+            <table class="table table-sm table-bordered mb-0">
+                <thead class="table-primary">
+                    <tr>
+                        <th>Recinto</th><th>Superficie (ha)</th><th>Pendiente (%)</th>
+                        <th>Altitud (m)</th><th>Uso</th><th>Coef. Regadío</th>
+                        <th>Incidencias</th><th>Región</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+            recintos.forEach(r => {
+                html += `<tr>
+                    <td>${esc(r.recinto)}</td><td>${esc(r.superficie_ha)}</td>
+                    <td>${esc(r.pendiente_pct)}</td><td>${esc(r.altitud_m)}</td>
+                    <td>${esc(r.uso_sigpac)}</td><td>${esc(r.coef_regadio)}</td>
+                    <td>${esc(r.incidencias)}</td><td>${esc(r.region)}</td>
+                </tr>`;
+            });
+            html += `</tbody></table></div>`;
+        }
+
+        // Incidencias texto
+        if (incs.length > 0) {
+            html += `<h6 class="fw-semibold small mb-1">Incidencias</h6><ul class="small mb-0">`;
+            incs.forEach(t => { html += `<li>${esc(t)}</li>`; });
+            html += `</ul>`;
+        }
+
+        body.innerHTML = html;
+    }
+
+    // If editing and sigpac data exists, allow showing modal right away
+    // (details button only shown after a fresh lookup in this session)
 })();
 </script>
 {% endblock %} {# extra_scripts #}

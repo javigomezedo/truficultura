@@ -128,6 +128,7 @@ async def register_post(
     email: str = Form(...),
     password: str = Form(...),
     password_confirm: str = Form(...),
+    comunidad_regantes: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
 ):
     count = await _user_count(db)
@@ -198,6 +199,7 @@ async def register_post(
         email=email,
         hashed_password=hash_password(password),
         role="admin" if count == 0 else "user",
+        comunidad_regantes=(comunidad_regantes == "on"),
     )
     db.add(new_user)
     await db.flush()

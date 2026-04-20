@@ -2,8 +2,8 @@ import datetime
 from typing import Optional
 from urllib.parse import quote_plus
 
-from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Depends, Form, Query, Request
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,6 +19,7 @@ from app.services.plots_service import (
     list_plots as list_plots_service,
     update_plot as update_plot_service,
 )
+from app.services.sigpac_service import SigpacError, fetch_sigpac_data
 
 router = APIRouter(prefix="/plots", tags=["plots"])
 templates = Jinja2Templates(directory="app/templates")
@@ -48,8 +49,50 @@ async def new_plot_form(
     return templates.TemplateResponse(
         request,
         "parcelas/form.html",
-        {"request": request, "plot": None, "action": "/plots/", "method": "post"},
+        {
+            "request": request,
+            "plot": None,
+            "action": "/plots/",
+            "method": "post",
+            "current_user": current_user,
+        },
     )
+
+
+@router.get("/sigpac-lookup")
+async def sigpac_lookup(
+    provincia: str = Query(...),
+    municipio: str = Query(...),
+    poligono: str = Query(...),
+    parcela: str = Query(...),
+    recinto: str = Query("1"),
+    current_user: User = Depends(require_user),
+):
+    # Validate all parameters are numeric to prevent injection
+    for param, value in [
+        ("provincia", provincia),
+        ("municipio", municipio),
+        ("poligono", poligono),
+        ("parcela", parcela),
+        ("recinto", recinto),
+    ]:
+        if not value.isdigit():
+            return JSONResponse(
+                status_code=400,
+                content={"error": f"El parámetro '{param}' debe ser numérico"},
+            )
+
+    try:
+        data = await fetch_sigpac_data(provincia, municipio, poligono, parcela, recinto)
+    except SigpacError as exc:
+        return JSONResponse(status_code=422, content={"error": str(exc)})
+    except Exception as exc:
+        return JSONResponse(
+            status_code=422,
+            content={"error": f"Error inesperado consultando SIGPAC: {exc}"},
+        )
+
+    return JSONResponse(content=data)
 
 
 @router.post("/", response_class=RedirectResponse)
@@ -66,6 +109,8 @@ async def create_plot(
     area_ha: Optional[float] = Form(None),
     production_start: Optional[datetime.date] = Form(None),
     has_irrigation: Optional[str] = Form(None),
+    recinto: str = Form("1"),
+    caudal_riego: Optional[float] = Form(None),
     provincia_cod: Optional[str] = Form(None),
     municipio_cod: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
@@ -85,6 +130,8 @@ async def create_plot(
         area_ha=area_ha,
         production_start=production_start,
         has_irrigation=has_irrigation == "true",
+        recinto=recinto,
+        caudal_riego=caudal_riego,
         provincia_cod=provincia_cod or None,
         municipio_cod=municipio_cod or None,
     )
@@ -115,6 +162,7 @@ async def edit_plot_form(
             "plot": obj,
             "action": f"/plots/{plot_id}",
             "method": "post",
+            "current_user": current_user,
         },
     )
 
@@ -134,6 +182,8 @@ async def update_plot(
     area_ha: Optional[float] = Form(None),
     production_start: Optional[datetime.date] = Form(None),
     has_irrigation: Optional[str] = Form(None),
+    recinto: str = Form("1"),
+    caudal_riego: Optional[float] = Form(None),
     provincia_cod: Optional[str] = Form(None),
     municipio_cod: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
@@ -160,6 +210,8 @@ async def update_plot(
         area_ha=area_ha,
         production_start=production_start,
         has_irrigation=has_irrigation == "true",
+        recinto=recinto,
+        caudal_riego=caudal_riego,
         provincia_cod=provincia_cod or None,
         municipio_cod=municipio_cod or None,
     )
