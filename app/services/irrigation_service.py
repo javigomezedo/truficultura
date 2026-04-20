@@ -116,6 +116,29 @@ async def get_riego_expenses_for_plot(
     return result.scalars().all()
 
 
+async def get_riego_expenses_for_plots(
+    db: AsyncSession, user_id: int, plot_ids: list[int]
+) -> dict[int, list[Expense]]:
+    """Devuelve un dict {plot_id: [gastos de riego]} para varios bancales a la vez."""
+    if not plot_ids:
+        return {}
+    result = await db.execute(
+        select(Expense)
+        .where(
+            Expense.user_id == user_id,
+            Expense.plot_id.in_(plot_ids),
+            Expense.category == "Riego",
+        )
+        .order_by(Expense.date.desc())
+    )
+    expenses = result.scalars().all()
+    out: dict[int, list[Expense]] = {pid: [] for pid in plot_ids}
+    for e in expenses:
+        if e.plot_id in out:
+            out[e.plot_id].append(e)
+    return out
+
+
 async def create_irrigation_record(
     db: AsyncSession, user_id: int, data: IrrigationCreate
 ) -> IrrigationRecord:
@@ -203,3 +226,14 @@ async def delete_irrigation_record(
         await delete_plot_event_for_irrigation(db, record_id, user_id)
         await db.delete(record)
         await db.flush()
+
+
+async def create_irrigation_records_bulk(
+    db: AsyncSession, user_id: int, items: list[IrrigationCreate]
+) -> list[IrrigationRecord]:
+    """Crea varios registros de riego a la vez (uno por parcela)."""
+    created = []
+    for data in items:
+        record = await create_irrigation_record(db, user_id, data)
+        created.append(record)
+    return created

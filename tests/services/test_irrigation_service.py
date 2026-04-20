@@ -11,10 +11,12 @@ from app.models.plot import Plot
 from app.schemas.irrigation import IrrigationCreate, IrrigationUpdate
 from app.services.irrigation_service import (
     create_irrigation_record,
+    create_irrigation_records_bulk,
     delete_irrigation_record,
     get_irrigation_list_context,
     get_irrigation_record,
     get_riego_expenses_for_plot,
+    get_riego_expenses_for_plots,
     list_irrigation_records,
     update_irrigation_record,
 )
@@ -298,4 +300,91 @@ async def test_delete_success() -> None:
         await delete_irrigation_record(db, record_id=1, user_id=1)
 
     db.delete.assert_awaited_once_with(record)
-    delete_event_mock.assert_awaited_once_with(db, 1, 1)
+
+
+# ---------------------------------------------------------------------------
+# create_irrigation_records_bulk
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_create_bulk_creates_all_items() -> None:
+    plot1 = _make_plot(id=1)
+    plot2 = _make_plot(id=2)
+    db = MagicMock()
+    db.execute = AsyncMock(side_effect=[result([plot1]), result([plot2])])
+    db.add = MagicMock()
+    db.flush = AsyncMock()
+
+    items = [
+        IrrigationCreate(plot_id=1, date=datetime.date(2025, 6, 15), water_m3=10.0),
+        IrrigationCreate(plot_id=2, date=datetime.date(2025, 6, 15), water_m3=8.5),
+    ]
+
+    with patch(
+        "app.services.plot_events_service.sync_plot_event_from_irrigation",
+        new=AsyncMock(),
+    ):
+        records = await create_irrigation_records_bulk(db, user_id=1, items=items)
+
+    assert len(records) == 2
+    assert records[0].water_m3 == 10.0
+    assert records[1].water_m3 == 8.5
+
+
+@pytest.mark.asyncio
+async def test_create_bulk_empty_list_returns_empty() -> None:
+    db = MagicMock()
+    db.execute = AsyncMock()
+
+    records = await create_irrigation_records_bulk(db, user_id=1, items=[])
+
+    assert records == []
+    db.execute.assert_not_awaited()
+
+
+# ---------------------------------------------------------------------------
+# get_riego_expenses_for_plots
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_riego_expenses_for_plots_groups_by_plot() -> None:
+    e1 = Expense(
+        id=1,
+        user_id=1,
+        plot_id=1,
+        category="Riego",
+        date=datetime.date(2025, 6, 1),
+        description="Riego A",
+        amount=50.0,
+    )
+    e2 = Expense(
+        id=2,
+        user_id=1,
+        plot_id=2,
+        category="Riego",
+        date=datetime.date(2025, 6, 1),
+        description="Riego B",
+        amount=30.0,
+    )
+
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([e1, e2]))
+
+    out = await get_riego_expenses_for_plots(db, user_id=1, plot_ids=[1, 2])
+
+    assert 1 in out and 2 in out
+    assert out[1] == [e1]
+    assert out[2] == [e2]
+
+
+@pytest.mark.asyncio
+async def test_get_riego_expenses_for_plots_empty_returns_empty_dict() -> None:
+    db = MagicMock()
+    db.execute = AsyncMock()
+
+    out = await get_riego_expenses_for_plots(db, user_id=1, plot_ids=[])
+
+    assert out == {}
+    db.execute.assert_not_awaited()

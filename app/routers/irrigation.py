@@ -2,7 +2,7 @@ import datetime
 from typing import Optional
 from urllib.parse import quote_plus
 
-from fastapi import APIRouter, Depends, Form, Query, Request
+from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,10 +14,12 @@ from app.models.user import User
 from app.schemas.irrigation import IrrigationCreate, IrrigationUpdate
 from app.services.irrigation_service import (
     create_irrigation_record as create_service,
+    create_irrigation_records_bulk as create_bulk_service,
     delete_irrigation_record as delete_service,
     get_irrigation_list_context,
     get_irrigation_record,
     get_riego_expenses_for_plot,
+    get_riego_expenses_for_plots,
     update_irrigation_record as update_service,
 )
 
@@ -90,6 +92,87 @@ async def create_view(
     await create_service(db, current_user.id, data)
     return RedirectResponse(
         url=f"/irrigation/?msg={quote_plus(_('Riego registrado correctamente'))}",
+        status_code=303,
+    )
+
+
+@router.get("/bulk-new", response_class=HTMLResponse)
+async def bulk_new_form(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
+):
+    from app.services.irrigation_service import _get_irrigable_plots
+
+    plots = await _get_irrigable_plots(db, current_user.id)
+    expenses_by_plot = await get_riego_expenses_for_plots(
+        db, current_user.id, [p.id for p in plots]
+    )
+    return templates.TemplateResponse(
+        request,
+        "riego/bulk_form.html",
+        {
+            "request": request,
+            "plots": plots,
+            "expenses_by_plot": expenses_by_plot,
+            "today": datetime.date.today().isoformat(),
+        },
+    )
+
+
+@router.post("/bulk", response_class=RedirectResponse)
+async def bulk_create_view(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
+):
+    form = await request.form()
+    plot_ids = form.getlist("plot_id")
+    dates = form.getlist("date")
+    water_m3s = form.getlist("water_m3")
+    expense_ids = form.getlist("expense_id")
+    notes_list = form.getlist("notes")
+
+    items = []
+    for i, pid in enumerate(plot_ids):
+        raw_water = water_m3s[i] if i < len(water_m3s) else ""
+        if not raw_water or raw_water.strip() == "":
+            continue
+        try:
+            water_val = float(raw_water.replace(",", "."))
+        except ValueError:
+            continue
+        if water_val <= 0:
+            continue
+        raw_date = dates[i].strip() if i < len(dates) else ""
+        try:
+            date_val = datetime.date.fromisoformat(raw_date)
+        except ValueError:
+            continue
+        notes_val = notes_list[i].strip() if i < len(notes_list) else ""
+        raw_eid = expense_ids[i].strip() if i < len(expense_ids) else ""
+        expense_id_val = int(raw_eid) if raw_eid else None
+        items.append(
+            IrrigationCreate(
+                plot_id=int(pid),
+                date=date_val,
+                water_m3=water_val,
+                expense_id=expense_id_val,
+                notes=notes_val or None,
+            )
+        )
+
+    if not items:
+        return RedirectResponse(
+            url=f"/irrigation/?msg={quote_plus(_('No se introdujo ningún dato de riego'))}",
+            status_code=303,
+        )
+
+    await create_bulk_service(db, current_user.id, items)
+
+    msg = _("%(n)s registros de riego guardados correctamente") % {"n": len(items)}
+    return RedirectResponse(
+        url=f"/irrigation/?msg={quote_plus(msg)}",
         status_code=303,
     )
 

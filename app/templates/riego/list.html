@@ -15,8 +15,11 @@
                 {% if selected_year %} {{ _("en campaña") }} {{ selected_year|campaign_label }}{% endif %}
             </p>
         </div>
-        <a href="/irrigation/new" class="btn btn-primary">
-            <i class="bi bi-plus-circle me-1"></i> {{ _("Nuevo registro de riego") }}
+        <a href="/irrigation/new" class="btn btn-outline-primary">
+            <i class="bi bi-plus-circle me-1"></i> {{ _("Nuevo registro") }}
+        </a>
+        <a href="/irrigation/bulk-new" class="btn btn-primary">
+            <i class="bi bi-table me-1"></i> {{ _("Registrar factura (todos los bancales)") }}
         </a>
     </div>
 
