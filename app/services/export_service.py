@@ -79,6 +79,10 @@ async def export_plots_csv(db: AsyncSession, user_id: int) -> bytes:
                 _format_date(p.production_start) if p.production_start else "",
                 "1" if p.has_irrigation else "0",
                 row_config_by_plot.get(p.id, ""),
+                p.recinto or "1",
+                _format_num(p.caudal_riego, 2) if p.caudal_riego is not None else "",
+                p.provincia_cod or "",
+                p.municipio_cod or "",
             ]
         )
     return buf.getvalue().encode("utf-8")

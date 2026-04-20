@@ -201,7 +201,7 @@ async def import_plots_csv(
     """Parse plots CSV and persist rows.
 
     Expected format (semicolon-delimited, no header, min 2 columns):
-        nombre;fecha_plantacion[;poligono;parcela;ref_catastral;hidrante;sector;n_plantas;superficie_ha;inicio_produccion[;tiene_riego[;config_mapa]]]
+        nombre;fecha_plantacion[;poligono;parcela;ref_catastral;hidrante;sector;n_plantas;superficie_ha;inicio_produccion[;tiene_riego[;config_mapa[;recinto[;caudal_riego[;provincia_cod[;municipio_cod]]]]]]]]
 
     - nombre:            plot name (required)
     - fecha_plantacion:  planting date DD/MM/YYYY (required)
@@ -215,6 +215,10 @@ async def import_plots_csv(
     - inicio_produccion: production start date DD/MM/YYYY (optional)
     - tiene_riego:       1 or 0 (optional, default 0 — backward compatible)
     - config_mapa:       sparse map config (optional, e.g. A:1-4; B:2-5)
+    - recinto:           SIGPAC recinto number (optional, default '1')
+    - caudal_riego:      irrigation flow in m³/h (optional, decimal)
+    - provincia_cod:     cadastral province code (optional)
+    - municipio_cod:     cadastral municipality code (optional)
 
     Note: Percentage is automatically calculated based on total plant count.
     """
@@ -254,6 +258,10 @@ async def import_plots_csv(
                 production_start=_parse_date_opt(col(9)),
                 percentage=0.0,
                 has_irrigation=bool(_parse_int(col(10))),
+                recinto=col(12) or "1",
+                caudal_riego=_parse_num(col(13)) or None,
+                provincia_cod=col(14) or None,
+                municipio_cod=col(15) or None,
             )
             rows.append(row)
             map_config = col(11)

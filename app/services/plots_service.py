@@ -72,6 +72,8 @@ async def create_plot(
     area_ha: Optional[float],
     production_start: Optional[datetime.date],
     has_irrigation: bool = False,
+    recinto: str = "1",
+    caudal_riego: Optional[float] = None,
     provincia_cod: Optional[str] = None,
     municipio_cod: Optional[str] = None,
 ) -> Plot:
@@ -89,6 +91,8 @@ async def create_plot(
         production_start=production_start,
         percentage=0.0,
         has_irrigation=has_irrigation,
+        recinto=recinto,
+        caudal_riego=caudal_riego,
         provincia_cod=provincia_cod or None,
         municipio_cod=municipio_cod or None,
     )
@@ -116,6 +120,8 @@ async def update_plot(
     area_ha: Optional[float],
     production_start: Optional[datetime.date],
     has_irrigation: bool = False,
+    recinto: str = "1",
+    caudal_riego: Optional[float] = None,
     provincia_cod: Optional[str] = None,
     municipio_cod: Optional[str] = None,
 ) -> Plot:
@@ -130,6 +136,8 @@ async def update_plot(
     plot.area_ha = area_ha
     plot.production_start = production_start
     plot.has_irrigation = has_irrigation
+    plot.recinto = recinto
+    plot.caudal_riego = caudal_riego
     plot.provincia_cod = provincia_cod or None
     plot.municipio_cod = municipio_cod or None
     await db.flush()

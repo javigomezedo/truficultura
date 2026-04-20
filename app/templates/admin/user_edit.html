@@ -56,6 +56,19 @@
                             </select>
                         </div>
 
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="comunidad_regantes"
+                                       name="comunidad_regantes" value="on"
+                                       {% if user.comunidad_regantes %}checked{% endif %}>
+                                <label class="form-check-label fw-semibold" for="comunidad_regantes">
+                                    <i class="bi bi-droplet-fill me-1 text-primary"></i>
+                                    {{ _("Pertenece a la Comunidad de Regantes de Sarrión") }}
+                                </label>
+                                <div class="form-text">{{ _("Activa esta opción para mostrar los campos específicos de la comunidad en el formulario de parcelas.") }}</div>
+                            </div>
+                        </div>
+
                         <div class="alert alert-info" role="alert">
                             <i class="bi bi-info-circle-fill me-2"></i>
                             <strong>{{ _("Estado:") }}</strong>
