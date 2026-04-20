@@ -115,7 +115,7 @@
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {% if '/incomes' in request.url.path or '/expenses' in request.url.path or '/reports' in request.url.path %}active{% endif %}"
+                        <a class="nav-link dropdown-toggle {% if '/incomes' in request.url.path or '/expenses' in request.url.path or '/reports' in request.url.path or '/recurring-expenses' in request.url.path %}active{% endif %}"
                            href="#"
                            role="button"
                            data-bs-toggle="dropdown"
@@ -129,8 +129,13 @@
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item {% if '/expenses' in request.url.path %}active{% endif %}" href="/expenses/">
+                                <a class="dropdown-item {% if '/expenses' in request.url.path and '/recurring-expenses' not in request.url.path %}active{% endif %}" href="/expenses/">
                                     <i class="bi bi-arrow-down-circle-fill text-danger me-1"></i> {{ _("Gastos") }}
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if '/recurring-expenses' in request.url.path %}active{% endif %}" href="/recurring-expenses/">
+                                    <i class="bi bi-arrow-repeat text-danger me-1"></i> {{ _("Gastos Recurrentes") }}
                                 </a>
                             </li>
                             <li>

@@ -15,6 +15,7 @@ from app.services.import_service import (
     import_irrigation_csv,
     import_plot_events_csv,
     import_plots_csv,
+    import_recurring_expenses_csv,
     import_truffles_csv,
     import_wells_csv,
 )
@@ -32,6 +33,7 @@ def _summarize_zip_import(imported_by_file: dict[str, int]) -> list[str]:
         "pozos.csv": "pozos",
         "produccion.csv": "producción",
         "labores.csv": "labores",
+        "gastos_recurrentes.csv": "gastos recurrentes",
     }
     return [
         f"{labels.get(name, name)}: {count}" for name, count in imported_by_file.items()
@@ -266,5 +268,31 @@ async def upload_plot_events(
                 "warnings": warnings,
             },
             "active_tab": "plot_events",
+        },
+    )
+
+
+@router.post("/recurring_expenses", response_class=HTMLResponse)
+async def upload_recurring_expenses(
+    request: Request,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
+):
+    content = await file.read()
+    rows, warnings = await import_recurring_expenses_csv(db, content, current_user.id)
+    await db.commit()
+    return templates.TemplateResponse(
+        request,
+        "imports/index.html",
+        {
+            "request": request,
+            "result": {
+                "type": "recurring_expenses",
+                "filename": file.filename,
+                "imported": len(rows),
+                "warnings": warnings,
+            },
+            "active_tab": "recurring_expenses",
         },
     )

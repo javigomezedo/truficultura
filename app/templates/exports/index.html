@@ -54,6 +54,11 @@
             <i class="bi bi-calendar2-check-fill text-secondary me-1"></i>{{ _("Labores") }}
         </button>
     </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-export-recurring-expenses" data-bs-target="#panel-export-recurring-expenses" type="button" role="tab">
+            <i class="bi bi-arrow-repeat text-danger me-1"></i>{{ _("Gastos Recurrentes") }}
+        </button>
+    </li>
 </ul>
 
 <div class="tab-content" id="exportTabContent">
@@ -61,7 +66,7 @@
         <div class="card tf-panel shadow-sm border-0">
             <div class="card-body p-4">
                 <h5 class="card-title mb-3">{{ _("Exportar todo en ZIP") }}</h5>
-                <p class="text-muted mb-3">{{ _("Descarga un único archivo ZIP con todos los CSV de exportación: parcelas, gastos, ingresos, riego, pozos, producción y labores.") }}</p>
+                <p class="text-muted mb-3">{{ _("Descarga un único archivo ZIP con todos los CSV de exportación: parcelas, gastos, ingresos, riego, pozos, producción, labores y gastos recurrentes.") }}</p>
                 <div class="mb-4">
                     <span class="badge text-bg-light me-2">parcelas.csv</span>
                     <span class="badge text-bg-light me-2">gastos.csv</span>
@@ -69,7 +74,8 @@
                     <span class="badge text-bg-light me-2">riego.csv</span>
                     <span class="badge text-bg-light me-2">pozos.csv</span>
                     <span class="badge text-bg-light me-2">produccion.csv</span>
-                    <span class="badge text-bg-light">labores.csv</span>
+                    <span class="badge text-bg-light me-2">labores.csv</span>
+                    <span class="badge text-bg-light">gastos_recurrentes.csv</span>
                 </div>
                 <a href="/export/all.zip" class="btn btn-success">
                     <i class="bi bi-file-earmark-zip me-1"></i>{{ _("Descargar ZIP") }}
@@ -215,6 +221,27 @@
                     <span class="badge text-bg-light">es_recurrente</span>
                 </div>
                 <a href="/export/plot_events.csv" class="btn btn-success">
+                    <i class="bi bi-download me-1"></i>{{ _("Descargar CSV") }}
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="panel-export-recurring-expenses" role="tabpanel">
+        <div class="card tf-panel shadow-sm border-0">
+            <div class="card-body p-4">
+                <h5 class="card-title mb-3">{{ _("Exportar gastos recurrentes") }}</h5>
+                <p class="text-muted mb-3">{{ _("Descarga la configuración de gastos recurrentes en formato compatible con la importación. La fecha de última ejecución no se exporta; al importar, los gastos se inician desde cero.") }}</p>
+                <div class="mb-4">
+                    <span class="badge text-bg-light me-2">concepto</span>
+                    <span class="badge text-bg-light me-2">frecuencia</span>
+                    <span class="badge text-bg-light me-2">bancal</span>
+                    <span class="badge text-bg-light me-2">persona</span>
+                    <span class="badge text-bg-light me-2">categoria</span>
+                    <span class="badge text-bg-light me-2">cantidad</span>
+                    <span class="badge text-bg-light">activo</span>
+                </div>
+                <a href="/export/recurring_expenses.csv" class="btn btn-success">
                     <i class="bi bi-download me-1"></i>{{ _("Descargar CSV") }}
                 </a>
             </div>

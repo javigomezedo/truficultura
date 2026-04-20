@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}{% if recurring_expense %}{{ _("Editar Gasto Recurrente") }}{% else %}{{ _("Nuevo Gasto Recurrente") }}{% endif %} &mdash; Truficultura{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="tf-page-header">
+        <div>
+            <p class="tf-page-kicker">{{ _("Gastos Recurrentes") }}</p>
+            <h1 class="tf-page-title mb-0">
+                <i class="bi bi-arrow-repeat me-2"></i>
+                {% if recurring_expense %}{{ _("Editar Gasto Recurrente") }}{% else %}{{ _("Nuevo Gasto Recurrente") }}{% endif %}
+            </h1>
+            {% if recurring_expense %}
+            <p class="tf-page-subtitle">{{ recurring_expense.description }}</p>
+            {% endif %}
+        </div>
+        <a href="/recurring-expenses/" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> {{ _("Volver al listado") }}
+        </a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-9 col-xl-8">
+            <div class="card tf-panel shadow-sm border-0">
+                <div class="card-body p-4">
+                    <form action="{{ action }}" method="{{ method }}" novalidate>
+                        {% if recurring_expense %}
+                        <input type="hidden" name="_method" value="POST">
+                        {% endif %}
+
+                        <div class="row g-3">
+                            <!-- Concepto -->
+                            <div class="col-12">
+                                <label for="description" class="form-label fw-semibold">
+                                    {{ _("Concepto") }} <span class="text-danger">*</span>
+                                </label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="description"
+                                       name="description"
+                                       value="{{ recurring_expense.description if recurring_expense else '' }}"
+                                       required
+                                       placeholder="{{ _('Descripción del gasto recurrente') }}">
+                            </div>
+
+                            <!-- Bancal (parcela) -->
+                            <div class="col-md-6">
+                                <label for="plot_id" class="form-label fw-semibold">{{ _("Bancal") }}</label>
+                                <select class="form-select" id="plot_id" name="plot_id">
+                                    <option value="">{{ _("-- Sin bancal asignado (gasto general) --") }}</option>
+                                    {% for p in plots %}
+                                    <option value="{{ p.id }}"
+                                            {% if recurring_expense and recurring_expense.plot_id == p.id %}selected{% endif %}>
+                                        {{ p.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Persona -->
+                            <div class="col-md-6">
+                                <label for="person" class="form-label fw-semibold">{{ _("Persona") }}</label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="person"
+                                       name="person"
+                                       value="{{ recurring_expense.person if recurring_expense else '' }}"
+                                       placeholder="{{ _('Nombre del responsable') }}">
+                            </div>
+
+                            <!-- Categoría -->
+                            <div class="col-md-4">
+                                <label for="category" class="form-label fw-semibold">{{ _("Categoría") }}</label>
+                                <select class="form-select" id="category" name="category">
+                                    <option value="">{{ _("-- Sin categoría --") }}</option>
+                                    {% for cat in categories %}
+                                    <option value="{{ cat }}"
+                                            {% if recurring_expense and recurring_expense.category == cat %}selected{% endif %}>
+                                        {{ cat }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Cantidad -->
+                            <div class="col-md-4">
+                                <label for="amount" class="form-label fw-semibold">
+                                    {{ _("Importe (€)") }} <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <input type="number"
+                                           class="form-control"
+                                           id="amount"
+                                           name="amount"
+                                           value="{{ recurring_expense.amount if recurring_expense else '' }}"
+                                           min="0"
+                                           step="0.01"
+                                           required
+                                           placeholder="0.00">
+                                    <span class="input-group-text">&euro;</span>
+                                </div>
+                            </div>
+
+                            <!-- Frecuencia -->
+                            <div class="col-md-4">
+                                <label for="frequency" class="form-label fw-semibold">
+                                    {{ _("Frecuencia") }} <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="frequency" name="frequency" required>
+                                    {% for value, label in frequencies.items() %}
+                                    <option value="{{ value }}"
+                                            {% if recurring_expense and recurring_expense.frequency == value %}selected
+                                            {% elif not recurring_expense and value == 'monthly' %}selected
+                                            {% endif %}>
+                                        {{ label }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">{{ _("El gasto se creará automáticamente al inicio de cada período.") }}</div>
+                            </div>
+
+                            {% if recurring_expense %}
+                            <!-- Activo (solo en edición) -->
+                            <div class="col-12">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           role="switch"
+                                           id="is_active"
+                                           name="is_active"
+                                           value="true"
+                                           {% if recurring_expense.is_active %}checked{% endif %}>
+                                    <label class="form-check-label fw-semibold" for="is_active">
+                                        {{ _("Activo") }}
+                                    </label>
+                                    <div class="form-text">{{ _("Si está inactivo, no se crearán gastos automáticamente.") }}</div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <hr class="my-4">
+
+                        <div class="d-flex gap-2 justify-content-end">
+                            <a href="/recurring-expenses/" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle me-1"></i> {{ _("Cancelar") }}
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-check-circle me-1"></i>
+                                {% if recurring_expense %}{{ _("Guardar cambios") }}{% else %}{{ _("Crear gasto recurrente") }}{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

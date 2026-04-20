@@ -14,6 +14,7 @@ from app.models.irrigation import IrrigationRecord
 from app.models.plant import Plant
 from app.models.plot import Plot
 from app.models.plot_event import PlotEvent
+from app.models.recurring_expense import RecurringExpense
 from app.models.truffle_event import TruffleEvent
 from app.models.well import Well
 from app.services.export_service import (
@@ -23,6 +24,7 @@ from app.services.export_service import (
     export_irrigation_csv,
     export_plot_events_csv,
     export_plots_csv,
+    export_recurring_expenses_csv,
     export_truffles_csv,
     export_wells_csv,
 )
@@ -541,6 +543,10 @@ async def test_export_all_csv_zip_contains_all_files(monkeypatch):
         "app.services.export_service.export_plot_events_csv",
         AsyncMock(return_value=b"l"),
     )
+    monkeypatch.setattr(
+        "app.services.export_service.export_recurring_expenses_csv",
+        AsyncMock(return_value=b"rec"),
+    )
 
     db = MagicMock()
     data = await export_all_csv_zip(db, user_id=1)
@@ -556,6 +562,7 @@ async def test_export_all_csv_zip_contains_all_files(monkeypatch):
                 "pozos.csv",
                 "produccion.csv",
                 "labores.csv",
+                "gastos_recurrentes.csv",
             ]
         )
         assert zf.read("parcelas.csv") == b"p"
@@ -565,6 +572,7 @@ async def test_export_all_csv_zip_contains_all_files(monkeypatch):
         assert zf.read("pozos.csv") == b"w"
         assert zf.read("produccion.csv") == b"t"
         assert zf.read("labores.csv") == b"l"
+        assert zf.read("gastos_recurrentes.csv") == b"rec"
 
 
 # ---------------------------------------------------------------------------
@@ -599,4 +607,82 @@ async def test_export_plot_events_csv_empty():
     db = _db_with_two_calls(result([]), result([]))
 
     data = await export_plot_events_csv(db, user_id=1)
+    assert data == b""
+
+
+# ---------------------------------------------------------------------------
+# export_recurring_expenses_csv
+# ---------------------------------------------------------------------------
+
+
+def _make_recurring_expense(
+    id=1,
+    plot_id=None,
+    description="Seguro finca",
+    frequency="annual",
+    person="Javi",
+    category="Seguros",
+    amount=350.0,
+    is_active=True,
+):
+    return RecurringExpense(
+        id=id,
+        user_id=1,
+        description=description,
+        frequency=frequency,
+        plot_id=plot_id,
+        person=person,
+        category=category,
+        amount=amount,
+        is_active=is_active,
+        last_run_date=None,
+    )
+
+
+@pytest.mark.asyncio
+async def test_export_recurring_expenses_csv_with_data():
+    plot = _make_plot(id=1, name="Bancal Sur")
+    expense = _make_recurring_expense(
+        id=1, plot_id=1, description="Seguro finca", frequency="annual",
+        person="Javi", category="Seguros", amount=350.0, is_active=True,
+    )
+    db = _db_with_two_calls(result([plot]), result([expense]))
+
+    data = await export_recurring_expenses_csv(db, user_id=1)
+    rows = _parse_csv(data)
+
+    assert len(rows) == 1
+    row = rows[0]
+    assert row[0] == "Seguro finca"
+    assert row[1] == "annual"
+    assert row[2] == "Bancal Sur"
+    assert row[3] == "Javi"
+    assert row[4] == "Seguros"
+    assert row[5] == "350,00"
+    assert row[6] == "1"
+
+
+@pytest.mark.asyncio
+async def test_export_recurring_expenses_csv_no_plot():
+    expense = _make_recurring_expense(
+        id=1, plot_id=None, description="Agua corriente", frequency="monthly",
+        person="", category=None, amount=25.5, is_active=False,
+    )
+    db = _db_with_two_calls(result([]), result([expense]))
+
+    data = await export_recurring_expenses_csv(db, user_id=1)
+    rows = _parse_csv(data)
+
+    assert len(rows) == 1
+    assert rows[0][2] == ""  # bancal empty
+    assert rows[0][4] == ""  # category empty
+    assert rows[0][5] == "25,50"
+    assert rows[0][6] == "0"  # is_active=False
+
+
+@pytest.mark.asyncio
+async def test_export_recurring_expenses_csv_empty():
+    db = _db_with_two_calls(result([]), result([]))
+
+    data = await export_recurring_expenses_csv(db, user_id=1)
     assert data == b""
