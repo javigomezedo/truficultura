@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import urllib.parse
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
@@ -271,3 +272,196 @@ def test_irrigation_expenses_for_plot_returns_json(monkeypatch) -> None:
     assert response.json() == [
         {"id": 9, "description": "Riego junio", "date": "2025-06-15", "amount": 42.5}
     ]
+
+
+# ---------------------------------------------------------------------------
+# Registro múltiple (bulk)
+# ---------------------------------------------------------------------------
+
+
+def test_irrigation_bulk_new_form_renders(monkeypatch) -> None:
+    fake_db = _db()
+    plots = [
+        SimpleNamespace(id=1, name="Bancal Norte"),
+        SimpleNamespace(id=2, name="Bancal Sur"),
+    ]
+    monkeypatch.setattr(
+        "app.services.irrigation_service._get_irrigable_plots",
+        AsyncMock(return_value=plots),
+    )
+    monkeypatch.setattr(
+        "app.routers.irrigation.get_riego_expenses_for_plots",
+        AsyncMock(return_value={1: [], 2: []}),
+    )
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = lambda: fake_db
+    try:
+        client = TestClient(app)
+        response = client.get("/irrigation/bulk-new")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert "Bancal Norte" in response.text
+    assert "Bancal Sur" in response.text
+
+
+def test_irrigation_bulk_create_redirects(monkeypatch) -> None:
+    fake_db = _db()
+    bulk_mock = AsyncMock(return_value=[SimpleNamespace(), SimpleNamespace()])
+    monkeypatch.setattr("app.routers.irrigation.create_bulk_service", bulk_mock)
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = lambda: fake_db
+    body = urllib.parse.urlencode(
+        [
+            ("plot_id", "1"),
+            ("date", "2025-06-15"),
+            ("water_m3", "10.0"),
+            ("expense_id", ""),
+            ("notes", ""),
+            ("plot_id", "2"),
+            ("date", "2025-06-15"),
+            ("water_m3", "8.5"),
+            ("expense_id", ""),
+            ("notes", "Nota parcela 2"),
+        ]
+    )
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/irrigation/bulk",
+            content=body,
+            headers={"content-type": "application/x-www-form-urlencoded"},
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert "/irrigation/" in response.headers["location"]
+    bulk_mock.assert_awaited_once()
+    items = bulk_mock.call_args[0][2]
+    assert len(items) == 2
+    assert items[0].water_m3 == 10.0
+    assert items[1].water_m3 == 8.5
+
+
+def test_irrigation_bulk_skips_empty_water_m3(monkeypatch) -> None:
+    fake_db = _db()
+    bulk_mock = AsyncMock(return_value=[SimpleNamespace()])
+    monkeypatch.setattr("app.routers.irrigation.create_bulk_service", bulk_mock)
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = lambda: fake_db
+    body = urllib.parse.urlencode(
+        [
+            ("plot_id", "1"),
+            ("date", "2025-06-15"),
+            ("water_m3", "10.0"),
+            ("expense_id", ""),
+            ("notes", ""),
+            ("plot_id", "2"),
+            ("date", "2025-06-15"),
+            ("water_m3", ""),  # vacío → se omite
+            ("expense_id", ""),
+            ("notes", ""),
+        ]
+    )
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/irrigation/bulk",
+            content=body,
+            headers={"content-type": "application/x-www-form-urlencoded"},
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    items = bulk_mock.call_args[0][2]
+    assert len(items) == 1
+    assert items[0].plot_id == 1
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/irrigation/bulk",
+            content=body,
+            headers={"content-type": "application/x-www-form-urlencoded"},
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    items = bulk_mock.call_args[0][2]
+    assert len(items) == 1
+    assert items[0].plot_id == 1
+
+
+def test_irrigation_bulk_invalid_date_skips_row(monkeypatch) -> None:
+    fake_db = _db()
+    bulk_mock = AsyncMock(return_value=[SimpleNamespace()])
+    monkeypatch.setattr("app.routers.irrigation.create_bulk_service", bulk_mock)
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = lambda: fake_db
+    body = urllib.parse.urlencode(
+        [
+            ("plot_id", "1"),
+            ("date", "no-es-fecha"),
+            ("water_m3", "5.0"),
+            ("expense_id", ""),
+            ("notes", ""),
+            ("plot_id", "2"),
+            ("date", "2025-06-15"),
+            ("water_m3", "8.0"),
+            ("expense_id", ""),
+            ("notes", ""),
+        ]
+    )
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/irrigation/bulk",
+            content=body,
+            headers={"content-type": "application/x-www-form-urlencoded"},
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    # La fila con fecha inválida se omite; solo se guarda la fila 2
+    items = bulk_mock.call_args[0][2]
+    assert len(items) == 1
+    assert items[0].plot_id == 2
+
+
+def test_irrigation_bulk_passes_expense_id(monkeypatch) -> None:
+    fake_db = _db()
+    bulk_mock = AsyncMock(return_value=[SimpleNamespace()])
+    monkeypatch.setattr("app.routers.irrigation.create_bulk_service", bulk_mock)
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = lambda: fake_db
+    body = urllib.parse.urlencode(
+        [
+            ("plot_id", "1"),
+            ("date", "2025-06-15"),
+            ("water_m3", "10.0"),
+            ("expense_id", "42"),
+            ("notes", ""),
+        ]
+    )
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/irrigation/bulk",
+            content=body,
+            headers={"content-type": "application/x-www-form-urlencoded"},
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    items = bulk_mock.call_args[0][2]
+    assert items[0].expense_id == 42
