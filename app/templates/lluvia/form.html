@@ -33,14 +33,15 @@
                 <div class="card-body p-4">
                     <form method="post" action="{{ action }}">
 
-                        <!-- Tipo de registro: parcela o municipio -->
+                        {% if record and record.source != 'manual' %}
+                        <!-- Tipo de registro: parcela o municipio (solo en edición de registros importados) -->
                         <div class="mb-3">
                             <label class="form-label fw-semibold">{{ _("Tipo de registro") }}</label>
                             <div class="d-flex gap-3">
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="record_type"
                                            id="type_plot" value="plot"
-                                           {% if not record or record.plot_id %}checked{% endif %}
+                                           {% if record.plot_id %}checked{% endif %}
                                            onchange="toggleRecordType()">
                                     <label class="form-check-label" for="type_plot">
                                         <i class="bi bi-map me-1 text-success"></i>{{ _("Parcela (pluviómetro)") }}
@@ -49,7 +50,7 @@
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="record_type"
                                            id="type_municipio" value="municipio"
-                                           {% if record and not record.plot_id %}checked{% endif %}
+                                           {% if not record.plot_id %}checked{% endif %}
                                            onchange="toggleRecordType()">
                                     <label class="form-check-label" for="type_municipio">
                                         <i class="bi bi-geo-alt me-1 text-secondary"></i>{{ _("Municipio (AEMET / ibericam)") }}
@@ -57,9 +58,11 @@
                                 </div>
                             </div>
                         </div>
+                        {% endif %}
 
                         <!-- Selector de parcela -->
-                        <div class="mb-3" id="plot_section">
+                        <div class="mb-3" id="plot_section"
+                             {% if record and not record.plot_id %}style="display:none"{% endif %}>
                             <label for="plot_id" class="form-label fw-semibold">{{ _("Parcela") }}</label>
                             <select name="plot_id" id="plot_id" class="form-select">
                                 <option value="">{{ _("Selecciona una parcela") }}</option>
@@ -72,8 +75,8 @@
                             </select>
                         </div>
 
-                        <!-- Municipio -->
-                        <div class="mb-3 d-none" id="municipio_section">
+                        <!-- Municipio (solo en edición para registros importados) -->
+                        <div class="mb-3 {% if not record or record.plot_id %}d-none{% endif %}" id="municipio_section">
                             <label for="municipio_cod" class="form-label fw-semibold">
                                 {{ _("Código de municipio (INE)") }}
                             </label>
@@ -107,21 +110,28 @@
                             <div class="form-text text-muted">{{ _("1 mm = 1 l/m²") }}</div>
                         </div>
 
-                        <!-- Fuente -->
+                        <!-- Fuente: solo lectura en edición de registros importados -->
+                        {% if record and record.source != 'manual' %}
                         <div class="mb-3">
-                            <label for="source" class="form-label fw-semibold">{{ _("Fuente") }}</label>
-                            <select name="source" id="source" class="form-select">
-                                <option value="manual" {% if not record or record.source == 'manual' %}selected{% endif %}>
-                                    {{ _("Pluviómetro manual") }}
-                                </option>
-                                <option value="aemet" {% if record and record.source == 'aemet' %}selected{% endif %}>
-                                    AEMET
-                                </option>
-                                <option value="ibericam" {% if record and record.source == 'ibericam' %}selected{% endif %}>
-                                    ibericam
-                                </option>
-                            </select>
+                            <label class="form-label fw-semibold">{{ _("Fuente") }}</label>
+                            <div>
+                                {% if record.source == 'aemet' %}
+                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fs-6">
+                                        <i class="bi bi-cloud-download me-1"></i>AEMET
+                                    </span>
+                                {% elif record.source == 'ibericam' %}
+                                    <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle fs-6">
+                                        <i class="bi bi-globe me-1"></i>ibericam
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle fs-6">
+                                        <i class="bi bi-thermometer-half me-1"></i>{{ _("Pluviómetro manual") }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <input type="hidden" name="source" value="{{ record.source }}">
                         </div>
+                        {% endif %}
 
                         <!-- Notas -->
                         <div class="mb-4">
@@ -151,20 +161,21 @@ function toggleRecordType() {
     const municipioSection = document.getElementById('municipio_section');
     const plotInput = document.getElementById('plot_id');
     const municipioInput = document.getElementById('municipio_cod');
-    const isPlot = document.getElementById('type_plot').checked;
+    const typePlot = document.getElementById('type_plot');
+    if (!typePlot) return;  // formulario de nuevo registro: no hay radios
+    const isPlot = typePlot.checked;
 
     if (isPlot) {
-        plotSection.classList.remove('d-none');
+        plotSection.style.display = '';
         municipioSection.classList.add('d-none');
-        municipioInput.value = '';
+        if (municipioInput) municipioInput.value = '';
     } else {
-        plotSection.classList.add('d-none');
+        plotSection.style.display = 'none';
         municipioSection.classList.remove('d-none');
-        plotInput.value = '';
+        if (plotInput) plotInput.value = '';
     }
 }
 
-// Run on load to set initial state
 document.addEventListener('DOMContentLoaded', toggleRecordType);
 </script>
 {% endblock %}

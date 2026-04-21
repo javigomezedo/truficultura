@@ -67,6 +67,24 @@ async def _get_user_plots(db: AsyncSession, user_id: int) -> list[Plot]:
     return result.scalars().all()
 
 
+async def _get_user_municipios(db: AsyncSession, user_id: int) -> list[dict]:
+    result = await db.execute(
+        select(RainfallRecord.municipio_cod, RainfallRecord.municipio_name)
+        .where(
+            RainfallRecord.user_id == user_id,
+            RainfallRecord.municipio_cod.isnot(None),
+        )
+        .distinct()
+        .order_by(RainfallRecord.municipio_cod)
+    )
+    rows = result.all()
+    seen: dict[str, dict] = {}
+    for cod, name in rows:
+        if cod and cod not in seen:
+            seen[cod] = {"cod": cod, "name": name or cod}
+    return list(seen.values())
+
+
 async def get_rainfall_list_context(
     db: AsyncSession,
     user_id: int,
@@ -74,14 +92,24 @@ async def get_rainfall_list_context(
     year: Optional[int] = None,
     plot_id: Optional[int] = None,
     source: Optional[str] = None,
+    municipio_cod: Optional[str] = None,
+    only_with_rain: bool = False,
     sort_by: str = "date",
     sort_order: str = "desc",
 ) -> dict:
     records = await list_rainfall_records(
-        db, user_id, plot_id=plot_id, year=year, source=source
+        db,
+        user_id,
+        plot_id=plot_id,
+        year=year,
+        source=source,
+        municipio_cod=municipio_cod,
     )
+    if only_with_rain:
+        records = [r for r in records if r.precipitation_mm > 0]
     plots = await _get_user_plots(db, user_id)
     years = await _get_all_years(db, user_id)
+    municipios = await _get_user_municipios(db, user_id)
 
     _SORT_KEYS = {
         "date": lambda x: x.date,
@@ -98,9 +126,12 @@ async def get_rainfall_list_context(
         "records": records,
         "plots": plots,
         "years": years,
+        "municipios": municipios,
         "selected_year": year,
         "selected_plot": plot_id,
         "selected_source": source,
+        "selected_municipio": municipio_cod,
+        "only_with_rain": only_with_rain,
         "total_mm": round(total_mm, 1),
         "count": len(records),
         "sort_by": sort_by,

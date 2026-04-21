@@ -1,0 +1,344 @@
+{% extends "base.html" %}
+
+{% block title %}Importar lluvia desde ibericam{% endblock %}
+
+{% block content %}
+<div class="container-xl py-4">
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <h1 class="mb-0"><i class="bi bi-cloud-arrow-down me-2"></i>Importar precipitación — ibericam</h1>
+        <a href="/lluvia/" class="btn btn-outline-secondary btn-sm ms-auto">
+            <i class="bi bi-arrow-left me-1"></i> Volver a lluvia
+        </a>
+    </div>
+
+    <div class="alert alert-info mb-4">
+        <h5 class="mb-2"><i class="bi bi-info-circle me-1"></i> Acerca de ibericam</h5>
+        <p class="mb-1">
+            Los datos proceden de <a href="https://ibericam.com" target="_blank" rel="noopener noreferrer">ibericam.com</a>,
+            red de estaciones meteorológicas privadas. Los registros se guardan con
+            <code>source = "ibericam"</code> asociados al municipio indicado.
+        </p>
+        <ul class="mb-0 small text-muted">
+            <li>El <strong>slug de estación</strong> es la última parte de la URL ibericam,
+                p. ej. <code>sarrion</code> en <em>ibericam.com/teruel/informe-estacion-meteorologica-de-sarrion/</em>.</li>
+            <li>Si dejas año y mes en blanco se importa el <strong>mes en curso</strong>.</li>
+            <li>Si rellenas sólo el año se importa el <strong>año completo</strong>.</li>
+            <li>Si rellenas año y mes se importa ese <strong>mes concreto</strong>.</li>
+            <li>Un registro ya existente (mismo usuario, municipio y fecha) se <strong>actualiza</strong> con el valor nuevo.</li>
+        </ul>
+    </div>
+
+    {% if slug_map %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header fw-semibold">
+            <i class="bi bi-pin-map me-1"></i> Estaciones conocidas — haz clic para autorellenar
+        </div>
+        <div class="card-body d-flex flex-wrap gap-2">
+            {% for slug, cod in slug_map.items() %}
+            <button type="button" class="btn btn-outline-secondary btn-sm"
+                    onclick="autoFill('{{ slug }}', '{{ cod }}')">
+                <code>{{ slug }}</code> <span class="text-muted">({{ cod }})</span>
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Descubrir estaciones ibericam -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header fw-semibold d-flex align-items-center gap-2">
+            <i class="bi bi-search me-1"></i> Descubrir estaciones disponibles
+            <button id="discoverBtn" type="button" class="btn btn-sm btn-outline-primary ms-auto"
+                    onclick="discoverStations()">
+                <span id="discoverSpinner" class="spinner-border spinner-border-sm me-1" role="status" style="display:none;"></span>
+                <i id="discoverIcon" class="bi bi-cloud-download me-1"></i>
+                Buscar estaciones
+            </button>
+        </div>
+        <div class="card-body">
+            <p class="text-muted small mb-2">
+                Consulta ibericam en tiempo real para obtener la lista de estaciones con datos de precipitación disponibles.
+                El proceso puede tardar entre 15 y 40 segundos.
+            </p>
+            <div id="stationsResult" style="display:none;">
+                <div class="mb-2">
+                    <input type="search" id="stationsFilter" class="form-control form-control-sm"
+                           placeholder="Filtrar por nombre…" oninput="filterStations()" style="max-width:280px;">
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle" id="stationsTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Slug (estación)</th>
+                                <th>Nombre</th>
+                                <th>Último dato</th>
+                                <th>Días este mes</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="stationsTbody"></tbody>
+                    </table>
+                </div>
+                <p id="stationsEmpty" class="text-muted" style="display:none;">No se encontraron estaciones.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form id="ibericamImportForm" onsubmit="return submitImport(event)">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="station_slug" class="form-label fw-semibold">Slug de estación ibericam <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="station_slug" name="station_slug"
+                               placeholder="sarrion" required>
+                        <div class="form-text">Parte final de la URL de la estación.</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="municipio_search" class="form-label fw-semibold">Municipio <span class="text-danger">*</span></label>
+                        <div class="position-relative">
+                            <input type="text" class="form-control" id="municipio_search"
+                                   placeholder="Buscar municipio por nombre…" autocomplete="off"
+                                   oninput="debouncedMunicipioSearch()">
+                            <div id="municipio_dropdown"
+                                 class="list-group position-absolute w-100 shadow"
+                                 style="display:none; top:100%; z-index:1000;"></div>
+                        </div>
+                        <input type="hidden" id="municipio_cod" name="municipio_cod" required>
+                        <input type="hidden" id="municipio_name" name="municipio_name">
+                        <div class="form-text" id="municipio_hint">Escribe el nombre y elige de la lista.</div>
+                    </div>
+                </div>
+                <div class="row g-3 mt-1">
+                    <div class="col-md-2">
+                        <label for="year" class="form-label">Año</label>
+                        <input type="number" class="form-control" id="year" name="year"
+                               min="2010" max="{{ today.year }}" value="{{ today.year }}" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="month" class="form-label">Mes</label>
+                        <select class="form-select" id="month" name="month" required>
+                            <option value="1" {% if today.month == 1 %}selected{% endif %}>Enero</option>
+                            <option value="2" {% if today.month == 2 %}selected{% endif %}>Febrero</option>
+                            <option value="3" {% if today.month == 3 %}selected{% endif %}>Marzo</option>
+                            <option value="4" {% if today.month == 4 %}selected{% endif %}>Abril</option>
+                            <option value="5" {% if today.month == 5 %}selected{% endif %}>Mayo</option>
+                            <option value="6" {% if today.month == 6 %}selected{% endif %}>Junio</option>
+                            <option value="7" {% if today.month == 7 %}selected{% endif %}>Julio</option>
+                            <option value="8" {% if today.month == 8 %}selected{% endif %}>Agosto</option>
+                            <option value="9" {% if today.month == 9 %}selected{% endif %}>Septiembre</option>
+                            <option value="10" {% if today.month == 10 %}selected{% endif %}>Octubre</option>
+                            <option value="11" {% if today.month == 11 %}selected{% endif %}>Noviembre</option>
+                            <option value="12" {% if today.month == 12 %}selected{% endif %}>Diciembre</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary mt-3" id="importBtn">
+                    <span id="importSpinner" class="spinner-border spinner-border-sm me-1" role="status" style="display:none;"></span>
+                    <i id="importIcon" class="bi bi-cloud-arrow-down me-1"></i>
+                    Importar
+                </button>
+            </form>
+            <div id="importResult" class="mt-4" style="display:none;"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// ---- Autorellenado desde estaciones conocidas o descubiertas ----
+function autoFill(slug, cod) {
+    document.getElementById('station_slug').value = slug;
+    if (cod) {
+        setMunicipio(cod, cod);  // mostramos el código directamente; el usuario puede buscar por nombre
+    } else {
+        // Sin código conocido: buscar por el nombre derivado del slug
+        const name = slug.replace(/-/g, ' ');
+        document.getElementById('municipio_search').value = name;
+        searchMunicipio();  // dispara búsqueda inmediata
+    }
+    document.getElementById('ibericamImportForm').scrollIntoView({behavior: 'smooth'});
+}
+
+// ---- Búsqueda de municipios (typeahead) ----
+let _muniTimer = null;
+
+function debouncedMunicipioSearch() {
+    clearTimeout(_muniTimer);
+    _muniTimer = setTimeout(searchMunicipio, 350);
+}
+
+function searchMunicipio() {
+    const q = document.getElementById('municipio_search').value.trim();
+    if (q.length < 2) { hideMunicipioDropdown(); return; }
+    fetch('/lluvia/importar/ibericam/municipios?q=' + encodeURIComponent(q), {
+        headers: {'X-Requested-With': 'XMLHttpRequest'}
+    })
+    .then(r => r.json())
+    .then(data => showMunicipioDropdown(data.municipios || []));
+}
+
+function showMunicipioDropdown(municipios) {
+    const dd = document.getElementById('municipio_dropdown');
+    dd.innerHTML = '';
+    if (!municipios.length) { dd.style.display = 'none'; return; }
+    municipios.forEach(m => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'list-group-item list-group-item-action py-1 small d-flex justify-content-between align-items-center';
+        btn.innerHTML =
+            '<span><strong>' + m.name + '</strong>' +
+            (m.province ? ' <span class="text-muted">— ' + m.province + '</span>' : '') +
+            '</span>' +
+            '<code class="text-muted ms-2">' + m.ine_code + '</code>';
+        btn.onmousedown = (e) => { e.preventDefault(); setMunicipio(m.name, m.ine_code); };
+        dd.appendChild(btn);
+    });
+    dd.style.display = 'block';
+}
+
+function setMunicipio(name, code) {
+    document.getElementById('municipio_search').value = name;
+    document.getElementById('municipio_cod').value = code;
+    document.getElementById('municipio_name').value = name;
+    document.getElementById('municipio_hint').innerHTML =
+        '<i class="bi bi-check-circle text-success me-1"></i>Código INE: <strong>' + code + '</strong>';
+    hideMunicipioDropdown();
+}
+
+function hideMunicipioDropdown() {
+    document.getElementById('municipio_dropdown').style.display = 'none';
+}
+
+// ---- Descubrimiento dinámico de estaciones ----
+let _allStations = [];
+
+function discoverStations() {
+    const btn    = document.getElementById('discoverBtn');
+    const spin   = document.getElementById('discoverSpinner');
+    const icon   = document.getElementById('discoverIcon');
+    const result = document.getElementById('stationsResult');
+
+    btn.disabled = true;
+    spin.style.display = 'inline-block';
+    icon.style.display = 'none';
+    result.style.display = 'none';
+
+    fetch('/lluvia/importar/ibericam/estaciones', {
+        headers: {'X-Requested-With': 'XMLHttpRequest'}
+    })
+    .then(r => r.json())
+    .then(data => {
+        _allStations = data.stations || [];
+        renderStations(_allStations);
+        result.style.display = 'block';
+    })
+    .catch(err => {
+        alert('Error al contactar con ibericam: ' + err);
+    })
+    .finally(() => {
+        btn.disabled = false;
+        spin.style.display = 'none';
+        icon.style.display = 'inline-block';
+    });
+}
+
+function renderStations(stations) {
+    const tbody = document.getElementById('stationsTbody');
+    const empty = document.getElementById('stationsEmpty');
+    tbody.innerHTML = '';
+    if (!stations.length) {
+        empty.style.display = 'block';
+        return;
+    }
+    empty.style.display = 'none';
+    stations.forEach(s => {
+        const tr = document.createElement('tr');
+        tr.setAttribute('data-name', s.name.toLowerCase());
+        tr.innerHTML =
+            '<td><code>' + s.slug + '</code></td>' +
+            '<td>' + s.name + '</td>' +
+            '<td>' + (s.last_date || '—') + '</td>' +
+            '<td>' + (s.num_records || 0) + '</td>' +
+            '<td><button type="button" class="btn btn-sm btn-outline-success" ' +
+            'onclick="autoFill(\'' + s.slug + '\', \'\')">' +
+            '<i class="bi bi-check2-circle me-1"></i>Usar</button></td>';
+        tbody.appendChild(tr);
+    });
+}
+
+function filterStations() {
+    const q = document.getElementById('stationsFilter').value.toLowerCase();
+    const filtered = q
+        ? _allStations.filter(s => s.name.toLowerCase().includes(q) || s.slug.includes(q))
+        : _allStations;
+    renderStations(filtered);
+}
+
+// ---- Importar precipitación ----
+function submitImport(event) {
+    event.preventDefault();
+    const form = document.getElementById('ibericamImportForm');
+    const resultDiv = document.getElementById('importResult');
+    const btn = document.getElementById('importBtn');
+    const spinner = document.getElementById('importSpinner');
+    const icon = document.getElementById('importIcon');
+
+    resultDiv.style.display = 'none';
+    resultDiv.innerHTML = '';
+    btn.disabled = true;
+    spinner.style.display = 'inline-block';
+    icon.style.display = 'none';
+
+    const formData = new FormData(form);
+    // Quitar campos vacíos para que FastAPI reciba None
+    ['year', 'month'].forEach(k => {
+        if (!formData.get(k)) formData.delete(k);
+    });
+
+    fetch('/lluvia/importar/ibericam', {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(resp => resp.json())
+    .then(data => {
+        resultDiv.style.display = 'block';
+        if (data.error) {
+            resultDiv.innerHTML =
+                '<div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-1"></i><strong>Error:</strong> ' +
+                data.error + '</div>';
+        } else {
+            const slug = data.station_slug || '';
+            const cod  = data.municipio_cod || '';
+            resultDiv.innerHTML =
+                '<div class="alert alert-success">' +
+                '<i class="bi bi-check-circle me-1"></i> Importación completada — ' +
+                '<strong>estación:</strong> ' + slug + ' · ' +
+                '<strong>municipio:</strong> ' + cod +
+                '</div>' +
+                '<table class="table table-sm table-bordered w-auto">' +
+                '<tbody>' +
+                '<tr><th>Creados</th><td>' + data.created + '</td></tr>' +
+                '<tr><th>Actualizados</th><td>' + data.updated + '</td></tr>' +
+                '<tr><th>Total</th><td><strong>' + data.total + '</strong></td></tr>' +
+                '</tbody></table>' +
+                '<a href="/lluvia/?source=ibericam" class="btn btn-outline-secondary btn-sm mt-1">' +
+                '<i class="bi bi-list-ul me-1"></i> Ver registros ibericam</a>';
+        }
+    })
+    .catch(err => {
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML =
+            '<div class="alert alert-danger">Error de red: ' + err + '</div>';
+    })
+    .finally(() => {
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        icon.style.display = 'inline-block';
+    });
+    return false;
+}
+</script>
+{% endblock %}

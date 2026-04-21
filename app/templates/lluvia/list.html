@@ -15,9 +15,17 @@
                 {% if selected_year %} {{ _("en campaña") }} {{ selected_year|campaign_label }}{% endif %}
             </p>
         </div>
+        <div class="d-flex flex-wrap gap-2">
         <a href="/lluvia/nuevo" class="btn btn-outline-primary">
-            <i class="bi bi-plus-circle me-1"></i> {{ _("Nuevo registro") }}
+            <i class="bi bi-plus-circle me-1"></i> {{ _("Registro manual") }}
         </a>
+        <a href="/lluvia/importar/ibericam" class="btn btn-outline-secondary">
+            <i class="bi bi-cloud-arrow-down me-1"></i> Importar ibericam
+        </a>
+        <a href="/lluvia/importar/aemet" class="btn btn-outline-secondary">
+            <i class="bi bi-cloud-arrow-down me-1"></i> Importar AEMET
+        </a>
+        </div>
     </div>
 
     {% if msg %}
@@ -85,12 +93,32 @@
                     <label class="form-label">{{ _("Fuente") }}</label>
                     <select name="source" class="form-select form-select-sm" onchange="this.form.submit()">
                         <option value="">{{ _("Todas las fuentes") }}</option>
-                        <option value="manual" {% if selected_source == 'manual' %}selected{% endif %}>{{ _("Pluviómetro manual") }}</option>
-                        <option value="aemet" {% if selected_source == 'aemet' %}selected{% endif %}>AEMET</option>
-                        <option value="ibericam" {% if selected_source == 'ibericam' %}selected{% endif %}>ibericam</option>
+                        <option value="manual" {% if selected_source == 'manual' %}selected{% endif %}>Manual</option>
+                        <option value="aemet" {% if selected_source == 'aemet' %}selected{% endif %}>Aemet</option>
+                        <option value="ibericam" {% if selected_source == 'ibericam' %}selected{% endif %}>Ibericam</option>
                     </select>
                 </div>
-                {% if selected_year or selected_plot or selected_source %}
+                {% if municipios %}
+                <div class="tf-filter-item tf-filter-item--compact">
+                    <label class="form-label">{{ _("Municipio") }}</label>
+                    <select name="municipio_cod" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">{{ _("Todos los municipios") }}</option>
+                        {% for m in municipios %}
+                        <option value="{{ m.cod }}" {% if selected_municipio == m.cod %}selected{% endif %}>{{ m.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                <div class="tf-filter-item tf-filter-item--compact d-flex align-items-end pb-1">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="only_with_rain" id="only_with_rain"
+                               value="1" {% if only_with_rain %}checked{% endif %} onchange="this.form.submit()">
+                        <label class="form-check-label small text-nowrap" for="only_with_rain">
+                            {{ _("Solo con lluvia") }}
+                        </label>
+                    </div>
+                </div>
+                {% if selected_year or selected_plot or selected_source or selected_municipio or only_with_rain %}
                 <div class="tf-filter-item tf-filter-item--compact d-flex align-items-end">
                     <a href="/lluvia/" class="btn btn-sm btn-outline-secondary">
                         <i class="bi bi-x-circle me-1"></i>{{ _("Limpiar filtros") }}
@@ -155,7 +183,7 @@
                                 </span>
                             {% else %}
                                 <span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">
-                                    <i class="bi bi-geo-alt me-1"></i>{{ _("Municipio") }} {{ r.municipio_cod or '' }}
+                                    <i class="bi bi-geo-alt me-1"></i>{{ r.municipio_name or r.municipio_cod or '' }}
                                 </span>
                             {% endif %}
                         </td>
@@ -172,16 +200,18 @@
                                     <i class="bi bi-cloud-download me-1"></i>AEMET
                                 </span>
                             {% elif r.source == 'ibericam' %}
-                                <span class="badge bg-purple-subtle text-purple-emphasis border border-secondary-subtle">
+                                <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">
                                     <i class="bi bi-globe me-1"></i>ibericam
                                 </span>
                             {% endif %}
                         </td>
                         <td class="text-muted small">{{ r.notes or '' }}</td>
                         <td class="text-end">
+                            {% if r.source == 'manual' %}
                             <a href="/lluvia/{{ r.id }}/editar" class="btn btn-sm btn-outline-secondary me-1">
                                 <i class="bi bi-pencil"></i>
                             </a>
+                            {% endif %}
                             <form method="post" action="/lluvia/{{ r.id }}/eliminar" class="d-inline"
                                   onsubmit="return confirm('{{ _('¿Eliminar este registro de lluvia?') }}')">
                                 <button type="submit" class="btn btn-sm btn-outline-danger">

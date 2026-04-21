@@ -344,7 +344,7 @@ async def test_get_rainfall_list_context_structure() -> None:
     plots = [SimpleNamespace(id=1, name="Parcela A")]
     db = MagicMock()
     db.execute = AsyncMock(
-        side_effect=[result(records_data), result(plots), result([])]
+        side_effect=[result(records_data), result(plots), result([]), result([])]
     )
 
     context = await get_rainfall_list_context(db, user_id=1)
@@ -352,6 +352,7 @@ async def test_get_rainfall_list_context_structure() -> None:
     assert "records" in context
     assert "plots" in context
     assert "years" in context
+    assert "municipios" in context
     assert "total_mm" in context
     assert "count" in context
     assert context["count"] == 1

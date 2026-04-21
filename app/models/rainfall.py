@@ -32,6 +32,8 @@ class RainfallRecord(Base):
     municipio_cod: Mapped[Optional[str]] = mapped_column(
         String(10), nullable=True, index=True
     )
+    # Nombre legible del municipio (p.ej. "Sarrión"); solo para registros AEMET/ibericam
+    municipio_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     date: Mapped[datetime.date] = mapped_column(Date, nullable=False, index=True)
     precipitation_mm: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     # Fuente del dato: 'manual' | 'aemet' | 'ibericam'

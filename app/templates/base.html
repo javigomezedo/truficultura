@@ -182,11 +182,19 @@
                         </ul>
                     </li>
                     {% if request.session.get("role") == "admin" %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if '/admin' in request.url.path %}active{% endif %}"
-                           href="/admin/users">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if '/admin' in request.url.path %}active{% endif %}"
+                           href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-shield-lock me-1"></i> {{ _("Admin") }}
                         </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item {% if '/admin/users' in request.url.path %}active{% endif %}"
+                                   href="/admin/users">
+                                    <i class="bi bi-people me-1"></i> {{ _("Usuarios") }}
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                     {% endif %}
                 </ul>

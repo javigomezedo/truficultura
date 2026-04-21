@@ -22,6 +22,7 @@ import app.models  # noqa: F401 - ensure models are registered
 from app.models.user import User
 from app.routers import (
     admin,
+    aemet_admin,
     assistant,
     auth,
     charts,
@@ -128,6 +129,7 @@ app.include_router(scan.router)
 app.include_router(kpis.router)
 app.include_router(recurring_expenses.router)
 app.include_router(lluvia.router)
+app.include_router(aemet_admin.router)
 
 
 @app.get("/health")
