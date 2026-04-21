@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("Lluvia") }} &mdash; Truficultura{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="tf-page-header">
+        <div>
+            <p class="tf-page-kicker">{{ _("Precipitaciones") }}</p>
+            <h1 class="tf-page-title">
+                <i class="bi bi-cloud-rain-fill text-primary me-2"></i>{{ _("Lluvia") }}
+            </h1>
+            <p class="tf-page-subtitle">
+                {{ count }} {{ _("registro(s)") }}
+                {% if selected_year %} {{ _("en campaña") }} {{ selected_year|campaign_label }}{% endif %}
+            </p>
+        </div>
+        <a href="/lluvia/nuevo" class="btn btn-outline-primary">
+            <i class="bi bi-plus-circle me-1"></i> {{ _("Nuevo registro") }}
+        </a>
+    </div>
+
+    {% if msg %}
+    <div class="alert alert-success alert-dismissible fade show alert-flash" role="alert">
+        {{ _(msg) }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
+    <!-- Totales -->
+    {% if count > 0 %}
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card tf-stat-card tf-stat-card-parcelas border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-cloud-rain-fill text-primary fs-2 me-3"></i>
+                        <div>
+                            <div class="text-muted small">{{ _("Total precipitación") }}</div>
+                            <div class="fw-bold fs-5">{{ total_mm|format_eu(1) }} mm</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card tf-stat-card tf-stat-card-ingresos border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-calendar-check text-secondary fs-2 me-3"></i>
+                        <div>
+                            <div class="text-muted small">{{ _("Nº de registros") }}</div>
+                            <div class="fw-bold fs-5">{{ count }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Filtros -->
+    <div class="card tf-panel tf-filters-card shadow-sm mb-3 border-0">
+        <div class="card-body py-3">
+            <form method="get" action="/lluvia/" class="tf-filters-form">
+                <div class="tf-filter-item tf-filter-item--compact">
+                    <label class="form-label">{{ _("Campaña") }}</label>
+                    <select name="year" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">{{ _("Todas las campañas") }}</option>
+                        {% for y in years %}
+                        <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y|campaign_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="tf-filter-item tf-filter-item--compact">
+                    <label class="form-label">{{ _("Parcela") }}</label>
+                    <select name="plot_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">{{ _("Todas las parcelas") }}</option>
+                        {% for p in plots %}
+                        <option value="{{ p.id }}" {% if selected_plot == p.id %}selected{% endif %}>{{ p.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="tf-filter-item tf-filter-item--compact">
+                    <label class="form-label">{{ _("Fuente") }}</label>
+                    <select name="source" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">{{ _("Todas las fuentes") }}</option>
+                        <option value="manual" {% if selected_source == 'manual' %}selected{% endif %}>{{ _("Pluviómetro manual") }}</option>
+                        <option value="aemet" {% if selected_source == 'aemet' %}selected{% endif %}>AEMET</option>
+                        <option value="ibericam" {% if selected_source == 'ibericam' %}selected{% endif %}>ibericam</option>
+                    </select>
+                </div>
+                {% if selected_year or selected_plot or selected_source %}
+                <div class="tf-filter-item tf-filter-item--compact d-flex align-items-end">
+                    <a href="/lluvia/" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-x-circle me-1"></i>{{ _("Limpiar filtros") }}
+                    </a>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla -->
+    {% if count == 0 %}
+    <div class="alert alert-light border text-center py-5">
+        <i class="bi bi-cloud-slash fs-1 text-muted d-block mb-3"></i>
+        <p class="text-muted mb-0">{{ _("No hay registros de lluvia para los filtros seleccionados.") }}</p>
+        <a href="/lluvia/nuevo" class="btn btn-outline-primary mt-3">
+            <i class="bi bi-plus-circle me-1"></i> {{ _("Añadir el primero") }}
+        </a>
+    </div>
+    {% else %}
+    <div class="card tf-panel shadow-sm border-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>
+                            <a href="?year={{ selected_year or '' }}&plot_id={{ selected_plot or '' }}&source={{ selected_source or '' }}&sort=date&order={% if sort_by=='date' and sort_order=='asc' %}desc{% else %}asc{% endif %}">
+                                {{ _("Fecha") }}
+                                {% if sort_by == 'date' %}<i class="bi bi-caret-{% if sort_order == 'asc' %}up{% else %}down{% endif %}-fill"></i>{% endif %}
+                            </a>
+                        </th>
+                        <th>
+                            <a href="?year={{ selected_year or '' }}&plot_id={{ selected_plot or '' }}&source={{ selected_source or '' }}&sort=plot&order={% if sort_by=='plot' and sort_order=='asc' %}desc{% else %}asc{% endif %}">
+                                {{ _("Parcela / Municipio") }}
+                                {% if sort_by == 'plot' %}<i class="bi bi-caret-{% if sort_order == 'asc' %}up{% else %}down{% endif %}-fill"></i>{% endif %}
+                            </a>
+                        </th>
+                        <th>
+                            <a href="?year={{ selected_year or '' }}&plot_id={{ selected_plot or '' }}&source={{ selected_source or '' }}&sort=precipitation_mm&order={% if sort_by=='precipitation_mm' and sort_order=='asc' %}desc{% else %}asc{% endif %}">
+                                {{ _("Precipitación (mm)") }}
+                                {% if sort_by == 'precipitation_mm' %}<i class="bi bi-caret-{% if sort_order == 'asc' %}up{% else %}down{% endif %}-fill"></i>{% endif %}
+                            </a>
+                        </th>
+                        <th>
+                            <a href="?year={{ selected_year or '' }}&plot_id={{ selected_plot or '' }}&source={{ selected_source or '' }}&sort=source&order={% if sort_by=='source' and sort_order=='asc' %}desc{% else %}asc{% endif %}">
+                                {{ _("Fuente") }}
+                                {% if sort_by == 'source' %}<i class="bi bi-caret-{% if sort_order == 'asc' %}up{% else %}down{% endif %}-fill"></i>{% endif %}
+                            </a>
+                        </th>
+                        <th>{{ _("Notas") }}</th>
+                        <th class="text-end">{{ _("Acciones") }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in records %}
+                    <tr>
+                        <td>{{ r.date.strftime('%d/%m/%Y') }}</td>
+                        <td>
+                            {% if r.plot %}
+                                <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
+                                    <i class="bi bi-map me-1"></i>{{ r.plot.name }}
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">
+                                    <i class="bi bi-geo-alt me-1"></i>{{ _("Municipio") }} {{ r.municipio_cod or '' }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="fw-semibold text-primary">{{ r.precipitation_mm|format_eu(1) }} mm</span>
+                        </td>
+                        <td>
+                            {% if r.source == 'manual' %}
+                                <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">
+                                    <i class="bi bi-thermometer-half me-1"></i>{{ _("Manual") }}
+                                </span>
+                            {% elif r.source == 'aemet' %}
+                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                                    <i class="bi bi-cloud-download me-1"></i>AEMET
+                                </span>
+                            {% elif r.source == 'ibericam' %}
+                                <span class="badge bg-purple-subtle text-purple-emphasis border border-secondary-subtle">
+                                    <i class="bi bi-globe me-1"></i>ibericam
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-muted small">{{ r.notes or '' }}</td>
+                        <td class="text-end">
+                            <a href="/lluvia/{{ r.id }}/editar" class="btn btn-sm btn-outline-secondary me-1">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form method="post" action="/lluvia/{{ r.id }}/eliminar" class="d-inline"
+                                  onsubmit="return confirm('{{ _('¿Eliminar este registro de lluvia?') }}')">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
