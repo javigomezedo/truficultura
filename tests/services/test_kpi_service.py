@@ -57,6 +57,8 @@ def make_db(plots, expenses, incomes, irrigation):
             result(expenses),
             result(incomes),
             result(irrigation),
+            result([]),  # TruffleEvent physical data
+            result([]),  # PlotHarvest physical data
         ]
     )
     return db
@@ -80,6 +82,7 @@ async def test_build_kpi_context_empty() -> None:
         "roi_pct": None,
         "precio_medio": None,
         "total_kg": None,
+        "physical_kg": None,
         "crecimiento_pct": None,
         "total_incomes": None,
         "total_expenses": None,
@@ -118,8 +121,8 @@ async def test_build_kpi_context_filters_by_user_id() -> None:
     db = make_db([], [], [], [])
     await build_kpi_context(db, user_id=42)
 
-    # Four queries should have been made (plots, expenses, incomes, irrigation)
-    assert db.execute.call_count == 4
+    # Six queries should have been made (plots, expenses, incomes, irrigation, truffle_events, plot_harvests)
+    assert db.execute.call_count == 6
     # Each query is called — we cannot inspect SQLAlchemy internals easily,
     # but we verify the service returns without error and does not mix users.
     # (multi-tenancy correctness relies on the WHERE clause in the service)

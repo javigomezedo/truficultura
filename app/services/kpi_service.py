@@ -11,6 +11,8 @@ from app.models.expense import Expense
 from app.models.income import Income
 from app.models.irrigation import IrrigationRecord
 from app.models.plot import Plot
+from app.models.plot_harvest import PlotHarvest
+from app.models.truffle_event import TruffleEvent
 from app.utils import campaign_year, distribute_unassigned_expenses
 
 
@@ -37,12 +39,47 @@ async def build_kpi_context(
     )
     all_irrigation = irrigation_result.scalars().all()
 
+    # Physical harvest data (TruffleEvents + PlotHarvests)
+    truffle_result = await db.execute(
+        select(TruffleEvent).where(
+            TruffleEvent.user_id == user_id,
+            TruffleEvent.undone_at.is_(None),
+        )
+    )
+    all_truffle_events = truffle_result.scalars().all()
+
+    harvest_result = await db.execute(
+        select(PlotHarvest).where(PlotHarvest.user_id == user_id)
+    )
+    all_plot_harvests = harvest_result.scalars().all()
+
     # ------------------------------------------------------------------ #
-    # Aggregate campaigns                                                  #
+    # Aggregate physical production: TruffleEvents + PlotHarvests        #
     # ------------------------------------------------------------------ #
+    physical_grams_by_cy: dict[int, float] = defaultdict(float)
+    physical_grams_by_cy_plot: dict = defaultdict(lambda: defaultdict(float))
+
+    from datetime import timezone
+
+    for ev in all_truffle_events:
+        if ev.created_at is None:
+            continue
+        ev_date = ev.created_at.astimezone(timezone.utc).date()
+        cy = campaign_year(ev_date)
+        grams = float(ev.estimated_weight_grams or 0.0)
+        physical_grams_by_cy[cy] += grams
+        physical_grams_by_cy_plot[cy][ev.plot_id] += grams
+
+    for ph in all_plot_harvests:
+        cy = campaign_year(ph.harvest_date)
+        grams = float(ph.weight_grams or 0.0)
+        physical_grams_by_cy[cy] += grams
+        physical_grams_by_cy_plot[cy][ph.plot_id] += grams
+
     all_campaigns = sorted(
         {campaign_year(i.date) for i in all_incomes}
-        | {campaign_year(e.date) for e in all_expenses},
+        | {campaign_year(e.date) for e in all_expenses}
+        | set(physical_grams_by_cy.keys()),
         reverse=True,
     )
 
@@ -90,6 +127,7 @@ async def build_kpi_context(
         total_expenses = sum(expenses_by_cy_plot[cy].values())
         total_kg = total_kg_by_cy[cy]
         total_m3 = sum(m3_by_cy_plot[cy].values())
+        physical_kg = round(physical_grams_by_cy.get(cy, 0.0) / 1000.0, 3)
 
         roi_pct = (
             (total_incomes - total_expenses) / total_expenses * 100.0
@@ -108,6 +146,7 @@ async def build_kpi_context(
             {
                 "year": cy,
                 "total_kg": total_kg,
+                "physical_kg": physical_kg,
                 "total_incomes": total_incomes,
                 "total_expenses": total_expenses,
                 "roi_pct": roi_pct,
@@ -131,6 +170,7 @@ async def build_kpi_context(
             "roi_pct": latest.get("roi_pct"),
             "precio_medio": latest.get("precio_medio"),
             "total_kg": latest.get("total_kg"),
+            "physical_kg": latest.get("physical_kg"),
             "crecimiento_pct": latest.get("crecimiento_pct"),
             "total_incomes": latest.get("total_incomes"),
             "total_expenses": latest.get("total_expenses"),
@@ -139,6 +179,7 @@ async def build_kpi_context(
     elif trend:
         # Aggregate across all campaigns
         agg_kg = sum(t["total_kg"] for t in trend)
+        agg_physical_kg = sum(t["physical_kg"] for t in trend)
         agg_incomes = sum(t["total_incomes"] for t in trend)
         agg_expenses = sum(t["total_expenses"] for t in trend)
         agg_roi = (
@@ -151,6 +192,7 @@ async def build_kpi_context(
             "roi_pct": agg_roi,
             "precio_medio": agg_precio,
             "total_kg": agg_kg,
+            "physical_kg": agg_physical_kg,
             "crecimiento_pct": None,
             "total_incomes": agg_incomes,
             "total_expenses": agg_expenses,
@@ -161,6 +203,7 @@ async def build_kpi_context(
             "roi_pct": None,
             "precio_medio": None,
             "total_kg": None,
+            "physical_kg": None,
             "crecimiento_pct": None,
             "total_incomes": None,
             "total_expenses": None,
@@ -183,6 +226,7 @@ async def build_kpi_context(
         ]
     )
     kg_trend = json.dumps([round(t["total_kg"], 2) for t in trend])
+    physical_kg_trend = json.dumps([round(t["physical_kg"], 3) for t in trend])
     m3_kg_trend = json.dumps(
         [
             round(t["m3_por_kg"], 2) if t["m3_por_kg"] is not None else None
@@ -210,6 +254,9 @@ async def build_kpi_context(
         total_eur = sum(eur_by_cy_plot[cy][plot.id] for cy in cycles)
         total_exp = sum(expenses_by_cy_plot[cy][plot.id] for cy in cycles)
         total_m3 = sum(m3_by_cy_plot[cy][plot.id] for cy in cycles)
+        physical_kg_plot = round(
+            sum(physical_grams_by_cy_plot[cy][plot.id] for cy in cycles) / 1000.0, 3
+        )
 
         kg_ha = (
             total_kg / plot.area_ha
@@ -234,6 +281,7 @@ async def build_kpi_context(
             {
                 "plot_name": plot.name,
                 "total_kg": total_kg,
+                "physical_kg": physical_kg_plot,
                 "total_incomes": total_eur,
                 "total_expenses": total_exp,
                 "kg_ha": kg_ha,
@@ -259,6 +307,7 @@ async def build_kpi_context(
         "roi_trend": roi_trend,
         "price_trend": price_trend,
         "kg_trend": kg_trend,
+        "physical_kg_trend": physical_kg_trend,
         "m3_kg_trend": m3_kg_trend,
         "plot_kpi_table": plot_kpi_table,
         "plot_labels": json.dumps(plot_names),

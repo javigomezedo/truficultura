@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("Cosecha por bancal") }} &mdash; Truficultura{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="tf-page-header">
+        <div>
+            <p class="tf-page-kicker">{{ _("Registro de producción") }}</p>
+            <h1 class="tf-page-title"><i class="bi bi-basket2-fill text-success me-2"></i>{{ _("Cosecha por bancal") }}</h1>
+        </div>
+        <a href="/harvests/new" class="btn btn-success">
+            <i class="bi bi-plus-circle me-1"></i> {{ _("Registrar cosecha") }}
+        </a>
+    </div>
+
+    {# Tab bar shared with /truffles/ and /production/ #}
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <a class="nav-link" href="/production/{% if selected_campaign %}?camp={{ selected_campaign }}{% endif %}">
+                <i class="bi bi-layers me-1"></i>{{ _("Total") }}
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="/truffles/{% if selected_campaign %}?camp={{ selected_campaign }}{% endif %}">
+                <i class="bi bi-clock-history me-1"></i>{{ _("Por planta") }}
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link active" href="/harvests/{% if selected_campaign %}?camp={{ selected_campaign }}{% endif %}">
+                <i class="bi bi-basket2 me-1"></i>{{ _("Por bancal") }}
+            </a>
+        </li>
+    </ul>
+
+    {% if msg %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
+    {# Filters #}
+    <div class="card tf-panel tf-filters-card border-0 shadow-sm mb-3">
+        <div class="card-body py-3">
+            <form class="tf-filters-form" method="get" action="/harvests/">
+                <div class="tf-filter-item tf-filter-item--compact">
+                    <label class="form-label">{{ _("Campaña") }}</label>
+                    <select name="camp" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">{{ _("Todas las campañas") }}</option>
+                        {% for y in campaign_years %}
+                        <option value="{{ y }}" {% if selected_campaign == y %}selected{% endif %}>{{ y|campaign_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="tf-filter-item tf-filter-item--compact">
+                    <label class="form-label">{{ _("Parcela") }}</label>
+                    <select name="plot_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">{{ _("Todas las parcelas") }}</option>
+                        {% for p in plots %}
+                        <option value="{{ p.id }}" {% if selected_plot_id == p.id %}selected{% endif %}>{{ p.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% if selected_campaign is not none or selected_plot_id is not none %}
+                <div class="tf-filter-actions">
+                    <a href="/harvests/" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-x me-1"></i>{{ _("Limpiar filtros") }}
+                    </a>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    {# Summary by plot #}
+    {% if summary_rows %}
+    <div class="card tf-panel border-0 shadow-sm mb-3">
+        <div class="card-header bg-transparent border-0 pb-0">
+            <h2 class="h6 mb-0">{{ _("Resumen por parcela") }}</h2>
+        </div>
+        <div class="card-body pt-3">
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>{{ _("Parcela") }}</th>
+                            <th class="text-end">{{ _("Total (g)") }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in summary_rows %}
+                        <tr>
+                            <td class="fw-semibold">{{ s.plot_name }}</td>
+                            <td class="text-end fw-bold">{{ s.total_grams|format_eu(1) }}</td>
+                        </tr>
+                        {% endfor %}
+                        <tr class="table-success fw-bold">
+                            <td>{{ _("Total") }}</td>
+                            <td class="text-end fw-bold">{{ summary_rows|sum(attribute='total_grams')|format_eu(1) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# Harvest list #}
+    <div class="card tf-panel border-0 shadow-sm">
+        {% if harvests %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>{{ _("Fecha") }}</th>
+                        <th>{{ _("Parcela") }}</th>
+                        <th class="text-end">{{ _("Gramos") }}</th>
+                        <th>{{ _("Notas") }}</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for h in harvests %}
+                    <tr>
+                        <td class="text-nowrap">{{ h.harvest_date.strftime("%d/%m/%Y") if h.harvest_date else "—" }}</td>
+                        <td>{{ h.plot.name if h.plot else "—" }}</td>
+                        <td class="text-end fw-semibold">{{ h.weight_grams|format_eu(1) }}</td>
+                        <td class="text-muted small">{{ h.notes or "—" }}</td>
+                        <td class="text-end text-nowrap">
+                            <a href="/harvests/{{ h.id }}/edit" class="btn btn-xs btn-outline-secondary me-1">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form method="post" action="/harvests/{{ h.id }}/delete" class="d-inline"
+                                  onsubmit="return confirm('{{ _('¿Eliminar esta cosecha?') }}')">
+                                <button type="submit" class="btn btn-xs btn-outline-danger">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="card-body text-center text-muted py-5">
+            <i class="bi bi-basket2 display-4 d-block mb-3 text-secondary opacity-50"></i>
+            <p class="mb-1 fw-semibold">{{ _("Sin cosechas registradas") }}</p>
+            <p class="mb-3 small">{{ _("Usa el botón 'Registrar cosecha' para añadir la primera.") }}</p>
+            <a href="/harvests/new" class="btn btn-success">
+                <i class="bi bi-plus-circle me-1"></i>{{ _("Registrar cosecha") }}
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -14,8 +14,10 @@ from app.models.expense import Expense
 from app.models.income import Income
 from app.models.irrigation import IrrigationRecord
 from app.models.plant import Plant
+from app.models.plant_presence import PlantPresence
 from app.models.plot import Plot
 from app.models.plot_event import PlotEvent
+from app.models.plot_harvest import PlotHarvest
 from app.models.recurring_expense import RecurringExpense
 from app.models.truffle_event import TruffleEvent
 from app.models.well import Well
@@ -265,6 +267,57 @@ async def export_recurring_expenses_csv(db: AsyncSession, user_id: int) -> bytes
     return buf.getvalue().encode("utf-8")
 
 
+async def export_harvests_csv(db: AsyncSession, user_id: int) -> bytes:
+    plots_by_id = await _load_plots_by_id(db, user_id)
+    result = await db.execute(
+        select(PlotHarvest)
+        .where(PlotHarvest.user_id == user_id)
+        .order_by(PlotHarvest.harvest_date)
+    )
+    harvests = result.scalars().all()
+
+    buf = io.StringIO()
+    writer = csv.writer(buf, delimiter=";", lineterminator="\n")
+    for h in harvests:
+        writer.writerow(
+            [
+                _format_date(h.harvest_date),
+                plots_by_id.get(h.plot_id, ""),
+                _format_num(h.weight_grams or 0.0, 1),
+                h.notes or "",
+            ]
+        )
+    return buf.getvalue().encode("utf-8")
+
+
+async def export_presences_csv(db: AsyncSession, user_id: int) -> bytes:
+    result = await db.execute(
+        select(PlantPresence)
+        .options(
+            selectinload(PlantPresence.plot),
+            selectinload(PlantPresence.plant),
+        )
+        .where(
+            PlantPresence.user_id == user_id,
+            PlantPresence.has_truffle.is_(True),
+        )
+        .order_by(PlantPresence.presence_date, PlantPresence.plot_id, PlantPresence.plant_id)
+    )
+    presences = result.scalars().all()
+
+    buf = io.StringIO()
+    writer = csv.writer(buf, delimiter=";", lineterminator="\n")
+    for p in presences:
+        writer.writerow(
+            [
+                _format_date(p.presence_date),
+                p.plot.name if p.plot else "",
+                p.plant.label if p.plant else "",
+            ]
+        )
+    return buf.getvalue().encode("utf-8")
+
+
 async def export_all_csv_zip(db: AsyncSession, user_id: int) -> bytes:
     files = [
         ("parcelas.csv", await export_plots_csv(db, user_id)),
@@ -275,6 +328,8 @@ async def export_all_csv_zip(db: AsyncSession, user_id: int) -> bytes:
         ("produccion.csv", await export_truffles_csv(db, user_id)),
         ("labores.csv", await export_plot_events_csv(db, user_id)),
         ("gastos_recurrentes.csv", await export_recurring_expenses_csv(db, user_id)),
+        ("cosechas.csv", await export_harvests_csv(db, user_id)),
+        ("presencias.csv", await export_presences_csv(db, user_id)),
     ]
 
     zip_buffer = io.BytesIO()

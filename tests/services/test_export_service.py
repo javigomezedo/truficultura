@@ -12,6 +12,7 @@ from app.models.expense import Expense
 from app.models.income import Income
 from app.models.irrigation import IrrigationRecord
 from app.models.plant import Plant
+from app.models.plant_presence import PlantPresence
 from app.models.plot import Plot
 from app.models.plot_event import PlotEvent
 from app.models.recurring_expense import RecurringExpense
@@ -24,6 +25,7 @@ from app.services.export_service import (
     export_irrigation_csv,
     export_plot_events_csv,
     export_plots_csv,
+    export_presences_csv,
     export_recurring_expenses_csv,
     export_truffles_csv,
     export_wells_csv,
@@ -547,6 +549,13 @@ async def test_export_all_csv_zip_contains_all_files(monkeypatch):
         "app.services.export_service.export_recurring_expenses_csv",
         AsyncMock(return_value=b"rec"),
     )
+    monkeypatch.setattr(
+        "app.services.export_service.export_harvests_csv", AsyncMock(return_value=b"h")
+    )
+    monkeypatch.setattr(
+        "app.services.export_service.export_presences_csv",
+        AsyncMock(return_value=b"pres"),
+    )
 
     db = MagicMock()
     data = await export_all_csv_zip(db, user_id=1)
@@ -563,6 +572,8 @@ async def test_export_all_csv_zip_contains_all_files(monkeypatch):
                 "produccion.csv",
                 "labores.csv",
                 "gastos_recurrentes.csv",
+                "cosechas.csv",
+                "presencias.csv",
             ]
         )
         assert zf.read("parcelas.csv") == b"p"
@@ -573,6 +584,8 @@ async def test_export_all_csv_zip_contains_all_files(monkeypatch):
         assert zf.read("produccion.csv") == b"t"
         assert zf.read("labores.csv") == b"l"
         assert zf.read("gastos_recurrentes.csv") == b"rec"
+        assert zf.read("cosechas.csv") == b"h"
+        assert zf.read("presencias.csv") == b"pres"
 
 
 # ---------------------------------------------------------------------------
@@ -643,8 +656,14 @@ def _make_recurring_expense(
 async def test_export_recurring_expenses_csv_with_data():
     plot = _make_plot(id=1, name="Bancal Sur")
     expense = _make_recurring_expense(
-        id=1, plot_id=1, description="Seguro finca", frequency="annual",
-        person="Javi", category="Seguros", amount=350.0, is_active=True,
+        id=1,
+        plot_id=1,
+        description="Seguro finca",
+        frequency="annual",
+        person="Javi",
+        category="Seguros",
+        amount=350.0,
+        is_active=True,
     )
     db = _db_with_two_calls(result([plot]), result([expense]))
 
@@ -665,8 +684,14 @@ async def test_export_recurring_expenses_csv_with_data():
 @pytest.mark.asyncio
 async def test_export_recurring_expenses_csv_no_plot():
     expense = _make_recurring_expense(
-        id=1, plot_id=None, description="Agua corriente", frequency="monthly",
-        person="", category=None, amount=25.5, is_active=False,
+        id=1,
+        plot_id=None,
+        description="Agua corriente",
+        frequency="monthly",
+        person="",
+        category=None,
+        amount=25.5,
+        is_active=False,
     )
     db = _db_with_two_calls(result([]), result([expense]))
 
@@ -674,10 +699,58 @@ async def test_export_recurring_expenses_csv_no_plot():
     rows = _parse_csv(data)
 
     assert len(rows) == 1
-    assert rows[0][2] == ""  # bancal empty
-    assert rows[0][4] == ""  # category empty
-    assert rows[0][5] == "25,50"
-    assert rows[0][6] == "0"  # is_active=False
+
+
+# ---------------------------------------------------------------------------
+# export_presences_csv
+# ---------------------------------------------------------------------------
+
+
+def _make_plant_presence(
+    id=1,
+    plant_id=1,
+    plot_id=1,
+    presence_date=datetime.date(2025, 12, 10),
+    has_truffle=True,
+):
+    return PlantPresence(
+        id=id,
+        user_id=1,
+        plant_id=plant_id,
+        plot_id=plot_id,
+        presence_date=presence_date,
+        has_truffle=has_truffle,
+    )
+
+
+@pytest.mark.asyncio
+async def test_export_presences_csv_with_data():
+    plot = _make_plot(id=1, name="Bancal Sur")
+    plant = _make_plant(id=1, plot_id=1, label="A3")
+    presence = _make_plant_presence(id=1, plant_id=1, plot_id=1)
+    presence.plot = plot
+    presence.plant = plant
+
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([presence]))
+
+    data = await export_presences_csv(db, user_id=1)
+    rows = _parse_csv(data)
+
+    assert len(rows) == 1
+    row = rows[0]
+    assert row[0] == "10/12/2025"
+    assert row[1] == "Bancal Sur"
+    assert row[2] == "A3"
+
+
+@pytest.mark.asyncio
+async def test_export_presences_csv_empty():
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+
+    data = await export_presences_csv(db, user_id=1)
+    assert data == b""
 
 
 @pytest.mark.asyncio

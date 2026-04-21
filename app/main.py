@@ -27,6 +27,7 @@ from app.routers import (
     charts,
     expenses,
     exports,
+    harvests,
     imports,
     incomes,
     irrigation,
@@ -95,6 +96,7 @@ imports.templates = templates
 auth.templates = templates
 irrigation.templates = templates
 exports.templates = templates
+harvests.templates = templates
 plants.templates = templates
 scan.templates = templates
 wells.templates = templates
@@ -119,6 +121,7 @@ app.include_router(plot_events.router)
 app.include_router(plot_analytics.router)
 app.include_router(exports.router)
 app.include_router(plants.router)
+app.include_router(harvests.router)
 app.include_router(scan.router)
 app.include_router(kpis.router)
 app.include_router(recurring_expenses.router)

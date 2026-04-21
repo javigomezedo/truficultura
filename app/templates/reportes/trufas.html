@@ -11,6 +11,25 @@
         </div>
     </div>
 
+    {# Tab bar shared with /harvests/ and /production/ #}
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <a class="nav-link" href="/production/{% if selected_campaign %}?camp={{ selected_campaign }}{% endif %}">
+                <i class="bi bi-layers me-1"></i>{{ _("Total") }}
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link active" href="/truffles/{% if selected_campaign %}?camp={{ selected_campaign }}{% endif %}">
+                <i class="bi bi-clock-history me-1"></i>{{ _("Por planta") }}
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="/harvests/{% if selected_campaign %}?camp={{ selected_campaign }}{% endif %}">
+                <i class="bi bi-basket2 me-1"></i>{{ _("Por bancal") }}
+            </a>
+        </li>
+    </ul>
+
     <div class="card tf-panel tf-filters-card border-0 shadow-sm mb-3">
         <div class="card-body py-3">
             <form class="tf-filters-form" method="get" action="/truffles/">
@@ -66,6 +85,7 @@
                             <th>{{ _("Total campaña (g)") }}</th>
                             <th>{{ _("Total histórico (g)") }}</th>
                             <th>{{ _("Top plantas (g)") }}</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -82,6 +102,11 @@
                                 {% else %}
                                     <span class="text-muted">—</span>
                                 {% endif %}
+                            </td>
+                            <td class="text-end text-nowrap">
+                                <a href="/plots/{{ s.plot_id }}/map" class="btn btn-sm btn-outline-success" title="{{ _('Añadir producción por planta') }}">
+                                    <i class="bi bi-plus-circle me-1"></i>{{ _("Añadir por planta") }}
+                                </a>
                             </td>
                         </tr>
                         {% endfor %}
