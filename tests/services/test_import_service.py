@@ -11,6 +11,7 @@ from app.i18n import set_locale
 from app.models.expense import Expense
 from app.models.income import Income
 from app.models.plant import Plant
+from app.models.plant_presence import PlantPresence
 from app.models.plot import Plot
 from app.models.plot_event import PlotEvent
 from app.models.recurring_expense import RecurringExpense
@@ -23,6 +24,7 @@ from app.services.import_service import (
     import_irrigation_csv,
     import_plot_events_csv,
     import_plots_csv,
+    import_presences_csv,
     import_recurring_expenses_csv,
     import_truffles_csv,
     import_wells_csv,
@@ -970,6 +972,155 @@ async def test_import_recurring_expenses_csv_empty_file():
     db.add_all = MagicMock()
 
     rows, warnings = await import_recurring_expenses_csv(db, b"", user_id=1)
+
+    assert rows == []
+    assert warnings == []
+
+
+# ---------------------------------------------------------------------------
+# import_presences_csv
+# ---------------------------------------------------------------------------
+
+
+def _presences_csv(lines: list[str]) -> bytes:
+    return "\n".join(lines).encode("utf-8")
+
+
+@pytest.mark.asyncio
+async def test_import_presences_csv_success():
+    plot = _make_plot(id=10, name="Bancal Sur")
+    plant = _make_plant(id=20, plot_id=10, label="A3")
+
+    db = MagicMock()
+    db.execute = AsyncMock(
+        side_effect=[
+            result([plot]),
+            result([plant]),
+            result([]),  # existing presences
+        ]
+    )
+    db.add_all = MagicMock()
+
+    rows, warnings = await import_presences_csv(
+        db,
+        _presences_csv(["10/12/2025;Bancal Sur;A3"]),
+        user_id=1,
+    )
+
+    assert warnings == []
+    assert len(rows) == 1
+    presence = rows[0]
+    assert isinstance(presence, PlantPresence)
+    assert presence.plot_id == 10
+    assert presence.plant_id == 20
+    assert presence.presence_date == datetime.date(2025, 12, 10)
+    assert presence.has_truffle is True
+
+
+@pytest.mark.asyncio
+async def test_import_presences_csv_unknown_plot_warns():
+    db = MagicMock()
+    db.execute = AsyncMock(
+        side_effect=[
+            result([]),  # no plots
+            result([]),  # no plants
+            result([]),  # existing presences
+        ]
+    )
+    db.add_all = MagicMock()
+
+    rows, warnings = await import_presences_csv(
+        db,
+        _presences_csv(["10/12/2025;Bancal Desconocido;A3"]),
+        user_id=1,
+    )
+
+    assert rows == []
+    assert len(warnings) == 1
+    assert "Bancal Desconocido" in warnings[0]
+
+
+@pytest.mark.asyncio
+async def test_import_presences_csv_unknown_plant_warns():
+    plot = _make_plot(id=10, name="Bancal Sur")
+    db = MagicMock()
+    db.execute = AsyncMock(
+        side_effect=[
+            result([plot]),
+            result([]),  # no plants
+            result([]),  # existing presences
+        ]
+    )
+    db.add_all = MagicMock()
+
+    rows, warnings = await import_presences_csv(
+        db,
+        _presences_csv(["10/12/2025;Bancal Sur;Z99"]),
+        user_id=1,
+    )
+
+    assert rows == []
+    assert len(warnings) == 1
+    assert "Z99" in warnings[0]
+
+
+@pytest.mark.asyncio
+async def test_import_presences_csv_duplicate_skips_with_warning():
+    plot = _make_plot(id=10, name="Bancal Sur")
+    plant = _make_plant(id=20, plot_id=10, label="A3")
+    existing = PlantPresence(
+        id=1,
+        user_id=1,
+        plant_id=20,
+        plot_id=10,
+        presence_date=datetime.date(2025, 12, 10),
+        has_truffle=True,
+    )
+
+    db = MagicMock()
+    db.execute = AsyncMock(
+        side_effect=[
+            result([plot]),
+            result([plant]),
+            result([existing]),
+        ]
+    )
+    db.add_all = MagicMock()
+
+    rows, warnings = await import_presences_csv(
+        db,
+        _presences_csv(["10/12/2025;Bancal Sur;A3"]),
+        user_id=1,
+    )
+
+    assert rows == []
+    assert len(warnings) == 1
+    assert "A3" in warnings[0]
+
+
+@pytest.mark.asyncio
+async def test_import_presences_csv_too_few_columns_warns():
+    db = MagicMock()
+    db.execute = AsyncMock(side_effect=[result([]), result([]), result([])])
+    db.add_all = MagicMock()
+
+    rows, warnings = await import_presences_csv(
+        db,
+        _presences_csv(["10/12/2025;Bancal Sur"]),
+        user_id=1,
+    )
+
+    assert rows == []
+    assert len(warnings) == 1
+
+
+@pytest.mark.asyncio
+async def test_import_presences_csv_empty_file():
+    db = MagicMock()
+    db.execute = AsyncMock(side_effect=[result([]), result([]), result([])])
+    db.add_all = MagicMock()
+
+    rows, warnings = await import_presences_csv(db, b"", user_id=1)
 
     assert rows == []
     assert warnings == []

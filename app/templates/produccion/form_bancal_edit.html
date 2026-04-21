@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("Editar cosecha") }} &mdash; Truficultura{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="tf-page-header">
+        <div>
+            <p class="tf-page-kicker">{{ _("Producción") }}</p>
+            <h1 class="tf-page-title"><i class="bi bi-pencil-square text-success me-2"></i>{{ _("Editar cosecha") }}</h1>
+        </div>
+        <a href="/harvests/" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>{{ _("Volver") }}
+        </a>
+    </div>
+
+    <div class="card tf-panel border-0 shadow-sm">
+        <div class="card-body">
+            <form method="post" action="/harvests/{{ harvest.id }}/edit">
+                <div class="mb-3">
+                    <label for="harvest_date" class="form-label fw-semibold">{{ _("Fecha") }} <span class="text-danger">*</span></label>
+                    <input type="date" id="harvest_date" name="harvest_date"
+                           class="form-control" style="max-width: 200px;"
+                           value="{{ harvest.harvest_date.isoformat() }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="plot_id" class="form-label fw-semibold">{{ _("Parcela") }} <span class="text-danger">*</span></label>
+                    <select id="plot_id" name="plot_id" class="form-select" style="max-width: 300px;" required>
+                        {% for p in plots %}
+                        <option value="{{ p.id }}" {% if harvest.plot_id == p.id %}selected{% endif %}>{{ p.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="weight_grams" class="form-label fw-semibold">{{ _("Gramos") }} <span class="text-danger">*</span></label>
+                    <div class="input-group" style="max-width: 200px;">
+                        <input type="text" id="weight_grams" name="weight_grams"
+                               class="form-control text-end"
+                               value="{{ harvest.weight_grams|format_eu(1) }}"
+                               required inputmode="decimal">
+                        <span class="input-group-text">g</span>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label for="notes" class="form-label fw-semibold">{{ _("Notas") }}</label>
+                    <input type="text" id="notes" name="notes"
+                           class="form-control" style="max-width: 400px;"
+                           value="{{ harvest.notes or '' }}" maxlength="500"
+                           placeholder="{{ _('Opcional') }}">
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-lg me-1"></i>{{ _("Guardar cambios") }}
+                    </button>
+                    <a href="/harvests/" class="btn btn-outline-secondary">{{ _("Cancelar") }}</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

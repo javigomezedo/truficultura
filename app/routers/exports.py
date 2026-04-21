@@ -13,10 +13,12 @@ from app.models.user import User
 from app.services.export_service import (
     export_all_csv_zip,
     export_expenses_csv,
+    export_harvests_csv,
     export_incomes_csv,
     export_irrigation_csv,
     export_plot_events_csv,
     export_plots_csv,
+    export_presences_csv,
     export_recurring_expenses_csv,
     export_truffles_csv,
     export_wells_csv,
@@ -152,4 +154,30 @@ async def download_recurring_expenses(
         io.BytesIO(data),
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": "attachment; filename=gastos_recurrentes.csv"},
+    )
+
+
+@router.get("/harvests.csv")
+async def download_harvests(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
+):
+    data = await export_harvests_csv(db, current_user.id)
+    return StreamingResponse(
+        io.BytesIO(data),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": "attachment; filename=cosechas.csv"},
+    )
+
+
+@router.get("/presences.csv")
+async def download_presences(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
+):
+    data = await export_presences_csv(db, current_user.id)
+    return StreamingResponse(
+        io.BytesIO(data),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": "attachment; filename=presencias.csv"},
     )

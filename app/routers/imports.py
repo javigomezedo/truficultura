@@ -11,10 +11,12 @@ from app.models.user import User
 from app.services.import_service import (
     import_all_csv_zip,
     import_expenses_csv,
+    import_harvests_csv,
     import_incomes_csv,
     import_irrigation_csv,
     import_plot_events_csv,
     import_plots_csv,
+    import_presences_csv,
     import_recurring_expenses_csv,
     import_truffles_csv,
     import_wells_csv,
@@ -34,6 +36,8 @@ def _summarize_zip_import(imported_by_file: dict[str, int]) -> list[str]:
         "produccion.csv": "producción",
         "labores.csv": "labores",
         "gastos_recurrentes.csv": "gastos recurrentes",
+        "cosechas.csv": "cosechas",
+        "presencias.csv": "presencias",
     }
     return [
         f"{labels.get(name, name)}: {count}" for name, count in imported_by_file.items()
@@ -294,5 +298,57 @@ async def upload_recurring_expenses(
                 "warnings": warnings,
             },
             "active_tab": "recurring_expenses",
+        },
+    )
+
+
+@router.post("/harvests", response_class=HTMLResponse)
+async def upload_harvests(
+    request: Request,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
+):
+    content = await file.read()
+    rows, warnings = await import_harvests_csv(db, content, current_user.id)
+    await db.commit()
+    return templates.TemplateResponse(
+        request,
+        "imports/index.html",
+        {
+            "request": request,
+            "result": {
+                "type": "harvests",
+                "filename": file.filename,
+                "imported": len(rows),
+                "warnings": warnings,
+            },
+            "active_tab": "harvests",
+        },
+    )
+
+
+@router.post("/presences", response_class=HTMLResponse)
+async def upload_presences(
+    request: Request,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
+):
+    content = await file.read()
+    rows, warnings = await import_presences_csv(db, content, current_user.id)
+    await db.commit()
+    return templates.TemplateResponse(
+        request,
+        "imports/index.html",
+        {
+            "request": request,
+            "result": {
+                "type": "presences",
+                "filename": file.filename,
+                "imported": len(rows),
+                "warnings": warnings,
+            },
+            "active_tab": "truffles",
         },
     )

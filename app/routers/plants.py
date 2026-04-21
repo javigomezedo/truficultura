@@ -13,7 +13,11 @@ from app.auth import require_user
 from app.database import get_db
 from app.i18n import _
 from app.models.user import User
-from app.services import plants_service, truffle_events_service
+from app.services import (
+    plant_presence_service,
+    plants_service,
+    truffle_events_service,
+)
 from app.services.plots_service import get_plot, list_plots
 from app.utils import campaign_year, parse_row_config
 
@@ -95,6 +99,7 @@ async def map_view(
     campaign: Optional[str] = Query(default=None),
     sort: Optional[str] = Query(default=None),
     order: Optional[str] = Query(default=None),
+    view: Optional[str] = Query(default="weight"),
     msg: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_user),
@@ -141,6 +146,17 @@ async def map_view(
         db, plot_id, current_user.id
     )
 
+    # Presence view data
+    map_view_mode = view if view in ("weight", "presence") else "weight"
+    presence_by_plant: dict[int, bool] = {}
+    if map_view_mode == "presence":
+        presence_by_plant = await plant_presence_service.get_presences_by_plot(
+            db,
+            user_id=current_user.id,
+            plot_id=plot_id,
+            campaign_year_filter=selected,
+        )
+
     return templates.TemplateResponse(
         request,
         "parcelas/mapa.html",
@@ -153,8 +169,58 @@ async def map_view(
             "summary_rows": summary_rows,
             "sort_by": sort_by,
             "sort_order": sort_order,
+            "map_view_mode": map_view_mode,
+            "presence_by_plant": presence_by_plant,
             **ctx,
         },
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Plant presence — toggle
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+@router.post("/plots/{plot_id}/plants/{plant_id}/presence", response_class=HTMLResponse)
+async def toggle_plant_presence(
+    plot_id: int,
+    plant_id: int,
+    presence_date: str = Form(...),
+    campaign: Optional[str] = Form(default=None),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
+):
+    # Validate the plot belongs to the user
+    from app.services.plots_service import get_plot as _get_plot
+
+    plot = await _get_plot(db, plot_id, current_user.id)
+    if plot is None:
+        return RedirectResponse(
+            f"/plots/?msg={quote_plus(_('Parcela no encontrada'))}",
+            status_code=303,
+        )
+
+    try:
+        parsed_date = datetime.date.fromisoformat(presence_date)
+    except (ValueError, TypeError):
+        return RedirectResponse(
+            f"/plots/{plot_id}/map?view=presence",
+            status_code=303,
+        )
+
+    await plant_presence_service.toggle_presence(
+        db,
+        user_id=current_user.id,
+        plant_id=plant_id,
+        plot_id=plot_id,
+        presence_date=parsed_date,
+    )
+    await db.commit()
+
+    camp_param = f"&campaign={campaign}" if campaign else ""
+    return RedirectResponse(
+        f"/plots/{plot_id}/map?view=presence{camp_param}",
+        status_code=303,
     )
 
 
@@ -420,8 +486,16 @@ async def list_truffle_events(
         historical_active_events = [e for e in events if e.undone_at is None]
 
     summary_rows = truffle_events_service.build_plot_event_summary(
-        events, historical_active_events
+        events,
+        historical_active_events,
     )
+    # Patch plot names: build_plot_event_summary only resolves names from loaded
+    # TruffleEvent relationships; plots that only appear in PlotHarvest records
+    # fall back to "Parcela N". Override with the already-fetched plots list.
+    _plot_name_map = {p.id: p.name for p in plots}
+    for row in summary_rows:
+        if row["plot_id"] in _plot_name_map:
+            row["plot_name"] = _plot_name_map[row["plot_id"]]
 
     _TRUFFLE_SORT_KEYS: dict = {
         "date": lambda e: e.created_at if e.created_at else datetime.datetime.min,

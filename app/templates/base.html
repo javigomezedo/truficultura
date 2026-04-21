@@ -88,8 +88,8 @@
                         </ul>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if '/truffles' in request.url.path %}active{% endif %}"
-                           href="/truffles/">
+                        <a class="nav-link {% if '/production' in request.url.path or '/truffles' in request.url.path or '/harvests' in request.url.path %}active{% endif %}"
+                           href="/production/">
                             <i class="bi bi-grid-3x3-gap-fill"></i> {{ _("Producción") }}
                         </a>
                     </li>

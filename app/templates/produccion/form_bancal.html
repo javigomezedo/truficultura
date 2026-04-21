@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("Registrar cosecha") }} &mdash; Truficultura{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="tf-page-header">
+        <div>
+            <p class="tf-page-kicker">{{ _("Producción") }}</p>
+            <h1 class="tf-page-title"><i class="bi bi-basket2-fill text-success me-2"></i>{{ _("Registrar cosecha por bancal") }}</h1>
+            <p class="tf-page-subtitle">{{ _("Introduce la fecha y los gramos cosechados en cada bancal (deja en blanco los bancales sin producción ese día).") }}</p>
+        </div>
+        <a href="/harvests/" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>{{ _("Volver") }}
+        </a>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    <div class="card tf-panel border-0 shadow-sm">
+        <div class="card-body">
+            <form method="post" action="/harvests/new">
+                <div class="mb-4">
+                    <label for="harvest_date" class="form-label fw-semibold">{{ _("Fecha de cosecha") }} <span class="text-danger">*</span></label>
+                    <input type="date" id="harvest_date" name="harvest_date"
+                           class="form-control" style="max-width: 200px;"
+                           value="{{ today }}" required>
+                </div>
+
+                {% if plots %}
+                <div class="table-responsive mb-4">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>{{ _("Bancal") }}</th>
+                                <th style="min-width: 160px;">{{ _("Gramos cosechados") }}</th>
+                                <th>{{ _("Notas") }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for plot in plots %}
+                            <tr {% if selected_plot_id == plot.id %}class="table-success"{% endif %}>
+                                <td class="fw-semibold">{{ plot.name }}</td>
+                                <td>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" name="grams_{{ plot.id }}"
+                                               class="form-control text-end"
+                                               placeholder="0"
+                                               inputmode="decimal"
+                                               autocomplete="off"
+                                               {% if selected_plot_id == plot.id %}autofocus{% endif %}>
+                                        <span class="input-group-text">g</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <input type="text" name="notes_{{ plot.id }}"
+                                           class="form-control form-control-sm"
+                                           placeholder="{{ _('Opcional') }}"
+                                           maxlength="500">
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-lg me-1"></i>{{ _("Guardar cosecha") }}
+                    </button>
+                    <a href="/harvests/" class="btn btn-outline-secondary">{{ _("Cancelar") }}</a>
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    {{ _("No tienes bancales configurados. Primero crea al menos una parcela.") }}
+                </div>
+                <a href="/plots/new" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i>{{ _("Crear parcela") }}
+                </a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

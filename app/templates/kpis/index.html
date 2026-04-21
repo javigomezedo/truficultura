@@ -263,6 +263,37 @@
         </div>
     </div>
 
+    {# kg físicamente recogidos (TruffleEvents + PlotHarvests) #}
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-start gap-2 mb-1">
+                    <span class="tf-help-tip">
+                        <button type="button" class="btn btn-outline-secondary tf-help-tip-btn">?</button>
+                        <span class="tf-help-tip-text">{{ _("Kg físicamente recogidos: suma de pesos orientativos (por planta) y cosechas por bancal registradas.") }}</span>
+                    </span>
+                    <div class="kpi-card-label mb-0">
+                        <i class="bi bi-basket2 me-1"></i>{{ _("Kg recogidos") }}
+                        {% if selected_campaign %}
+                        <span class="badge bg-secondary kpi-campaign-badge">{{ selected_campaign | campaign_label }}</span>
+                        {% else %}
+                        <span class="badge bg-secondary kpi-campaign-badge">{{ _("Todas las campañas") }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if kpi_summary.physical_kg is not none and kpi_summary.physical_kg > 0 %}
+                <div class="kpi-card-value text-success">
+                    {{ kpi_summary.physical_kg | format_eu(3) }} <small class="fs-5 fw-normal">kg</small>
+                </div>
+                <div class="kpi-card-sub text-muted mt-1">{{ _("peso orientativo + cosechas por bancal") }}</div>
+                {% else %}
+                <div class="kpi-card-value text-muted">—</div>
+                <div class="kpi-card-sub text-muted mt-1">{{ _("Sin datos físicos") }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
     {# Crecimiento interanual — solo visible cuando hay campaña seleccionada #}
     {% if selected_campaign %}
     <div class="col-sm-6 col-lg-3">
@@ -430,6 +461,7 @@
                     <tr>
                         <th>{{ _("Bancal") }}</th>
                         <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Producción total cosechada en el periodo seleccionado.") }}">{{ _("kg totales") }} <i class="bi bi-info-circle"></i></th>
+                        <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Kg físicamente recogidos: peso orientativo + cosechas por bancal.") }}">{{ _("kg físicos") }} <i class="bi bi-info-circle"></i></th>
                         <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("kg por hectárea. Permite comparar bancales de distinto tamaño.") }}">{{ _("kg/ha") }} <i class="bi bi-info-circle"></i></th>
                         <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Producción media por planta. Mide el vigor productivo.") }}">{{ _("kg/planta") }} <i class="bi bi-info-circle"></i></th>
                         <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Gastos totales ÷ kg cosechados. Detecta bancales poco eficientes.") }}">{{ _("Coste/kg") }} <i class="bi bi-info-circle"></i></th>
@@ -444,6 +476,9 @@
                         <td class="fw-semibold">{{ row.plot_name }}</td>
                         <td class="text-end">
                             {% if row.total_kg > 0 %}{{ row.total_kg | format_eu(1) }} kg{% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <td class="text-end text-success">
+                            {% if row.physical_kg > 0 %}{{ row.physical_kg | format_eu(3) }} kg{% else %}<span class="text-muted">—</span>{% endif %}
                         </td>
                         <td class="text-end">
                             {% if row.kg_ha is not none %}{{ row.kg_ha | format_eu(1) }}{% else %}<span class="text-muted">—</span>{% endif %}
@@ -497,6 +532,7 @@
                     <tr>
                         <th>{{ _("Campaña") }}</th>
                         <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Producción total cosechada en la campaña.") }}">{{ _("kg") }} <i class="bi bi-info-circle"></i></th>
+                        <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Kg físicamente recogidos: peso orientativo por planta + cosechas por bancal.") }}">{{ _("kg físicos") }} <i class="bi bi-info-circle"></i></th>
                         <th class="text-end">{{ _("Ingresos") }}</th>
                         <th class="text-end">{{ _("Gastos") }}</th>
                         <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Ingresos − Gastos.") }}">{{ _("Rentabilidad") }} <i class="bi bi-info-circle"></i></th>
@@ -511,6 +547,9 @@
                     <tr {% if row.year == selected_campaign %}class="table-active"{% endif %}>
                         <td class="fw-semibold text-nowrap">{{ row.year | campaign_label }}</td>
                         <td class="text-end">{{ row.total_kg | format_eu(1) }} kg</td>
+                        <td class="text-end text-success">
+                            {% if row.physical_kg > 0 %}{{ row.physical_kg | format_eu(3) }} kg{% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
                         <td class="text-end text-success">{{ row.total_incomes | format_eu }} €</td>
                         <td class="text-end text-danger">{{ row.total_expenses | format_eu }} €</td>
                         <td class="text-end {% if row.total_incomes - row.total_expenses >= 0 %}text-success{% else %}text-danger{% endif %} fw-semibold">

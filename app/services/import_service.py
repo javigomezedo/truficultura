@@ -14,8 +14,10 @@ from app.models.expense import Expense
 from app.models.income import Income
 from app.models.irrigation import IrrigationRecord
 from app.models.plant import Plant
+from app.models.plant_presence import PlantPresence
 from app.models.plot import Plot
 from app.models.plot_event import PlotEvent
+from app.models.plot_harvest import PlotHarvest
 from app.models.recurring_expense import FREQUENCIES, RecurringExpense
 from app.models.truffle_event import TruffleEvent
 from app.models.well import Well
@@ -798,6 +800,178 @@ async def import_recurring_expenses_csv(
     return rows, warnings
 
 
+async def import_harvests_csv(
+    db: AsyncSession, content: bytes, user_id: int
+) -> tuple[list[PlotHarvest], list[str]]:
+    """Parse harvests CSV and persist rows (insert-always).
+
+    Expected format (semicolon-delimited, no header):
+        fecha;bancal;gramos;notas
+
+    - fecha:   DD/MM/YYYY
+    - bancal:  plot name
+    - gramos:  weight in European format (e.g. 1.250,50)
+    - notas:   optional free text
+    """
+    plots = await _load_plots(db, user_id)
+    rows: list[PlotHarvest] = []
+    warnings: list[str] = []
+
+    reader = csv.reader(io.StringIO(content.decode("utf-8")), delimiter=";")
+    for i, line in enumerate(reader, 1):
+        if not any(line):
+            continue
+        if len(line) < 3:
+            warnings.append(
+                _warning(
+                    "Línea {line}: se esperaban 3 columnas, se encontraron {count} — omitida",
+                    line=i,
+                    count=len(line),
+                )
+            )
+            continue
+
+        fecha_s, bancal, gramos_s = line[0], line[1], line[2]
+        notas = line[3].strip() if len(line) > 3 else None
+        bancal = bancal.strip()
+        plot_id: Optional[int] = plots.get(bancal.lower()) if bancal else None
+
+        if not bancal or plot_id is None:
+            warnings.append(
+                _warning(
+                    "Línea {line}: bancal '{plot}' no encontrado — omitida",
+                    line=i,
+                    plot=bancal,
+                )
+            )
+            continue
+
+        try:
+            grams = _parse_num(gramos_s)
+            row = PlotHarvest(
+                user_id=user_id,
+                plot_id=plot_id,
+                harvest_date=_parse_date(fecha_s),
+                weight_grams=max(0.0, grams),
+                notes=notas or None,
+            )
+            rows.append(row)
+        except (ValueError, KeyError):
+            warnings.append(
+                _warning("Línea {line}: error al parsear los datos — omitida", line=i)
+            )
+
+    db.add_all(rows)
+    return rows, warnings
+
+
+async def import_presences_csv(
+    db: AsyncSession, content: bytes, user_id: int
+) -> tuple[list[PlantPresence], list[str]]:
+    """Parse plant presence CSV and persist rows.
+
+    Expected format (semicolon-delimited, no header):
+        fecha;bancal;planta
+    """
+    plots_result = await db.execute(select(Plot).where(Plot.user_id == user_id))
+    plots: dict[str, Plot] = {p.name.lower(): p for p in plots_result.scalars().all()}
+
+    plants_result = await db.execute(select(Plant).where(Plant.user_id == user_id))
+    plants_by_plot_label: dict[tuple[int, str], Plant] = {
+        (p.plot_id, p.label.lower()): p for p in plants_result.scalars().all()
+    }
+
+    existing_result = await db.execute(
+        select(PlantPresence.plant_id, PlantPresence.presence_date).where(
+            PlantPresence.user_id == user_id
+        )
+    )
+    existing: set[tuple[int, datetime.date]] = {
+        (row.plant_id, row.presence_date) for row in existing_result.all()
+    }
+
+    rows: list[PlantPresence] = []
+    warnings: list[str] = []
+
+    reader = csv.reader(io.StringIO(content.decode("utf-8")), delimiter=";")
+    for i, line in enumerate(reader, 1):
+        if not any(line):
+            continue
+        if len(line) < 3:
+            warnings.append(
+                _warning(
+                    "Línea {line}: se esperaban 3 columnas, se encontraron {count} — omitida",
+                    line=i,
+                    count=len(line),
+                )
+            )
+            continue
+
+        fecha_s = line[0].strip()
+        bancal = line[1].strip()
+        planta_label = line[2].strip()
+
+        if not bancal:
+            warnings.append(_warning("Línea {line}: bancal vacío — omitida", line=i))
+            continue
+        if not planta_label:
+            warnings.append(_warning("Línea {line}: planta vacía — omitida", line=i))
+            continue
+
+        plot = plots.get(bancal.lower())
+        if plot is None:
+            warnings.append(
+                _warning(
+                    "Línea {line}: bancal '{plot}' no encontrado — omitida",
+                    line=i,
+                    plot=bancal,
+                )
+            )
+            continue
+
+        plant = plants_by_plot_label.get((plot.id, planta_label.lower()))
+        if plant is None:
+            warnings.append(
+                _warning(
+                    "Línea {line}: planta '{plant}' no encontrada en bancal '{plot}' — omitida",
+                    line=i,
+                    plant=planta_label,
+                    plot=bancal,
+                )
+            )
+            continue
+
+        try:
+            presence_date = _parse_date(fecha_s)
+            key = (plant.id, presence_date)
+            if key in existing:
+                warnings.append(
+                    _warning(
+                        "Línea {line}: presencia ya registrada para planta '{plant}' el {date} — omitida",
+                        line=i,
+                        plant=planta_label,
+                        date=fecha_s,
+                    )
+                )
+                continue
+            existing.add(key)
+            row = PlantPresence(
+                user_id=user_id,
+                plot_id=plot.id,
+                plant_id=plant.id,
+                presence_date=presence_date,
+                has_truffle=True,
+            )
+            rows.append(row)
+        except (ValueError, KeyError):
+            warnings.append(
+                _warning("Línea {line}: error al parsear los datos — omitida", line=i)
+            )
+
+    db.add_all(rows)
+    return rows, warnings
+
+
 async def import_all_csv_zip(
     db: AsyncSession, content: bytes, user_id: int
 ) -> tuple[dict[str, int], list[str]]:
@@ -812,6 +986,7 @@ async def import_all_csv_zip(
     - produccion.csv
     - labores.csv
     - gastos_recurrentes.csv
+    - cosechas.csv
     """
     try:
         zf = zipfile.ZipFile(io.BytesIO(content))
@@ -827,6 +1002,8 @@ async def import_all_csv_zip(
         ("produccion.csv", import_truffles_csv),
         ("labores.csv", import_plot_events_csv),
         ("gastos_recurrentes.csv", import_recurring_expenses_csv),
+        ("cosechas.csv", import_harvests_csv),
+        ("presencias.csv", import_presences_csv),
     ]
 
     imported_by_file: dict[str, int] = {}

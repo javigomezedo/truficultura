@@ -74,13 +74,25 @@
                         {% endfor %}
                     </select>
                 </div>
+                <input type="hidden" name="view" value="{{ map_view_mode }}">
                 {% if selected_campaign %}
                 <div class="tf-filter-actions">
-                    <a href="/plots/{{ plot.id }}/map" class="btn btn-sm btn-outline-secondary">
+                    <a href="/plots/{{ plot.id }}/map?view={{ map_view_mode }}" class="btn btn-sm btn-outline-secondary">
                         <i class="bi bi-x me-1"></i>{{ _("Limpiar filtros") }}
                     </a>
                 </div>
                 {% endif %}
+                {# View mode toggle — inside the form so ms-auto works within the flex row #}
+                <div class="d-flex gap-1 ms-auto align-items-center">
+                    <a href="/plots/{{ plot.id }}/map?{% if selected_campaign %}campaign={{ selected_campaign }}&{% endif %}view=weight"
+                       class="btn btn-sm {{ 'btn-success' if map_view_mode == 'weight' else 'btn-outline-secondary' }}">
+                        <i class="bi bi-bar-chart me-1"></i>{{ _("Peso") }}
+                    </a>
+                    <a href="/plots/{{ plot.id }}/map?{% if selected_campaign %}campaign={{ selected_campaign }}&{% endif %}view=presence"
+                       class="btn btn-sm {{ 'btn-success' if map_view_mode == 'presence' else 'btn-outline-secondary' }}">
+                        <i class="bi bi-check2-circle me-1"></i>{{ _("Presencia") }}
+                    </a>
+                </div>
             </form>
         </div>
     </div>
@@ -106,6 +118,18 @@
                       style="position: sticky; left: 0; z-index: 2; min-width: 48px; box-shadow: 6px 0 8px -8px rgba(0,0,0,.4);">{{ row.row_label }}</span>
                 {% for cell in row.cells %}
                 {% if cell.plant %}
+                    {% if map_view_mode == 'presence' %}
+                        {% set has_presence = presence_by_plant.get(cell.plant.id, False) %}
+                        <button type="button"
+                                class="tf-map-cell border rounded-3 flex-shrink-0 {{ 'tf-map-cell-weight-7' if has_presence else 'tf-map-cell-weight-0' }}"
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="top"
+                                title="{{ cell.plant.label }}{% if has_presence %}: ✓{% endif %}"
+                                data-plant-id="{{ cell.plant.id }}"
+                                data-plant-label="{{ cell.plant.label }}"
+                                data-presence-mode="true">
+                        </button>
+                    {% else %}
                     {% set display_weight = cell.campaign_weight_grams if selected_campaign is not none else cell.total_weight_grams %}
                     {% if display_weight == 0 %}
                         {% set weight_class = 'tf-map-cell-weight-0' %}
@@ -138,6 +162,7 @@
                             data-plant-id="{{ cell.plant.id }}"
                             data-plant-label="{{ cell.plant.label }}">
                     </button>
+                    {% endif %}
                 {% else %}
                     <div class="tf-map-cell tf-map-cell-hole border rounded-3 flex-shrink-0 bg-body-secondary text-secondary d-flex align-items-center justify-content-center">
                         <small>-</small>
@@ -258,34 +283,77 @@
     </div>
 </div>
 
+{# Presence modal #}
+<div class="modal fade" id="presenceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <form method="post" id="presenceForm" action="">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-check2-circle text-success me-2"></i>{{ _("Presencia de trufa") }}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Cerrar') }}"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3">
+                        {{ _("Planta") }}: <strong id="presencePlantLabel">-</strong>
+                    </p>
+                    <label for="presenceDateInput" class="form-label fw-semibold">{{ _("Fecha") }}</label>
+                    <input type="date" id="presenceDateInput" name="presence_date"
+                           class="form-control" required>
+                    {% if selected_campaign is not none %}
+                    <input type="hidden" name="campaign" value="{{ selected_campaign }}">
+                    {% endif %}
+                </div>
+                <div class="modal-footer d-flex flex-column flex-sm-row gap-2">
+                    <button type="button" class="btn btn-outline-secondary w-100 w-sm-auto" data-bs-dismiss="modal">{{ _("Cancelar") }}</button>
+                    <button type="submit" class="btn btn-success w-100 w-sm-auto">{{ _("Registrar / Quitar") }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const registerWeightModalEl = document.getElementById('registerWeightModal');
         const modalForm = document.getElementById('registerWeightForm');
         const plantLabel = document.getElementById('registerWeightPlantLabel');
         const weightInput = document.getElementById('registerWeightInput');
-
-        console.log('Modal element:', registerWeightModalEl);
+        const presenceModalEl = document.getElementById('presenceModal');
+        const presenceForm = document.getElementById('presenceForm');
+        const presencePlantLabel = document.getElementById('presencePlantLabel');
+        const presenceDateInput = document.getElementById('presenceDateInput');
+        const mapViewMode = '{{ map_view_mode }}';
 
         // Initialize tooltips
         const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl);
         });
 
-        // Handle cell clicks to open register modal
-        document.querySelectorAll('.tf-map-cell-plant').forEach((cell) => {
+        // Handle cell clicks
+        document.querySelectorAll('.tf-map-cell-plant, [data-presence-mode="true"]').forEach((cell) => {
             cell.addEventListener('click', () => {
-                console.log('Cell clicked', cell.dataset.plantId);
                 const plantId = cell.dataset.plantId;
                 const label = cell.dataset.plantLabel || '-';
-                modalForm.action = `/plots/{{ plot.id }}/plants/${plantId}/add`;
-                plantLabel.textContent = label;
-                weightInput.value = '0';
-                const campaignParam = '{{ selected_campaign }}' ? `&camp={{ selected_campaign }}` : '';
-                document.getElementById('viewProductionLink').href = `/truffles/?plot_id={{ plot.id }}&plant_id=${plantId}${campaignParam}`;
-                const modal = new bootstrap.Modal(registerWeightModalEl);
-                modal.show();
+
+                if (mapViewMode === 'presence') {
+                    presenceForm.action = `/plots/{{ plot.id }}/plants/${plantId}/presence`;
+                    presencePlantLabel.textContent = label;
+                    // Default to today
+                    presenceDateInput.value = new Date().toISOString().split('T')[0];
+                    const modal = new bootstrap.Modal(presenceModalEl);
+                    modal.show();
+                } else {
+                    modalForm.action = `/plots/{{ plot.id }}/plants/${plantId}/add`;
+                    plantLabel.textContent = label;
+                    weightInput.value = '0';
+                    const campaignParam = '{{ selected_campaign }}' ? `&camp={{ selected_campaign }}` : '';
+                    document.getElementById('viewProductionLink').href = `/truffles/?plot_id={{ plot.id }}&plant_id=${plantId}${campaignParam}`;
+                    const modal = new bootstrap.Modal(registerWeightModalEl);
+                    modal.show();
+                }
             });
         });
 
@@ -303,6 +371,12 @@
             weightInput.focus();
             weightInput.select();
         });
+
+        if (presenceModalEl) {
+            presenceModalEl.addEventListener('shown.bs.modal', () => {
+                presenceDateInput.focus();
+            });
+        }
     });
 </script>
 {% endblock %}

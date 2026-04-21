@@ -14,11 +14,16 @@ from app.models.truffle_event import TruffleEvent
 def build_plot_event_summary(
     filtered_events: list[TruffleEvent],
     historical_active_events: list[TruffleEvent],
+    *,
+    campaign_harvest_totals: dict[int, float] | None = None,
+    historical_harvest_totals: dict[int, float] | None = None,
 ) -> list[dict]:
     """Build per-plot summary rows for truffle reporting views.
 
     ``filtered_events`` are the events currently displayed by filters (usually campaign-filtered).
     ``historical_active_events`` should include active events without campaign restriction.
+    ``campaign_harvest_totals`` and ``historical_harvest_totals`` are optional dicts
+    {plot_id: grams} from PlotHarvest records that are added to the totals.
     """
     campaign_active = [
         e for e in filtered_events if getattr(e, "undone_at", None) is None
@@ -52,18 +57,38 @@ def build_plot_event_summary(
             top_plants_by_plot[e.plot_id].get(plant_label, 0.0) + weight
         )
 
+    # Add PlotHarvest totals if provided
+    _camp_harvests = campaign_harvest_totals or {}
+    _hist_harvests = historical_harvest_totals or {}
+
+    # Collect plot names from harvest data when not already known from events
+    # (no plot object available here, names resolved in router layer if needed)
+
+    all_plot_ids = (
+        set(campaign_by_plot)
+        | set(historical_by_plot)
+        | set(_camp_harvests)
+        | set(_hist_harvests)
+    )
+
     rows: list[dict] = []
-    for pid in sorted(set(campaign_by_plot) | set(historical_by_plot)):
+    for pid in sorted(all_plot_ids):
         plant_counts = top_plants_by_plot.get(pid, {})
         top_plants = sorted(
             plant_counts.items(), key=lambda item: item[1], reverse=True
         )[:3]
+        campaign_total = round(
+            campaign_by_plot.get(pid, 0.0) + _camp_harvests.get(pid, 0.0), 2
+        )
+        historical_total = round(
+            historical_by_plot.get(pid, 0.0) + _hist_harvests.get(pid, 0.0), 2
+        )
         rows.append(
             {
                 "plot_id": pid,
                 "plot_name": plot_names.get(pid, f"Parcela {pid}"),
-                "campaign_total": round(campaign_by_plot.get(pid, 0.0), 2),
-                "historical_total": round(historical_by_plot.get(pid, 0.0), 2),
+                "campaign_total": campaign_total,
+                "historical_total": historical_total,
                 "top_plants": top_plants,
             }
         )
