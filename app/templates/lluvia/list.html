@@ -183,7 +183,7 @@
                                 </span>
                             {% else %}
                                 <span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">
-                                    <i class="bi bi-geo-alt me-1"></i>{{ r.municipio_name or r.municipio_cod or '' }}
+                                    <i class="bi bi-geo-alt me-1"></i>{{ r.municipio_name or municipio_cod_to_name.get(r.municipio_cod) or r.municipio_cod or '' }}
                                 </span>
                             {% endif %}
                         </td>

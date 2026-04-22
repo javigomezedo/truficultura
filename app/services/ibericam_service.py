@@ -82,14 +82,14 @@ _NON_STATION_SLUGS: frozenset[str] = frozenset(
 # El usuario puede completarlo en el formulario de importación;
 # este dict sirve como sugerencia y validación rápida.
 IBERICAM_SLUG_TO_MUNICIPIO: dict[str, str] = {
-    "sarrion": "44216",
-    "albentosa": "44014",
-    "alcala-de-la-selva": "44019",
-    "san-agustin": "44201",
-    "cabra-de-mora": "44052",
-    "el-castellar": "44082",
-    "formiche-alto": "44110",
-    "gudar": "44118",
+    "sarrion": "44210",
+    "albentosa": "44010",
+    "alcala-de-la-selva": "44012",
+    "san-agustin": "44206",
+    "cabra-de-mora": "44048",
+    "el-castellar": "44070",
+    "formiche-alto": "44103",
+    "gudar": "44121",
 }
 
 
@@ -315,8 +315,14 @@ async def import_ibericam_rainfall(
         month=month,
         http_post_json=http_post_json,
     )
+    # Resolver nombre del municipio si no viene del formulario
+    resolved_name = (
+        municipio_name
+        or MUNICIPIO_COD_TO_NAME.get(municipio_cod)
+        or _slug_to_display_name(station_slug)
+    )
     return await upsert_ibericam_rainfall(
-        db, user_id, municipio_cod, records, municipio_name=municipio_name
+        db, user_id, municipio_cod, records, municipio_name=resolved_name
     )
 
 
@@ -328,6 +334,13 @@ async def import_ibericam_rainfall(
 def _slug_to_display_name(slug: str) -> str:
     """Convierte un slug tipo 'alcala-de-la-selva' en 'Alcala De La Selva'."""
     return slug.replace("-", " ").title()
+
+
+# Mapping inverso: código INE → nombre de municipio.
+# Generado automáticamente a partir de IBERICAM_SLUG_TO_MUNICIPIO.
+MUNICIPIO_COD_TO_NAME: dict[str, str] = {
+    cod: _slug_to_display_name(slug) for slug, cod in IBERICAM_SLUG_TO_MUNICIPIO.items()
+}
 
 
 async def scrape_ibericam_stations(
@@ -396,9 +409,7 @@ async def scrape_ibericam_stations(
                 return None
 
     results = await asyncio.gather(*[probe(s) for s in candidates])
-    stations_by_slug: dict[str, dict] = {
-        r["slug"]: r for r in results if r is not None
-    }
+    stations_by_slug: dict[str, dict] = {r["slug"]: r for r in results if r is not None}
 
     # Garantizar que los slugs conocidos siempre aparecen aunque el probe
     # devuelva vacío (p. ej. ibericam bloquea la IP del servidor en producción).

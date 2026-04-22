@@ -147,14 +147,21 @@
 
 {% block extra_scripts %}
 <script>
+// Mapping slug → nombre para autoFill
+const SLUG_TO_NAME = {
+    {% for slug, cod in slug_map.items() %}
+    "{{ slug }}": "{{ slug.replace('-', ' ').title() }}",
+    {% endfor %}
+};
+
 // ---- Autorellenado desde estaciones conocidas o descubiertas ----
 function autoFill(slug, cod) {
     document.getElementById('station_slug').value = slug;
+    const name = SLUG_TO_NAME[slug] || slug.replace(/-/g, ' ');
     if (cod) {
-        setMunicipio(cod, cod);  // mostramos el código directamente; el usuario puede buscar por nombre
+        setMunicipio(name, cod);
     } else {
         // Sin código conocido: buscar por el nombre derivado del slug
-        const name = slug.replace(/-/g, ' ');
         document.getElementById('municipio_search').value = name;
         searchMunicipio();  // dispara búsqueda inmediata
     }
@@ -287,6 +294,17 @@ function submitImport(event) {
 
     resultDiv.style.display = 'none';
     resultDiv.innerHTML = '';
+
+    // Validación client-side: municipio_cod es obligatorio
+    if (!document.getElementById('municipio_cod').value) {
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML =
+            '<div class="alert alert-warning"><i class="bi bi-exclamation-triangle me-1"></i>' +
+            'Debes seleccionar un municipio de la lista desplegable antes de importar.</div>';
+        document.getElementById('municipio_search').focus();
+        return false;
+    }
+
     btn.disabled = true;
     spinner.style.display = 'inline-block';
     icon.style.display = 'none';

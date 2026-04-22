@@ -273,6 +273,17 @@ function submitImport(event) {
 
     resultDiv.style.display = 'none';
     resultDiv.innerHTML = '';
+
+    // Validación client-side: municipio_cod es obligatorio
+    if (!document.getElementById('municipio_cod').value) {
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML =
+            '<div class="alert alert-warning"><i class="bi bi-exclamation-triangle me-1"></i>' +
+            'Debes seleccionar un municipio de la lista desplegable antes de importar.</div>';
+        document.getElementById('municipio_search').focus();
+        return false;
+    }
+
     btn.disabled = true;
     spinner.style.display = 'inline-block';
     icon.style.display = 'none';
