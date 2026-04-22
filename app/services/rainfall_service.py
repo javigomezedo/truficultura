@@ -11,6 +11,7 @@ from app.i18n import _
 from app.models.plot import Plot
 from app.models.rainfall import RainfallRecord
 from app.schemas.rainfall import RainfallCreate, RainfallUpdate
+from app.services.ibericam_service import MUNICIPIO_COD_TO_NAME
 from app.utils import campaign_year
 
 
@@ -73,16 +74,16 @@ async def _get_user_municipios(db: AsyncSession, user_id: int) -> list[dict]:
         .where(
             RainfallRecord.user_id == user_id,
             RainfallRecord.municipio_cod.isnot(None),
+            RainfallRecord.municipio_cod != "",
         )
         .distinct()
         .order_by(RainfallRecord.municipio_cod)
     )
-    rows = result.all()
-    seen: dict[str, dict] = {}
-    for cod, name in rows:
-        if cod and cod not in seen:
-            seen[cod] = {"cod": cod, "name": name or cod}
-    return list(seen.values())
+    seen: dict[str, str] = {}  # cod → display name
+    for cod, name in result.all():
+        if cod not in seen:
+            seen[cod] = name or MUNICIPIO_COD_TO_NAME.get(cod) or cod
+    return [{"cod": cod, "name": name} for cod, name in sorted(seen.items())]
 
 
 async def get_rainfall_list_context(
@@ -127,6 +128,7 @@ async def get_rainfall_list_context(
         "plots": plots,
         "years": years,
         "municipios": municipios,
+        "municipio_cod_to_name": MUNICIPIO_COD_TO_NAME,
         "selected_year": year,
         "selected_plot": plot_id,
         "selected_source": source,
@@ -235,3 +237,4 @@ async def delete_rainfall_record(
         )
     await db.delete(record)
     await db.flush()
+
