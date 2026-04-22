@@ -52,7 +52,7 @@ async def aemet_stations_proxy(
                     status_code=502,
                 )
             try:
-                meta = meta_resp.json()
+                meta = json.loads(meta_resp.content.decode("latin-1"))
             except Exception as exc:
                 return JSONResponse(
                     {"error": "No se pudo interpretar la respuesta de AEMET."},

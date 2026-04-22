@@ -76,7 +76,9 @@ async def test_upsert_ibericam_rainfall_creates_new_records() -> None:
         (datetime.date(2026, 4, 1), 0.0),
         (datetime.date(2026, 4, 2), 5.2),
     ]
-    stats = await upsert_ibericam_rainfall(db, user_id=1, municipio_cod="44216", records=records)
+    stats = await upsert_ibericam_rainfall(
+        db, user_id=1, municipio_cod="44216", records=records
+    )
 
     assert stats["created"] == 2
     assert stats["updated"] == 0
@@ -106,7 +108,9 @@ async def test_upsert_ibericam_rainfall_updates_existing_records() -> None:
     db.flush = AsyncMock()
 
     records = [(datetime.date(2026, 4, 1), 9.9)]
-    stats = await upsert_ibericam_rainfall(db, user_id=1, municipio_cod="44216", records=records)
+    stats = await upsert_ibericam_rainfall(
+        db, user_id=1, municipio_cod="44216", records=records
+    )
 
     assert stats["created"] == 0
     assert stats["updated"] == 1
@@ -121,7 +125,9 @@ async def test_upsert_ibericam_rainfall_empty_input_returns_zeros() -> None:
     db.execute = AsyncMock(return_value=result([]))
     db.flush = AsyncMock()
 
-    stats = await upsert_ibericam_rainfall(db, user_id=1, municipio_cod="44216", records=[])
+    stats = await upsert_ibericam_rainfall(
+        db, user_id=1, municipio_cod="44216", records=[]
+    )
 
     assert stats == {"created": 0, "updated": 0, "total": 0}
     db.execute.assert_not_called()
@@ -208,11 +214,13 @@ async def test_scrape_ibericam_stations_returns_verified_stations() -> None:
         http_post_json=fake_post,
     )
 
-    # Sólo slugs no filtrados y con datos reales
     slugs_found = [s["slug"] for s in stations]
     assert "sarrion" in slugs_found
     assert "gudar" in slugs_found
-    assert "albentosa" not in slugs_found  # devolvió vacío → no verificado
+    # albentosa devuelve vacío en el probe pero está en IBERICAM_SLUG_TO_MUNICIPIO → aparece como fallback
+    assert "albentosa" in slugs_found
+    albentosa_entry = next(s for s in stations if s["slug"] == "albentosa")
+    assert albentosa_entry["num_records"] == 0
     # Categorías filtradas antes de sondar
     assert "aragon" not in calls
     assert "categoria" not in calls
@@ -222,8 +230,9 @@ async def test_scrape_ibericam_stations_returns_verified_stations() -> None:
 @pytest.mark.asyncio
 async def test_scrape_ibericam_stations_station_fields() -> None:
     """Cada estación incluye slug, name, last_date y num_records."""
+
     async def fake_get(url: str, timeout: float) -> str:
-        return '<urlset><url><loc>https://ibericam.com/lugar_webcam_el_tiempo/sarrion/</loc></url></urlset>'
+        return "<urlset><url><loc>https://ibericam.com/lugar_webcam_el_tiempo/sarrion/</loc></url></urlset>"
 
     async def fake_post(url: str, body: dict, timeout: float) -> list:
         return _FAKE_RAIN_DATA
@@ -232,9 +241,10 @@ async def test_scrape_ibericam_stations_station_fields() -> None:
         http_get_text=fake_get,
         http_post_json=fake_post,
     )
-    assert len(stations) == 1
-    s = stations[0]
-    assert s["slug"] == "sarrion"
+    # sarrion fue verificado por probe + los demás slugs conocidos se añaden como fallback
+    slugs_found = [s["slug"] for s in stations]
+    assert "sarrion" in slugs_found
+    s = next(st for st in stations if st["slug"] == "sarrion")
     assert s["name"] == "Sarrion"
     assert s["last_date"] == "2026-04-15"
     assert s["num_records"] == 2
@@ -243,6 +253,7 @@ async def test_scrape_ibericam_stations_station_fields() -> None:
 @pytest.mark.asyncio
 async def test_scrape_ibericam_stations_empty_sitemap() -> None:
     """Si el sitemap no contiene slugs conocidos, devuelve lista vacía."""
+
     async def fake_get(url: str, timeout: float) -> str:
         return "<urlset></urlset>"
 
@@ -253,14 +264,20 @@ async def test_scrape_ibericam_stations_empty_sitemap() -> None:
         http_get_text=fake_get,
         http_post_json=fake_post,
     )
-    assert stations == []
+    # Aunque el sitemap esté vacío, los slugs conocidos de IBERICAM_SLUG_TO_MUNICIPIO
+    # siempre se incluyen como fallback con num_records=0.
+    from app.services.ibericam_service import IBERICAM_SLUG_TO_MUNICIPIO
+
+    assert len(stations) == len(IBERICAM_SLUG_TO_MUNICIPIO)
+    assert all(s["num_records"] == 0 for s in stations)
 
 
 @pytest.mark.asyncio
 async def test_scrape_ibericam_stations_probe_error_skips_station() -> None:
     """Si el sondeo de una estación lanza excepción, se omite sin romper."""
+
     async def fake_get(url: str, timeout: float) -> str:
-        return '<urlset><url><loc>https://ibericam.com/lugar_webcam_el_tiempo/sarrion/</loc></url></urlset>'
+        return "<urlset><url><loc>https://ibericam.com/lugar_webcam_el_tiempo/sarrion/</loc></url></urlset>"
 
     async def fake_post(url: str, body: dict, timeout: float) -> list:
         raise RuntimeError("timeout")
@@ -269,5 +286,9 @@ async def test_scrape_ibericam_stations_probe_error_skips_station() -> None:
         http_get_text=fake_get,
         http_post_json=fake_post,
     )
-    assert stations == []
-
+    # sarrion está en IBERICAM_SLUG_TO_MUNICIPIO → aparece como fallback aunque el probe falle
+    slugs_found = [s["slug"] for s in stations]
+    assert "sarrion" in slugs_found
+    sarrion_entry = next(s for s in stations if s["slug"] == "sarrion")
+    assert sarrion_entry["num_records"] == 0
+    assert sarrion_entry["last_date"] is None
