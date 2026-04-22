@@ -94,7 +94,7 @@
                         </a>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {% if '/irrigation' in request.url.path or '/wells' in request.url.path %}active{% endif %}"
+                        <a class="nav-link dropdown-toggle {% if '/irrigation' in request.url.path or '/wells' in request.url.path or '/lluvia' in request.url.path %}active{% endif %}"
                            href="#"
                            role="button"
                            data-bs-toggle="dropdown"
@@ -110,6 +110,11 @@
                             <li>
                                 <a class="dropdown-item {% if '/wells' in request.url.path %}active{% endif %}" href="/wells/">
                                     <i class="bi bi-moisture text-info me-1"></i> {{ _("Pozos") }}
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if '/lluvia' in request.url.path %}active{% endif %}" href="/lluvia/">
+                                    <i class="bi bi-cloud-rain-fill text-primary me-1"></i> {{ _("Lluvia") }}
                                 </a>
                             </li>
                         </ul>
@@ -177,11 +182,19 @@
                         </ul>
                     </li>
                     {% if request.session.get("role") == "admin" %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if '/admin' in request.url.path %}active{% endif %}"
-                           href="/admin/users">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if '/admin' in request.url.path %}active{% endif %}"
+                           href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-shield-lock me-1"></i> {{ _("Admin") }}
                         </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item {% if '/admin/users' in request.url.path %}active{% endif %}"
+                                   href="/admin/users">
+                                    <i class="bi bi-people me-1"></i> {{ _("Usuarios") }}
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                     {% endif %}
                 </ul>

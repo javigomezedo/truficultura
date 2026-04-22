@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from app.models.plant_presence import PlantPresence
     from app.models.plot_event import PlotEvent
     from app.models.plot_harvest import PlotHarvest
+    from app.models.rainfall import RainfallRecord
     from app.models.recurring_expense import RecurringExpense
     from app.models.user import User
     from app.models.well import Well
@@ -46,6 +47,7 @@ class Plot(Base):
     caudal_riego: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     provincia_cod: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
     municipio_cod: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    water_flow_lps: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
     # Relationships
     user: Mapped[Optional["User"]] = relationship("User", back_populates="plots")
@@ -75,4 +77,7 @@ class Plot(Base):
     )
     plant_presences: Mapped[List["PlantPresence"]] = relationship(
         "PlantPresence", back_populates="plot", lazy="select", cascade="all, delete-orphan"
+    )
+    rainfall_records: Mapped[List["RainfallRecord"]] = relationship(
+        "RainfallRecord", back_populates="plot", lazy="select"
     )

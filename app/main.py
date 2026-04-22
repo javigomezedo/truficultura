@@ -22,6 +22,7 @@ import app.models  # noqa: F401 - ensure models are registered
 from app.models.user import User
 from app.routers import (
     admin,
+    aemet_admin,
     assistant,
     auth,
     charts,
@@ -32,6 +33,7 @@ from app.routers import (
     incomes,
     irrigation,
     kpis,
+    lluvia,
     plot_analytics,
     plants,
     plot_events,
@@ -104,6 +106,7 @@ kpis.templates = templates
 plot_events.templates = templates
 plot_analytics.templates = templates
 recurring_expenses.templates = templates
+lluvia.templates = templates
 
 # Include routers
 app.include_router(auth.router)
@@ -125,6 +128,8 @@ app.include_router(harvests.router)
 app.include_router(scan.router)
 app.include_router(kpis.router)
 app.include_router(recurring_expenses.router)
+app.include_router(lluvia.router)
+app.include_router(aemet_admin.router)
 
 
 @app.get("/health")

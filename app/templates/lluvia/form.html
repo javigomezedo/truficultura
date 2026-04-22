@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if record %}{{ _("Editar registro de lluvia") }}{% else %}{{ _("Nuevo registro de lluvia") }}{% endif %}
+    &mdash; Truficultura
+{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="tf-page-header">
+        <div>
+            <p class="tf-page-kicker">{{ _("Precipitaciones") }}</p>
+            <h1 class="tf-page-title">
+                <i class="bi bi-cloud-rain-fill text-primary me-2"></i>
+                {% if record %}{{ _("Editar registro de lluvia") }}{% else %}{{ _("Nuevo registro de lluvia") }}{% endif %}
+            </h1>
+        </div>
+        <a href="/lluvia/" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> {{ _("Volver") }}
+        </a>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        {{ error }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            <div class="card tf-panel shadow-sm border-0">
+                <div class="card-body p-4">
+                    <form method="post" action="{{ action }}">
+
+                        {% if record and record.source != 'manual' %}
+                        <!-- Tipo de registro: parcela o municipio (solo en edición de registros importados) -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">{{ _("Tipo de registro") }}</label>
+                            <div class="d-flex gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="record_type"
+                                           id="type_plot" value="plot"
+                                           {% if record.plot_id %}checked{% endif %}
+                                           onchange="toggleRecordType()">
+                                    <label class="form-check-label" for="type_plot">
+                                        <i class="bi bi-map me-1 text-success"></i>{{ _("Parcela (pluviómetro)") }}
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="record_type"
+                                           id="type_municipio" value="municipio"
+                                           {% if not record.plot_id %}checked{% endif %}
+                                           onchange="toggleRecordType()">
+                                    <label class="form-check-label" for="type_municipio">
+                                        <i class="bi bi-geo-alt me-1 text-secondary"></i>{{ _("Municipio (AEMET / ibericam)") }}
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Selector de parcela -->
+                        <div class="mb-3" id="plot_section"
+                             {% if record and not record.plot_id %}style="display:none"{% endif %}>
+                            <label for="plot_id" class="form-label fw-semibold">{{ _("Parcela") }}</label>
+                            <select name="plot_id" id="plot_id" class="form-select">
+                                <option value="">{{ _("Selecciona una parcela") }}</option>
+                                {% for p in plots %}
+                                <option value="{{ p.id }}"
+                                    {% if record and record.plot_id == p.id %}selected{% endif %}>
+                                    {{ p.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Municipio (solo en edición para registros importados) -->
+                        <div class="mb-3 {% if not record or record.plot_id %}d-none{% endif %}" id="municipio_section">
+                            <label for="municipio_cod" class="form-label fw-semibold">
+                                {{ _("Código de municipio (INE)") }}
+                            </label>
+                            <input type="text" name="municipio_cod" id="municipio_cod"
+                                   class="form-control"
+                                   placeholder="{{ _('Ej: 44216') }}"
+                                   value="{{ record.municipio_cod if record and record.municipio_cod else '' }}">
+                            <div class="form-text text-muted">
+                                {{ _("Código INE del municipio. Para datos de AEMET o ibericam.") }}
+                            </div>
+                        </div>
+
+                        <!-- Fecha -->
+                        <div class="mb-3">
+                            <label for="date" class="form-label fw-semibold">{{ _("Fecha") }}</label>
+                            <input type="date" name="date" id="date" class="form-control" required
+                                   value="{{ record.date.isoformat() if record else today }}">
+                        </div>
+
+                        <!-- Precipitación -->
+                        <div class="mb-3">
+                            <label for="precipitation_mm" class="form-label fw-semibold">
+                                {{ _("Precipitación (mm)") }}
+                            </label>
+                            <div class="input-group">
+                                <input type="number" name="precipitation_mm" id="precipitation_mm"
+                                       class="form-control" required min="0" step="0.1"
+                                       value="{{ record.precipitation_mm if record else '' }}">
+                                <span class="input-group-text">mm</span>
+                            </div>
+                            <div class="form-text text-muted">{{ _("1 mm = 1 l/m²") }}</div>
+                        </div>
+
+                        <!-- Fuente: solo lectura en edición de registros importados -->
+                        {% if record and record.source != 'manual' %}
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">{{ _("Fuente") }}</label>
+                            <div>
+                                {% if record.source == 'aemet' %}
+                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fs-6">
+                                        <i class="bi bi-cloud-download me-1"></i>AEMET
+                                    </span>
+                                {% elif record.source == 'ibericam' %}
+                                    <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle fs-6">
+                                        <i class="bi bi-globe me-1"></i>ibericam
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle fs-6">
+                                        <i class="bi bi-thermometer-half me-1"></i>{{ _("Pluviómetro manual") }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <input type="hidden" name="source" value="{{ record.source }}">
+                        </div>
+                        {% endif %}
+
+                        <!-- Notas -->
+                        <div class="mb-4">
+                            <label for="notes" class="form-label fw-semibold">{{ _("Notas") }}</label>
+                            <textarea name="notes" id="notes" rows="2"
+                                      class="form-control" maxlength="500"
+                                      placeholder="{{ _('Observaciones opcionales') }}">{{ record.notes if record and record.notes else '' }}</textarea>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg me-1"></i>
+                                {% if record %}{{ _("Guardar cambios") }}{% else %}{{ _("Guardar registro") }}{% endif %}
+                            </button>
+                            <a href="/lluvia/" class="btn btn-outline-secondary">{{ _("Cancelar") }}</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleRecordType() {
+    const plotSection = document.getElementById('plot_section');
+    const municipioSection = document.getElementById('municipio_section');
+    const plotInput = document.getElementById('plot_id');
+    const municipioInput = document.getElementById('municipio_cod');
+    const typePlot = document.getElementById('type_plot');
+    if (!typePlot) return;  // formulario de nuevo registro: no hay radios
+    const isPlot = typePlot.checked;
+
+    if (isPlot) {
+        plotSection.style.display = '';
+        municipioSection.classList.add('d-none');
+        if (municipioInput) municipioInput.value = '';
+    } else {
+        plotSection.style.display = 'none';
+        municipioSection.classList.remove('d-none');
+        if (plotInput) plotInput.value = '';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', toggleRecordType);
+</script>
+{% endblock %}

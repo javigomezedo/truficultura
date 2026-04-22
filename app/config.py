@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://user:password@localhost:5432/truficultura"
     SECRET_KEY: str = "change-me-in-production-please"
     OPENAI_API_KEY: Optional[str] = None
+    AEMET_API_KEY: Optional[str] = None
+    AEMET_BASE_URL: str = "https://opendata.aemet.es/opendata/api"
+    AEMET_TIMEOUT_SECONDS: float = 30.0
 
     @property
     def SQLALCHEMY_DATABASE_URL(self) -> str:
