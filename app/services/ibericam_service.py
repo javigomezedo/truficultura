@@ -396,13 +396,27 @@ async def scrape_ibericam_stations(
                 return None
 
     results = await asyncio.gather(*[probe(s) for s in candidates])
-    stations = sorted(
-        [r for r in results if r is not None],
-        key=lambda x: x["name"],
-    )
+    stations_by_slug: dict[str, dict] = {
+        r["slug"]: r for r in results if r is not None
+    }
+
+    # Garantizar que los slugs conocidos siempre aparecen aunque el probe
+    # devuelva vacío (p. ej. ibericam bloquea la IP del servidor en producción).
+    for known_slug in IBERICAM_SLUG_TO_MUNICIPIO:
+        if known_slug not in stations_by_slug:
+            stations_by_slug[known_slug] = {
+                "slug": known_slug,
+                "name": _slug_to_display_name(known_slug),
+                "last_date": None,
+                "num_records": 0,
+            }
+
+    stations = sorted(stations_by_slug.values(), key=lambda x: x["name"])
     logger.info(
-        "ibericam scraper: %d estaciones verificadas de %d candidatos",
+        "ibericam scraper: %d estaciones (%d verificadas, %d desde lista fija) de %d candidatos",
         len(stations),
+        len([r for r in results if r is not None]),
+        sum(1 for s in stations if s["num_records"] == 0),
         len(candidates),
     )
     return stations
