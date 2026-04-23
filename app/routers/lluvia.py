@@ -22,6 +22,7 @@ from app.services.aemet_service import import_aemet_rainfall
 from app.services.rainfall_service import (
     create_rainfall_record,
     delete_rainfall_record,
+    get_rainfall_calendar_context,
     get_rainfall_list_context,
     get_rainfall_record,
     update_rainfall_record,
@@ -199,6 +200,42 @@ async def delete_view(
     return RedirectResponse(
         url=f"/lluvia/?msg={quote_plus(_('Registro de lluvia eliminado correctamente'))}",
         status_code=303,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Calendario de lluvia
+# ---------------------------------------------------------------------------
+
+
+@router.get("/calendario", response_class=HTMLResponse)
+async def calendar_view(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
+    year: Optional[str] = Query(default=None),
+    plot_id: Optional[str] = Query(default=None),
+    municipio_cod: Optional[str] = Query(default=None),
+):
+    from app.utils import campaign_year
+
+    year_int = int(year) if year else campaign_year(datetime.date.today())
+    plot_id_int = int(plot_id) if plot_id else None
+    municipio_val = (
+        municipio_cod.strip() if municipio_cod and municipio_cod.strip() else None
+    )
+
+    context = await get_rainfall_calendar_context(
+        db,
+        current_user.id,
+        year=year_int,
+        plot_id=plot_id_int,
+        municipio_cod=municipio_val,
+    )
+    return templates.TemplateResponse(
+        request,
+        "lluvia/calendario.html",
+        {"request": request, **context},
     )
 
 

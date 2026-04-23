@@ -47,7 +47,6 @@ class Plot(Base):
     caudal_riego: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     provincia_cod: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
     municipio_cod: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
-    water_flow_lps: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
     # Relationships
     user: Mapped[Optional["User"]] = relationship("User", back_populates="plots")

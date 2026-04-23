@@ -78,9 +78,12 @@ _NON_STATION_SLUGS: frozenset[str] = frozenset(
     }
 )
 
-# Mapping conocido de slug ibericam → código INE de municipio.
-# El usuario puede completarlo en el formulario de importación;
-# este dict sirve como sugerencia y validación rápida.
+# Mapeado slug ibericam → código municipio INE completo de 5 dígitos.
+# Formato: provincia_cod (2 díg) + municipio_ine (3 díg con zero-pad).
+# Este código es el que se almacena en RainfallRecord.municipio_cod y se obtiene
+# a través de resolve_municipio_cod(plot). Los códigos SIGPAC (distintos en algunos
+# municipios como Sarrión INE=44210/SIGPAC=44223) sólo se usan para el API de SIGPAC
+# y se gestionan desde el JSON municipios_geo.json vía el formulario de parcelas.
 IBERICAM_SLUG_TO_MUNICIPIO: dict[str, str] = {
     "sarrion": "44210",
     "albentosa": "44010",

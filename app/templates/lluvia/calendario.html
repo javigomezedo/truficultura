@@ -1,0 +1,368 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("Calendario de lluvia") }} &mdash; Truficultura{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ── Calendario de lluvia ────────────────────────────────────────────── */
+.rain-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+}
+
+.rain-month-card {
+    background: var(--tf-card-bg, #fff);
+    border-radius: 0.75rem;
+    padding: 0.875rem 1rem 1rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+}
+
+.rain-month-name {
+    font-weight: 700;
+    font-size: .85rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--tf-text-muted, #6c757d);
+    margin-bottom: .5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+.rain-month-total {
+    font-weight: 600;
+    font-size: .95rem;
+    color: var(--bs-primary, #0d6efd);
+}
+
+.rain-month-total.no-rain {
+    color: var(--tf-text-muted, #6c757d);
+}
+
+.rain-cal-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    margin-bottom: .2rem;
+}
+
+.rain-cal-header span {
+    font-size: .65rem;
+    font-weight: 700;
+    text-align: center;
+    color: var(--tf-text-muted, #6c757d);
+    text-transform: uppercase;
+}
+
+.rain-cal-week {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    margin-bottom: 2px;
+}
+
+.rain-day {
+    aspect-ratio: 1;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .62rem;
+    font-weight: 600;
+    cursor: default;
+    position: relative;
+    line-height: 1;
+}
+
+.rain-day.empty {
+    background: transparent;
+}
+
+/* Sin lluvia */
+.rain-day.rain-none {
+    background: var(--tf-card-inner-bg, #f4f6fa);
+    color: var(--tf-text-muted, #adb5bd);
+}
+
+/* Lluvia leve: 0.1-5 mm */
+.rain-day.rain-low {
+    background: #bfdbfe;
+    color: #1d4ed8;
+}
+
+/* Lluvia moderada: 5-15 mm */
+.rain-day.rain-moderate {
+    background: #60a5fa;
+    color: #1e3a8a;
+}
+
+/* Lluvia fuerte: 15-30 mm */
+.rain-day.rain-heavy {
+    background: #2563eb;
+    color: #fff;
+}
+
+/* Lluvia muy fuerte: >30 mm */
+.rain-day.rain-very-heavy {
+    background: #1e3a8a;
+    color: #bfdbfe;
+}
+
+/* Tooltip Bootstrap */
+.rain-day[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,.75);
+    color: #fff;
+    font-size: .65rem;
+    white-space: nowrap;
+    padding: 2px 6px;
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 100;
+}
+
+/* Leyenda */
+.rain-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem .75rem;
+    align-items: center;
+    font-size: .78rem;
+}
+
+.rain-legend-item {
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+}
+
+.rain-legend-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+/* Resumen mensual mini-bar */
+.rain-month-bar-wrap {
+    margin-top: .4rem;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--tf-card-inner-bg, #f0f0f0);
+    overflow: hidden;
+}
+
+.rain-month-bar {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #60a5fa, #1d4ed8);
+    transition: width .3s;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="tf-page-header">
+        <div>
+            <p class="tf-page-kicker">{{ _("Precipitaciones") }}</p>
+            <h1 class="tf-page-title">
+                <i class="bi bi-calendar3 text-primary me-2"></i>{{ _("Calendario de lluvia") }}
+            </h1>
+            <p class="tf-page-subtitle">
+                {{ _("Campaña") }} {{ selected_year|campaign_label }}
+                &mdash; {{ total_mm|format_eu(1) }} mm
+                {% if total_m3 is not none %} / {{ total_m3|format_eu(0) }} m³{% endif %}
+                &middot; {{ rain_days }} {{ _("días con lluvia") }}
+            </p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="/lluvia/" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-list-ul me-1"></i>{{ _("Vista lista") }}
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card tf-panel tf-filters-card shadow-sm mb-4 border-0">
+        <div class="card-body py-3">
+            <form method="get" action="/lluvia/calendario" class="tf-filters-form">
+                <div class="tf-filter-item tf-filter-item--compact">
+                    <label class="form-label">{{ _("Campaña") }}</label>
+                    <select name="year" class="form-select form-select-sm" onchange="this.form.submit()">
+                        {% for y in years %}
+                        <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y|campaign_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="tf-filter-item tf-filter-item--compact">
+                    <label class="form-label">{{ _("Parcela") }}</label>
+                    <select name="plot_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">{{ _("Todas las parcelas") }}</option>
+                        {% for p in plots %}
+                        <option value="{{ p.id }}" {% if selected_plot == p.id %}selected{% endif %}>{{ p.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="tf-filter-item tf-filter-item--compact">
+                    <label class="form-label">{{ _("Municipio") }}</label>
+                    <select name="municipio_cod" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">{{ _("Todos los municipios") }}</option>
+                        {% for m in municipios %}
+                        <option value="{{ m.cod }}" {% if selected_municipio == m.cod %}selected{% endif %}>{{ m.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Leyenda -->
+    <div class="mb-4">
+        <div class="rain-legend">
+            <span class="text-muted fw-semibold me-1" style="font-size:.78rem;">{{ _("Lluvia:") }}</span>
+            <span class="rain-legend-item">
+                <span class="rain-legend-dot" style="background:#e9ecef;"></span>
+                <span class="text-muted">0 mm</span>
+            </span>
+            <span class="rain-legend-item">
+                <span class="rain-legend-dot" style="background:#bfdbfe;"></span>
+                <span>0.1 – 5 mm</span>
+            </span>
+            <span class="rain-legend-item">
+                <span class="rain-legend-dot" style="background:#60a5fa;"></span>
+                <span>5 – 15 mm</span>
+            </span>
+            <span class="rain-legend-item">
+                <span class="rain-legend-dot" style="background:#2563eb;"></span>
+                <span>15 – 30 mm</span>
+            </span>
+            <span class="rain-legend-item">
+                <span class="rain-legend-dot" style="background:#1e3a8a;"></span>
+                <span>&gt; 30 mm</span>
+            </span>
+        </div>
+    </div>
+
+    {% if months %}
+    <!-- Cuadrícula de meses -->
+    <div class="rain-calendar-grid">
+        {% set max_month_mm = months | map(attribute='total_mm') | max %}
+        {% for month in months %}
+        <div class="rain-month-card">
+            <div class="rain-month-name">
+                <span>{{ month.name }} {{ month.year }}</span>
+                <span class="rain-month-total {% if month.total_mm == 0 %}no-rain{% endif %}">
+                    {{ month.total_mm|format_eu(1) }} mm
+                    {% if month.total_m3 is not none and month.total_m3 > 0 %}
+                    <span class="text-muted fw-normal" style="font-size:.78rem;"> / {{ month.total_m3|format_eu(0) }} m³</span>
+                    {% endif %}
+                </span>
+            </div>
+
+            {% if max_month_mm > 0 %}
+            <div class="rain-month-bar-wrap">
+                <div class="rain-month-bar"
+                     style="width: {{ ((month.total_mm / max_month_mm) * 100)|round|int }}%"></div>
+            </div>
+            {% endif %}
+
+            <div class="mt-2">
+                <!-- Cabecera días -->
+                <div class="rain-cal-header">
+                    {% for label in day_labels %}
+                    <span>{{ label }}</span>
+                    {% endfor %}
+                </div>
+
+                <!-- Semanas -->
+                {% for week in month.weeks %}
+                <div class="rain-cal-week">
+                    {% for cell in week %}
+                    {% if cell is none %}
+                        <div class="rain-day empty"></div>
+                    {% elif cell.mm > 0 %}
+                        <div class="rain-day {{ cell.css }}"
+                             title="{{ cell.day }}: {{ cell.mm|format_eu(1) }} mm{% if cell.m3 is not none %} / {{ cell.m3|format_eu(0) }} m³{% endif %}">
+                            {{ cell.day }}
+                        </div>
+                    {% else %}
+                        <div class="rain-day rain-none">{{ cell.day }}</div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% endfor %}
+
+                {% if month.rain_days > 0 %}
+                <div class="text-muted mt-1" style="font-size:.7rem;">
+                    {{ month.rain_days }} {{ _("día(s) con lluvia") }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>{{ _("No hay registros de lluvia para esta campaña.") }}
+    </div>
+    {% endif %}
+
+    <!-- Resumen anual -->
+    {% if total_mm > 0 %}
+    <div class="row g-3 mt-2 mb-4">
+        <div class="col-md-4">
+            <div class="card tf-stat-card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-droplet-fill text-primary fs-2 me-3"></i>
+                        <div>
+                            <div class="text-muted small">{{ _("Total campaña") }}</div>
+                            <div class="fw-bold fs-5">{{ total_mm|format_eu(1) }} mm</div>
+                            {% if total_m3 is not none %}
+                            <div class="text-muted" style="font-size:.82rem;">{{ total_m3|format_eu(0) }} m³{% if area_ha %} · {{ area_ha|format_eu(2) }} ha{% endif %}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card tf-stat-card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-calendar-check text-secondary fs-2 me-3"></i>
+                        <div>
+                            <div class="text-muted small">{{ _("Días con lluvia") }}</div>
+                            <div class="fw-bold fs-5">{{ rain_days }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card tf-stat-card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-graph-up text-success fs-2 me-3"></i>
+                        <div>
+                            <div class="text-muted small">{{ _("Media por día de lluvia") }}</div>
+                            <div class="fw-bold fs-5">
+                                {% if rain_days > 0 %}{{ (total_mm / rain_days)|format_eu(1) }} mm{% else %}—{% endif %}
+                            </div>
+                            {% if total_m3 is not none and rain_days > 0 %}
+                            <div class="text-muted" style="font-size:.82rem;">{{ (total_m3 / rain_days)|format_eu(0) }} m³/día</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

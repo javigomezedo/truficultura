@@ -16,6 +16,16 @@ from app.models.truffle_event import TruffleEvent
 from app.models.user import User
 from app.utils import row_label_from_index
 
+# Municipios de Teruel (provincia_cod, municipio_cod) con estaciones de lluvia disponibles
+TERUEL_MUNICIPIOS = [
+    ("44", "210"),  # Sarrión
+    ("44", "010"),  # Albentosa
+    ("44", "206"),  # San Agustín
+    ("44", "048"),  # Cabra de Mora
+    ("44", "103"),  # Formiche Alto
+    ("44", "121"),  # Gúdar
+]
+
 
 @dataclass
 class SeedSummary:
@@ -156,6 +166,7 @@ async def seed_data(args: argparse.Namespace) -> SeedSummary:
                 cols_max=args.cols_max,
             )
             plant_count = sum(len(set(cols)) for cols in row_columns)
+            mun = rng.choice(TERUEL_MUNICIPIOS)
 
             plot = Plot(
                 user_id=user.id,
@@ -175,6 +186,8 @@ async def seed_data(args: argparse.Namespace) -> SeedSummary:
                 ),
                 percentage=0.0,
                 has_irrigation=rng.random() < 0.8,
+                provincia_cod=mun[0],
+                municipio_cod=mun[1],
             )
             session.add(plot)
             await session.flush()

@@ -22,9 +22,25 @@ from app.services.irrigation_service import (
     get_riego_expenses_for_plots,
     update_irrigation_record as update_service,
 )
+from app.services.water_balance_service import simulate_irrigation
 
 router = APIRouter(prefix="/irrigation", tags=["irrigation"])
 templates = Jinja2Templates(directory="app/templates")
+
+
+@router.get("/simular", response_class=JSONResponse)
+async def simulate_view(
+    plot_id: int = Query(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
+):
+    sim = await simulate_irrigation(db, current_user.id, plot_id, datetime.date.today())
+    if sim is None:
+        return JSONResponse(
+            status_code=404,
+            content={"detail": _("Parcela no encontrada")},
+        )
+    return sim
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -51,7 +67,7 @@ async def list_view(
     return templates.TemplateResponse(
         request,
         "riego/list.html",
-        {"request": request, **context, "msg": msg},
+        {"request": request, **context, "msg": msg, "today": datetime.date.today().isoformat()},
     )
 
 

@@ -69,6 +69,10 @@ def test_plot_analytics_overview_renders(monkeypatch) -> None:
             }
         ),
     )
+    monkeypatch.setattr(
+        "app.routers.plot_analytics.get_all_plot_thresholds",
+        AsyncMock(return_value=[]),
+    )
 
     app.dependency_overrides[require_user] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
@@ -191,7 +195,9 @@ def test_plot_analytics_comparison_view_renders(monkeypatch) -> None:
     assert "Parcela B" in response.text
 
 
-def test_plot_analytics_comparison_view_accepts_empty_campaign_from(monkeypatch) -> None:
+def test_plot_analytics_comparison_view_accepts_empty_campaign_from(
+    monkeypatch,
+) -> None:
     fake_db = _db()
     monkeypatch.setattr(
         "app.routers.plot_analytics.get_multi_plot_comparison",
@@ -338,9 +344,20 @@ def test_plot_analytics_plot_detail_renders(monkeypatch) -> None:
         "digging_series": [0],
         "scatter_points": [{"x": 10.0, "y": 50.0, "campaign_year": 2025}],
     }
+    _threshold_empty = {
+        "sample_size": 0,
+        "status": "insufficient_data",
+        "plateau_start_m3": None,
+        "water_bands": [],
+        "marginal_gains": [],
+    }
     monkeypatch.setattr(
         "app.routers.plot_analytics.get_plot_detail_context",
         AsyncMock(return_value=payload),
+    )
+    monkeypatch.setattr(
+        "app.routers.plot_analytics.detect_irrigation_thresholds",
+        AsyncMock(side_effect=[_threshold_empty, _threshold_empty]),
     )
 
     app.dependency_overrides[require_user] = _user
@@ -357,9 +374,20 @@ def test_plot_analytics_plot_detail_renders(monkeypatch) -> None:
 
 def test_plot_analytics_plot_detail_not_found(monkeypatch) -> None:
     fake_db = _db()
+    _threshold_empty = {
+        "sample_size": 0,
+        "status": "insufficient_data",
+        "plateau_start_m3": None,
+        "water_bands": [],
+        "marginal_gains": [],
+    }
     monkeypatch.setattr(
         "app.routers.plot_analytics.get_plot_detail_context",
         AsyncMock(return_value=None),
+    )
+    monkeypatch.setattr(
+        "app.routers.plot_analytics.detect_irrigation_thresholds",
+        AsyncMock(side_effect=[_threshold_empty, _threshold_empty]),
     )
 
     app.dependency_overrides[require_user] = _user

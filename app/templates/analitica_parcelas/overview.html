@@ -3,7 +3,12 @@
 {% block title %}{{ _("Análisis de rendimiento") }} &mdash; Truficultura{% endblock %}
 
 {% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
+    .chart-container {
+        position: relative;
+        min-height: 280px;
+    }
     .tf-help-tip-btn {
         width: 1.75rem;
         height: 1.75rem;
@@ -136,11 +141,63 @@
         </div>
     </div>
 
+    {# HERO: ¿Cuánto riego es suficiente? #}
+    {% set plateau_ok = irrigation_thresholds.status == "ok" and irrigation_thresholds.plateau_start_m3 is not none %}
+    <div class="card tf-panel shadow-sm border-0 mb-3">
+        <div class="card-body">
+            <div class="row g-4 align-items-center">
+                <div class="col-lg-5">
+                    <h3 class="h5 mb-3">
+                        <i class="bi bi-droplet-half me-2 text-primary"></i>{{ _("¿Regar más da más trufa?") }}
+                    </h3>
+                    {% if plateau_ok %}
+                    {% set plateau = irrigation_thresholds.plateau_start_m3 %}
+                    <p class="mb-3 small text-muted">{{ _("Basándonos en") }} <strong>{{ irrigation_thresholds.sample_size }} {{ _("registros (bancal × campaña)") }}</strong> {{ _("con datos de agua y producción:") }}</p>
+                    <div class="alert alert-success border-0 mb-2 py-2 px-3">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        {{ _("Hasta") }} <strong>{{ plateau }} m³</strong> — {{ _("cada m³ extra suma kg de trufa.") }}
+                    </div>
+                    <div class="alert alert-danger border-0 mb-0 py-2 px-3">
+                        <i class="bi bi-x-circle-fill me-2"></i>
+                        {{ _("Más de") }} <strong>{{ plateau }} m³</strong> — {{ _("regar más no mejoró la cosecha en campañas anteriores.") }}
+                    </div>
+                    {% elif irrigation_thresholds.sample_size >= 3 %}
+                    <p class="mb-2 text-muted">{{ _("Con") }} <strong>{{ irrigation_thresholds.sample_size }} {{ _("registros (bancal × campaña)") }}</strong> {{ _("analizados no se detecta un punto claro de saturación. Más datos mejorarán el análisis.") }}</p>
+                    {% else %}
+                    <p class="mb-2 text-muted">{{ _("Aún no hay suficientes campañas con datos de agua y producción para detectar la meseta. Se necesitan al menos 3.") }}</p>
+                    <p class="small text-muted">{{ _("Registros actuales con ambos datos:") }} {{ irrigation_thresholds.sample_size }}/3</p>
+                    {% endif %}
+                </div>
+                <div class="col-lg-7">
+                    {% if irrigation_analysis.water_bands and irrigation_analysis.sample_size > 0 %}
+                    <p class="small text-muted mb-1"><i class="bi bi-bar-chart-horizontal me-1"></i>{{ _("Producción media (kg) según nivel de riego en tus campañas") }}</p>
+                    <canvas id="chartWaterBands" style="max-height: 150px;"></canvas>
+                    <div class="d-flex gap-3 flex-wrap mt-2">
+                        {% for wb in irrigation_analysis.water_bands %}
+                        <span class="small text-muted">
+                            {% if wb.band == "bajo" %}<i class="bi bi-droplet text-info"></i> <strong>{{ _("Bajo") }}</strong>: ≤ {{ wb.max_m3 }} m³
+                            {% elif wb.band == "medio" %}<i class="bi bi-droplet-half text-primary"></i> <strong>{{ _("Moderado") }}</strong>: {{ wb.min_m3 }}–{{ wb.max_m3 }} m³
+                            {% else %}<i class="bi bi-droplet-fill text-dark"></i> <strong>{{ _("Elevado") }}</strong>: > {{ wb.min_m3 }} m³
+                            {% endif %}
+                        </span>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-bar-chart-horizontal fs-1 d-block mb-2 opacity-25"></i>
+                        <p class="small mb-0">{{ _("Sin datos suficientes para mostrar la comparativa de producción por nivel de riego.") }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row g-3 mb-3">
         <div class="col-md-4">
             <div class="card tf-stat-card border-0 shadow-sm">
                 <div class="card-body">
-                    <div class="text-muted small">{{ _("Muestra impacto riego") }}</div>
+                    <div class="text-muted small">{{ _("Registros con agua y producción") }}</div>
                     <div class="fw-bold fs-5">{{ irrigation_analysis.sample_size }}</div>
                 </div>
             </div>
@@ -249,6 +306,67 @@
         </div>
     </div>
 
+    {% if all_plot_thresholds %}
+    <div class="card tf-panel shadow-sm border-0 mb-3">
+        <div class="card-header d-flex align-items-center gap-2">
+            <div class="tf-help-tip">
+                <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm tf-help-tip-btn"
+                    aria-label="{{ _('Ayuda sobre Umbral de riego por parcela') }}"
+                    aria-describedby="help-plot-thresholds"
+                >?</button>
+                <div class="tf-help-tip-text" id="help-plot-thresholds" role="tooltip">
+                    {{ _('Meseta de riego calculada individualmente para cada parcela. Requiere ≥5 campañas con agua y producción para ser fiable.') }}
+                </div>
+            </div>
+            <h3 class="h6 mb-0">{{ _("Umbral de riego por parcela") }}</h3>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>{{ _("Parcela") }}</th>
+                            <th class="text-end">{{ _("Campañas útiles") }}</th>
+                            <th class="text-end">{{ _("Meseta (m³)") }}</th>
+                            <th>{{ _("Estado") }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pt in all_plot_thresholds %}
+                        <tr>
+                            <td>
+                                <a href="/plot-analytics/plot/{{ pt.plot_id }}" class="text-decoration-none">{{ pt.plot_name }}</a>
+                            </td>
+                            <td class="text-end">{{ pt.sample_size }}</td>
+                            <td class="text-end fw-semibold">
+                                {% if pt.plateau_start_m3 is not none %}
+                                    {{ pt.plateau_start_m3 }} m³
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if pt.status == "ok" and pt.sample_size >= 5 %}
+                                    <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">{{ _("Fiable") }}</span>
+                                {% elif pt.status == "inconclusive" %}
+                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle" title="{{ _('Alta variabilidad entre campañas') }}"><i class="bi bi-exclamation-triangle"></i> {{ _("No concluyente") }}</span>
+                                {% elif pt.status == "ok" %}
+                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">{{ _("Pocos datos") }} ({{ pt.sample_size }}/5)</span>
+                                {% else %}
+                                    <span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">{{ _("Insuficiente") }} (&lt;3 {{ _("campañas útiles") }})</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="card tf-panel shadow-sm border-0 mb-3">
         <div class="card-body">
             <div class="d-flex align-items-center gap-2 mb-3">
@@ -354,12 +472,56 @@
 <script>
 (() => {
     const form = document.querySelector('form[action="/plot-analytics/"]');
-    if (!form) return;
+    if (form) {
+        const selects = form.querySelectorAll('.tf-autosubmit-select');
+        selects.forEach((select) => {
+            select.addEventListener('change', () => form.submit());
+        });
+    }
 
-    const selects = form.querySelectorAll('.tf-autosubmit-select');
-    selects.forEach((select) => {
-        select.addEventListener('change', () => form.submit());
-    });
+    // Bar chart: producción media por nivel de riego
+    const waterBandsData = {{ irrigation_analysis.water_bands | tojson }};
+    const wbCanvas = document.getElementById('chartWaterBands');
+    if (wbCanvas && waterBandsData.length) {
+        const bandLabels = {
+            'bajo': '{{ _("Riego bajo") }}',
+            'medio': '{{ _("Riego moderado") }}',
+            'alto': '{{ _("Riego elevado") }}',
+        };
+        new Chart(wbCanvas, {
+            type: 'bar',
+            data: {
+                labels: waterBandsData.map(b => `${bandLabels[b.band] || b.band} (${b.count})`),
+                datasets: [{
+                    data: waterBandsData.map(b => b.avg_production_kg),
+                    backgroundColor: [
+                        'rgba(92, 124, 53, 0.75)',
+                        'rgba(175, 122, 47, 0.75)',
+                        'rgba(100, 110, 125, 0.65)',
+                    ],
+                    borderRadius: 5,
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (item) => ` ${item.raw.toFixed(1)} kg de media`,
+                            afterLabel: (item) => ` ${waterBandsData[item.dataIndex].count} campaña(s)`,
+                        }
+                    }
+                },
+                scales: {
+                    x: { title: { display: true, text: '{{ _("Producción media (kg)") }}' }, beginAtZero: true },
+                    y: { ticks: { font: { size: 12 } } }
+                }
+            }
+        });
+    }
+
 })();
 </script>
 {% endblock %}

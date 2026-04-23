@@ -21,6 +21,42 @@
         <a href="/irrigation/bulk-new" class="btn btn-primary">
             <i class="bi bi-table me-1"></i> {{ _("Registrar factura (todos los bancales)") }}
         </a>
+        <button class="btn btn-outline-secondary"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#simuladorRiego"
+                aria-expanded="false"
+                aria-controls="simuladorRiego">
+            <i class="bi bi-calculator me-1"></i> {{ _("Simular riego") }}
+        </button>
+    </div>
+
+    {# ── Panel simulador (colapsable) ────────────────────────────────────── #}
+    <div class="collapse mb-3" id="simuladorRiego">
+        <div class="card tf-panel shadow-sm border-0">
+            <div class="card-body pt-3">
+                <p class="text-muted small mb-3">
+                    {{ _("Calcula si conviene regar ahora comparando el agua acumulada en la campaña (riego + lluvia) con la meseta histórica de ese bancal.") }}
+                </p>
+                <form id="simuladorForm" class="row g-2 align-items-end mb-3">
+                    <div class="col-md-9">
+                        <label class="form-label small mb-1">{{ _("Bancal") }}</label>
+                        <select id="simPlotId" class="form-select form-select-sm" required>
+                            <option value="">{{ _("Selecciona un bancal…") }}</option>
+                            {% for p in plots %}
+                            <option value="{{ p.id }}">{{ p.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary btn-sm w-100">
+                            <i class="bi bi-play-fill me-1"></i>{{ _("Simular") }}
+                        </button>
+                    </div>
+                </form>
+                <div id="simResult"></div>
+            </div>
+        </div>
     </div>
 
     {% if msg %}
@@ -215,4 +251,92 @@
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    'use strict';
+
+    const form = document.getElementById('simuladorForm');
+    const resultDiv = document.getElementById('simResult');
+
+    function fmt(val, decimals) {
+        if (val === null || val === undefined) return 'N/D';
+        return Number(val).toLocaleString('es-ES', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    }
+
+    function renderResult(data) {
+        let alertClass, icon, title, body;
+
+        if (data.should_irrigate === null) {
+            alertClass = 'warning';
+            icon = 'bi-question-circle-fill';
+            title = '{{ _("Sin datos históricos suficientes") }}';
+            if (data.reason === 'no_plateau_detected') {
+                body = '{{ _("No se detecta un punto de saturación en el histórico: añadir más agua no muestra un techo claro. Sigue registrando campañas.") }}';
+            } else {
+                body = '{{ _("No hay suficientes campañas con agua y producción registradas para calcular la meseta.") }} {{ _("Muestra actual") }}: ' + (data.sample_size ?? 0) + ' {{ _("campañas") }}.';
+            }
+        } else if (!data.should_irrigate) {
+            alertClass = 'danger';
+            icon = 'bi-x-circle-fill';
+            title = '{{ _("No conviene regar") }}';
+            body = '{{ _("Ya has alcanzado la meseta de riego este ciclo.") }} '
+                 + '{{ _("Total acumulado") }}: <strong>' + fmt(data.total_water_m3, 1) + ' m³</strong> &ge; '
+                 + '{{ _("Meseta") }}: <strong>' + fmt(data.plateau_start_m3, 1) + ' m³</strong>.';
+        } else {
+            alertClass = 'success';
+            icon = 'bi-check-circle-fill';
+            title = '{{ _("¡Conviene regar!") }}';
+            const hoursStr = data.hours_needed !== null
+                ? fmt(data.hours_needed, 1) + ' h'
+                : '{{ _("N/D (configura el caudal del bancal)") }}';
+            body = '{{ _("Faltan") }} <strong>' + fmt(data.remaining_m3, 1) + ' m³</strong> {{ _("para alcanzar la meseta.") }}'
+                 + ' {{ _("Tiempo estimado de riego") }}: <strong>' + hoursStr + '</strong>.';
+        }
+
+        const flowRow = data.caudal_riego
+            ? `<div class="col-6 col-md-3"><span class="text-muted">{{ _("Caudal") }}:</span> ${fmt(data.caudal_riego, 2)} m³/h</div>`
+            : '';
+        const scopeBadge = data.threshold_scope === 'plot'
+            ? `<span class="badge bg-success-subtle text-success-emphasis border border-success-subtle ms-1">{{ _("Umbral propio") }}</span>`
+            : data.threshold_scope === 'global'
+            ? `<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle ms-1">{{ _("Umbral global") }}</span>`
+            : '';
+
+        resultDiv.innerHTML = `
+            <div class="alert alert-${alertClass} mb-0">
+                <h6 class="alert-heading"><i class="bi ${icon} me-2"></i>${title}</h6>
+                <p class="mb-2">${body}</p>
+                <hr class="my-2">
+                <div class="row g-1 small">
+                    <div class="col-6 col-md-3"><span class="text-muted">{{ _("Riego campaña") }}:</span> ${fmt(data.irrigation_m3, 1)} m³</div>
+                    <div class="col-6 col-md-3"><span class="text-muted">{{ _("Lluvia campaña") }}:</span> ${fmt(data.rain_m3, 1)} m³ (${fmt(data.rain_mm, 1)} mm)</div>
+                    <div class="col-6 col-md-3"><span class="text-muted">{{ _("Total agua") }}:</span> ${fmt(data.total_water_m3, 1)} m³</div>
+                    <div class="col-6 col-md-3"><span class="text-muted">{{ _("Meseta") }}:</span> ${data.plateau_start_m3 !== null ? fmt(data.plateau_start_m3, 1) + ' m³' : 'N/D'}${scopeBadge}</div>
+                    ${flowRow}
+                </div>
+            </div>`;
+    }
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const plotId = document.getElementById('simPlotId').value;
+        if (!plotId) return;
+
+        resultDiv.innerHTML = '<div class="text-muted small"><span class="spinner-border spinner-border-sm me-1"></span>{{ _("Calculando…") }}</div>';
+
+        try {
+            const res = await fetch(`/irrigation/simular?plot_id=${encodeURIComponent(plotId)}`);
+            if (!res.ok) {
+                resultDiv.innerHTML = '<div class="alert alert-warning">{{ _("No se encontró la parcela.") }}</div>';
+                return;
+            }
+            const data = await res.json();
+            renderResult(data);
+        } catch {
+            resultDiv.innerHTML = '<div class="alert alert-danger">{{ _("Error al conectar con el servidor.") }}</div>';
+        }
+    });
+})();
+</script>
 {% endblock %}
