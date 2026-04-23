@@ -31,11 +31,10 @@ templates = Jinja2Templates(directory="app/templates")
 @router.get("/simular", response_class=JSONResponse)
 async def simulate_view(
     plot_id: int = Query(...),
-    date: datetime.date = Query(...),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_user),
 ):
-    sim = await simulate_irrigation(db, current_user.id, plot_id, date)
+    sim = await simulate_irrigation(db, current_user.id, plot_id, datetime.date.today())
     if sim is None:
         return JSONResponse(
             status_code=404,

@@ -325,7 +325,7 @@
 <script>
 (function () {
     // ── Geo dropdowns ──────────────────────────────────────────────────────
-    const GEO_URL = "/static/js/catastro_geo.json";
+    const GEO_URL = "/static/js/municipios_geo.json";
     const selProv = document.getElementById("provincia_cod");
     const selMun  = document.getElementById("municipio_cod");
     const INIT_PROV = selProv.dataset.initial || '';
@@ -341,7 +341,13 @@
     function loadMunicipios(provCode, selectedMun) {
         selMun.innerHTML = '<option value="">— Selecciona municipio —</option>';
         const munis = (window._catGeo && window._catGeo.municipalities[provCode]) || [];
-        munis.forEach(m => selMun.appendChild(new Option(m.name, m.code)));
+        munis.forEach(m => {
+            // value = código INE (lo que se guarda en BD y se usa en lluvia/ibericam)
+            // data-sigpac-code = código SIGPAC (solo para llamadas al API de SIGPAC)
+            const opt = new Option(m.name, m.ine_code);
+            opt.dataset.sigpacCode = m.sigpac_code;
+            selMun.appendChild(opt);
+        });
         if (selectedMun) selectByValue(selMun, selectedMun);
     }
 
@@ -375,9 +381,12 @@
     }
 
     function getSigpacParams() {
+        // municipio: usar código SIGPAC (data-sigpac-code) para el API de SIGPAC,
+        // no el valor del select que contiene el código INE.
+        const selectedOpt = selMun.selectedOptions[0];
         return {
             provincia: selProv.value,
-            municipio: selMun.value,
+            municipio: selectedOpt?.dataset.sigpacCode || '',
             poligono:  document.getElementById('polygon').value.trim(),
             parcela:   document.getElementById('plot_num').value.trim(),
             recinto:   document.getElementById('recinto').value.trim() || '1',

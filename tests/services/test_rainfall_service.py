@@ -11,11 +11,13 @@ from app.schemas.rainfall import RainfallCreate, RainfallUpdate
 from app.services.rainfall_service import (
     create_rainfall_record,
     delete_rainfall_record,
+    get_rainfall_calendar_context,
     get_rainfall_for_plot_on_date,
     get_rainfall_list_context,
     get_rainfall_record,
     list_rainfall_records,
     update_rainfall_record,
+    _build_calendar_months,
 )
 from tests.conftest import result
 
@@ -357,3 +359,174 @@ async def test_get_rainfall_list_context_structure() -> None:
     assert "count" in context
     assert context["count"] == 1
     assert context["total_mm"] == 12.5
+
+
+# ---------------------------------------------------------------------------
+# _build_calendar_months  (función auxiliar pura, no necesita DB)
+# ---------------------------------------------------------------------------
+
+
+def test_build_calendar_months_structure() -> None:
+    """La campaña 2025 debe generar exactamente 12 meses (Mayo 2025 - Abril 2026)."""
+    months = _build_calendar_months(2025, {})
+
+    assert len(months) == 12
+    assert months[0]["month"] == 5 and months[0]["year"] == 2025
+    assert months[-1]["month"] == 4 and months[-1]["year"] == 2026
+
+
+def test_build_calendar_months_rain_totals() -> None:
+    """Los totales mensuales deben reflejar la precipitación registrada."""
+    rain = {
+        datetime.date(2025, 11, 5): 10.0,
+        datetime.date(2025, 11, 20): 5.0,
+        datetime.date(2025, 12, 1): 8.0,
+    }
+    months = _build_calendar_months(2025, rain)
+
+    nov = next(m for m in months if m["month"] == 11)
+    dec = next(m for m in months if m["month"] == 12)
+    may = next(m for m in months if m["month"] == 5 and m["year"] == 2025)
+
+    assert nov["total_mm"] == 15.0
+    assert nov["rain_days"] == 2
+    assert dec["total_mm"] == 8.0
+    assert dec["rain_days"] == 1
+    assert may["total_mm"] == 0.0
+    assert may["rain_days"] == 0
+
+
+def test_build_calendar_months_css_classes() -> None:
+    """Los días deben clasificarse correctamente por banda de precipitación."""
+    rain = {
+        datetime.date(2025, 5, 1): 0.0,
+        datetime.date(2025, 5, 2): 2.0,  # low
+        datetime.date(2025, 5, 3): 10.0,  # moderate
+        datetime.date(2025, 5, 4): 20.0,  # heavy
+        datetime.date(2025, 5, 5): 35.0,  # very-heavy
+    }
+    months = _build_calendar_months(2025, rain)
+    may = next(m for m in months if m["month"] == 5 and m["year"] == 2025)
+
+    # Aplanar todos los días del mes
+    all_days = {
+        cell["day"]: cell for week in may["weeks"] for cell in week if cell is not None
+    }
+
+    assert all_days[1]["css"] == "rain-none"
+    assert all_days[2]["css"] == "rain-low"
+    assert all_days[3]["css"] == "rain-moderate"
+    assert all_days[4]["css"] == "rain-heavy"
+    assert all_days[5]["css"] == "rain-very-heavy"
+
+
+def test_build_calendar_months_week_padding() -> None:
+    """Las semanas deben tener exactamente 7 celdas (con None como relleno)."""
+    months = _build_calendar_months(2025, {})
+    for month in months:
+        for week in month["weeks"]:
+            assert len(week) == 7
+
+
+def test_build_calendar_months_m3_with_area() -> None:
+    """Con area_ha, cada día y mes deben incluir el volumen en m³."""
+    rain = {
+        datetime.date(2025, 5, 10): 20.0,  # 20 mm × 3 ha × 10 = 600 m³
+    }
+    months = _build_calendar_months(2025, rain, area_ha=3.0)
+    may = next(m for m in months if m["month"] == 5 and m["year"] == 2025)
+
+    assert may["total_m3"] == 600.0
+    all_days = {
+        cell["day"]: cell for week in may["weeks"] for cell in week if cell is not None
+    }
+    assert all_days[10]["m3"] == 600.0
+    # Un día sin lluvia tiene m3 = 0.0 (no None)
+    assert all_days[1]["m3"] == 0.0
+
+
+def test_build_calendar_months_m3_without_area() -> None:
+    """Sin area_ha, m3 debe ser None en días y meses."""
+    rain = {datetime.date(2025, 5, 10): 20.0}
+    months = _build_calendar_months(2025, rain)
+    may = next(m for m in months if m["month"] == 5 and m["year"] == 2025)
+
+    assert may["total_m3"] is None
+    all_days = {
+        cell["day"]: cell for week in may["weeks"] for cell in week if cell is not None
+    }
+    assert all_days[10]["m3"] is None
+
+
+# ---------------------------------------------------------------------------
+# get_rainfall_calendar_context
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_rainfall_calendar_context_structure() -> None:
+    """El contexto debe incluir los campos requeridos por el template."""
+    records_data = [
+        _make_record(date=datetime.date(2025, 11, 5), precipitation_mm=8.0),
+        _make_record(id=2, date=datetime.date(2025, 11, 20), precipitation_mm=3.0),
+    ]
+    plots = [SimpleNamespace(id=1, name="Parcela A")]
+    db = MagicMock()
+    # list_rainfall_records → _get_user_plots → _get_all_years → _get_user_municipios
+    db.execute = AsyncMock(
+        side_effect=[result(records_data), result(plots), result([]), result([])]
+    )
+
+    context = await get_rainfall_calendar_context(db, user_id=1, year=2025)
+
+    assert "months" in context
+    assert len(context["months"]) == 12
+    assert context["total_mm"] == 11.0
+    assert context["total_m3"] is None  # sin parcela filtrada no hay área
+    assert context["area_ha"] is None
+    assert context["rain_days"] == 2
+    assert context["selected_year"] == 2025
+    assert "plots" in context
+    assert "years" in context
+    assert "day_labels" in context
+    assert len(context["day_labels"]) == 7
+
+
+@pytest.mark.asyncio
+async def test_get_rainfall_calendar_context_with_plot_area() -> None:
+    """Con plot_id y area_ha, el contexto debe incluir total_m3."""
+    records_data = [
+        _make_record(plot_id=1, date=datetime.date(2025, 11, 5), precipitation_mm=10.0),
+    ]
+    plot_obj = SimpleNamespace(id=1, user_id=1, area_ha=2.0, name="Bancal A")
+    plots = [plot_obj]
+    db = MagicMock()
+    # list_rainfall_records → plot query → _get_user_plots → _get_all_years → _get_user_municipios
+    db.execute = AsyncMock(
+        side_effect=[
+            result(records_data),
+            result([plot_obj]),
+            result(plots),
+            result([]),
+            result([]),
+        ]
+    )
+
+    context = await get_rainfall_calendar_context(db, user_id=1, year=2025, plot_id=1)
+
+    # 10 mm × 2 ha × 10 = 200 m³
+    assert context["area_ha"] == 2.0
+    assert context["total_m3"] == 200.0
+
+
+@pytest.mark.asyncio
+async def test_get_rainfall_calendar_context_no_records() -> None:
+    """Sin registros el total debe ser 0 y rain_days 0."""
+    db = MagicMock()
+    db.execute = AsyncMock(side_effect=[result([]), result([]), result([]), result([])])
+
+    context = await get_rainfall_calendar_context(db, user_id=1, year=2024)
+
+    assert context["total_mm"] == 0.0
+    assert context["rain_days"] == 0
+    assert len(context["months"]) == 12

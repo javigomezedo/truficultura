@@ -21,6 +21,42 @@
         <a href="/irrigation/bulk-new" class="btn btn-primary">
             <i class="bi bi-table me-1"></i> {{ _("Registrar factura (todos los bancales)") }}
         </a>
+        <button class="btn btn-outline-secondary"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#simuladorRiego"
+                aria-expanded="false"
+                aria-controls="simuladorRiego">
+            <i class="bi bi-calculator me-1"></i> {{ _("Simular riego") }}
+        </button>
+    </div>
+
+    {# ── Panel simulador (colapsable) ────────────────────────────────────── #}
+    <div class="collapse mb-3" id="simuladorRiego">
+        <div class="card tf-panel shadow-sm border-0">
+            <div class="card-body pt-3">
+                <p class="text-muted small mb-3">
+                    {{ _("Calcula si conviene regar ahora comparando el agua acumulada en la campaña (riego + lluvia) con la meseta histórica de ese bancal.") }}
+                </p>
+                <form id="simuladorForm" class="row g-2 align-items-end mb-3">
+                    <div class="col-md-9">
+                        <label class="form-label small mb-1">{{ _("Bancal") }}</label>
+                        <select id="simPlotId" class="form-select form-select-sm" required>
+                            <option value="">{{ _("Selecciona un bancal…") }}</option>
+                            {% for p in plots %}
+                            <option value="{{ p.id }}">{{ p.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary btn-sm w-100">
+                            <i class="bi bi-play-fill me-1"></i>{{ _("Simular") }}
+                        </button>
+                    </div>
+                </form>
+                <div id="simResult"></div>
+            </div>
+        </div>
     </div>
 
     {% if msg %}
@@ -105,52 +141,6 @@
                 </div>
                 {% endif %}
             </form>
-        </div>
-    </div>
-
-    <!-- Simulador de riego -->
-    <div class="card tf-panel shadow-sm border-0 mb-3">
-        <div class="card-header d-flex align-items-center justify-content-between py-2 bg-white border-0">
-            <span class="fw-semibold">
-                <i class="bi bi-calculator me-2 text-primary"></i>{{ _("Simular riego") }}
-            </span>
-            <button class="btn btn-sm btn-outline-secondary"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#simuladorRiego"
-                    aria-expanded="false"
-                    aria-controls="simuladorRiego">
-                <i class="bi bi-chevron-down"></i>
-            </button>
-        </div>
-        <div class="collapse" id="simuladorRiego">
-            <div class="card-body pt-2">
-                <p class="text-muted small mb-3">
-                    {{ _("Calcula si conviene regar en una fecha concreta comparando el agua acumulada en la campaña (riego + lluvia) con la meseta histórica de ese bancal.") }}
-                </p>
-                <form id="simuladorForm" class="row g-2 align-items-end mb-3">
-                    <div class="col-md-5">
-                        <label class="form-label small mb-1">{{ _("Bancal") }}</label>
-                        <select id="simPlotId" class="form-select form-select-sm" required>
-                            <option value="">{{ _("Selecciona un bancal…") }}</option>
-                            {% for p in plots %}
-                            <option value="{{ p.id }}">{{ p.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label small mb-1">{{ _("Fecha de simulación") }}</label>
-                        <input type="date" id="simDate" class="form-control form-control-sm"
-                               value="{{ today }}" required>
-                    </div>
-                    <div class="col-md-3">
-                        <button type="submit" class="btn btn-primary btn-sm w-100">
-                            <i class="bi bi-play-fill me-1"></i>{{ _("Simular") }}
-                        </button>
-                    </div>
-                </form>
-                <div id="simResult"></div>
-            </div>
         </div>
     </div>
 
@@ -307,6 +297,11 @@
         const flowRow = data.caudal_riego
             ? `<div class="col-6 col-md-3"><span class="text-muted">{{ _("Caudal") }}:</span> ${fmt(data.caudal_riego, 2)} m³/h</div>`
             : '';
+        const scopeBadge = data.threshold_scope === 'plot'
+            ? `<span class="badge bg-success-subtle text-success-emphasis border border-success-subtle ms-1">{{ _("Umbral propio") }}</span>`
+            : data.threshold_scope === 'global'
+            ? `<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle ms-1">{{ _("Umbral global") }}</span>`
+            : '';
 
         resultDiv.innerHTML = `
             <div class="alert alert-${alertClass} mb-0">
@@ -317,7 +312,7 @@
                     <div class="col-6 col-md-3"><span class="text-muted">{{ _("Riego campaña") }}:</span> ${fmt(data.irrigation_m3, 1)} m³</div>
                     <div class="col-6 col-md-3"><span class="text-muted">{{ _("Lluvia campaña") }}:</span> ${fmt(data.rain_m3, 1)} m³ (${fmt(data.rain_mm, 1)} mm)</div>
                     <div class="col-6 col-md-3"><span class="text-muted">{{ _("Total agua") }}:</span> ${fmt(data.total_water_m3, 1)} m³</div>
-                    <div class="col-6 col-md-3"><span class="text-muted">{{ _("Meseta") }}:</span> ${data.plateau_start_m3 !== null ? fmt(data.plateau_start_m3, 1) + ' m³' : 'N/D'}</div>
+                    <div class="col-6 col-md-3"><span class="text-muted">{{ _("Meseta") }}:</span> ${data.plateau_start_m3 !== null ? fmt(data.plateau_start_m3, 1) + ' m³' : 'N/D'}${scopeBadge}</div>
                     ${flowRow}
                 </div>
             </div>`;
@@ -326,13 +321,12 @@
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const plotId = document.getElementById('simPlotId').value;
-        const date = document.getElementById('simDate').value;
-        if (!plotId || !date) return;
+        if (!plotId) return;
 
         resultDiv.innerHTML = '<div class="text-muted small"><span class="spinner-border spinner-border-sm me-1"></span>{{ _("Calculando…") }}</div>';
 
         try {
-            const res = await fetch(`/irrigation/simular?plot_id=${encodeURIComponent(plotId)}&date=${encodeURIComponent(date)}`);
+            const res = await fetch(`/irrigation/simular?plot_id=${encodeURIComponent(plotId)}`);
             if (!res.ok) {
                 resultDiv.innerHTML = '<div class="alert alert-warning">{{ _("No se encontró la parcela.") }}</div>';
                 return;

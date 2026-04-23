@@ -14,6 +14,10 @@ from app.services.rainfall_service import (
     select_best_rainfall_per_day,
 )
 
+# Mínimo de campañas con datos por parcela para confiar en su umbral propio.
+# Por debajo de este valor se usa el umbral global del usuario como fallback.
+_MIN_PLOT_SAMPLE = 5
+
 
 def precipitation_mm_to_m3(
     precipitation_mm: Optional[float], area_ha: Optional[float]
@@ -192,8 +196,13 @@ async def simulate_irrigation(
     total_rain_mm = sum(mm for mm, _ in daily_rain.values())
     rain_m3 = round(precipitation_mm_to_m3(total_rain_mm, plot.area_ha) or 0.0, 3)
 
-    # 5. Meseta histórica (ya incluye lluvia porque get_campaign_dataset la acumula)
+    # 5. Meseta histórica — primero por parcela (≥_MIN_PLOT_SAMPLE campañas), fallback global
     thresholds = await detect_irrigation_thresholds(db, user_id, plot_ids=[plot_id])
+    if thresholds.get("status") == "ok" and thresholds.get("sample_size", 0) >= _MIN_PLOT_SAMPLE:
+        threshold_scope: Optional[str] = "plot"
+    else:
+        thresholds = await detect_irrigation_thresholds(db, user_id)
+        threshold_scope = "global" if thresholds.get("status") == "ok" else None
     plateau_status = thresholds.get("status")
     plateau_m3 = thresholds.get("plateau_start_m3")
 
@@ -242,4 +251,5 @@ async def simulate_irrigation(
         "caudal_riego": plot.caudal_riego,
         "reason": reason,
         "sample_size": thresholds.get("sample_size"),
+        "threshold_scope": threshold_scope,
     }

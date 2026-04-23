@@ -8,6 +8,7 @@ import pytest
 
 from app.services.plot_analytics_service import (
     detect_irrigation_thresholds,
+    get_all_plot_thresholds,
     get_campaign_dataset,
     get_irrigation_vs_production_analysis,
     get_multi_plot_comparison,
@@ -157,6 +158,14 @@ async def test_get_irrigation_vs_production_analysis() -> None:
     assert analysis["avg_water_m3"] > 0
     assert analysis["avg_production_kg"] > 0
     assert len(analysis["water_bands"]) == 3
+    for band in analysis["water_bands"]:
+        assert "min_m3" in band
+        assert "max_m3" in band
+    bajo = next(b for b in analysis["water_bands"] if b["band"] == "bajo")
+    assert bajo["min_m3"] == 0.0
+    assert bajo["max_m3"] is not None
+    alto = next(b for b in analysis["water_bands"] if b["band"] == "alto")
+    assert alto["max_m3"] is None
 
 
 @pytest.mark.asyncio
@@ -304,6 +313,135 @@ async def test_detect_irrigation_thresholds() -> None:
 
 
 @pytest.mark.asyncio
+async def test_detect_irrigation_thresholds_inconclusive_first_transition() -> None:
+    """Si el primer par ya dispara la meseta, el status es 'inconclusive'."""
+    plot = SimpleNamespace(
+        id=1,
+        user_id=1,
+        name="Parcela A",
+        num_plants=100,
+        has_irrigation=True,
+        area_ha=None,
+        municipio_cod=None,
+        provincia_cod=None,
+    )
+    # Sorted by water: (10, 200), (30, 100), (50, 250)
+    # Transition 0: 10→30: Δprod=-100, gain=-5.0 ≤ 0.02 → plateau at 30 (i=0) → inconclusive
+    incomes = [
+        SimpleNamespace(
+            user_id=1, plot_id=1, date=datetime.date(2023, 6, 1), amount_kg=200.0
+        ),
+        SimpleNamespace(
+            user_id=1, plot_id=1, date=datetime.date(2024, 6, 1), amount_kg=100.0
+        ),
+        SimpleNamespace(
+            user_id=1, plot_id=1, date=datetime.date(2025, 6, 1), amount_kg=250.0
+        ),
+    ]
+    irrigation = [
+        SimpleNamespace(
+            user_id=1, plot_id=1, date=datetime.date(2023, 6, 2), water_m3=10.0
+        ),
+        SimpleNamespace(
+            user_id=1, plot_id=1, date=datetime.date(2024, 6, 2), water_m3=30.0
+        ),
+        SimpleNamespace(
+            user_id=1, plot_id=1, date=datetime.date(2025, 6, 2), water_m3=50.0
+        ),
+    ]
+
+    db = MagicMock()
+    db.execute = AsyncMock(
+        side_effect=[
+            result([plot]),
+            result(incomes),
+            result(irrigation),
+            result([]),
+            result([]),
+            result([]),  # rainfall query
+        ]
+    )
+
+    analysis = await detect_irrigation_thresholds(db, user_id=1)
+
+    assert analysis["status"] == "inconclusive"
+    assert analysis["plateau_start_m3"] is None
+
+
+@pytest.mark.asyncio
+async def test_detect_irrigation_thresholds_inconclusive_noisy() -> None:
+    """Si más del 60 % de las ganancias son negativas, el status es 'inconclusive'."""
+    plot = SimpleNamespace(
+        id=1,
+        user_id=1,
+        name="Parcela A",
+        num_plants=100,
+        has_irrigation=True,
+        area_ha=None,
+        municipio_cod=None,
+        provincia_cod=None,
+    )
+    # Sorted by water: (10,100), (20,150), (30,120), (40,90), (50,70)
+    # Transition 0: 10→20: gain=+5.0 (positive, not plateau)
+    # Transition 1: 20→30: gain=-3.0 (negative, plateau at 30, i=1 → not first)
+    # Transition 2: 30→40: gain=-3.0 (negative)
+    # Transition 3: 40→50: gain=-2.0 (negative)
+    # negative_count=3, total=4, ratio=0.75 > 0.60 → noisy → inconclusive
+    incomes = [
+        SimpleNamespace(
+            user_id=1, plot_id=1, date=datetime.date(2021, 6, 1), amount_kg=100.0
+        ),
+        SimpleNamespace(
+            user_id=1, plot_id=1, date=datetime.date(2022, 6, 1), amount_kg=150.0
+        ),
+        SimpleNamespace(
+            user_id=1, plot_id=1, date=datetime.date(2023, 6, 1), amount_kg=120.0
+        ),
+        SimpleNamespace(
+            user_id=1, plot_id=1, date=datetime.date(2024, 6, 1), amount_kg=90.0
+        ),
+        SimpleNamespace(
+            user_id=1, plot_id=1, date=datetime.date(2025, 6, 1), amount_kg=70.0
+        ),
+    ]
+    irrigation = [
+        SimpleNamespace(
+            user_id=1, plot_id=1, date=datetime.date(2021, 6, 2), water_m3=10.0
+        ),
+        SimpleNamespace(
+            user_id=1, plot_id=1, date=datetime.date(2022, 6, 2), water_m3=20.0
+        ),
+        SimpleNamespace(
+            user_id=1, plot_id=1, date=datetime.date(2023, 6, 2), water_m3=30.0
+        ),
+        SimpleNamespace(
+            user_id=1, plot_id=1, date=datetime.date(2024, 6, 2), water_m3=40.0
+        ),
+        SimpleNamespace(
+            user_id=1, plot_id=1, date=datetime.date(2025, 6, 2), water_m3=50.0
+        ),
+    ]
+
+    db = MagicMock()
+    db.execute = AsyncMock(
+        side_effect=[
+            result([plot]),
+            result(incomes),
+            result(irrigation),
+            result([]),
+            result([]),
+            result([]),  # rainfall query
+        ]
+    )
+
+    analysis = await detect_irrigation_thresholds(db, user_id=1)
+
+    assert analysis["status"] == "inconclusive"
+    assert analysis["plateau_start_m3"] is None
+    assert len(analysis["marginal_gains"]) == 4
+
+
+@pytest.mark.asyncio
 async def test_get_plot_detail_context_found() -> None:
     plot = SimpleNamespace(
         id=10,
@@ -416,3 +554,85 @@ async def test_get_multi_plot_comparison() -> None:
     assert comparison["plots_included"] == 2
     assert len(comparison["points"]) == 2
     assert comparison["efficiency_ranking"][0]["plot_name"] == "Parcela A"
+
+
+@pytest.mark.asyncio
+async def test_get_all_plot_thresholds_per_plot() -> None:
+    """Dos parcelas con datos suficientes → se calcula umbral para cada una."""
+    plot_a = SimpleNamespace(
+        id=1,
+        user_id=1,
+        name="Parcela A",
+        num_plants=100,
+        has_irrigation=True,
+        area_ha=None,
+        municipio_cod=None,
+        provincia_cod=None,
+    )
+    plot_b = SimpleNamespace(
+        id=2,
+        user_id=1,
+        name="Parcela B",
+        num_plants=100,
+        has_irrigation=True,
+        area_ha=None,
+        municipio_cod=None,
+        provincia_cod=None,
+    )
+    # Parcela A: 3 campañas con agua y producción (suficientes)
+    incomes = [
+        SimpleNamespace(
+            user_id=1, plot_id=1, date=datetime.date(2023, 6, 1), amount_kg=10.0
+        ),
+        SimpleNamespace(
+            user_id=1, plot_id=1, date=datetime.date(2024, 6, 1), amount_kg=10.5
+        ),
+        SimpleNamespace(
+            user_id=1, plot_id=1, date=datetime.date(2025, 6, 1), amount_kg=10.6
+        ),
+        # Parcela B: sólo 1 campaña
+        SimpleNamespace(
+            user_id=1, plot_id=2, date=datetime.date(2025, 6, 1), amount_kg=20.0
+        ),
+    ]
+    irrigation = [
+        SimpleNamespace(
+            user_id=1, plot_id=1, date=datetime.date(2023, 6, 2), water_m3=10.0
+        ),
+        SimpleNamespace(
+            user_id=1, plot_id=1, date=datetime.date(2024, 6, 2), water_m3=20.0
+        ),
+        SimpleNamespace(
+            user_id=1, plot_id=1, date=datetime.date(2025, 6, 2), water_m3=30.0
+        ),
+        SimpleNamespace(
+            user_id=1, plot_id=2, date=datetime.date(2025, 6, 2), water_m3=15.0
+        ),
+    ]
+
+    db = MagicMock()
+    db.execute = AsyncMock(
+        side_effect=[
+            result([plot_a, plot_b]),
+            result(incomes),
+            result(irrigation),
+            result([]),
+            result([]),
+            result([]),  # rainfall query
+        ]
+    )
+
+    thresholds = await get_all_plot_thresholds(db, user_id=1)
+
+    assert len(thresholds) == 2
+    by_name = {t["plot_name"]: t for t in thresholds}
+
+    assert by_name["Parcela A"]["status"] == "ok"
+    assert by_name["Parcela A"]["sample_size"] == 3
+
+    assert by_name["Parcela B"]["status"] == "insufficient_data"
+    assert by_name["Parcela B"]["sample_size"] == 1
+    assert by_name["Parcela B"]["plateau_start_m3"] is None
+
+    # El resultado debe estar ordenado alfabéticamente
+    assert thresholds[0]["plot_name"] == "Parcela A"

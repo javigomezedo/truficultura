@@ -12,6 +12,7 @@ from app.database import get_db
 from app.models.user import User
 from app.services.plot_analytics_service import (
     detect_irrigation_thresholds,
+    get_all_plot_thresholds,
     get_campaign_dataset,
     get_irrigation_vs_production_analysis,
     get_multi_plot_comparison,
@@ -71,7 +72,7 @@ def _build_overview_explanation(
         )
     else:
         bullets.append(
-            f"El análisis usa {sample_size} campañas con agua y producción registradas, así que la foto ya es razonablemente sólida."
+            f"El análisis usa {sample_size} registros (bancal × campaña) con agua y producción registradas, así que la foto ya es razonablemente sólida."
         )
 
     delta_percent = pruning_analysis.get("delta_percent")
@@ -102,7 +103,7 @@ def _build_overview_explanation(
     plateau_start = irrigation_thresholds.get("plateau_start_m3")
     if threshold_status != "ok":
         bullets.append(
-            "Todavía no hay suficientes campañas para detectar el punto donde más riego deja de compensar."
+            "Todavía no hay suficientes registros para detectar el punto donde más riego deja de compensar."
         )
     elif plateau_start is None:
         bullets.append(
@@ -110,11 +111,40 @@ def _build_overview_explanation(
         )
     else:
         bullets.append(
-            f"A partir de ~{_format_num(plateau_start, 1)} m3 por campaña, el riego extra aporta poca mejora de producción."
+            f"A partir de ~{_format_num(plateau_start, 1)} m³ por campaña, el riego extra aporta poca mejora de producción."
         )
         actions.append(
-            "Usa ese valor como referencia para no sobrerregar y priorizar campañas con mejor eficiencia."
+            f"Mantén el riego por debajo de ~{_format_num(plateau_start, 1)} m³: superar ese umbral no mejoró la cosecha en campañas anteriores."
         )
+
+    water_bands = irrigation_analysis.get("water_bands", [])
+    bands_with_data = [b for b in water_bands if b.get("count", 0) > 0]
+    if len(bands_with_data) >= 2:
+        best_band = max(bands_with_data, key=lambda b: b.get("avg_production_kg", 0.0))
+        band_labels = {"bajo": "bajo", "medio": "moderado", "alto": "elevado"}
+        best_label = band_labels.get(best_band["band"], best_band["band"])
+        best_avg = best_band.get("avg_production_kg", 0.0)
+        best_max = best_band.get("max_m3")
+        best_min = best_band.get("min_m3", 0.0)
+
+        if best_band["band"] == "bajo":
+            range_str = f"≤ {_format_num(best_max, 1)} m³"
+        elif best_band["band"] == "medio":
+            range_str = f"{_format_num(best_min, 1)}–{_format_num(best_max, 1)} m³"
+        else:
+            range_str = f"> {_format_num(best_min, 1)} m³"
+
+        if best_band["band"] != "alto":
+            bullets.append(
+                f"Curiosamente, el riego {best_label} ({range_str}) obtuvo la mejor producción media ({_format_num(best_avg, 1)} kg): regar más no siempre da más trufa."
+            )
+            actions.append(
+                f"Prueba a no superar el rango de riego {best_label} ({range_str}) y observa si la eficiencia mejora."
+            )
+        else:
+            bullets.append(
+                f"El riego elevado ({range_str}) fue el que más producción generó de media ({_format_num(best_avg, 1)} kg), aunque esto puede variar por parcela."
+            )
 
     groups = management_analysis.get("groups", [])
     best_group = None
@@ -189,6 +219,12 @@ async def overview(
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
+    all_plot_thresholds = await get_all_plot_thresholds(
+        db,
+        current_user.id,
+        campaign_from=campaign_from_value,
+        campaign_to=campaign_to_value,
+    )
 
     campaign_options = sorted({row["campaign_year"] for row in dataset}, reverse=True)
     explanation = _build_overview_explanation(
@@ -211,6 +247,7 @@ async def overview(
             "pruning_analysis": pruning_analysis,
             "management_analysis": management_analysis,
             "irrigation_thresholds": irrigation_thresholds,
+            "all_plot_thresholds": all_plot_thresholds,
             "explanation": explanation,
             "campaign_label": campaign_label,
         },
@@ -378,6 +415,19 @@ async def plot_detail(
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
+    plot_thresholds = await detect_irrigation_thresholds(
+        db,
+        current_user.id,
+        campaign_from=campaign_from_value,
+        campaign_to=campaign_to_value,
+        plot_ids=[plot_id],
+    )
+    global_thresholds = await detect_irrigation_thresholds(
+        db,
+        current_user.id,
+        campaign_from=campaign_from_value,
+        campaign_to=campaign_to_value,
+    )
     if context is None:
         return templates.TemplateResponse(
             request,
@@ -405,6 +455,8 @@ async def plot_detail(
         {
             "request": request,
             **context,
+            "plot_thresholds": plot_thresholds,
+            "global_thresholds": global_thresholds,
             "campaign_label": campaign_label,
         },
     )

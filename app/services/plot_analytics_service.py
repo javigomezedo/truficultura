@@ -63,6 +63,12 @@ def _water_band_summary(rows: list[dict]) -> list[dict]:
             band = "alto"
         bands[band].append(row["total_production_kg"])
 
+    band_ranges = {
+        "bajo": {"min_m3": 0.0, "max_m3": low_cut},
+        "medio": {"min_m3": low_cut, "max_m3": high_cut},
+        "alto": {"min_m3": high_cut, "max_m3": None},
+    }
+
     summary = []
     for key in ("bajo", "medio", "alto"):
         values = bands.get(key, [])
@@ -73,6 +79,8 @@ def _water_band_summary(rows: list[dict]) -> list[dict]:
                 "avg_production_kg": round(sum(values) / len(values), 3)
                 if values
                 else 0.0,
+                "min_m3": band_ranges[key]["min_m3"],
+                "max_m3": band_ranges[key]["max_m3"],
             }
         )
     return summary
@@ -519,6 +527,58 @@ async def get_tilling_digging_vs_production_analysis(
     }
 
 
+def _detect_plateau_from_pairs(pairs: list[dict]) -> dict:
+    """Detección de meseta en memoria sobre pares (water_m3 > 0, production_kg > 0)
+    ya filtrados. Devuelve dict con status, plateau_start_m3 y marginal_gains.
+
+    Marca la señal como 'inconclusive' si:
+    - La meseta se detecta en la primera transición (señal demasiado corta / ruidosa).
+    - Más del 60 % de las ganancias marginales son negativas (datos sin tendencia clara).
+    En ambos casos se devuelve plateau_start_m3=None para no mostrar un umbral engañoso.
+    """
+    sorted_pairs = sorted(pairs, key=lambda row: row["total_water_m3"])
+    marginal_gains: list[dict] = []
+    plateau_start = None
+    plateau_at_first = False
+    negative_count = 0
+
+    for i, (previous, current) in enumerate(zip(sorted_pairs, sorted_pairs[1:])):
+        water_delta = current["total_water_m3"] - previous["total_water_m3"]
+        production_delta = (
+            current["total_production_kg"] - previous["total_production_kg"]
+        )
+        gain_per_m3 = None
+        if water_delta > 0:
+            gain_per_m3 = round(production_delta / water_delta, 5)
+            if gain_per_m3 < 0:
+                negative_count += 1
+            if plateau_start is None and gain_per_m3 <= 0.02:
+                plateau_start = current["total_water_m3"]
+                if i == 0:
+                    plateau_at_first = True
+
+        marginal_gains.append(
+            {
+                "from_water_m3": previous["total_water_m3"],
+                "to_water_m3": current["total_water_m3"],
+                "water_delta": round(water_delta, 3),
+                "production_delta": round(production_delta, 3),
+                "gain_per_m3": gain_per_m3,
+            }
+        )
+
+    valid_gains = [g for g in marginal_gains if g["gain_per_m3"] is not None]
+    noisy = len(valid_gains) > 0 and (negative_count / len(valid_gains)) > 0.6
+    inconclusive = plateau_at_first or noisy
+
+    return {
+        "status": "inconclusive" if inconclusive else "ok",
+        "plateau_start_m3": None if inconclusive else plateau_start,
+        "water_bands": _water_band_summary(pairs),
+        "marginal_gains": marginal_gains,
+    }
+
+
 async def detect_irrigation_thresholds(
     db: AsyncSession,
     user_id: int,
@@ -547,38 +607,61 @@ async def detect_irrigation_thresholds(
             "marginal_gains": [],
         }
 
-    sorted_pairs = sorted(pairs, key=lambda row: row["total_water_m3"])
-    marginal_gains: list[dict] = []
-    plateau_start = None
+    result = _detect_plateau_from_pairs(pairs)
+    return {"sample_size": len(pairs), **result}
 
-    for previous, current in zip(sorted_pairs, sorted_pairs[1:]):
-        water_delta = current["total_water_m3"] - previous["total_water_m3"]
-        production_delta = (
-            current["total_production_kg"] - previous["total_production_kg"]
-        )
-        gain_per_m3 = None
-        if water_delta > 0:
-            gain_per_m3 = round(production_delta / water_delta, 5)
-            if plateau_start is None and gain_per_m3 <= 0.02:
-                plateau_start = current["total_water_m3"]
 
-        marginal_gains.append(
+async def get_all_plot_thresholds(
+    db: AsyncSession,
+    user_id: int,
+    *,
+    campaign_from: Optional[int] = None,
+    campaign_to: Optional[int] = None,
+) -> list[dict]:
+    """Devuelve el umbral de meseta de riego para cada parcela individualmente,
+    calculado en memoria a partir de una sola llamada a get_campaign_dataset.
+    Incluye tanto parcelas con datos suficientes como sin ellos.
+    """
+    rows = await get_campaign_dataset(
+        db, user_id, campaign_from=campaign_from, campaign_to=campaign_to
+    )
+    by_plot: dict[int, list[dict]] = {}
+    for row in rows:
+        by_plot.setdefault(row["plot_id"], []).append(row)
+
+    result: list[dict] = []
+    for plot_id, plot_rows in by_plot.items():
+        plot_name = plot_rows[0]["plot_name"]
+        pairs = [
+            r
+            for r in plot_rows
+            if r["total_water_m3"] > 0 and r["total_production_kg"] > 0
+        ]
+        if len(pairs) < 3:
+            result.append(
+                {
+                    "plot_id": plot_id,
+                    "plot_name": plot_name,
+                    "sample_size": len(pairs),
+                    "status": "insufficient_data",
+                    "plateau_start_m3": None,
+                }
+            )
+            continue
+
+        plateau_data = _detect_plateau_from_pairs(pairs)
+        result.append(
             {
-                "from_water_m3": previous["total_water_m3"],
-                "to_water_m3": current["total_water_m3"],
-                "water_delta": round(water_delta, 3),
-                "production_delta": round(production_delta, 3),
-                "gain_per_m3": gain_per_m3,
+                "plot_id": plot_id,
+                "plot_name": plot_name,
+                "sample_size": len(pairs),
+                "status": plateau_data["status"],
+                "plateau_start_m3": plateau_data["plateau_start_m3"],
             }
         )
 
-    return {
-        "sample_size": len(pairs),
-        "status": "ok",
-        "plateau_start_m3": plateau_start,
-        "water_bands": _water_band_summary(pairs),
-        "marginal_gains": marginal_gains,
-    }
+    result.sort(key=lambda r: r["plot_name"])
+    return result
 
 
 async def get_multi_plot_comparison(

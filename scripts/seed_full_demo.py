@@ -26,6 +26,7 @@ from app.models.irrigation import IrrigationRecord
 from app.models.plant import Plant
 from app.models.plot import Plot
 from app.models.plot_event import PlotEvent
+from app.models.rainfall import RainfallRecord
 from app.models.truffle_event import TruffleEvent
 from app.models.user import User
 from app.models.well import Well
@@ -35,6 +36,21 @@ from app.utils import campaign_label, row_label_from_index
 # ---------------------------------------------------------------------------
 # Realistic plot definitions (name, area_ha, num_rows, cols_per_row range)
 # ---------------------------------------------------------------------------
+
+# Municipios de Teruel (provincia_cod, municipio_cod, nombre) con estaciones de lluvia disponibles
+# Códigos INE de municipio (sin zero-pad; resolve_municipio_cod los normaliza a 3 dígitos).
+# Son los que se guardan en Plot.municipio_cod y RainfallRecord.municipio_cod.
+# Los códigos SIGPAC (p.e. Sarrión SIGPAC=223 vs INE=210) solo se usan
+# en el API de SIGPAC, gestionados desde municipios_geo.json.
+TERUEL_MUNICIPIOS = [
+    ("44", "210", "Sarrión"),
+    ("44", "010", "Albentosa"),
+    ("44", "206", "San Agustín"),
+    ("44", "048", "Cabra de Mora"),
+    ("44", "103", "Formiche Alto"),
+    ("44", "121", "Gúdar"),
+]
+
 PLOT_SPECS = [
     ("Carrascal Norte", 2.40, 8, (8, 12)),
     ("Carrascal Sur", 1.85, 6, (7, 11)),
@@ -115,6 +131,7 @@ class SeedSummary:
     irrigation: int = 0
     truffle_events: int = 0
     plot_events: int = 0
+    rainfall: int = 0
     campaigns: list[int] = field(default_factory=list)
 
 
@@ -618,6 +635,111 @@ def _make_linked_plot_events_for_records(
     return events
 
 
+def _random_precipitation_mm(rng: random.Random) -> float:
+    """Distribución realista de precipitación diaria para clima semi-árido (Teruel).
+    Media ~5.5 mm/registro; anual ~380-420 mm con frecuencia semanal ibericam.
+    """
+    roll = rng.random()
+    if roll < 0.35:
+        return 0.0  # día sin lluvia registrada
+    elif roll < 0.77:
+        return round(rng.uniform(0.5, 7.0), 1)  # lluvia ligera (media ~3.75 mm)
+    elif roll < 0.95:
+        return round(rng.uniform(7.0, 20.0), 1)  # lluvia moderada (media ~13.5 mm)
+    else:
+        return round(rng.uniform(20.0, 40.0), 1)  # lluvia intensa, rara (media ~30 mm)
+
+
+def _make_rainfall_manual_for_plot(
+    rng: random.Random,
+    user_id: int,
+    plot_id: int,
+    planting_date: dt.date,
+    campaign_years: list[int],
+) -> list[RainfallRecord]:
+    """Registros manuales de pluviómetro ligados a la parcela."""
+    records: list[RainfallRecord] = []
+    for cy in campaign_years:
+        if cy < planting_date.year:
+            continue
+        # 8-18 lecturas por campaña, concentradas en primavera-verano (mar-sep)
+        n = rng.randint(8, 18)
+        for _ in range(n):
+            month = rng.choices(
+                [3, 4, 5, 6, 7, 8, 9, 10, 11],
+                weights=[6, 8, 10, 12, 10, 8, 10, 8, 6],
+            )[0]
+            year = cy if month >= 5 else cy + 1
+            date = dt.date(year, month, rng.randint(1, 28))
+            records.append(
+                RainfallRecord(
+                    user_id=user_id,
+                    plot_id=plot_id,
+                    municipio_cod=None,
+                    municipio_name=None,
+                    date=date,
+                    precipitation_mm=_random_precipitation_mm(rng),
+                    source="manual",
+                    notes=rng.choice(
+                        ["", "", "Lectura pluviómetro", "Lluvia apreciable"]
+                    ),
+                )
+            )
+    return records
+
+
+def _make_rainfall_external_for_municipio(
+    rng: random.Random,
+    user_id: int,
+    municipio_full_cod: str,
+    municipio_name: str,
+    campaign_years: list[int],
+) -> list[RainfallRecord]:
+    """Registros ibericam (semanales) y aemet (mensuales) por municipio."""
+    records: list[RainfallRecord] = []
+
+    for cy in campaign_years:
+        # Ibericam: lecturas semanales a lo largo de toda la campaña (may cy → abr cy+1)
+        start_ibericam = dt.date(cy, 5, 1)
+        end_ibericam = dt.date(cy + 1, 4, 30)
+        current = start_ibericam
+        while current <= end_ibericam:
+            records.append(
+                RainfallRecord(
+                    user_id=user_id,
+                    plot_id=None,
+                    municipio_cod=municipio_full_cod,
+                    municipio_name=municipio_name,
+                    date=current,
+                    precipitation_mm=_random_precipitation_mm(rng),
+                    source="ibericam",
+                    notes="",
+                )
+            )
+            current += dt.timedelta(days=7)
+
+        # AEMET: un registro mensual por mes de campaña
+        for month_offset in range(12):
+            abs_month = 5 + month_offset
+            year = cy if abs_month <= 12 else cy + 1
+            month = abs_month if abs_month <= 12 else abs_month - 12
+            # Día 15 del mes como fecha representativa del mes
+            records.append(
+                RainfallRecord(
+                    user_id=user_id,
+                    plot_id=None,
+                    municipio_cod=municipio_full_cod,
+                    municipio_name=municipio_name,
+                    date=dt.date(year, month, 15),
+                    precipitation_mm=_random_precipitation_mm(rng),
+                    source="aemet",
+                    notes="",
+                )
+            )
+
+    return records
+
+
 def _make_truffle_events_for_plot(
     rng: random.Random,
     user_id: int,
@@ -702,6 +824,7 @@ async def seed(args: argparse.Namespace) -> SeedSummary:
         uid = user.id
 
         specs = PLOT_SPECS[: args.plots]
+        municipios_seen: dict[str, str] = {}  # full_cod → name
 
         for spec_name, area_ha, num_rows, cols_range in specs:
             # Planting date: stagger over the first 4 years of the range
@@ -714,6 +837,8 @@ async def seed(args: argparse.Namespace) -> SeedSummary:
             )
             has_irrigation = rng.random() < 0.85
             caudal_riego = round(rng.uniform(3.0, 20.0), 1) if has_irrigation else None
+            mun = rng.choice(TERUEL_MUNICIPIOS)
+            mun_prov, mun_cod, mun_name = mun
 
             plot = Plot(
                 user_id=uid,
@@ -730,6 +855,8 @@ async def seed(args: argparse.Namespace) -> SeedSummary:
                 percentage=0.0,
                 has_irrigation=has_irrigation,
                 caudal_riego=caudal_riego,
+                provincia_cod=mun_prov,
+                municipio_cod=mun_cod,
             )
             session.add(plot)
             await session.flush()
@@ -792,7 +919,26 @@ async def seed(args: argparse.Namespace) -> SeedSummary:
             session.add_all(pevts + linked_pevts)
             summary.plot_events += len(pevts) + len(linked_pevts)
 
+            # Rainfall manual (pluviómetro por parcela)
+            rain_manual = _make_rainfall_manual_for_plot(
+                rng, uid, plot.id, planting_date, campaign_years
+            )
+            session.add_all(rain_manual)
+            summary.rainfall += len(rain_manual)
+
+            # Registra el municipio de esta parcela para los registros externos
+            mun_full_cod = mun_prov + mun_cod.zfill(3)
+            municipios_seen[mun_full_cod] = mun_name
+
             summary.plots += 1
+
+        # Rainfall externo (ibericam + aemet) por municipio único
+        for mun_full_cod, mun_name in municipios_seen.items():
+            rain_ext = _make_rainfall_external_for_municipio(
+                rng, uid, mun_full_cod, mun_name, campaign_years
+            )
+            session.add_all(rain_ext)
+            summary.rainfall += len(rain_ext)
 
         # General (unassigned) expenses
         gen_exps = _make_general_expenses(rng, uid, campaign_years)
@@ -872,6 +1018,7 @@ async def _main_async(args: argparse.Namespace) -> None:
     print(f"  Riego:           {summary.irrigation}")
     print(f"  Eventos trufa:   {summary.truffle_events}")
     print(f"  Eventos parcela: {summary.plot_events}")
+    print(f"  Lluvias:         {summary.rainfall}")
     print("─────────────────────────────────────────────────────────\n")
 
 

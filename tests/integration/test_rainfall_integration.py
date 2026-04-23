@@ -195,3 +195,82 @@ async def test_rainfall_user_isolation(tmp_path: Path) -> None:
             assert len(records_user1) == 1
     finally:
         await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_list_rainfall_records_by_plot_excludes_municipio(
+    tmp_path: Path,
+) -> None:
+    """Al filtrar list_rainfall_records por plot_id, solo aparecen los registros
+    directamente ligados a esa parcela (plot_id=X). Los registros de municipio
+    (ibericam/aemet, plot_id=NULL) no se mezclan — hay que filtrar por municipio_cod."""
+    engine, session_maker = await _build_sessionmaker(
+        tmp_path / "rainfall_plot_mun.sqlite3"
+    )
+
+    try:
+        async with session_maker() as db:
+            plot = await create_plot(
+                db,
+                user_id=1,
+                name="Bancal Sarrión",
+                polygon="1",
+                plot_num="12",
+                cadastral_ref="44223A021001200000FP",
+                hydrant="H3",
+                sector="S1",
+                num_plants=40,
+                planting_date=datetime.date(2021, 1, 1),
+                area_ha=2.0,
+                production_start=None,
+            )
+            plot.provincia_cod = "44"
+            plot.municipio_cod = "210"
+            await db.commit()
+
+            # Registro manual ligado a la parcela
+            manual = await create_rainfall_record(
+                db,
+                user_id=1,
+                data=RainfallCreate(
+                    plot_id=plot.id,
+                    date=datetime.date(2025, 11, 10),
+                    precipitation_mm=12.0,
+                    source="manual",
+                ),
+            )
+
+            # Registro ibericam a nivel de municipio (plot_id=None)
+            ibericam = await create_rainfall_record(
+                db,
+                user_id=1,
+                data=RainfallCreate(
+                    municipio_cod="44210",
+                    date=datetime.date(2025, 10, 1),
+                    precipitation_mm=5.0,
+                    source="ibericam",
+                ),
+            )
+            await db.commit()
+
+            # Filtro por parcela: solo el registro manual
+            by_plot = await list_rainfall_records(db, user_id=1, plot_id=plot.id)
+            ids_by_plot = {r.id for r in by_plot}
+            assert manual.id in ids_by_plot, (
+                "Registro manual debe aparecer al filtrar por parcela"
+            )
+            assert ibericam.id not in ids_by_plot, (
+                "Registro de municipio NO debe mezclarse al filtrar por parcela"
+            )
+
+            # Filtro por municipio: solo el registro ibericam
+            by_mun = await list_rainfall_records(db, user_id=1, municipio_cod="44210")
+            ids_by_mun = {r.id for r in by_mun}
+            assert ibericam.id in ids_by_mun, (
+                "Registro ibericam debe aparecer al filtrar por municipio"
+            )
+            assert manual.id not in ids_by_mun, (
+                "Registro de parcela NO debe mezclarse al filtrar por municipio"
+            )
+    finally:
+        await engine.dispose()

@@ -98,6 +98,65 @@
                         <button
                             type="button"
                             class="btn btn-outline-secondary btn-sm tf-help-tip-btn"
+                            aria-label="{{ _('Ayuda sobre Umbral de riego') }}"
+                            aria-describedby="help-thresholds"
+                        >?</button>
+                        <div class="tf-help-tip-text" id="help-thresholds" role="tooltip">
+                            {{ _('El umbral propio se calcula solo con las campañas de esta parcela (requiere ≥5). El global usa todas las parcelas y sirve de referencia cuando los datos propios son insuficientes.') }}
+                        </div>
+                    </div>
+                    <h6 class="mb-0">{{ _("Umbral de riego") }}</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-start gap-2">
+                                <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle mt-1">{{ _("Propio") }}</span>
+                                <div>
+                                    <div class="fw-semibold small">{{ _("Meseta de la parcela") }}</div>
+                                    {% if plot_thresholds.status == "ok" and plot_thresholds.sample_size >= 5 %}
+                                        <div class="fs-5 fw-bold text-success">{{ plot_thresholds.plateau_start_m3 if plot_thresholds.plateau_start_m3 is not none else "—" }} m³</div>
+                                        <div class="text-muted small">{{ _("Muestra") }}: {{ plot_thresholds.sample_size }} {{ _("campañas") }}</div>
+                                    {% elif plot_thresholds.status == "inconclusive" %}
+                                        <div class="text-warning-emphasis small"><i class="bi bi-exclamation-triangle"></i> {{ _("Señal no concluyente") }}</div>
+                                        <div class="text-muted small">{{ _("Alta variabilidad entre campañas") }}</div>
+                                    {% elif plot_thresholds.status == "ok" %}
+                                        <div class="text-muted small">{{ _("Datos insuficientes para umbral propio") }} ({{ plot_thresholds.sample_size }}/5 {{ _("campañas") }})</div>
+                                    {% else %}
+                                        <div class="text-muted small">{{ _("Insuficiente") }}: {{ plot_thresholds.sample_size }}/5 {{ _("campañas útiles") }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-start gap-2">
+                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle mt-1">{{ _("Global") }}</span>
+                                <div>
+                                    <div class="fw-semibold small">{{ _("Meseta global (todas las parcelas)") }}</div>
+                                    {% if global_thresholds.status == "ok" %}
+                                        <div class="fs-5 fw-bold text-warning-emphasis">{{ global_thresholds.plateau_start_m3 if global_thresholds.plateau_start_m3 is not none else "—" }} m³</div>
+                                        <div class="text-muted small">{{ _("Muestra") }}: {{ global_thresholds.sample_size }} {{ _("campañas") }}</div>
+                                    {% elif global_thresholds.status == "inconclusive" %}
+                                        <div class="text-warning-emphasis small"><i class="bi bi-exclamation-triangle"></i> {{ _("Señal no concluyente") }}</div>
+                                        <div class="text-muted small">{{ _("Alta variabilidad entre campañas") }}</div>
+                                    {% else %}
+                                        <div class="text-muted small">{{ _("Insuficiente") }}: &lt;3 {{ _("campañas útiles") }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card tf-panel shadow-sm border-0">
+                <div class="card-header d-flex align-items-center gap-2">
+                    <div class="tf-help-tip">
+                        <button
+                            type="button"
+                            class="btn btn-outline-secondary btn-sm tf-help-tip-btn"
                             aria-label="{{ _('Ayuda sobre Insights automáticos') }}"
                             aria-describedby="help-plot-insights"
                         >?</button>
@@ -254,6 +313,8 @@
     const tillingSeries = {{ tilling_series | tojson }};
     const diggingSeries = {{ digging_series | tojson }};
     const scatterPoints = {{ scatter_points | tojson }};
+    const plotPlateau = {{ plot_thresholds.plateau_start_m3 | tojson if plot_thresholds.plateau_start_m3 is not none and plot_thresholds.sample_size >= 5 else 'null' }};
+    const globalPlateau = {{ global_thresholds.plateau_start_m3 | tojson if global_thresholds.plateau_start_m3 is not none else 'null' }};
 
     const commonOptions = {
         responsive: true,
@@ -296,15 +357,73 @@
     new Chart(document.getElementById('chartScatter'), {
         type: 'scatter',
         data: {
-            datasets: [
-                {
-                    label: '{{ _("Agua vs producción") }}',
-                    data: scatterPoints,
-                    borderColor: '#af7a2f',
-                    backgroundColor: 'rgba(175, 122, 47, 0.5)',
+            datasets: (() => {
+                // Coloreamos los puntos según si el riego está dentro o fuera del umbral.
+                // Si no hay umbral conocido, todos los puntos van en un único dataset neutral.
+                const activePlateau = plotPlateau !== null ? plotPlateau : globalPlateau;
+                const belowPoints = activePlateau !== null
+                    ? scatterPoints.filter(p => p.x <= activePlateau)
+                    : scatterPoints;
+                const abovePoints = activePlateau !== null
+                    ? scatterPoints.filter(p => p.x > activePlateau)
+                    : [];
+
+                const datasets = [];
+
+                // Puntos verdes: dentro del umbral eficiente
+                datasets.push({
+                    label: activePlateau !== null
+                        ? '{{ _("Dentro del umbral eficiente") }}'
+                        : '{{ _("Agua vs producción") }}',
+                    data: belowPoints,
+                    borderColor: 'rgba(92, 124, 53, 0.9)',
+                    backgroundColor: 'rgba(92, 124, 53, 0.5)',
                     pointRadius: 5,
+                });
+
+                // Puntos rojos: por encima del umbral
+                if (abovePoints.length) {
+                    datasets.push({
+                        label: '{{ _("Por encima del umbral (posible exceso)") }}',
+                        data: abovePoints,
+                        borderColor: 'rgba(180, 55, 45, 0.9)',
+                        backgroundColor: 'rgba(180, 55, 45, 0.4)',
+                        pointRadius: 5,
+                    });
                 }
-            ]
+
+                // Línea vertical: meseta propia
+                if (plotPlateau !== null) {
+                    datasets.push({
+                        label: '{{ _("Meseta propia") }} (' + plotPlateau.toLocaleString('es-ES') + ' m³)',
+                        data: [{x: plotPlateau, y: 0}, {x: plotPlateau, y: 1e6}],
+                        type: 'line',
+                        showLine: true,
+                        borderColor: 'rgba(92, 124, 53, 0.85)',
+                        borderDash: [6, 4],
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0,
+                    });
+                }
+
+                // Línea vertical: meseta global
+                if (globalPlateau !== null) {
+                    datasets.push({
+                        label: '{{ _("Meseta global") }} (' + globalPlateau.toLocaleString('es-ES') + ' m³)',
+                        data: [{x: globalPlateau, y: 0}, {x: globalPlateau, y: 1e6}],
+                        type: 'line',
+                        showLine: true,
+                        borderColor: 'rgba(175, 122, 47, 0.6)',
+                        borderDash: [4, 4],
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0,
+                    });
+                }
+
+                return datasets;
+            })(),
         },
         options: {
             ...commonOptions,
@@ -317,7 +436,9 @@
                     callbacks: {
                         title: (items) => {
                             if (!items.length) return '';
-                            const year = items[0].raw.campaign_year;
+                            const raw = items[0].raw;
+                            if (!raw.campaign_year) return '';
+                            const year = raw.campaign_year;
                             return `${year}/${String((year + 1) % 100).padStart(2, '0')}`;
                         }
                     }
@@ -325,7 +446,7 @@
             },
             scales: {
                 x: { title: { display: true, text: '{{ _("Agua (m3)") }}' }, beginAtZero: true },
-                y: { title: { display: true, text: '{{ _("Producción (kg)") }}' }, beginAtZero: true }
+                y: { title: { display: true, text: '{{ _("Producción (kg)") }}' }, beginAtZero: true, max: Math.max(...scatterPoints.map(p => p.y), 1) * 1.2 }
             }
         }
     });

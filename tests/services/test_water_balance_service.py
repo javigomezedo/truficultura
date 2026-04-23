@@ -225,11 +225,11 @@ async def test_get_plot_daily_water_balance_returns_none_when_plot_missing() -> 
 # ---------------------------------------------------------------------------
 
 
-def _make_thresholds(status, plateau):
+def _make_thresholds(status, plateau, sample_size=5):
     return {
         "status": status,
         "plateau_start_m3": plateau,
-        "sample_size": 3,
+        "sample_size": sample_size,
         "marginal_gains": [],
     }
 
@@ -262,7 +262,14 @@ async def test_simulate_irrigation_insufficient_data() -> None:
             result([plot]),  # plot query
             result([]),  # irrigation records
             result([]),  # rainfall records
-            # detect_irrigation_thresholds → get_campaign_dataset needs:
+            # detect_irrigation_thresholds por parcela → get_campaign_dataset:
+            result([plot]),  # plots
+            result([]),  # incomes
+            result([]),  # irrigation
+            result([]),  # wells
+            result([]),  # events
+            result([]),  # rainfall
+            # fallback global → get_campaign_dataset de nuevo:
             result([plot]),  # plots
             result([]),  # incomes
             result([]),  # irrigation
@@ -279,6 +286,7 @@ async def test_simulate_irrigation_insufficient_data() -> None:
     assert sim is not None
     assert sim["should_irrigate"] is None
     assert sim["reason"] == "insufficient_data"
+    assert sim["threshold_scope"] is None
 
 
 @pytest.mark.asyncio
@@ -426,3 +434,79 @@ async def test_simulate_irrigation_includes_rainfall_in_total() -> None:
     assert sim["rain_mm"] == pytest.approx(10.0)
     assert sim["rain_m3"] == pytest.approx(200.0)
     assert sim["total_water_m3"] == pytest.approx(205.0)
+
+
+@pytest.mark.asyncio
+async def test_simulate_irrigation_uses_plot_threshold_when_sufficient_data() -> None:
+    """Con ≥5 campañas propias se usa el umbral de la parcela (threshold_scope='plot')."""
+    plot = SimpleNamespace(
+        id=1,
+        user_id=1,
+        name="P",
+        area_ha=None,
+        caudal_riego=None,
+        provincia_cod=None,
+        municipio_cod=None,
+    )
+    db = MagicMock()
+
+    with patch(
+        "app.services.plot_analytics_service.detect_irrigation_thresholds",
+        new=AsyncMock(return_value=_make_thresholds("ok", 100.0, sample_size=6)),
+    ):
+        db.execute = AsyncMock(
+            side_effect=[
+                result([plot]),
+                result([]),
+                result([]),
+            ]
+        )
+
+        sim = await simulate_irrigation(
+            db, user_id=1, plot_id=1, sim_date=datetime.date(2026, 6, 1)
+        )
+
+    assert sim is not None
+    assert sim["threshold_scope"] == "plot"
+    assert sim["should_irrigate"] is True  # total=0 < plateau=100
+
+
+@pytest.mark.asyncio
+async def test_simulate_irrigation_falls_back_to_global_threshold() -> None:
+    """Con <5 campañas propias pero datos globales suficientes, usa umbral global."""
+    plot = SimpleNamespace(
+        id=1,
+        user_id=1,
+        name="P",
+        area_ha=None,
+        caudal_riego=None,
+        provincia_cod=None,
+        municipio_cod=None,
+    )
+    db = MagicMock()
+
+    with patch(
+        "app.services.plot_analytics_service.detect_irrigation_thresholds",
+        new=AsyncMock(
+            side_effect=[
+                _make_thresholds("ok", 80.0, sample_size=3),  # por parcela: ok pero <5
+                _make_thresholds("ok", 120.0, sample_size=10),  # global: suficiente
+            ]
+        ),
+    ):
+        db.execute = AsyncMock(
+            side_effect=[
+                result([plot]),
+                result([]),
+                result([]),
+            ]
+        )
+
+        sim = await simulate_irrigation(
+            db, user_id=1, plot_id=1, sim_date=datetime.date(2026, 6, 1)
+        )
+
+    assert sim is not None
+    assert sim["threshold_scope"] == "global"
+    assert sim["plateau_start_m3"] == pytest.approx(120.0)  # usa meseta global
+    assert sim["sample_size"] == 10

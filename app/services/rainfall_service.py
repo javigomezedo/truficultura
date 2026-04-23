@@ -291,3 +291,177 @@ async def delete_rainfall_record(
         )
     await db.delete(record)
     await db.flush()
+
+
+# ---------------------------------------------------------------------------
+# Calendario de lluvia
+# ---------------------------------------------------------------------------
+
+_MONTH_NAMES_ES = [
+    "",
+    "Enero",
+    "Febrero",
+    "Marzo",
+    "Abril",
+    "Mayo",
+    "Junio",
+    "Julio",
+    "Agosto",
+    "Septiembre",
+    "Octubre",
+    "Noviembre",
+    "Diciembre",
+]
+_DAY_LABELS = ["L", "M", "X", "J", "V", "S", "D"]
+
+
+def _build_calendar_months(
+    year: int,
+    rain_by_date: dict[datetime.date, float],
+    area_ha: Optional[float] = None,
+) -> list[dict]:
+    """
+    Construye la lista de 12 meses (Mayo-Abril) para el calendario de campaña.
+    Cada mes incluye: nombre, año calendario, total_mm, rain_days y una lista
+    de semanas donde cada semana es una lista de 7 elementos (None o dict con
+    day, mm, css_class).
+    """
+    # Campaña: Mayo year → Abril year+1
+    campaign_months_order = [
+        (year, 5),
+        (year, 6),
+        (year, 7),
+        (year, 8),
+        (year, 9),
+        (year, 10),
+        (year, 11),
+        (year, 12),
+        (year + 1, 1),
+        (year + 1, 2),
+        (year + 1, 3),
+        (year + 1, 4),
+    ]
+
+    months = []
+    for cal_year, month in campaign_months_order:
+        import calendar
+
+        first_weekday, num_days = calendar.monthrange(cal_year, month)
+        # first_weekday: 0=Lunes … 6=Domingo (ISO)
+
+        days_flat: list[dict | None] = [None] * first_weekday
+        month_total = 0.0
+        month_total_m3 = 0.0
+        rain_days = 0
+
+        for day_num in range(1, num_days + 1):
+            d = datetime.date(cal_year, month, day_num)
+            mm = rain_by_date.get(d, 0.0)
+            month_total += mm
+            if mm > 0:
+                rain_days += 1
+
+            if mm == 0:
+                css = "rain-none"
+            elif mm <= 5:
+                css = "rain-low"
+            elif mm <= 15:
+                css = "rain-moderate"
+            elif mm <= 30:
+                css = "rain-heavy"
+            else:
+                css = "rain-very-heavy"
+
+            m3: Optional[float] = None
+            if area_ha is not None:
+                m3 = round(mm * area_ha * 10, 1)
+                month_total_m3 += mm * area_ha * 10
+
+            days_flat.append({"day": day_num, "mm": mm, "m3": m3, "css": css})
+
+        # Rellenar hasta completar la última semana
+        remainder = len(days_flat) % 7
+        if remainder:
+            days_flat += [None] * (7 - remainder)
+
+        weeks = [days_flat[i : i + 7] for i in range(0, len(days_flat), 7)]
+
+        months.append(
+            {
+                "year": cal_year,
+                "month": month,
+                "name": _MONTH_NAMES_ES[month],
+                "weeks": weeks,
+                "total_mm": round(month_total, 1),
+                "total_m3": round(month_total_m3, 1) if area_ha is not None else None,
+                "rain_days": rain_days,
+            }
+        )
+
+    return months
+
+
+async def get_rainfall_calendar_context(
+    db: AsyncSession,
+    user_id: int,
+    *,
+    year: int,
+    plot_id: Optional[int] = None,
+    municipio_cod: Optional[str] = None,
+) -> dict:
+    """
+    Devuelve el contexto necesario para renderizar el calendario de lluvia
+    de una campaña agrícola (Mayo-Abril).
+
+    Si se filtra por parcela, se usan solo sus registros manuales.
+    Si se filtra por municipio, se usan solo sus registros de municipio.
+    Sin filtro se usan todos los registros del usuario para ese año.
+    """
+    records = await list_rainfall_records(
+        db,
+        user_id,
+        plot_id=plot_id,
+        municipio_cod=municipio_cod,
+        year=year,
+    )
+
+    # Agregar por fecha: si hay varios registros en el mismo día, sumar mm.
+    # (Para el calendario la suma tiene más sentido que elegir el mejor.)
+    rain_by_date: dict[datetime.date, float] = {}
+    for r in records:
+        rain_by_date[r.date] = rain_by_date.get(r.date, 0.0) + r.precipitation_mm
+
+    # Área de la parcela para convertir mm → m³ (solo cuando hay parcela filtrada)
+    area_ha: Optional[float] = None
+    if plot_id is not None:
+        plot_result = await db.execute(
+            select(Plot).where(Plot.id == plot_id, Plot.user_id == user_id)
+        )
+        plot_obj = plot_result.scalar_one_or_none()
+        if plot_obj is not None and plot_obj.area_ha:
+            area_ha = plot_obj.area_ha
+
+    months = _build_calendar_months(year, rain_by_date, area_ha=area_ha)
+    total_mm = round(sum(m["total_mm"] for m in months), 1)
+    total_m3 = round(sum(m["total_m3"] for m in months if m["total_m3"] is not None), 1) if area_ha is not None else None
+    rain_days = sum(m["rain_days"] for m in months)
+
+    plots = await _get_user_plots(db, user_id)
+    years = await _get_all_years(db, user_id)
+    municipios = await _get_user_municipios(db, user_id)
+
+    return {
+        "months": months,
+        "day_labels": _DAY_LABELS,
+        "total_mm": total_mm,
+        "total_m3": total_m3,
+        "area_ha": area_ha,
+        "rain_days": rain_days,
+        "selected_year": year,
+        "selected_plot": plot_id,
+        "selected_municipio": municipio_cod,
+        "plots": plots,
+        "years": years,
+        "municipios": municipios,
+        "municipio_cod_to_name": MUNICIPIO_COD_TO_NAME,
+    }
