@@ -222,7 +222,6 @@ async def get_daily_precipitation(
 
 async def upsert_ibericam_rainfall(
     db: AsyncSession,
-    user_id: int,
     municipio_cod: str,
     records: list[tuple[datetime.date, float]],
     *,
@@ -230,11 +229,8 @@ async def upsert_ibericam_rainfall(
 ) -> dict[str, int]:
     """Crea o actualiza `RainfallRecord`s con source="ibericam".
 
-    - Consulta los registros existentes para el usuario, municipio y fechas
-      del lote de entrada.
-    - Para cada (fecha, mm): si ya existe → actualiza precipitation_mm;
-      si no → crea uno nuevo.
-    - Llama a db.flush() al final; el commit queda en manos del caller.
+    Los registros Ibericam son globales (user_id=NULL), compartidos entre todos
+    los usuarios. Llama a db.flush() al final; el commit queda en manos del caller.
 
     Devuelve {"created": N, "updated": N, "total": N}.
     """
@@ -245,7 +241,7 @@ async def upsert_ibericam_rainfall(
     existing_result = await db.execute(
         select(RainfallRecord).where(
             and_(
-                RainfallRecord.user_id == user_id,
+                RainfallRecord.user_id.is_(None),
                 RainfallRecord.municipio_cod == municipio_cod,
                 RainfallRecord.source == "ibericam",
                 RainfallRecord.date.in_(dates),
@@ -263,7 +259,7 @@ async def upsert_ibericam_rainfall(
         if existing is None:
             db.add(
                 RainfallRecord(
-                    user_id=user_id,
+                    user_id=None,
                     plot_id=None,
                     municipio_cod=municipio_cod,
                     municipio_name=municipio_name,
@@ -290,34 +286,60 @@ async def upsert_ibericam_rainfall(
 
 async def import_ibericam_rainfall(
     db: AsyncSession,
-    user_id: int,
     *,
     station_slug: str,
     municipio_cod: str,
     municipio_name: Optional[str] = None,
     year: Optional[int] = None,
     month: Optional[int] = None,
+    date_from: Optional[datetime.date] = None,
+    date_to: Optional[datetime.date] = None,
     http_post_json: Optional[HttpPostJson] = None,
 ) -> dict[str, int]:
     """Pipeline completo: fetch → parse → upsert en rainfall_records.
 
+    Los registros resultantes son globales (user_id=NULL), compartidos entre
+    todos los usuarios.
+
     Parámetros:
         db: sesión async activa.
-        user_id: ID del usuario propietario de los registros.
         station_slug: slug de la estación ibericam (p. ej. "sarrion").
         municipio_cod: código INE del municipio (p. ej. "44216").
-        year: año a importar (None = mes en curso / año en curso).
+        date_from / date_to: rango de fechas (itera mes a mes).
+        year: año a importar (alternativa a date_from/date_to).
         month: mes a importar (1-12). Requiere year.
         http_post_json: función HTTP inyectable para tests.
 
     Devuelve dict con {"created", "updated", "total"}.
     """
-    records = await get_daily_precipitation(
-        station_slug,
-        year=year,
-        month=month,
-        http_post_json=http_post_json,
-    )
+    if date_from is not None and date_to is not None:
+        # Iterar mes a mes dentro del rango
+        all_records: list[tuple[datetime.date, float]] = []
+        cur = date_from.replace(day=1)
+        end_month = date_to.replace(day=1)
+        while cur <= end_month:
+            chunk = await get_daily_precipitation(
+                station_slug,
+                year=cur.year,
+                month=cur.month,
+                http_post_json=http_post_json,
+            )
+            all_records.extend(
+                (d, mm) for d, mm in chunk if date_from <= d <= date_to
+            )
+            if cur.month == 12:
+                cur = cur.replace(year=cur.year + 1, month=1)
+            else:
+                cur = cur.replace(month=cur.month + 1)
+        records = all_records
+    else:
+        records = await get_daily_precipitation(
+            station_slug,
+            year=year,
+            month=month,
+            http_post_json=http_post_json,
+        )
+
     # Resolver nombre del municipio si no viene del formulario
     resolved_name = (
         municipio_name
@@ -325,7 +347,7 @@ async def import_ibericam_rainfall(
         or _slug_to_display_name(station_slug)
     )
     return await upsert_ibericam_rainfall(
-        db, user_id, municipio_cod, records, municipio_name=resolved_name
+        db, municipio_cod, records, municipio_name=resolved_name
     )
 
 
@@ -434,3 +456,43 @@ async def scrape_ibericam_stations(
         len(candidates),
     )
     return stations
+
+
+# ---------------------------------------------------------------------------
+# Descubrimiento de slug por nombre de municipio
+# ---------------------------------------------------------------------------
+
+
+async def fetch_ibericam_sitemap_slugs(
+    *,
+    http_get_text: Optional[HttpGetText] = None,
+) -> set[str]:
+    """Descarga el sitemap de Ibericam y devuelve el conjunto de slugs de
+    estaciones (descartando slugs que corresponden a categorías/regiones).
+    """
+    get_fn = http_get_text or _default_get_text
+    xml_text = await get_fn(IBERICAM_SITEMAP_URL, _IBERICAM_TIMEOUT)
+    slugs = re.findall(r"/lugar_webcam_el_tiempo/([^/<]+)/", xml_text)
+    return {s for s in slugs if s not in _NON_STATION_SLUGS}
+
+
+def find_ibericam_slug_for_municipio(
+    sitemap_slugs: set[str],
+    municipio_name: str,
+) -> Optional[str]:
+    """Devuelve el slug de Ibericam si el sitemap contiene una estación
+    cuyo slug coincide con el nombre normalizado del municipio.
+
+    La normalización convierte, p.ej.:
+      'Mora de Rubielos' → 'mora-de-rubielos'
+      'Sarrión'          → 'sarrion'
+    """
+    import unicodedata
+
+    name = municipio_name.split(",")[0].strip()
+    nfkd = unicodedata.normalize("NFKD", name)
+    ascii_str = nfkd.encode("ascii", "ignore").decode("ascii")
+    s = ascii_str.lower().strip()
+    s = re.sub(r"\s+", "-", s)
+    s = re.sub(r"[^a-z0-9-]", "", s)
+    return s if s in sitemap_slugs else None

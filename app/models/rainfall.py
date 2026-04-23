@@ -17,8 +17,9 @@ class RainfallRecord(Base):
     __tablename__ = "rainfall_records"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    # NULL para registros compartidos (source='aemet' / 'ibericam'); NOT NULL para manuales
+    user_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True
     )
     # nullable: registros de pluviómetro van ligados a parcela;
     # registros de AEMET/ibericam van a nivel de municipio (plot_id=NULL)

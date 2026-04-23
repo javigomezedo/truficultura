@@ -81,7 +81,8 @@ async def test_get_rainfall_record_wrong_user() -> None:
 @pytest.mark.asyncio
 async def test_list_rainfall_records_empty() -> None:
     db = MagicMock()
-    db.execute = AsyncMock(return_value=result([]))
+    # 1st call: Plot.municipio_cod query; 2nd: RainfallRecord query
+    db.execute = AsyncMock(side_effect=[result([]), result([])])
 
     records = await list_rainfall_records(db, user_id=1)
 
@@ -92,7 +93,7 @@ async def test_list_rainfall_records_empty() -> None:
 async def test_list_rainfall_records_returns_results() -> None:
     records_data = [_make_record(id=1), _make_record(id=2)]
     db = MagicMock()
-    db.execute = AsyncMock(return_value=result(records_data))
+    db.execute = AsyncMock(side_effect=[result([]), result(records_data)])
 
     records = await list_rainfall_records(db, user_id=1)
 
@@ -105,7 +106,7 @@ async def test_list_rainfall_records_filters_by_year() -> None:
     r1 = _make_record(id=1, date=datetime.date(2025, 11, 10))
     r2 = _make_record(id=2, date=datetime.date(2024, 6, 1))
     db = MagicMock()
-    db.execute = AsyncMock(return_value=result([r1, r2]))
+    db.execute = AsyncMock(side_effect=[result([]), result([r1, r2])])
 
     records = await list_rainfall_records(db, user_id=1, year=2025)
 
@@ -117,7 +118,7 @@ async def test_list_rainfall_records_filters_by_year() -> None:
 async def test_list_rainfall_records_filtered_by_plot() -> None:
     records_data = [_make_record(plot_id=3)]
     db = MagicMock()
-    db.execute = AsyncMock(return_value=result(records_data))
+    db.execute = AsyncMock(side_effect=[result([]), result(records_data)])
 
     records = await list_rainfall_records(db, user_id=1, plot_id=3)
 
@@ -128,7 +129,7 @@ async def test_list_rainfall_records_filtered_by_plot() -> None:
 async def test_list_rainfall_records_filtered_by_municipio() -> None:
     records_data = [_make_record(plot_id=None, municipio_cod="44216")]
     db = MagicMock()
-    db.execute = AsyncMock(return_value=result(records_data))
+    db.execute = AsyncMock(side_effect=[result([]), result(records_data)])
 
     records = await list_rainfall_records(db, user_id=1, municipio_cod="44216")
 
@@ -178,7 +179,7 @@ async def test_create_rainfall_record_municipio_level() -> None:
         municipio_cod="44216",
         date=datetime.date(2025, 11, 10),
         precipitation_mm=8.0,
-        source="aemet",
+        source="manual",
     )
     await create_rainfall_record(db, user_id=1, data=data)
 
@@ -186,7 +187,25 @@ async def test_create_rainfall_record_municipio_level() -> None:
     added = db.add.call_args[0][0]
     assert added.plot_id is None
     assert added.municipio_cod == "44216"
-    assert added.source == "aemet"
+    assert added.source == "manual"
+
+
+@pytest.mark.asyncio
+async def test_create_rainfall_record_non_manual_source_raises_400() -> None:
+    from fastapi import HTTPException
+
+    db = MagicMock()
+
+    data = RainfallCreate(
+        municipio_cod="44216",
+        date=datetime.date(2025, 11, 10),
+        precipitation_mm=8.0,
+        source="aemet",
+    )
+    with pytest.raises(HTTPException) as exc_info:
+        await create_rainfall_record(db, user_id=1, data=data)
+
+    assert exc_info.value.status_code == 400
 
 
 @pytest.mark.asyncio
@@ -342,14 +361,33 @@ async def test_get_rainfall_for_plot_on_date_no_municipio_cod() -> None:
 
 @pytest.mark.asyncio
 async def test_get_rainfall_list_context_structure() -> None:
+    from unittest.mock import patch
+
     records_data = [_make_record()]
     plots = [SimpleNamespace(id=1, name="Parcela A")]
     db = MagicMock()
-    db.execute = AsyncMock(
-        side_effect=[result(records_data), result(plots), result([]), result([])]
-    )
 
-    context = await get_rainfall_list_context(db, user_id=1)
+    async def fake_list(*args, **kwargs):
+        return records_data
+
+    async def fake_get_plots(*args, **kwargs):
+        return plots
+
+    async def fake_get_years(*args, **kwargs):
+        return [2025]
+
+    async def fake_get_municipios(*args, **kwargs):
+        return []
+
+    with (
+        patch("app.services.rainfall_service.list_rainfall_records", fake_list),
+        patch("app.services.rainfall_service._get_user_plots", fake_get_plots),
+        patch("app.services.rainfall_service._get_all_years", fake_get_years),
+        patch(
+            "app.services.rainfall_service._get_user_municipios", fake_get_municipios
+        ),
+    ):
+        context = await get_rainfall_list_context(db, user_id=1)
 
     assert "records" in context
     assert "plots" in context
@@ -466,18 +504,36 @@ def test_build_calendar_months_m3_without_area() -> None:
 @pytest.mark.asyncio
 async def test_get_rainfall_calendar_context_structure() -> None:
     """El contexto debe incluir los campos requeridos por el template."""
+    from unittest.mock import patch
+
     records_data = [
         _make_record(date=datetime.date(2025, 11, 5), precipitation_mm=8.0),
         _make_record(id=2, date=datetime.date(2025, 11, 20), precipitation_mm=3.0),
     ]
     plots = [SimpleNamespace(id=1, name="Parcela A")]
     db = MagicMock()
-    # list_rainfall_records → _get_user_plots → _get_all_years → _get_user_municipios
-    db.execute = AsyncMock(
-        side_effect=[result(records_data), result(plots), result([]), result([])]
-    )
 
-    context = await get_rainfall_calendar_context(db, user_id=1, year=2025)
+    async def fake_list(*args, **kwargs):
+        return records_data
+
+    async def fake_get_plots(*args, **kwargs):
+        return plots
+
+    async def fake_get_years(*args, **kwargs):
+        return [2025]
+
+    async def fake_get_municipios(*args, **kwargs):
+        return []
+
+    with (
+        patch("app.services.rainfall_service.list_rainfall_records", fake_list),
+        patch("app.services.rainfall_service._get_user_plots", fake_get_plots),
+        patch("app.services.rainfall_service._get_all_years", fake_get_years),
+        patch(
+            "app.services.rainfall_service._get_user_municipios", fake_get_municipios
+        ),
+    ):
+        context = await get_rainfall_calendar_context(db, user_id=1, year=2025)
 
     assert "months" in context
     assert len(context["months"]) == 12
@@ -495,24 +551,42 @@ async def test_get_rainfall_calendar_context_structure() -> None:
 @pytest.mark.asyncio
 async def test_get_rainfall_calendar_context_with_plot_area() -> None:
     """Con plot_id y area_ha, el contexto debe incluir total_m3."""
+    from unittest.mock import patch
+
     records_data = [
         _make_record(plot_id=1, date=datetime.date(2025, 11, 5), precipitation_mm=10.0),
     ]
     plot_obj = SimpleNamespace(id=1, user_id=1, area_ha=2.0, name="Bancal A")
     plots = [plot_obj]
     db = MagicMock()
-    # list_rainfall_records → plot query → _get_user_plots → _get_all_years → _get_user_municipios
-    db.execute = AsyncMock(
-        side_effect=[
-            result(records_data),
-            result([plot_obj]),
-            result(plots),
-            result([]),
-            result([]),
-        ]
-    )
 
-    context = await get_rainfall_calendar_context(db, user_id=1, year=2025, plot_id=1)
+    async def fake_list(*args, **kwargs):
+        return records_data
+
+    async def fake_get_plots(*args, **kwargs):
+        return plots
+
+    async def fake_get_years(*args, **kwargs):
+        return [2025]
+
+    async def fake_get_municipios(*args, **kwargs):
+        return []
+
+    async def fake_plot_lookup(*a, **kw):
+        return result([plot_obj])
+
+    with (
+        patch("app.services.rainfall_service.list_rainfall_records", fake_list),
+        patch("app.services.rainfall_service._get_user_plots", fake_get_plots),
+        patch("app.services.rainfall_service._get_all_years", fake_get_years),
+        patch(
+            "app.services.rainfall_service._get_user_municipios", fake_get_municipios
+        ),
+    ):
+        db.execute = AsyncMock(return_value=result([plot_obj]))
+        context = await get_rainfall_calendar_context(
+            db, user_id=1, year=2025, plot_id=1
+        )
 
     # 10 mm × 2 ha × 10 = 200 m³
     assert context["area_ha"] == 2.0
@@ -522,11 +596,53 @@ async def test_get_rainfall_calendar_context_with_plot_area() -> None:
 @pytest.mark.asyncio
 async def test_get_rainfall_calendar_context_no_records() -> None:
     """Sin registros el total debe ser 0 y rain_days 0."""
-    db = MagicMock()
-    db.execute = AsyncMock(side_effect=[result([]), result([]), result([]), result([])])
+    from unittest.mock import patch
 
-    context = await get_rainfall_calendar_context(db, user_id=1, year=2024)
+    db = MagicMock()
+
+    async def fake_list(*args, **kwargs):
+        return []
+
+    async def fake_empty(*args, **kwargs):
+        return []
+
+    with (
+        patch("app.services.rainfall_service.list_rainfall_records", fake_list),
+        patch("app.services.rainfall_service._get_user_plots", fake_empty),
+        patch("app.services.rainfall_service._get_all_years", fake_empty),
+        patch("app.services.rainfall_service._get_user_municipios", fake_empty),
+    ):
+        context = await get_rainfall_calendar_context(db, user_id=1, year=2024)
 
     assert context["total_mm"] == 0.0
     assert context["rain_days"] == 0
     assert len(context["months"]) == 12
+
+
+@pytest.mark.asyncio
+async def test_get_rainfall_calendar_context_source_filter() -> None:
+    """El parámetro source se pasa a list_rainfall_records y se incluye en el contexto."""
+    from unittest.mock import patch
+
+    db = MagicMock()
+    captured: dict = {}
+
+    async def fake_list(*args, **kwargs):
+        captured["source"] = kwargs.get("source")
+        return []
+
+    async def fake_empty(*args, **kwargs):
+        return []
+
+    with (
+        patch("app.services.rainfall_service.list_rainfall_records", fake_list),
+        patch("app.services.rainfall_service._get_user_plots", fake_empty),
+        patch("app.services.rainfall_service._get_all_years", fake_empty),
+        patch("app.services.rainfall_service._get_user_municipios", fake_empty),
+    ):
+        context = await get_rainfall_calendar_context(
+            db, user_id=1, year=2025, source="aemet"
+        )
+
+    assert captured["source"] == "aemet"
+    assert context["selected_source"] == "aemet"

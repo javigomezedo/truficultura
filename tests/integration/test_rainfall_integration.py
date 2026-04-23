@@ -10,6 +10,8 @@ from app.database import Base
 from app.models import Plot, User  # noqa: F401
 from app.models.rainfall import RainfallRecord  # noqa: F401
 from app.schemas.rainfall import RainfallCreate
+from app.services.aemet_service import upsert_aemet_rainfall
+from app.services.ibericam_service import upsert_ibericam_rainfall
 from app.services.plots_service import create_plot
 from app.services.rainfall_service import (
     create_rainfall_record,
@@ -123,18 +125,18 @@ async def test_rainfall_priority_plot_over_municipio(tmp_path: Path) -> None:
 
             date = datetime.date(2025, 11, 10)
 
-            # Municipio-level record (AEMET)
-            municipio_record = await create_rainfall_record(
-                db,
-                user_id=1,
-                data=RainfallCreate(
-                    municipio_cod="44216",
-                    date=date,
-                    precipitation_mm=8.0,
-                    source="aemet",
-                ),
+            # Municipio-level shared record (AEMET) — inserted directly (user_id=None)
+            municipio_record = RainfallRecord(
+                user_id=None,
+                municipio_cod="44216",
+                date=date,
+                precipitation_mm=8.0,
+                source="aemet",
+                plot_id=None,
             )
+            db.add(municipio_record)
             await db.commit()
+            await db.refresh(municipio_record)
 
             # Without a plot-specific record, should return municipio record
             found = await get_rainfall_for_plot_on_date(db, plot, date, user_id=1)
@@ -142,7 +144,7 @@ async def test_rainfall_priority_plot_over_municipio(tmp_path: Path) -> None:
             assert found.id == municipio_record.id
             assert found.precipitation_mm == 8.0
 
-            # Now add a plot-specific record
+            # Now add a plot-specific manual record
             plot_record = await create_rainfall_record(
                 db,
                 user_id=1,
@@ -166,14 +168,34 @@ async def test_rainfall_priority_plot_over_municipio(tmp_path: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_rainfall_user_isolation(tmp_path: Path) -> None:
-    """Un usuario no puede ver los registros de otro usuario."""
+    """Registros manuales de usuario 1 no son visibles para usuario 2.
+    Registros compartidos (AEMET/Ibericam) son visibles para usuarios con
+    parcelas en ese municipio, pero NO para usuarios sin parcelas."""
     engine, session_maker = await _build_sessionmaker(
         tmp_path / "rainfall_isolation.sqlite3"
     )
 
     try:
         async with session_maker() as db:
-            # Create record for user 1 (municipio level, no plot needed)
+            # Parcela para usuario 1 en municipio 44216
+            plot = await create_plot(
+                db,
+                user_id=1,
+                name="Parcela User1",
+                polygon="1",
+                plot_num="10",
+                cadastral_ref="44223A021001200000FP",
+                hydrant="H1",
+                sector="S1",
+                num_plants=20,
+                planting_date=datetime.date(2022, 1, 1),
+                area_ha=1.0,
+                production_start=None,
+            )
+            plot.municipio_cod = "44216"
+            await db.commit()
+
+            # Registro manual de usuario 1
             await create_rainfall_record(
                 db,
                 user_id=1,
@@ -181,18 +203,83 @@ async def test_rainfall_user_isolation(tmp_path: Path) -> None:
                     municipio_cod="44216",
                     date=datetime.date(2025, 11, 10),
                     precipitation_mm=10.0,
-                    source="aemet",
+                    source="manual",
                 ),
+            )
+
+            # Registro compartido AEMET (user_id=None) — inserción directa
+            shared = RainfallRecord(
+                user_id=None,
+                municipio_cod="44216",
+                date=datetime.date(2025, 11, 11),
+                precipitation_mm=5.0,
+                source="aemet",
+                plot_id=None,
+            )
+            db.add(shared)
+            await db.commit()
+
+            # Usuario 2 (sin parcelas) NO debe ver ningún registro
+            records_user2 = await list_rainfall_records(db, user_id=2)
+            assert records_user2 == [], "Usuario sin parcelas no debe ver registros"
+
+            # Usuario 1 debe ver ambos: su manual y el compartido (municipio coincide)
+            records_user1 = await list_rainfall_records(db, user_id=1)
+            assert len(records_user1) == 2, (
+                "Usuario con parcela en municipio 44216 debe ver su manual + el compartido"
+            )
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_shared_rainfall_deduplication(tmp_path: Path) -> None:
+    """Dos importaciones AEMET/Ibericam del mismo municipio/fecha no crean duplicados."""
+    engine, session_maker = await _build_sessionmaker(
+        tmp_path / "rainfall_dedup.sqlite3"
+    )
+
+    try:
+        async with session_maker() as db:
+            municipio = "44216"
+            date = datetime.date(2025, 11, 15)
+
+            records = [{"date": date, "precipitation_mm": 3.0, "is_forecast": False}]
+
+            # Primera importación
+            stats1 = await upsert_aemet_rainfall(
+                db, municipio_cod=municipio, records=records
             )
             await db.commit()
 
-            # User 2 should see nothing
-            records_user2 = await list_rainfall_records(db, user_id=2)
-            assert records_user2 == []
+            assert stats1["created"] == 1
+            assert stats1["updated"] == 0
 
-            # User 1 should see their record
-            records_user1 = await list_rainfall_records(db, user_id=1)
-            assert len(records_user1) == 1
+            # Segunda importación: misma fecha, precipitación diferente
+            records2 = [{"date": date, "precipitation_mm": 5.5, "is_forecast": False}]
+            stats2 = await upsert_aemet_rainfall(
+                db, municipio_cod=municipio, records=records2
+            )
+            await db.commit()
+
+            assert stats2["created"] == 0
+            assert stats2["updated"] == 1
+
+            # Solo debe haber 1 registro en la BD
+            from sqlalchemy import select
+
+            result = await db.execute(
+                select(RainfallRecord).where(
+                    RainfallRecord.municipio_cod == municipio,
+                    RainfallRecord.source == "aemet",
+                    RainfallRecord.user_id.is_(None),
+                )
+            )
+            all_records = result.scalars().all()
+            assert len(all_records) == 1
+            assert all_records[0].precipitation_mm == 5.5, (
+                "El upsert debe actualizar el valor existente"
+            )
     finally:
         await engine.dispose()
 
@@ -225,7 +312,7 @@ async def test_list_rainfall_records_by_plot_excludes_municipio(
                 production_start=None,
             )
             plot.provincia_cod = "44"
-            plot.municipio_cod = "210"
+            plot.municipio_cod = "44210"
             await db.commit()
 
             # Registro manual ligado a la parcela
@@ -240,18 +327,18 @@ async def test_list_rainfall_records_by_plot_excludes_municipio(
                 ),
             )
 
-            # Registro ibericam a nivel de municipio (plot_id=None)
-            ibericam = await create_rainfall_record(
-                db,
-                user_id=1,
-                data=RainfallCreate(
-                    municipio_cod="44210",
-                    date=datetime.date(2025, 10, 1),
-                    precipitation_mm=5.0,
-                    source="ibericam",
-                ),
+            # Registro compartido ibericam a nivel de municipio (user_id=None) — inserción directa
+            ibericam = RainfallRecord(
+                user_id=None,
+                municipio_cod="44210",
+                date=datetime.date(2025, 10, 1),
+                precipitation_mm=5.0,
+                source="ibericam",
+                plot_id=None,
             )
+            db.add(ibericam)
             await db.commit()
+            await db.refresh(ibericam)
 
             # Filtro por parcela: solo el registro manual
             by_plot = await list_rainfall_records(db, user_id=1, plot_id=plot.id)
@@ -263,11 +350,11 @@ async def test_list_rainfall_records_by_plot_excludes_municipio(
                 "Registro de municipio NO debe mezclarse al filtrar por parcela"
             )
 
-            # Filtro por municipio: solo el registro ibericam
+            # Filtro por municipio: solo el registro ibericam compartido
             by_mun = await list_rainfall_records(db, user_id=1, municipio_cod="44210")
             ids_by_mun = {r.id for r in by_mun}
             assert ibericam.id in ids_by_mun, (
-                "Registro ibericam debe aparecer al filtrar por municipio"
+                "Registro ibericam compartido debe aparecer al filtrar por municipio"
             )
             assert manual.id not in ids_by_mun, (
                 "Registro de parcela NO debe mezclarse al filtrar por municipio"

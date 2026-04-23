@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import datetime
+import re
+import unicodedata
 from typing import Any, Awaitable, Callable, Optional
 
 import httpx
@@ -96,14 +98,21 @@ class AemetClient:
             params,
         )
 
-        if isinstance(metadata, dict) and metadata.get("datos"):
-            data_url = str(metadata["datos"])
-            return await self._http_get_json(
-                data_url,
-                headers,
-                self.timeout_seconds,
-                None,
-            )
+        if isinstance(metadata, dict):
+            estado = metadata.get("estado")
+            if estado is not None and int(estado) not in (200, 201):
+                descripcion = metadata.get("descripcion", "Error sin descripción")
+                raise RuntimeError(
+                    f"AEMET devolvió error {estado}: {descripcion}"
+                )
+            if metadata.get("datos"):
+                data_url = str(metadata["datos"])
+                return await self._http_get_json(
+                    data_url,
+                    headers,
+                    self.timeout_seconds,
+                    None,
+                )
 
         return metadata
 
@@ -209,7 +218,6 @@ def normalize_daily_precip_records(
 
 async def upsert_aemet_rainfall(
     db: AsyncSession,
-    user_id: int,
     municipio_cod: str,
     records: list[dict[str, Any]],
     *,
@@ -217,6 +225,7 @@ async def upsert_aemet_rainfall(
 ) -> dict[str, int]:
     """Crea o actualiza RainfallRecord con source='aemet' desde registros normalizados.
 
+    Los registros AEMET son globales (user_id=NULL), compartidos entre todos los usuarios.
     Acepta la lista producida por ``normalize_daily_precip_records``.  Solo
     importa registros con ``is_forecast=False`` (observaciones reales).
 
@@ -232,7 +241,7 @@ async def upsert_aemet_rainfall(
     existing_result = await db.execute(
         select(RainfallRecord).where(
             and_(
-                RainfallRecord.user_id == user_id,
+                RainfallRecord.user_id.is_(None),
                 RainfallRecord.municipio_cod == municipio_cod,
                 RainfallRecord.source == "aemet",
                 RainfallRecord.date.in_(dates),
@@ -252,7 +261,7 @@ async def upsert_aemet_rainfall(
         if existing is None:
             db.add(
                 RainfallRecord(
-                    user_id=user_id,
+                    user_id=None,
                     plot_id=None,
                     municipio_cod=municipio_cod,
                     municipio_name=municipio_name,
@@ -274,7 +283,6 @@ async def upsert_aemet_rainfall(
 
 async def import_aemet_rainfall(
     db: AsyncSession,
-    user_id: int,
     *,
     municipio_cod: str,
     municipio_name: Optional[str] = None,
@@ -285,30 +293,153 @@ async def import_aemet_rainfall(
 ) -> dict[str, Any]:
     """Pipeline completo AEMET → rainfall_records.
 
-    Consulta el endpoint de climatología diaria de AEMET para la estación y
-    rango de fechas indicados, y persiste los datos observados en
-    ``rainfall_records`` con ``source='aemet'``.
+    Los registros resultantes son globales (user_id=NULL), compartidos entre
+    todos los usuarios. Consulta el endpoint de climatología diaria de AEMET
+    para la estación y rango de fechas indicados.
+
+    La API de AEMET limita las peticiones a 6 meses (180 días) por consulta,
+    por lo que rangos mayores se dividen automáticamente en chunks.
 
     Devuelve {"created", "updated", "total", "station_code", "municipio_cod"}.
     """
-    fecha_ini = date_from.strftime("%Y-%m-%dT00:00:00UTC")
-    fecha_fin = date_to.strftime("%Y-%m-%dT23:59:59UTC")
-    endpoint = (
-        f"/valores/climatologicos/diarios/datos/"
-        f"fechaini/{fecha_ini}/fechafin/{fecha_fin}/estacion/{station_code}"
-    )
+    _MAX_CHUNK_DAYS = 180
+
+    # Partir el rango en chunks de hasta 180 días
+    chunks: list[tuple[datetime.date, datetime.date]] = []
+    chunk_start = date_from
+    while chunk_start <= date_to:
+        chunk_end = min(
+            chunk_start + datetime.timedelta(days=_MAX_CHUNK_DAYS - 1), date_to
+        )
+        chunks.append((chunk_start, chunk_end))
+        chunk_start = chunk_end + datetime.timedelta(days=1)
+
     active_client = client or AemetClient()
-    payload = await active_client.fetch_dataset(endpoint)
-    normalized = normalize_daily_precip_records(
-        payload,
-        is_forecast=False,
-        default_station_code=station_code,
-    )
+    all_normalized: list[dict[str, Any]] = []
+
+    for chunk_from, chunk_to in chunks:
+        fecha_ini = chunk_from.strftime("%Y-%m-%dT00:00:00UTC")
+        fecha_fin = chunk_to.strftime("%Y-%m-%dT23:59:59UTC")
+        endpoint = (
+            f"/valores/climatologicos/diarios/datos/"
+            f"fechaini/{fecha_ini}/fechafin/{fecha_fin}/estacion/{station_code}"
+        )
+        payload = await active_client.fetch_dataset(endpoint)
+        normalized = normalize_daily_precip_records(
+            payload,
+            is_forecast=False,
+            default_station_code=station_code,
+        )
+        all_normalized.extend(normalized)
+
     result = await upsert_aemet_rainfall(
-        db, user_id, municipio_cod, normalized, municipio_name=municipio_name
+        db, municipio_cod, all_normalized, municipio_name=municipio_name
     )
     return {
         **result,
         "station_code": station_code,
         "municipio_cod": municipio_cod,
     }
+
+
+# ---------------------------------------------------------------------------
+# Descubrimiento dinámico de estación AEMET por municipio
+# ---------------------------------------------------------------------------
+
+# Mapping código provincia (2 dígitos INE) → nombre de provincia AEMET
+PROVINCIA_COD_TO_AEMET: dict[str, str] = {
+    "01": "ALAVA",
+    "02": "ALBACETE",
+    "03": "ALICANTE",
+    "04": "ALMERIA",
+    "05": "AVILA",
+    "06": "BADAJOZ",
+    "07": "ILLES BALEARS",
+    "08": "BARCELONA",
+    "09": "BURGOS",
+    "10": "CACERES",
+    "11": "CADIZ",
+    "12": "CASTELLON",
+    "13": "CIUDAD REAL",
+    "14": "CORDOBA",
+    "15": "A CORUNA",
+    "16": "CUENCA",
+    "17": "GIRONA",
+    "18": "GRANADA",
+    "19": "GUADALAJARA",
+    "20": "GIPUZKOA",
+    "21": "HUELVA",
+    "22": "HUESCA",
+    "23": "JAEN",
+    "24": "LEON",
+    "25": "LLEIDA",
+    "26": "LA RIOJA",
+    "27": "LUGO",
+    "28": "MADRID",
+    "29": "MALAGA",
+    "30": "MURCIA",
+    "31": "NAVARRA",
+    "32": "OURENSE",
+    "33": "ASTURIAS",
+    "34": "PALENCIA",
+    "35": "LAS PALMAS",
+    "36": "PONTEVEDRA",
+    "37": "SALAMANCA",
+    "38": "SANTA CRUZ DE TENERIFE",
+    "39": "CANTABRIA",
+    "40": "SEGOVIA",
+    "41": "SEVILLA",
+    "42": "SORIA",
+    "43": "TARRAGONA",
+    "44": "TERUEL",
+    "45": "TOLEDO",
+    "46": "VALENCIA",
+    "47": "VALLADOLID",
+    "48": "BIZKAIA",
+    "49": "ZAMORA",
+    "50": "ZARAGOZA",
+}
+
+
+def normalize_station_name(name: str) -> str:
+    """Normaliza un nombre de municipio/estación para comparación sin acentos.
+
+    Ejemplos:
+      'Sarrión'              → 'sarrion'
+      'CALAMOCHA, AERÓDROMO' → 'calamocha'  (elimina lo que hay tras la coma)
+      'Alcalá de la Selva'   → 'alcala-de-la-selva'
+    """
+    name = name.split(",")[0].strip()
+    nfkd = unicodedata.normalize("NFKD", name)
+    ascii_str = nfkd.encode("ascii", "ignore").decode("ascii")
+    s = ascii_str.lower().strip()
+    s = re.sub(r"\s+", "-", s)
+    s = re.sub(r"[^a-z0-9-]", "", s)
+    return s
+
+
+def find_aemet_station_for_municipio(
+    all_stations: list[dict],
+    municipio_cod: str,
+    municipio_name: str,
+) -> Optional[str]:
+    """Devuelve el indicativo AEMET si existe una estación en la provincia
+    cuyo nombre coincide con el nombre del municipio (sin acentos). Si no, None.
+
+    Args:
+        all_stations: lista del inventario descargado vía AemetClient.fetch_dataset.
+        municipio_cod: código INE de 5 dígitos (e.g. "44216").
+        municipio_name: nombre del municipio (e.g. "Teruel").
+    """
+    provincia_cod = municipio_cod[:2]
+    provincia_aemet = PROVINCIA_COD_TO_AEMET.get(provincia_cod)
+    if not provincia_aemet:
+        return None
+
+    normalized_muni = normalize_station_name(municipio_name)
+    for station in all_stations:
+        if station.get("provincia", "").upper() != provincia_aemet:
+            continue
+        if normalize_station_name(station.get("nombre", "")) == normalized_muni:
+            return station.get("indicativo")
+    return None
