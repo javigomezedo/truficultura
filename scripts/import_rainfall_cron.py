@@ -207,7 +207,11 @@ async def import_municipio(
         if dry_run:
             log.info(
                 "[DRY-RUN] AEMET %s (%s) → estación=%s (rango %s → %s)",
-                municipio_cod, municipio_name, aemet_indicativo, date_from, date_to,
+                municipio_cod,
+                municipio_name,
+                aemet_indicativo,
+                date_from,
+                date_to,
             )
             return
         try:
@@ -238,7 +242,11 @@ async def import_municipio(
         if dry_run:
             log.info(
                 "[DRY-RUN] Ibericam %s (%s) → slug=%s (mes %s/%s)",
-                municipio_cod, municipio_name, ibericam_slug, date_to.month, date_to.year,
+                municipio_cod,
+                municipio_name,
+                ibericam_slug,
+                date_to.month,
+                date_to.year,
             )
             return
         today = date_to
@@ -288,7 +296,21 @@ async def main(dry_run: bool = False) -> None:
     elif database_url.startswith("postgresql://") and "+asyncpg" not in database_url:
         database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-    engine = create_async_engine(database_url, echo=False)
+    # asyncpg no acepta sslmode= como parámetro de URL; hay que extraerlo y
+    # pasarlo como connect_args={"ssl": True}.
+    from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+
+    parsed = urlparse(database_url)
+    query_params = parse_qs(parsed.query, keep_blank_values=True)
+    sslmode_values = query_params.pop("sslmode", [])
+    ssl_required = any(
+        v in ("require", "verify-ca", "verify-full") for v in sslmode_values
+    )
+    new_query = urlencode({k: v[0] for k, v in query_params.items()})
+    database_url = urlunparse(parsed._replace(query=new_query))
+    connect_args: dict = {"ssl": True} if ssl_required else {}
+
+    engine = create_async_engine(database_url, echo=False, connect_args=connect_args)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)  # type: ignore[call-overload]
 
     today = datetime.date.today()
@@ -340,7 +362,9 @@ async def main(dry_run: bool = False) -> None:
         log.info("Municipios a procesar: %s", municipio_cods)
 
         if dry_run:
-            log.info("[DRY-RUN] Modo simulación activado — no se escribirá nada en la BD.")
+            log.info(
+                "[DRY-RUN] Modo simulación activado — no se escribirá nada en la BD."
+            )
 
         for municipio_cod in municipio_cods:
             municipio_name = municipio_names.get(municipio_cod) or municipio_cod
@@ -365,7 +389,9 @@ async def main(dry_run: bool = False) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Importa lluvia (AEMET / Ibericam) para todos los municipios con parcelas.")
+    parser = argparse.ArgumentParser(
+        description="Importa lluvia (AEMET / Ibericam) para todos los municipios con parcelas."
+    )
     parser.add_argument(
         "--dry-run",
         action="store_true",
