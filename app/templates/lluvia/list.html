@@ -22,12 +22,6 @@
         <a href="/lluvia/nuevo" class="btn btn-outline-primary">
             <i class="bi bi-plus-circle me-1"></i> {{ _("Registro manual") }}
         </a>
-        <a href="/lluvia/importar/ibericam" class="btn btn-outline-secondary">
-            <i class="bi bi-cloud-arrow-down me-1"></i> Importar ibericam
-        </a>
-        <a href="/lluvia/importar/aemet" class="btn btn-outline-secondary">
-            <i class="bi bi-cloud-arrow-down me-1"></i> Importar AEMET
-        </a>
         </div>
     </div>
 
@@ -214,13 +208,17 @@
                             <a href="/lluvia/{{ r.id }}/editar" class="btn btn-sm btn-outline-secondary me-1">
                                 <i class="bi bi-pencil"></i>
                             </a>
-                            {% endif %}
                             <form method="post" action="/lluvia/{{ r.id }}/eliminar" class="d-inline"
                                   onsubmit="return confirm('{{ _('¿Eliminar este registro de lluvia?') }}')">
                                 <button type="submit" class="btn btn-sm btn-outline-danger">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </form>
+                            {% else %}
+                            <span class="text-muted small" title="{{ _('Dato compartido, solo lectura') }}">
+                                <i class="bi bi-lock"></i>
+                            </span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}

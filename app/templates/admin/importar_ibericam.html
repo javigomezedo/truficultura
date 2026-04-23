@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Admin — Importar Ibericam ({{ municipio_name }}){% endblock %}
+
+{% block content %}
+<div class="container-xl py-4">
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <h1 class="mb-0"><i class="bi bi-globe me-2"></i>Importar Ibericam — {{ municipio_name }}</h1>
+        <a href="/admin/lluvia" class="btn btn-outline-secondary btn-sm ms-auto">
+            <i class="bi bi-arrow-left me-1"></i> Volver
+        </a>
+    </div>
+
+    {% if ibericam_hasta %}
+    <div class="alert alert-info mb-4">
+        <i class="bi bi-info-circle me-1"></i>
+        Último dato Ibericam disponible: <strong>{{ ibericam_hasta.strftime('%d/%m/%Y') }}</strong>.
+    </div>
+    {% else %}
+    <div class="alert alert-warning mb-4">
+        <i class="bi bi-exclamation-triangle me-1"></i>
+        No hay datos Ibericam previos para este municipio.
+    </div>
+    {% endif %}
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form id="ibericamImportForm" onsubmit="return submitImport(event)">
+                <input type="hidden" name="municipio_cod" value="{{ municipio_cod }}">
+                <input type="hidden" name="municipio_name" value="{{ municipio_name }}">
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="station_slug" class="form-label fw-semibold">
+                            Slug estación Ibericam <span class="text-danger">*</span>
+                        </label>
+                        {% if known_stations %}
+                        <select class="form-select" id="station_slug" name="station_slug" required>
+                            {% for slug in known_stations %}
+                            <option value="{{ slug }}">{{ slug }}</option>
+                            {% endfor %}
+                        </select>
+                        {% else %}
+                        <input type="text" class="form-control" id="station_slug" name="station_slug"
+                               placeholder="ej: nombre-municipio" required>
+                        {% endif %}
+                        <div class="form-text">Parte final de la URL de ibericam.com para esta estación.</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="date_from" class="form-label fw-semibold">Fecha desde <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="date_from" name="date_from"
+                               value="{{ default_date_from }}" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="date_to" class="form-label fw-semibold">Fecha hasta <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="date_to" name="date_to"
+                               value="{{ default_date_to }}" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary mt-3" id="importBtn">
+                    <span id="importSpinner" class="spinner-border spinner-border-sm me-1" role="status" style="display:none;"></span>
+                    <i id="importIcon" class="bi bi-cloud-arrow-down me-1"></i>
+                    Importar
+                </button>
+            </form>
+            <div id="importResult" class="mt-4" style="display:none;"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function submitImport(event) {
+    event.preventDefault();
+    const form = document.getElementById('ibericamImportForm');
+    const resultDiv = document.getElementById('importResult');
+    const btn = document.getElementById('importBtn');
+    const spinner = document.getElementById('importSpinner');
+    const icon = document.getElementById('importIcon');
+
+    resultDiv.style.display = 'none';
+    resultDiv.innerHTML = '';
+    btn.disabled = true;
+    spinner.style.display = 'inline-block';
+    icon.style.display = 'none';
+
+    const formData = new FormData(form);
+
+    fetch('/admin/lluvia/{{ municipio_cod }}/importar/ibericam', {
+        method: 'POST',
+        body: formData,
+        headers: {'X-Requested-With': 'XMLHttpRequest'}
+    })
+    .then(resp => resp.json().then(data => ({ ok: resp.ok, data })))
+    .then(({ ok, data }) => {
+        resultDiv.style.display = 'block';
+        if (data.ok) {
+            resultDiv.innerHTML =
+                '<div class="alert alert-success">' +
+                '<i class="bi bi-check-circle me-1"></i>' +
+                '<strong>Importación completada.</strong> ' +
+                'Creados: ' + data.created + ' · Actualizados: ' + data.updated + ' · Total: ' + data.total +
+                '</div>';
+        } else {
+            resultDiv.innerHTML =
+                '<div class="alert alert-danger">' +
+                '<i class="bi bi-x-circle me-1"></i>' +
+                '<strong>Error:</strong> ' + (data.error || 'Error desconocido') +
+                '</div>';
+        }
+    })
+    .catch(err => {
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = '<div class="alert alert-danger">Error de red: ' + err + '</div>';
+    })
+    .finally(() => {
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        icon.style.display = 'inline-block';
+    });
+
+    return false;
+}
+</script>
+{% endblock %}

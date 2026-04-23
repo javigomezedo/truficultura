@@ -217,6 +217,15 @@
                         {% endfor %}
                     </select>
                 </div>
+                <div class="tf-filter-item tf-filter-item--compact">
+                    <label class="form-label">{{ _("Fuente") }}</label>
+                    <select name="source" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">{{ _("Todas las fuentes") }}</option>
+                        <option value="manual" {% if selected_source == "manual" %}selected{% endif %}>{{ _("Manual") }}</option>
+                        <option value="aemet" {% if selected_source == "aemet" %}selected{% endif %}>AEMET</option>
+                        <option value="ibericam" {% if selected_source == "ibericam" %}selected{% endif %}>Ibericam</option>
+                    </select>
+                </div>
             </form>
         </div>
     </div>

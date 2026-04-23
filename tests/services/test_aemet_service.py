@@ -135,13 +135,14 @@ async def test_upsert_aemet_rainfall_creates_new_rainfall_records() -> None:
             "is_forecast": False,
         },
     ]
-    stats = await upsert_aemet_rainfall(
-        db, user_id=1, municipio_cod="44210", records=records
-    )
+    stats = await upsert_aemet_rainfall(db, municipio_cod="44210", records=records)
 
     assert stats == {"created": 2, "updated": 0, "total": 2}
     assert db.add.call_count == 2
     db.flush.assert_awaited_once()
+    # Los registros creados son globales (user_id=None)
+    added: RainfallRecord = db.add.call_args_list[0].args[0]
+    assert added.user_id is None
 
 
 @pytest.mark.asyncio
@@ -161,9 +162,7 @@ async def test_upsert_aemet_rainfall_updates_existing_record() -> None:
             "is_forecast": False,
         }
     ]
-    stats = await upsert_aemet_rainfall(
-        db, user_id=1, municipio_cod="44210", records=records
-    )
+    stats = await upsert_aemet_rainfall(db, municipio_cod="44210", records=records)
 
     assert stats == {"created": 0, "updated": 1, "total": 1}
     assert existing.precipitation_mm == pytest.approx(7.5)
@@ -189,9 +188,7 @@ async def test_upsert_aemet_rainfall_skips_forecasts() -> None:
             "is_forecast": False,
         },
     ]
-    stats = await upsert_aemet_rainfall(
-        db, user_id=1, municipio_cod="44210", records=records
-    )
+    stats = await upsert_aemet_rainfall(db, municipio_cod="44210", records=records)
 
     assert stats["total"] == 1
     assert stats["created"] == 1
@@ -203,9 +200,7 @@ async def test_upsert_aemet_rainfall_empty_returns_zeros() -> None:
     db.execute = AsyncMock(return_value=result([]))
     db.flush = AsyncMock()
 
-    stats = await upsert_aemet_rainfall(
-        db, user_id=1, municipio_cod="44210", records=[]
-    )
+    stats = await upsert_aemet_rainfall(db, municipio_cod="44210", records=[])
 
     assert stats == {"created": 0, "updated": 0, "total": 0}
     db.flush.assert_not_awaited()

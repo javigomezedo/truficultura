@@ -476,3 +476,69 @@ def test_admin_activate_user_success() -> None:
     assert response.status_code == 303
     assert user.is_active is True
     db.commit.assert_awaited_once()
+
+
+def test_admin_lluvia_importar_ibericam_form_uses_sitemap(monkeypatch) -> None:
+    """Cuando el municipio no está en el dict estático, busca en el sitemap."""
+    import app.routers.admin as admin_mod
+
+    db = _fake_db()
+    # Overview con nombre del municipio para que find_ibericam_slug_for_municipio funcione
+    monkeypatch.setattr(
+        admin_mod,
+        "get_admin_rainfall_overview",
+        AsyncMock(
+            return_value=[
+                {
+                    "municipio_cod": "44158",
+                    "municipio_name": "Mora De Rubielos",
+                    "aemet_hasta": None,
+                    "ibericam_hasta": None,
+                }
+            ]
+        ),
+    )
+    # Simula el sitemap devolviendo el slug de mora-de-rubielos
+    monkeypatch.setattr(
+        admin_mod,
+        "fetch_ibericam_sitemap_slugs",
+        AsyncMock(return_value={"mora-de-rubielos", "sarrion"}),
+    )
+
+    app.dependency_overrides[require_admin] = _admin_user
+    app.dependency_overrides[get_db] = lambda: db
+    try:
+        client = TestClient(app)
+        response = client.get("/admin/lluvia/44158/importar/ibericam")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert "mora-de-rubielos" in response.text
+
+
+def test_admin_lluvia_importar_ibericam_form_sitemap_error_graceful(monkeypatch) -> None:
+    """Si el sitemap falla, el formulario se muestra igualmente con campo vacío."""
+    import app.routers.admin as admin_mod
+
+    db = _fake_db()
+    monkeypatch.setattr(
+        admin_mod,
+        "get_admin_rainfall_overview",
+        AsyncMock(return_value=[]),
+    )
+    monkeypatch.setattr(
+        admin_mod,
+        "fetch_ibericam_sitemap_slugs",
+        AsyncMock(side_effect=Exception("timeout")),
+    )
+
+    app.dependency_overrides[require_admin] = _admin_user
+    app.dependency_overrides[get_db] = lambda: db
+    try:
+        client = TestClient(app)
+        response = client.get("/admin/lluvia/44999/importar/ibericam")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200

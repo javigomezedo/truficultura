@@ -7,6 +7,8 @@ import pytest
 
 from app.models.rainfall import RainfallRecord
 from app.services.ibericam_service import (
+    fetch_ibericam_sitemap_slugs,
+    find_ibericam_slug_for_municipio,
     import_ibericam_rainfall,
     parse_ibericam_response,
     scrape_ibericam_stations,
@@ -76,9 +78,7 @@ async def test_upsert_ibericam_rainfall_creates_new_records() -> None:
         (datetime.date(2026, 4, 1), 0.0),
         (datetime.date(2026, 4, 2), 5.2),
     ]
-    stats = await upsert_ibericam_rainfall(
-        db, user_id=1, municipio_cod="44216", records=records
-    )
+    stats = await upsert_ibericam_rainfall(db, municipio_cod="44216", records=records)
 
     assert stats["created"] == 2
     assert stats["updated"] == 0
@@ -86,9 +86,9 @@ async def test_upsert_ibericam_rainfall_creates_new_records() -> None:
     assert db.add.call_count == 2
     db.flush.assert_called_once()
 
-    # Verificar que los objetos creados tienen los campos correctos
+    # Verificar que los objetos creados son globales (user_id=None)
     added: RainfallRecord = db.add.call_args_list[0].args[0]
-    assert added.user_id == 1
+    assert added.user_id is None
     assert added.municipio_cod == "44216"
     assert added.source == "ibericam"
     assert added.plot_id is None
@@ -108,9 +108,7 @@ async def test_upsert_ibericam_rainfall_updates_existing_records() -> None:
     db.flush = AsyncMock()
 
     records = [(datetime.date(2026, 4, 1), 9.9)]
-    stats = await upsert_ibericam_rainfall(
-        db, user_id=1, municipio_cod="44216", records=records
-    )
+    stats = await upsert_ibericam_rainfall(db, municipio_cod="44216", records=records)
 
     assert stats["created"] == 0
     assert stats["updated"] == 1
@@ -125,9 +123,7 @@ async def test_upsert_ibericam_rainfall_empty_input_returns_zeros() -> None:
     db.execute = AsyncMock(return_value=result([]))
     db.flush = AsyncMock()
 
-    stats = await upsert_ibericam_rainfall(
-        db, user_id=1, municipio_cod="44216", records=[]
-    )
+    stats = await upsert_ibericam_rainfall(db, municipio_cod="44216", records=[])
 
     assert stats == {"created": 0, "updated": 0, "total": 0}
     db.execute.assert_not_called()
@@ -161,7 +157,6 @@ async def test_import_ibericam_rainfall_calls_pipeline() -> None:
 
     stats = await import_ibericam_rainfall(
         db,
-        user_id=1,
         station_slug="sarrion",
         municipio_cod="44216",
         year=2026,
@@ -171,6 +166,48 @@ async def test_import_ibericam_rainfall_calls_pipeline() -> None:
 
     assert stats["created"] == 2
     assert stats["total"] == 2
+
+
+@pytest.mark.asyncio
+async def test_import_ibericam_rainfall_date_range_iterates_months() -> None:
+    """Con date_from/date_to itera mes a mes y filtra al rango."""
+    calls: list[dict] = []
+
+    async def fake_post(url: str, body: dict, timeout: float) -> list:
+        calls.append(dict(body))
+        if body.get("month") == "03":
+            return [
+                {"labels": "2026-03-15", "input": "5.0"},
+                {"labels": "2026-03-31", "input": "2.0"},
+            ]
+        if body.get("month") == "04":
+            return [
+                {"labels": "2026-04-01", "input": "3.0"},
+                {"labels": "2026-04-30", "input": "1.0"},  # fuera del rango date_to
+            ]
+        return []
+
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+    db.add = MagicMock()
+    db.flush = AsyncMock()
+
+    stats = await import_ibericam_rainfall(
+        db,
+        station_slug="sarrion",
+        municipio_cod="44216",
+        date_from=datetime.date(2026, 3, 15),
+        date_to=datetime.date(2026, 4, 10),
+        http_post_json=fake_post,
+    )
+
+    # Debe haber llamado a marzo y abril
+    assert len(calls) == 2
+    assert any(c.get("month") == "03" for c in calls)
+    assert any(c.get("month") == "04" for c in calls)
+    # 2026-03-15, 2026-03-31, 2026-04-01 están en el rango; 2026-04-30 queda fuera
+    assert stats["created"] == 3
+    assert stats["total"] == 3
 
 
 # ---------------------------------------------------------------------------
@@ -292,3 +329,87 @@ async def test_scrape_ibericam_stations_probe_error_skips_station() -> None:
     sarrion_entry = next(s for s in stations if s["slug"] == "sarrion")
     assert sarrion_entry["num_records"] == 0
     assert sarrion_entry["last_date"] is None
+
+
+# ---------------------------------------------------------------------------
+# fetch_ibericam_sitemap_slugs
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_fetch_ibericam_sitemap_slugs_returns_slugs() -> None:
+    xml = (
+        "<urlset>"
+        "<url><loc>https://ibericam.com/lugar_webcam_el_tiempo/mora-de-rubielos/</loc></url>"
+        "<url><loc>https://ibericam.com/lugar_webcam_el_tiempo/sarrion/</loc></url>"
+        "</urlset>"
+    )
+
+    async def fake_get(url: str, timeout: float) -> str:
+        return xml
+
+    slugs = await fetch_ibericam_sitemap_slugs(http_get_text=fake_get)
+    assert "mora-de-rubielos" in slugs
+    assert "sarrion" in slugs
+
+
+@pytest.mark.asyncio
+async def test_fetch_ibericam_sitemap_slugs_filters_non_station() -> None:
+    from app.services.ibericam_service import _NON_STATION_SLUGS
+
+    non_station = next(iter(_NON_STATION_SLUGS))
+    xml = (
+        "<urlset>"
+        f"<url><loc>https://ibericam.com/lugar_webcam_el_tiempo/{non_station}/</loc></url>"
+        "<url><loc>https://ibericam.com/lugar_webcam_el_tiempo/sarrion/</loc></url>"
+        "</urlset>"
+    )
+
+    async def fake_get(url: str, timeout: float) -> str:
+        return xml
+
+    slugs = await fetch_ibericam_sitemap_slugs(http_get_text=fake_get)
+    assert non_station not in slugs
+    assert "sarrion" in slugs
+
+
+# ---------------------------------------------------------------------------
+# find_ibericam_slug_for_municipio
+# ---------------------------------------------------------------------------
+
+
+def test_find_ibericam_slug_for_municipio_found() -> None:
+    slugs = {"mora-de-rubielos", "sarrion", "alcala-de-la-selva"}
+    assert (
+        find_ibericam_slug_for_municipio(slugs, "Mora de Rubielos")
+        == "mora-de-rubielos"
+    )
+
+
+def test_find_ibericam_slug_for_municipio_with_accent() -> None:
+    slugs = {"sarrion", "alcala-de-la-selva"}
+    assert find_ibericam_slug_for_municipio(slugs, "Sarrión") == "sarrion"
+
+
+def test_find_ibericam_slug_for_municipio_not_found() -> None:
+    slugs = {"sarrion", "alcala-de-la-selva"}
+    assert find_ibericam_slug_for_municipio(slugs, "Teruel") is None
+
+
+def test_find_ibericam_slug_for_municipio_strips_comma_suffix() -> None:
+    slugs = {"cabra-de-mora"}
+    assert (
+        find_ibericam_slug_for_municipio(slugs, "Cabra de Mora, pedanía")
+        == "cabra-de-mora"
+    )
+
+
+@pytest.mark.asyncio
+async def test_fetch_ibericam_sitemap_slugs_empty_xml() -> None:
+    """Sitemap sin URLs devuelve conjunto vacío."""
+
+    async def fake_get(url: str, timeout: float) -> str:
+        return "<urlset></urlset>"
+
+    slugs = await fetch_ibericam_sitemap_slugs(http_get_text=fake_get)
+    assert slugs == set()

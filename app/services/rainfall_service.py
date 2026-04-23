@@ -32,6 +32,15 @@ def resolve_municipio_cod(plot: Plot) -> Optional[str]:
     return municipio_cod
 
 
+def _full_municipio_cod(provincia_cod: Optional[str], municipio_cod: Optional[str]) -> Optional[str]:
+    """Igual que resolve_municipio_cod pero acepta strings sueltos."""
+    if not municipio_cod:
+        return None
+    if provincia_cod and len(municipio_cod) <= 3:
+        return f"{provincia_cod}{municipio_cod.zfill(3)}"
+    return municipio_cod
+
+
 def select_best_rainfall_per_day(
     records: list[RainfallRecord],
     plot_id: int,
@@ -72,10 +81,16 @@ def select_best_rainfall_per_day(
 async def get_rainfall_record(
     db: AsyncSession, record_id: int, user_id: int
 ) -> Optional[RainfallRecord]:
+    """Devuelve el registro si pertenece al usuario O es compartido (user_id=NULL)."""
+    from sqlalchemy import or_
+
     result = await db.execute(
         select(RainfallRecord).where(
             RainfallRecord.id == record_id,
-            RainfallRecord.user_id == user_id,
+            or_(
+                RainfallRecord.user_id == user_id,
+                RainfallRecord.user_id.is_(None),
+            ),
         )
     )
     return result.scalar_one_or_none()
@@ -90,7 +105,42 @@ async def list_rainfall_records(
     year: Optional[int] = None,
     source: Optional[str] = None,
 ) -> list[RainfallRecord]:
-    stmt = select(RainfallRecord).where(RainfallRecord.user_id == user_id)
+    """Lista los registros de lluvia visibles para el usuario:
+    - Registros manuales del usuario (user_id == X)
+    - Registros compartidos AEMET/Ibericam (user_id IS NULL) de los municipios
+      de las parcelas del usuario.
+    """
+    from sqlalchemy import and_, or_
+
+    # Obtener los municipio_cod de las parcelas del usuario para filtrar shared records.
+    # Normalizar a código INE de 5 dígitos (misma lógica que resolve_municipio_cod).
+    plots_result = await db.execute(
+        select(Plot.provincia_cod, Plot.municipio_cod)
+        .where(
+            Plot.user_id == user_id,
+            Plot.municipio_cod.isnot(None),
+            Plot.municipio_cod != "",
+        )
+        .distinct()
+    )
+    user_municipio_cods = list({
+        full for row in plots_result.all()
+        if (full := _full_municipio_cod(row.provincia_cod, row.municipio_cod))
+    })
+
+    if user_municipio_cods:
+        visibility_clause = or_(
+            RainfallRecord.user_id == user_id,
+            and_(
+                RainfallRecord.user_id.is_(None),
+                RainfallRecord.municipio_cod.in_(user_municipio_cods),
+            ),
+        )
+    else:
+        visibility_clause = RainfallRecord.user_id == user_id
+
+    stmt = select(RainfallRecord).where(visibility_clause)
+
     if plot_id is not None:
         stmt = stmt.where(RainfallRecord.plot_id == plot_id)
     if municipio_cod is not None:
@@ -108,9 +158,34 @@ async def list_rainfall_records(
 
 
 async def _get_all_years(db: AsyncSession, user_id: int) -> list[int]:
-    result = await db.execute(
-        select(RainfallRecord.date).where(RainfallRecord.user_id == user_id)
+    from sqlalchemy import and_, or_
+
+    plots_result = await db.execute(
+        select(Plot.provincia_cod, Plot.municipio_cod)
+        .where(
+            Plot.user_id == user_id,
+            Plot.municipio_cod.isnot(None),
+            Plot.municipio_cod != "",
+        )
+        .distinct()
     )
+    user_municipio_cods = list({
+        full for row in plots_result.all()
+        if (full := _full_municipio_cod(row.provincia_cod, row.municipio_cod))
+    })
+
+    if user_municipio_cods:
+        clause = or_(
+            RainfallRecord.user_id == user_id,
+            and_(
+                RainfallRecord.user_id.is_(None),
+                RainfallRecord.municipio_cod.in_(user_municipio_cods),
+            ),
+        )
+    else:
+        clause = RainfallRecord.user_id == user_id
+
+    result = await db.execute(select(RainfallRecord.date).where(clause))
     dates = result.scalars().all()
     return sorted({campaign_year(d) for d in dates}, reverse=True)
 
@@ -123,21 +198,45 @@ async def _get_user_plots(db: AsyncSession, user_id: int) -> list[Plot]:
 
 
 async def _get_user_municipios(db: AsyncSession, user_id: int) -> list[dict]:
-    result = await db.execute(
-        select(RainfallRecord.municipio_cod, RainfallRecord.municipio_name)
+    """Devuelve los municipios de las parcelas del usuario, enriquecidos con el
+    nombre resuelto desde los registros de lluvia compartidos o el dict de ibericam."""
+    # 1. Municipio_cod de parcelas del usuario (normalizado a 5 dígitos).
+    plots_result = await db.execute(
+        select(Plot.provincia_cod, Plot.municipio_cod)
         .where(
-            RainfallRecord.user_id == user_id,
-            RainfallRecord.municipio_cod.isnot(None),
-            RainfallRecord.municipio_cod != "",
+            Plot.user_id == user_id,
+            Plot.municipio_cod.isnot(None),
+            Plot.municipio_cod != "",
         )
         .distinct()
-        .order_by(RainfallRecord.municipio_cod)
     )
-    seen: dict[str, str] = {}  # cod → display name
-    for cod, name in result.all():
-        if cod not in seen:
-            seen[cod] = name or MUNICIPIO_COD_TO_NAME.get(cod) or cod
-    return [{"cod": cod, "name": name} for cod, name in sorted(seen.items())]
+    plot_cods = {
+        full for row in plots_result.all()
+        if (full := _full_municipio_cod(row.provincia_cod, row.municipio_cod))
+    }
+
+    if not plot_cods:
+        return []
+
+    # 2. Buscar nombres en rainfall_records compartidos
+    names_result = await db.execute(
+        select(RainfallRecord.municipio_cod, RainfallRecord.municipio_name)
+        .where(
+            RainfallRecord.user_id.is_(None),
+            RainfallRecord.municipio_cod.in_(plot_cods),
+            RainfallRecord.municipio_name.isnot(None),
+        )
+        .distinct()
+    )
+    name_map: dict[str, str] = {}
+    for cod, name in names_result.all():
+        if cod not in name_map and name:
+            name_map[cod] = name
+
+    seen: dict[str, str] = {}
+    for cod in sorted(plot_cods):
+        seen[cod] = name_map.get(cod) or MUNICIPIO_COD_TO_NAME.get(cod) or cod
+    return [{"cod": cod, "name": name} for cod, name in seen.items()]
 
 
 async def get_rainfall_list_context(
@@ -217,11 +316,16 @@ async def get_rainfall_for_plot_on_date(
     if record is not None:
         return record
 
-    # 2. Fallback: registro a nivel de municipio
+    # 2. Fallback: registro a nivel de municipio (manual del usuario o compartido)
     if plot.municipio_cod:
+        from sqlalchemy import or_
+
         result = await db.execute(
             select(RainfallRecord).where(
-                RainfallRecord.user_id == user_id,
+                or_(
+                    RainfallRecord.user_id == user_id,
+                    RainfallRecord.user_id.is_(None),
+                ),
                 RainfallRecord.plot_id.is_(None),
                 RainfallRecord.municipio_cod == plot.municipio_cod,
                 RainfallRecord.date == date,
@@ -235,6 +339,12 @@ async def get_rainfall_for_plot_on_date(
 async def create_rainfall_record(
     db: AsyncSession, user_id: int, data: RainfallCreate
 ) -> RainfallRecord:
+    # Solo se pueden crear registros manuales desde la UI de usuario
+    if data.source != "manual":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=_("Solo se pueden crear registros de tipo manual"),
+        )
     # Si se especifica plot_id, verificar que pertenece al usuario
     if data.plot_id is not None:
         plot_result = await db.execute(
@@ -270,6 +380,13 @@ async def update_rainfall_record(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=_("Registro de lluvia no encontrado"),
         )
+    if record.user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=_(
+                "Los registros compartidos (AEMET/Ibericam) no se pueden modificar"
+            ),
+        )
 
     update_data = data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
@@ -288,6 +405,13 @@ async def delete_rainfall_record(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=_("Registro de lluvia no encontrado"),
+        )
+    if record.user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=_(
+                "Los registros compartidos (AEMET/Ibericam) no se pueden eliminar"
+            ),
         )
     await db.delete(record)
     await db.flush()
@@ -408,6 +532,7 @@ async def get_rainfall_calendar_context(
     year: int,
     plot_id: Optional[int] = None,
     municipio_cod: Optional[str] = None,
+    source: Optional[str] = None,
 ) -> dict:
     """
     Devuelve el contexto necesario para renderizar el calendario de lluvia
@@ -422,6 +547,7 @@ async def get_rainfall_calendar_context(
         user_id,
         plot_id=plot_id,
         municipio_cod=municipio_cod,
+        source=source,
         year=year,
     )
 
@@ -443,7 +569,11 @@ async def get_rainfall_calendar_context(
 
     months = _build_calendar_months(year, rain_by_date, area_ha=area_ha)
     total_mm = round(sum(m["total_mm"] for m in months), 1)
-    total_m3 = round(sum(m["total_m3"] for m in months if m["total_m3"] is not None), 1) if area_ha is not None else None
+    total_m3 = (
+        round(sum(m["total_m3"] for m in months if m["total_m3"] is not None), 1)
+        if area_ha is not None
+        else None
+    )
     rain_days = sum(m["rain_days"] for m in months)
 
     plots = await _get_user_plots(db, user_id)
@@ -460,6 +590,7 @@ async def get_rainfall_calendar_context(
         "selected_year": year,
         "selected_plot": plot_id,
         "selected_municipio": municipio_cod,
+        "selected_source": source,
         "plots": plots,
         "years": years,
         "municipios": municipios,

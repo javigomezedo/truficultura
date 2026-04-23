@@ -39,7 +39,7 @@ class RainfallUpdate(BaseModel):
 
 class RainfallResponse(RainfallBase):
     id: int
-    user_id: int
+    user_id: Optional[int]
     plot_name: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)

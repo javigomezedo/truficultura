@@ -194,6 +194,12 @@
                                     <i class="bi bi-people me-1"></i> {{ _("Usuarios") }}
                                 </a>
                             </li>
+                            <li>
+                                <a class="dropdown-item {% if '/admin/lluvia' in request.url.path %}active{% endif %}"
+                                   href="/admin/lluvia">
+                                    <i class="bi bi-cloud-rain me-1"></i> {{ _("Lluvia compartida") }}
+                                </a>
+                            </li>
                         </ul>
                     </li>
                     {% endif %}
