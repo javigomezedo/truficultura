@@ -713,6 +713,7 @@ async def seed(args: argparse.Namespace) -> SeedSummary:
                 rng.randint(1, 28),
             )
             has_irrigation = rng.random() < 0.85
+            caudal_riego = round(rng.uniform(3.0, 20.0), 1) if has_irrigation else None
 
             plot = Plot(
                 user_id=uid,
@@ -728,6 +729,7 @@ async def seed(args: argparse.Namespace) -> SeedSummary:
                 production_start=production_start,
                 percentage=0.0,
                 has_irrigation=has_irrigation,
+                caudal_riego=caudal_riego,
             )
             session.add(plot)
             await session.flush()

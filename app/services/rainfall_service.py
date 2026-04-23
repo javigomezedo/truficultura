@@ -14,6 +14,60 @@ from app.schemas.rainfall import RainfallCreate, RainfallUpdate
 from app.services.ibericam_service import MUNICIPIO_COD_TO_NAME
 from app.utils import campaign_year
 
+# Prioridad de fuente: menor número = mayor prioridad.
+# 0: registro manual directo de la parcela (plot_id asignado)
+# 1: municipio vía AEMET
+# 2: municipio vía Ibericam
+_SOURCE_PRIORITY: dict[str, int] = {"aemet": 1, "ibericam": 2}
+_PRIORITY_SOURCE: dict[int, str] = {v: k for k, v in _SOURCE_PRIORITY.items()}
+
+
+def resolve_municipio_cod(plot: Plot) -> Optional[str]:
+    """Devuelve el código INE de municipio normalizado a 5 dígitos, o None."""
+    municipio_cod = plot.municipio_cod
+    if not municipio_cod:
+        return None
+    if plot.provincia_cod and len(municipio_cod) <= 3:
+        return f"{plot.provincia_cod}{municipio_cod.zfill(3)}"
+    return municipio_cod
+
+
+def select_best_rainfall_per_day(
+    records: list[RainfallRecord],
+    plot_id: int,
+    municipio_cod: Optional[str],
+) -> dict[datetime.date, tuple[float, str]]:
+    """Dado un conjunto de RainfallRecords (mezcla de parcela y municipio),
+    devuelve {date: (precipitation_mm, source_label)} eligiendo el mejor
+    registro por día según la prioridad:
+
+      0 → "manual"  : registro con plot_id = plot_id (medición directa)
+      1 → "aemet"   : registro de municipio con source='aemet'
+      2 → "ibericam": registro de municipio con source='ibericam'
+
+    Si hay varios registros a la misma prioridad en el mismo día, gana el primero.
+    """
+    best: dict[datetime.date, tuple[int, float]] = {}  # {date: (prio, mm)}
+
+    for r in records:
+        if r.plot_id == plot_id:
+            prio = 0  # medición directa de la parcela
+        elif r.plot_id is None and municipio_cod and r.municipio_cod == municipio_cod:
+            prio = _SOURCE_PRIORITY.get(r.source, 99)
+            if prio == 99:
+                continue  # fuente desconocida
+        else:
+            continue  # no aplica a esta parcela
+
+        current = best.get(r.date)
+        if current is None or prio < current[0]:
+            best[r.date] = (prio, r.precipitation_mm)
+
+    return {
+        d: (mm, "manual" if prio == 0 else _PRIORITY_SOURCE[prio])
+        for d, (prio, mm) in best.items()
+    }
+
 
 async def get_rainfall_record(
     db: AsyncSession, record_id: int, user_id: int
@@ -237,4 +291,3 @@ async def delete_rainfall_record(
         )
     await db.delete(record)
     await db.flush()
-

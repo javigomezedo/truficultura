@@ -21,7 +21,14 @@ from tests.conftest import result
 @pytest.mark.asyncio
 async def test_get_campaign_dataset_aggregates_metrics() -> None:
     plot = SimpleNamespace(
-        id=1, user_id=1, name="Parcela A", num_plants=100, has_irrigation=True
+        id=1,
+        user_id=1,
+        name="Parcela A",
+        num_plants=100,
+        has_irrigation=True,
+        area_ha=None,
+        municipio_cod=None,
+        provincia_cod=None,
     )
     income = SimpleNamespace(
         user_id=1, plot_id=1, date=datetime.date(2025, 6, 1), amount_kg=50.0
@@ -47,6 +54,7 @@ async def test_get_campaign_dataset_aggregates_metrics() -> None:
             result([irrigation]),
             result([well]),
             result([event_poda, event_labrado]),
+            result([]),  # rainfall query
         ]
     )
 
@@ -66,7 +74,14 @@ async def test_get_campaign_dataset_aggregates_metrics() -> None:
 @pytest.mark.asyncio
 async def test_get_campaign_dataset_filters_campaign_range() -> None:
     plot = SimpleNamespace(
-        id=1, user_id=1, name="Parcela A", num_plants=100, has_irrigation=True
+        id=1,
+        user_id=1,
+        name="Parcela A",
+        num_plants=100,
+        has_irrigation=True,
+        area_ha=None,
+        municipio_cod=None,
+        provincia_cod=None,
     )
     income_2025 = SimpleNamespace(
         user_id=1, plot_id=1, date=datetime.date(2025, 6, 1), amount_kg=50.0
@@ -83,6 +98,7 @@ async def test_get_campaign_dataset_filters_campaign_range() -> None:
             result([]),
             result([]),
             result([]),
+            result([]),  # rainfall query
         ]
     )
 
@@ -98,7 +114,14 @@ async def test_get_irrigation_vs_production_analysis() -> None:
 
     # Reuse get_campaign_dataset via mocked DB calls (plots, incomes, irrigation, wells, events)
     plot = SimpleNamespace(
-        id=1, user_id=1, name="Parcela A", num_plants=100, has_irrigation=True
+        id=1,
+        user_id=1,
+        name="Parcela A",
+        num_plants=100,
+        has_irrigation=True,
+        area_ha=None,
+        municipio_cod=None,
+        provincia_cod=None,
     )
     incomes = [
         SimpleNamespace(
@@ -124,6 +147,7 @@ async def test_get_irrigation_vs_production_analysis() -> None:
             result(irrigation),
             result([]),
             result([]),
+            result([]),  # rainfall query
         ]
     )
 
@@ -138,7 +162,14 @@ async def test_get_irrigation_vs_production_analysis() -> None:
 @pytest.mark.asyncio
 async def test_get_pruning_vs_production_analysis() -> None:
     plot = SimpleNamespace(
-        id=1, user_id=1, name="Parcela A", num_plants=100, has_irrigation=True
+        id=1,
+        user_id=1,
+        name="Parcela A",
+        num_plants=100,
+        has_irrigation=True,
+        area_ha=None,
+        municipio_cod=None,
+        provincia_cod=None,
     )
     income_a = SimpleNamespace(
         user_id=1, plot_id=1, date=datetime.date(2025, 6, 1), amount_kg=80.0
@@ -158,6 +189,7 @@ async def test_get_pruning_vs_production_analysis() -> None:
             result([]),
             result([]),
             result([event_pruning]),
+            result([]),  # rainfall query
         ]
     )
 
@@ -172,7 +204,14 @@ async def test_get_pruning_vs_production_analysis() -> None:
 @pytest.mark.asyncio
 async def test_get_tilling_digging_vs_production_analysis() -> None:
     plot = SimpleNamespace(
-        id=1, user_id=1, name="Parcela A", num_plants=100, has_irrigation=True
+        id=1,
+        user_id=1,
+        name="Parcela A",
+        num_plants=100,
+        has_irrigation=True,
+        area_ha=None,
+        municipio_cod=None,
+        provincia_cod=None,
     )
     incomes = [
         SimpleNamespace(
@@ -199,6 +238,7 @@ async def test_get_tilling_digging_vs_production_analysis() -> None:
             result([]),
             result([]),
             result(events),
+            result([]),  # rainfall query
         ]
     )
 
@@ -212,7 +252,14 @@ async def test_get_tilling_digging_vs_production_analysis() -> None:
 @pytest.mark.asyncio
 async def test_detect_irrigation_thresholds() -> None:
     plot = SimpleNamespace(
-        id=1, user_id=1, name="Parcela A", num_plants=100, has_irrigation=True
+        id=1,
+        user_id=1,
+        name="Parcela A",
+        num_plants=100,
+        has_irrigation=True,
+        area_ha=None,
+        municipio_cod=None,
+        provincia_cod=None,
     )
     incomes = [
         SimpleNamespace(
@@ -245,6 +292,7 @@ async def test_detect_irrigation_thresholds() -> None:
             result(irrigation),
             result([]),
             result([]),
+            result([]),  # rainfall query
         ]
     )
 
@@ -264,6 +312,9 @@ async def test_get_plot_detail_context_found() -> None:
         num_plants=100,
         has_irrigation=True,
         sector="A",
+        area_ha=None,
+        municipio_cod=None,
+        provincia_cod=None,
     )
     income = SimpleNamespace(
         user_id=1, plot_id=10, date=datetime.date(2025, 6, 1), amount_kg=42.0
@@ -281,6 +332,7 @@ async def test_get_plot_detail_context_found() -> None:
             result([irrigation]),
             result([]),
             result([]),
+            result([]),  # rainfall query
         ]
     )
 
@@ -310,10 +362,24 @@ async def test_get_plot_detail_context_not_found() -> None:
 @pytest.mark.asyncio
 async def test_get_multi_plot_comparison() -> None:
     plot_a = SimpleNamespace(
-        id=1, user_id=1, name="Parcela A", num_plants=100, has_irrigation=True
+        id=1,
+        user_id=1,
+        name="Parcela A",
+        num_plants=100,
+        has_irrigation=True,
+        area_ha=None,
+        municipio_cod=None,
+        provincia_cod=None,
     )
     plot_b = SimpleNamespace(
-        id=2, user_id=1, name="Parcela B", num_plants=100, has_irrigation=True
+        id=2,
+        user_id=1,
+        name="Parcela B",
+        num_plants=100,
+        has_irrigation=True,
+        area_ha=None,
+        municipio_cod=None,
+        provincia_cod=None,
     )
     incomes = [
         SimpleNamespace(
@@ -340,6 +406,7 @@ async def test_get_multi_plot_comparison() -> None:
             result(irrigation),
             result([]),
             result([]),
+            result([]),  # rainfall query
         ]
     )
 

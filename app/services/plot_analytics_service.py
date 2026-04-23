@@ -4,15 +4,20 @@ import datetime
 from collections import defaultdict
 from typing import Optional
 
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.income import Income
 from app.models.irrigation import IrrigationRecord
 from app.models.plot import Plot
 from app.models.plot_event import PlotEvent
+from app.models.rainfall import RainfallRecord
 from app.models.well import Well
 from app.schemas.plot_event import EventType
+from app.services.rainfall_service import (
+    resolve_municipio_cod,
+    select_best_rainfall_per_day,
+)
 from app.utils import campaign_year
 
 
@@ -98,7 +103,7 @@ def _build_plot_insights(dataset: list[dict]) -> dict:
     messages = [
         f"Campaña con mayor producción: {best_row['campaign_year']} ({round(best_row['total_production_kg'], 3)} kg).",
         f"Producción media: {round(avg_production, 3)} kg por campaña.",
-        f"Riego medio: {round(avg_water, 3)} m3 por campaña.",
+        f"Agua media (riego+lluvia): {round(avg_water, 3)} m3 por campaña.",
     ]
 
     if len(dataset) < 3:
@@ -235,6 +240,8 @@ async def get_campaign_dataset(
                 "has_irrigation": plot.has_irrigation,
                 "total_production_kg": 0.0,
                 "production_kg_per_plant": None,
+                "irrigation_m3": 0.0,
+                "rain_m3": 0.0,
                 "total_water_m3": 0.0,
                 "total_water_liters": 0.0,
                 "irrigation_events_count": 0,
@@ -263,7 +270,7 @@ async def get_campaign_dataset(
     for item in irrigation_records:
         cy = campaign_year(item.date)
         row = get_row(item.plot_id, cy)
-        row["total_water_m3"] += item.water_m3
+        row["irrigation_m3"] += item.water_m3
         row["irrigation_events_count"] += 1
 
     for item in wells:
@@ -289,7 +296,9 @@ async def get_campaign_dataset(
 
     for row in rows:
         row["total_production_kg"] = round(row["total_production_kg"], 3)
-        row["total_water_m3"] = round(row["total_water_m3"], 3)
+        row["irrigation_m3"] = round(row["irrigation_m3"], 3)
+        row["rain_m3"] = round(row["rain_m3"], 3)
+        row["total_water_m3"] = round(row["irrigation_m3"] + row["rain_m3"], 3)
         row["total_water_liters"] = round(row["total_water_m3"] * 1000, 1)
 
         row["production_kg_per_plant"] = _safe_ratio(
@@ -317,6 +326,41 @@ async def get_campaign_dataset(
         row.pop("_last_pruning", None)
         row.pop("_last_tilling", None)
         row.pop("_last_digging", None)
+
+    # Acumular lluvia por (plot_id, campaign_year) con prioridad de fuente
+    plot_municipio: dict[int, Optional[str]] = {
+        p.id: resolve_municipio_cod(p) for p in plots
+    }
+    all_municipios = {m for m in plot_municipio.values() if m}
+    plot_ids_list = list(plot_map.keys())
+
+    if all_municipios:
+        rain_stmt = select(RainfallRecord).where(
+            RainfallRecord.user_id == user_id,
+            or_(
+                RainfallRecord.plot_id.in_(plot_ids_list),
+                and_(
+                    RainfallRecord.plot_id.is_(None),
+                    RainfallRecord.municipio_cod.in_(list(all_municipios)),
+                ),
+            ),
+        )
+    else:
+        rain_stmt = select(RainfallRecord).where(
+            RainfallRecord.user_id == user_id,
+            RainfallRecord.plot_id.in_(plot_ids_list),
+        )
+
+    all_rainfall = (await db.execute(rain_stmt)).scalars().all()
+
+    for pid, municipio_cod in plot_municipio.items():
+        daily_rain = select_best_rainfall_per_day(all_rainfall, pid, municipio_cod)
+        plot = plot_map[pid]
+        for date, (mm, _) in daily_rain.items():
+            cy = campaign_year(date)
+            row = get_row(pid, cy)
+            if plot.area_ha is not None:
+                row["rain_m3"] += mm * plot.area_ha * 10.0
 
     if campaign_from is not None:
         rows = [row for row in rows if row["campaign_year"] >= campaign_from]
