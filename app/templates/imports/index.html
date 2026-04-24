@@ -272,15 +272,24 @@
                                 <tr><td><code>bancal</code></td><td>{{ _("Nombre del bancal (opcional)") }}</td><td><code>Bancal Sur</code></td></tr>
                                 <tr><td><code>cantidad</code></td><td>{{ _("Importe en €") }}</td><td><code>1.250,00</code></td></tr>
                                 <tr><td><code>categoria</code></td><td>{{ _("Categoría (opcional)") }}</td><td><code>Poda</code></td></tr>
+                                <tr class="table-info"><td><code>grupo_prorrateo</code></td><td>{{ _("Grupo de prorrateo (opcional). Formato <code>P-N</code>. Las filas con la misma clave se agrupan automáticamente.") }}</td><td><code>P-3</code></td></tr>
                             </tbody>
                         </table>
                         <p class="text-muted small mb-0">
                             <i class="bi bi-info-circle me-1"></i>
                             {{ _("Si el bancal está vacío, el gasto se registra como gasto general (sin bancal asignado).") }}
                         </p>
+                        <p class="text-muted small mt-2 mb-0">
+                            <i class="bi bi-calendar-range me-1"></i>
+                            {{ _("Las filas con la misma clave <code>grupo_prorrateo</code> se agrupan formando un prorrateo. Deja la columna vacía en gastos normales.") }}
+                        </p>
                         <div class="mt-3 rounded p-3 tf-sample-box tf-sample-box-danger">
-                            <small class="text-muted d-block mb-1 fw-semibold">{{ _("Ejemplo de línea:") }}</small>
+                            <small class="text-muted d-block mb-1 fw-semibold">{{ _("Ejemplo sin prorrateo:") }}</small>
                             <code class="small">15/11/2025;Mantenimiento poda;Javi;Bancal Sur;1.250,00;Poda</code>
+                            <small class="text-muted d-block mt-2 mb-1 fw-semibold">{{ _("Ejemplo con prorrateo (3 líneas del mismo grupo):") }}</small>
+                            <code class="small d-block">01/01/2025;Instalación riego;;; 666,67;irrigation;P-1</code>
+                            <code class="small d-block">01/01/2026;Instalación riego;;;666,67;irrigation;P-1</code>
+                            <code class="small d-block">01/01/2027;Instalación riego;;;666,66;irrigation;P-1</code>
                         </div>
                     </div>
                 </div>

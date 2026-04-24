@@ -15,10 +15,13 @@ from app.models.expense import EXPENSE_CATEGORIES
 from app.models.user import User
 from app.services.expenses_service import (
     create_expense as create_expense_service,
+    create_prorated_expense as create_prorated_expense_service,
     delete_expense as delete_expense_service,
+    delete_proration_group as delete_proration_group_service,
     delete_receipt,
     get_expense,
     get_expenses_list_context,
+    get_proration_group,
     get_receipt,
     list_plots,
     save_receipt,
@@ -96,21 +99,40 @@ async def create_expense(
     plot_id: Optional[int] = Form(None),
     amount: float = Form(0.0),
     category: Optional[str] = Form(None),
+    prorate_years: Optional[int] = Form(None),
+    start_year: Optional[int] = Form(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_user),
 ):
-    await create_expense_service(
-        db,
-        user_id=current_user.id,
-        date=date,
-        description=description,
-        person=person,
-        plot_id=plot_id,
-        amount=amount,
-        category=category,
-    )
+    if prorate_years and prorate_years >= 2:
+        effective_start_year = start_year if start_year else date.year
+        await create_prorated_expense_service(
+            db,
+            user_id=current_user.id,
+            date=date,
+            description=description,
+            person=person,
+            plot_id=plot_id,
+            amount=amount,
+            category=category,
+            years=prorate_years,
+            start_year=effective_start_year,
+        )
+        msg = _("Gasto prorrateado registrado correctamente ({years} entradas)", years=prorate_years)
+    else:
+        await create_expense_service(
+            db,
+            user_id=current_user.id,
+            date=date,
+            description=description,
+            person=person,
+            plot_id=plot_id,
+            amount=amount,
+            category=category,
+        )
+        msg = _("Gasto registrado correctamente")
     return RedirectResponse(
-        url=f"/expenses/?msg={quote_plus(_('Gasto registrado correctamente'))}",
+        url=f"/expenses/?msg={quote_plus(msg)}",
         status_code=303,
     )
 
@@ -177,6 +199,22 @@ async def update_expense(
     )
     return RedirectResponse(
         url=f"/expenses/?msg={quote_plus(_('Gasto actualizado correctamente'))}",
+        status_code=303,
+    )
+
+
+@router.post("/proration-group/{group_id}/delete", response_class=RedirectResponse)
+async def delete_proration_group(
+    request: Request,
+    group_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_user),
+):
+    group = await get_proration_group(db, group_id, current_user.id)
+    if group:
+        await delete_proration_group_service(db, group)
+    return RedirectResponse(
+        url=f"/expenses/?msg={quote_plus(_('Prorrateo eliminado correctamente'))}",
         status_code=303,
     )
 

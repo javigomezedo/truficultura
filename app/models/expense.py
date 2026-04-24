@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
 if TYPE_CHECKING:
+    from app.models.expense_proration_group import ExpenseProrationGroup
     from app.models.plot import Plot
     from app.models.user import User
 
@@ -46,8 +47,18 @@ class Expense(Base):
         String(100), nullable=True
     )
 
+    proration_group_id: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        ForeignKey("expense_proration_groups.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+
     # Relationships
     user: Mapped[Optional["User"]] = relationship("User", back_populates="expenses")
     plot: Mapped[Optional["Plot"]] = relationship(
         "Plot", back_populates="expenses", lazy="joined"
+    )
+    proration_group: Mapped[Optional["ExpenseProrationGroup"]] = relationship(
+        "ExpenseProrationGroup", back_populates="expenses", lazy="joined"
     )

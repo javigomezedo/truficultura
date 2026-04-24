@@ -157,7 +157,14 @@
                         {% for g in expenses %}
                         <tr>
                             <td class="text-nowrap">{{ g.date.strftime('%d/%m/%Y') }}</td>
-                            <td>{{ g.description }}</td>
+                            <td>
+                                {{ g.description }}
+                                {% if g.proration_group_id %}
+                                <span class="badge bg-info text-dark ms-1" title="{{ _('Gasto prorrateado') }}">
+                                    <i class="bi bi-calendar-range"></i> {{ _('Prorrateo') }}
+                                </span>
+                                {% endif %}
+                            </td>
                             <td>
                                 {% if g.category %}
                                 <span class="badge bg-secondary">{{ g.category }}</span>
@@ -207,6 +214,18 @@
                                         </li>
                                         <li><hr class="dropdown-divider"></li>
                                         <li>
+                                            {% if g.proration_group_id %}
+                                            <button type="button"
+                                                    class="dropdown-item text-danger"
+                                                    onclick="showProratedDeleteModal(this)"
+                                                    data-expense-id="{{ g.id }}"
+                                                    data-group-id="{{ g.proration_group_id }}"
+                                                    data-group-description="{{ g.proration_group.description | e }}"
+                                                    data-group-years="{{ g.proration_group.years }}"
+                                                    data-year-amount="{{ (g.proration_group.total_amount / g.proration_group.years) | format_eu(2) }}">
+                                                <i class="bi bi-trash-fill me-2"></i>{{ _('Eliminar') }}
+                                            </button>
+                                            {% else %}
                                             <form action="/expenses/{{ g.id }}/delete"
                                                   method="post"
                                                   onsubmit="return confirmDelete(this)">
@@ -214,6 +233,7 @@
                                                     <i class="bi bi-trash-fill me-2"></i>{{ _('Eliminar') }}
                                                 </button>
                                             </form>
+                                            {% endif %}
                                         </li>
                                     </ul>
                                 </div>
@@ -242,4 +262,61 @@
     </div>
 
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- Modal de confirmación de borrado de prorrateo -->
+<div class="modal fade" id="proratedDeleteModal" tabindex="-1" aria-labelledby="proratedDeleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="proratedDeleteModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>{{ _("Eliminar gasto prorrateado") }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Cerrar') }}"></button>
+            </div>
+            <div class="modal-body">
+                <p>{{ _("Este gasto forma parte de un prorrateo:") }}</p>
+                <p class="fw-semibold mb-1" id="proratedGroupDesc"></p>
+                <p class="text-muted small mb-3" id="proratedGroupInfo"></p>
+                <hr>
+                <p class="mb-2">{{ _("¿Qué deseas eliminar?") }}</p>
+            </div>
+            <div class="modal-footer flex-column gap-2 align-items-stretch">
+                <form id="proratedDeleteSingle" method="post" class="d-grid">
+                    <button type="submit" class="btn btn-outline-danger">
+                        <i class="bi bi-trash me-1"></i>{{ _("Solo este gasto") }}
+                    </button>
+                </form>
+                <form id="proratedDeleteGroup" method="post" class="d-grid">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash-fill me-1"></i>
+                        {{ _("Eliminar todo el prorrateo") }}
+                        (<span id="proratedGroupYears"></span> {{ _("entradas") }})
+                    </button>
+                </form>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _("Cancelar") }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showProratedDeleteModal(btn) {
+    var expenseId = btn.dataset.expenseId;
+    var groupId = btn.dataset.groupId;
+    var desc = btn.dataset.groupDescription;
+    var years = btn.dataset.groupYears;
+    var yearAmount = btn.dataset.yearAmount;
+
+    document.getElementById('proratedGroupDesc').textContent = desc;
+    document.getElementById('proratedGroupInfo').textContent =
+        years + ' {{ _("entradas de") }} ' + yearAmount + ' €/{{ _("año") }}';
+    document.getElementById('proratedGroupYears').textContent = years;
+    document.getElementById('proratedDeleteSingle').action = '/expenses/' + expenseId + '/delete';
+    document.getElementById('proratedDeleteGroup').action = '/expenses/proration-group/' + groupId + '/delete';
+
+    new bootstrap.Modal(document.getElementById('proratedDeleteModal')).show();
+}
+</script>
 {% endblock %}

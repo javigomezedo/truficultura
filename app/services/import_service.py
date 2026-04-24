@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.i18n import _
 from app.models.expense import Expense
+from app.models.expense_proration_group import ExpenseProrationGroup
 from app.models.income import Income
 from app.models.irrigation import IrrigationRecord
 from app.models.plant import Plant
@@ -69,18 +70,25 @@ async def import_expenses_csv(
     """Parse expenses CSV and persist rows.
 
     Expected format (semicolon-delimited, no header):
-        fecha;concepto;persona;bancal;cantidad[;categoria]
+        fecha;concepto;persona;bancal;cantidad[;categoria[;grupo_prorrateo]]
 
-    - fecha:    DD/MM/YYYY
-    - concepto: description text
-    - persona:  person name
-    - bancal:   plot name (optional — leave empty for general expenses)
-    - cantidad: amount in European format (e.g. 1.250,00)
-    - categoria: expense category (optional, e.g. Riego)
+    - fecha:           DD/MM/YYYY
+    - concepto:        description text
+    - persona:         person name
+    - bancal:          plot name (optional — leave empty for general expenses)
+    - cantidad:        amount in European format (e.g. 1.250,00)
+    - categoria:       expense category (optional, e.g. Riego)
+    - grupo_prorrateo: proration group key exported as "P-{id}" (optional).
+                       Rows sharing the same key are linked to a reconstructed
+                       ExpenseProrationGroup.
     """
     plots = await _load_plots(db, user_id)
     rows: list[Expense] = []
     warnings: list[str] = []
+
+    # Parse all lines first so we can reconstruct proration groups in one pass.
+    ParsedLine = dict  # typing alias
+    parsed: list[ParsedLine] = []
 
     reader = csv.reader(io.StringIO(content.decode("utf-8")), delimiter=";")
     for i, line in enumerate(reader, 1):
@@ -98,6 +106,7 @@ async def import_expenses_csv(
 
         fecha_s, concepto, persona, bancal, cantidad_s = line[:5]
         categoria = line[5].strip() if len(line) > 5 else None
+        grupo_key: Optional[str] = line[6].strip() or None if len(line) > 6 else None
         bancal = bancal.strip()
         plot_id: Optional[int] = None
 
@@ -113,20 +122,57 @@ async def import_expenses_csv(
                 )
 
         try:
-            row = Expense(
-                user_id=user_id,
-                date=_parse_date(fecha_s),
-                description=concepto.strip(),
-                person=persona.strip(),
-                plot_id=plot_id,
-                amount=_parse_num(cantidad_s),
-                category=categoria or None,
+            parsed.append(
+                {
+                    "date": _parse_date(fecha_s),
+                    "description": concepto.strip(),
+                    "person": persona.strip(),
+                    "plot_id": plot_id,
+                    "amount": _parse_num(cantidad_s),
+                    "category": categoria or None,
+                    "grupo_key": grupo_key,
+                }
             )
-            rows.append(row)
         except (ValueError, KeyError):
             warnings.append(
                 _warning("Línea {line}: error al parsear los datos — omitida", line=i)
             )
+
+    # Build proration groups for rows that share a grupo_key.
+    proration_groups: dict[str, ExpenseProrationGroup] = {}
+    for pl in parsed:
+        gk = pl["grupo_key"]
+        if gk and gk not in proration_groups:
+            group_rows = [r for r in parsed if r["grupo_key"] == gk]
+            group = ExpenseProrationGroup(
+                user_id=user_id,
+                description=group_rows[0]["description"],
+                total_amount=sum(r["amount"] for r in group_rows),
+                years=len(group_rows),
+                start_year=min(r["date"].year for r in group_rows),
+            )
+            db.add(group)
+            proration_groups[gk] = group
+
+    # Flush to obtain group IDs before creating child expenses.
+    if proration_groups:
+        await db.flush()
+
+    # Create expense records, linking prorated ones to their group.
+    for pl in parsed:
+        gk = pl["grupo_key"]
+        group = proration_groups.get(gk) if gk else None
+        row = Expense(
+            user_id=user_id,
+            date=pl["date"],
+            description=pl["description"],
+            person=pl["person"],
+            plot_id=pl["plot_id"],
+            amount=pl["amount"],
+            category=pl["category"],
+            proration_group_id=group.id if group else None,
+        )
+        rows.append(row)
 
     db.add_all(rows)
     return rows, warnings
