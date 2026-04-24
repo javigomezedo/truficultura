@@ -10,11 +10,6 @@
             </h1>
             <p class="tf-page-subtitle">{{ _("Control de usuarios, roles y estado de acceso.") }}</p>
         </div>
-        <div>
-            <a href="/admin/users/create" class="btn btn-primary">
-                <i class="bi bi-person-plus me-1"></i>{{ _("Crear Usuario") }}
-            </a>
-        </div>
     </div>
 
     {% if request.query_params.get("error") == "no-self-delete" %}
@@ -24,17 +19,55 @@
     </div>
     {% endif %}
 
+    {# ── Filtros de estado ── #}
+    {% set status_url = "/admin/users?sort=" ~ sort ~ "&order=" ~ order ~ "&status=" %}
+    <div class="mb-3 d-flex gap-2 flex-wrap align-items-center">
+        <a href="{{ status_url }}all"
+           class="btn btn-sm {{ 'btn-secondary' if status == 'all' else 'btn-outline-secondary' }}">
+            <i class="bi bi-people me-1"></i>{{ _("Todos") }}
+        </a>
+        <a href="{{ status_url }}active"
+           class="btn btn-sm {{ 'btn-success' if status == 'active' else 'btn-outline-success' }}">
+            <i class="bi bi-check-circle me-1"></i>{{ _("Activos") }}
+        </a>
+        <a href="{{ status_url }}inactive"
+           class="btn btn-sm {{ 'btn-warning' if status == 'inactive' else 'btn-outline-warning' }}">
+            <i class="bi bi-lock me-1"></i>{{ _("Desactivados") }}
+        </a>
+        <a href="{{ status_url }}unconfirmed"
+           class="btn btn-sm {{ 'btn-info' if status == 'unconfirmed' else 'btn-outline-info' }}">
+            <i class="bi bi-envelope-exclamation me-1"></i>{{ _("Sin confirmar") }}
+        </a>
+        <span class="ms-auto text-muted small">
+            {{ users | length }} {{ _("usuario(s)") }}
+        </span>
+    </div>
+
     <div class="card tf-panel tf-panel-overflow-visible border-0">
         <div class="table-responsive tf-table-responsive-overflow-visible">
             <table class="table table-hover mb-0">
                 <thead class="table-secondary">
                     <tr>
-                        <th>{{ _("Usuario") }}</th>
-                        <th>{{ _("Nombre") }}</th>
-                        <th>Email</th>
-                        <th>{{ _("Rol") }}</th>
-                        <th>{{ _("Estado") }}</th>
-                        <th>{{ _("Creado") }}</th>
+                        {% macro sort_th(label, field) %}
+                        {% set next_order = "desc" if (sort == field and order == "asc") else "asc" %}
+                        <th>
+                            <a href="/admin/users?sort={{ field }}&order={{ next_order }}&status={{ status }}"
+                               class="text-decoration-none text-reset d-flex align-items-center gap-1">
+                                {{ label }}
+                                {% if sort == field %}
+                                <i class="bi bi-caret-{{ 'down' if order == 'desc' else 'up' }}-fill small"></i>
+                                {% else %}
+                                <i class="bi bi-caret-up-fill small text-muted opacity-50"></i>
+                                {% endif %}
+                            </a>
+                        </th>
+                        {% endmacro %}
+                        {{ sort_th(_("Usuario"), "username") }}
+                        {{ sort_th(_("Nombre"), "name") }}
+                        {{ sort_th("Email", "email") }}
+                        {{ sort_th(_("Rol"), "role") }}
+                        {{ sort_th(_("Estado"), "status") }}
+                        {{ sort_th(_("Creado"), "created_at") }}
                         <th>{{ _("Acciones") }}</th>
                     </tr>
                 </thead>
@@ -61,10 +94,12 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if user.is_active %}
+                            {% if not user.email_confirmed %}
+                            <span class="badge bg-info text-dark">{{ _("Sin confirmar") }}</span>
+                            {% elif user.is_active %}
                             <span class="badge bg-success">{{ _("Activo") }}</span>
                             {% else %}
-                            <span class="badge bg-warning">{{ _("Desactivado") }}</span>
+                            <span class="badge bg-warning text-dark">{{ _("Desactivado") }}</span>
                             {% endif %}
                         </td>
                         <td>
@@ -118,9 +153,9 @@
     </div>
 
     {% if not users %}
-    <div class="alert alert-info" role="alert">
+    <div class="alert alert-info mt-3" role="alert">
         <i class="bi bi-info-circle-fill me-2"></i>
-        {{ _("No hay usuarios aún.") }}
+        {{ _("No hay usuarios que coincidan con el filtro seleccionado.") }}
     </div>
     {% endif %}
 </div>

@@ -93,6 +93,55 @@
             </div>
             {% endif %}
 
+            {% if request.query_params.get("pending_confirmation") %}
+            <div class="alert alert-info small mb-3">
+                <i class="bi bi-envelope-fill me-1"></i>
+                {{ _("Hemos enviado un correo de confirmación a tu email. Revisa tu bandeja de entrada y pulsa el enlace para activar tu cuenta.") }}
+            </div>
+            {% endif %}
+
+            {% if request.query_params.get("confirmed") %}
+            <div class="alert alert-success small mb-3">
+                <i class="bi bi-check-circle-fill me-1"></i>
+                {{ _("Email confirmado correctamente. Ya puedes iniciar sesión.") }}
+            </div>
+            {% endif %}
+
+            {% if request.query_params.get("already_confirmed") %}
+            <div class="alert alert-info small mb-3">
+                <i class="bi bi-info-circle-fill me-1"></i>
+                {{ _("Tu cuenta ya estaba confirmada. Puedes iniciar sesión directamente.") }}
+            </div>
+            {% endif %}
+
+            {% if request.query_params.get("confirm_error") %}
+            <div class="alert alert-danger small mb-3">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                {{ _("El enlace de confirmación no es válido o ha caducado. Regístrate de nuevo o contacta con soporte.") }}
+            </div>
+            {% endif %}
+
+            {% if request.query_params.get("reset_sent") %}
+            <div class="alert alert-info small mb-3">
+                <i class="bi bi-envelope-fill me-1"></i>
+                {{ _("Si el email está registrado, recibirás un enlace para restablecer tu contraseña en breve.") }}
+            </div>
+            {% endif %}
+
+            {% if request.query_params.get("password_reset") %}
+            <div class="alert alert-success small mb-3">
+                <i class="bi bi-check-circle-fill me-1"></i>
+                {{ _("Contraseña actualizada correctamente. Ya puedes iniciar sesión.") }}
+            </div>
+            {% endif %}
+
+            {% if request.query_params.get("reset_error") %}
+            <div class="alert alert-danger small mb-3">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                {{ _("El enlace de recuperación no es válido o ha caducado. Solicita uno nuevo.") }}
+            </div>
+            {% endif %}
+
             {% if error %}
             <div class="alert alert-danger small mb-3">
                 <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ _(error) }}
@@ -115,6 +164,12 @@
                     <i class="bi bi-box-arrow-in-right me-1"></i>{{ _("Entrar") }}
                 </button>
             </form>
+
+            <div class="text-center mt-2">
+                <a href="/forgot-password" class="text-muted small text-decoration-none tf-auth-link">
+                    {{ _("¿Olvidaste tu contraseña?") }}
+                </a>
+            </div>
 
             <hr class="my-3">
             <p class="text-center text-muted small mb-0">
