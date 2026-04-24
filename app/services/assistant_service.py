@@ -14,6 +14,9 @@ from app.models.plant import Plant
 from app.models.plot import Plot
 from app.models.plot_event import PlotEvent
 from app.models.truffle_event import TruffleEvent
+from app.models.plot_harvest import PlotHarvest
+from app.models.rainfall import RainfallRecord
+from app.models.recurring_expense import RecurringExpense
 from app.models.well import Well
 from app.schemas.plot_event import EventType
 from app.services.llm_adapter import LLMAdapter
@@ -39,22 +42,57 @@ REGLAS DE RESPUESTA:
 - Si el usuario pide un resumen, prioriza dar la respuesta con cifras y después, si hace falta, aclara limitaciones concretas.
 
 MÓDULOS DE LA APLICACIÓN:
-- Parcelas: gestión de bancales (nombre, número de plantas, referencia catastral, sector, \
-superficie, fechas de plantación e inicio de producción). Cada parcela tiene un mapa visual \
-de plantas con etiquetas (A1, B3...).
-- Producción (Trufas): registro de eventos de trufa por planta, con historial y filtros por \
-campaña/parcela/planta. Se puede registrar manualmente o por escaneo QR.
-- Riego: registro de riegos por parcela con volumen de agua y notas. Se activa parcela a parcela.
-- Ingresos: fecha, parcela (opcional), categoría de trufa (Extra, A, B...), kg y €/kg. \
+- Parcelas (bancales): gestión de parcelas con nombre, número de parcela, polígono y recinto SIGPAC, \
+referencia catastral, hidrante, sector, número de plantas, fechas de plantación e inicio de \
+producción, superficie en ha y municipio. Cada parcela tiene un porcentaje calculado \
+automáticamente (plantas propias / total plantas del usuario).
+- Mapa de plantas: cada parcela tiene un mapa visual de plantas con etiquetas (A1, B3…). \
+Las plantas se gestionan individualmente. Se puede imprimir o descargar el QR de cada planta.
+- Producción — Eventos de trufa (por planta): registro de eventos de trufa por planta individual, \
+con peso estimado en gramos, fuente (manual o QR), historial y filtros por campaña/parcela/planta. \
+Los eventos se pueden deshacer. Fuente QR significa que se registró escaneando el código QR.
+- Producción — Cosecha por bancal: registro de cosechas a nivel de parcela completa \
+(fecha + peso en gramos), sin asociar a una planta concreta. La vista de producción total \
+combina eventos por planta y cosechas por bancal.
+- Presencia de planta: registro diario de si una planta concreta tiene trufa (campo de datos \
+para análisis). Único por planta y fecha.
+- Escaneo QR: cada planta lleva un QR firmado criptográficamente. Al escanearlo, si el usuario \
+no está autenticado, redirige al login y retoma automáticamente el escaneo.
+- Riego: registro de riegos por parcela con volumen de agua en m³ y notas. Cada parcela puede \
+activar o desactivar el riego. Se integra con los eventos de parcela (tipo "riego").
+- Pozos / Labores de pozo: registro de labores de pozo por parcela con número de pozos por \
+planta y fecha. Se integra con los eventos de parcela (tipo "pozo").
+- Eventos de parcela (labores): historial de labores agrícolas por parcela. Tipos disponibles: \
+labrado, picado, poda, vallado, instalación de goteo (installed_drip), riego, pozo. \
+Cada evento tiene fecha, notas y puede marcarse como recurrente.
+- Lluvia / Pluviometría: registro de precipitaciones por parcela o por municipio. Fuentes: \
+manual (el propio usuario), AEMET (red meteorológica oficial española), Ibericam (red privada). \
+Los registros AEMET/Ibericam se asocian al municipio. Incluye vista de calendario mensual y \
+listado filtrable por año, parcela, fuente y municipio.
+- Ingresos: fecha, parcela (opcional), categoría de trufa (Extra, A, B…), kg y €/kg. \
 El total (€) se calcula automáticamente: cantidad_kg × euros_kg.
-- Gastos: fecha, descripción, persona, parcela (opcional), importe y categoría. Los gastos \
-sin parcela asignada son "generales" y se distribuyen entre todas las parcelas \
-proporcionalmente al número de plantas.
-- Rentabilidad: informe por campaña y parcela con ingresos, gastos y rentabilidad neta.
-- Gráficas: evolución semanal y comparativa ingresos vs gastos por campaña.
+- Gastos: fecha, descripción, persona, parcela (opcional), importe y categoría \
+(Pozos, Vallado, Labrar, Instalación riego, Perros, Plantel, Riego, Regadío Social, Otros). \
+Se puede adjuntar un justificante (imagen o PDF). Los gastos sin parcela son "generales" \
+y se distribuyen entre todas las parcelas proporcionalmente al número de plantas.
+- Gastos recurrentes: plantillas de gastos periódicos con frecuencia semanal, mensual o anual. \
+Un proceso automático (cron) las convierte en gastos reales según su configuración. \
+Se pueden activar o desactivar individualmente sin borrarlas.
+- Prorrateo de gastos: un gasto grande se puede dividir en N años/campañas, creando N gastos \
+individuales vinculados. Eliminar el grupo de prorrateo borra todos sus gastos hijos.
+- Rentabilidad / Reportes: informe por campaña y parcela con ingresos, gastos directos, \
+gastos generales distribuidos y rentabilidad neta ajustada.
+- KPIs: panel de indicadores clave por campaña: ROI (%), €/kg medio, m³ de agua por kg vendido, \
+crecimiento de kg respecto a la campaña anterior y total kg vendidos.
+- Gráficas: evolución semanal de ingresos, comparativa acumulada ingresos vs gastos por campaña, \
+mix de ingresos y gastos por categoría, y comparativa entre parcelas.
+- Analítica de parcelas: análisis de correlaciones entre riego y producción (bandas de agua \
+bajo/medio/alto), impacto de poda y labrado en producción, umbrales de riego óptimos, \
+comparativa multi-parcela y detalle por parcela y campaña.
 - Importar/Exportar: CSV con punto y coma como separador, formato numérico europeo (1.250,50) \
 y fechas dd/mm/aaaa.
-- Admin (solo administrador): gestión de usuarios.
+- Admin (solo administrador): gestión de usuarios (alta, baja, activar/desactivar, cambio de \
+contraseña, confirmación de email). El primer usuario registrado se convierte en administrador.
 
 CAMPAÑA AGRÍCOLA:
 - Va de mayo a abril del año siguiente.
@@ -116,6 +154,30 @@ _DATA_KEYWORDS = {
     "retorno",
     "labores relevantes",
     "parcelas tienen vallado",
+    "lluvia",
+    "lluvias",
+    "pluvio",
+    "precipitacion",
+    "precipitaciones",
+    "pluviometria",
+    "recurrente",
+    "recurrentes",
+    "gastos recurrentes",
+    "kpi",
+    "kpis",
+    "labrado",
+    "picado",
+    "poda",
+    "vallado",
+    "cosecha",
+    "cosechas",
+    "prorrateo",
+    "prorratear",
+    "analitica",
+    "analisis de parcela",
+    "presencia de planta",
+    "cosecha por bancal",
+    "produccion total",
 }
 
 _USAGE_KEYWORDS = {
@@ -155,6 +217,12 @@ _DATA_PATTERNS = [
     re.compile(
         r"\b(donde)\b.*\b(gasto|gastando|gastos)\b.*\b(retorno|rentabilidad|menos)\b"
     ),
+    re.compile(r"\b(lluvia|precipitacion|pluvio)\b.*\b(parcela|municipio|mes|ano|campana)\b"),
+    re.compile(r"\b(recurrente|recurrentes)\b.*\b(gasto|gastos)\b"),
+    re.compile(r"\b(kpi|kpis)\b"),
+    re.compile(r"\b(analitica|analisis)\b.*\b(parcela|riego|poda|labrado)\b"),
+    re.compile(r"\b(cosecha|cosechas)\b.*\b(bancal|parcela|campana)\b"),
+    re.compile(r"\b(prorrateo|prorratear)\b"),
 ]
 
 _PROMPT_INJECTION_PATTERNS = [
@@ -178,6 +246,9 @@ _SOURCES_DATA = [
     "db:incomes",
     "db:expenses",
     "db:irrigation",
+    "db:rainfall",
+    "db:recurring_expenses",
+    "db:plot_harvests",
     "analytics:profitability_distributed",
     "analytics:kpi_snapshot",
     "analytics:charts_snapshot",
@@ -290,6 +361,21 @@ async def _build_user_context(db: AsyncSession, user_id: int) -> str:
         select(TruffleEvent).where(TruffleEvent.user_id == user_id)
     )
     truffle_events = truffle_events_result.scalars().all()
+
+    rainfall_result = await db.execute(
+        select(RainfallRecord).where(RainfallRecord.user_id == user_id)
+    )
+    rainfall_records = rainfall_result.scalars().all()
+
+    recurring_expenses_result = await db.execute(
+        select(RecurringExpense).where(RecurringExpense.user_id == user_id)
+    )
+    recurring_expenses_list = recurring_expenses_result.scalars().all()
+
+    plot_harvests_result = await db.execute(
+        select(PlotHarvest).where(PlotHarvest.user_id == user_id)
+    )
+    plot_harvests = plot_harvests_result.scalars().all()
 
     if (
         not plots
@@ -473,6 +559,13 @@ async def _build_user_context(db: AsyncSession, user_id: int) -> str:
     if total_irrigation > 0:
         lines.append(f"Riego total registrado: {total_irrigation:.2f} m3.")
 
+    if rainfall_records:
+        total_mm = sum(r.precipitation_mm for r in rainfall_records)
+        lines.append(
+            f"Lluvia (registros manuales): {len(rainfall_records)} registros | "
+            f"precipitación total {format_eu(total_mm, 1)} mm."
+        )
+
     if wells:
         lines.append(
             f"Pozos/labores de pozo registradas: {len(wells)} (total pozos por planta acumulados: {sum(w.wells_per_plant for w in wells)})."
@@ -481,6 +574,13 @@ async def _build_user_context(db: AsyncSession, user_id: int) -> str:
     if plants:
         lines.append(
             f"Mapa de plantas: {len(plants)} etiquetas de planta registradas en {len(set(p.plot_id for p in plants))} parcelas."
+        )
+
+    if plot_harvests:
+        total_harvest_g = sum(h.weight_grams for h in plot_harvests)
+        lines.append(
+            f"Cosechas por bancal: {len(plot_harvests)} registros | "
+            f"peso total {format_eu(total_harvest_g / 1000.0, 3)} kg."
         )
 
     if production_events_total > 0:
@@ -553,6 +653,13 @@ async def _build_user_context(db: AsyncSession, user_id: int) -> str:
                 for person, amount in top_expense_people
             )
             + "."
+        )
+
+    if recurring_expenses_list:
+        active_count = sum(1 for r in recurring_expenses_list if r.is_active)
+        lines.append(
+            f"Gastos recurrentes: {len(recurring_expenses_list)} plantillas "
+            f"({active_count} activas)."
         )
 
     fenced_plot_names = [
