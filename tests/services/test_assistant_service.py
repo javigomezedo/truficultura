@@ -246,6 +246,9 @@ async def test_chat_datos_queries_db_with_user_id() -> None:
             result([well]),  # wells query
             result([plant]),  # plants query
             result([truffle_event]),  # truffle_events query
+            result([]),  # rainfall query
+            result([]),  # recurring_expenses query
+            result([]),  # plot_harvests query
         ]
     )
 
@@ -260,7 +263,7 @@ async def test_chat_datos_queries_db_with_user_id() -> None:
         adapter=adapter,
     )
 
-    assert db.execute.call_count == 8
+    assert db.execute.call_count == 11
     assert result_data["intent"] == "datos"
     adapter.complete.assert_awaited_once()
 
@@ -287,6 +290,9 @@ async def test_chat_datos_no_records_returns_graceful_context() -> None:
     db = MagicMock()
     db.execute = AsyncMock(
         side_effect=[
+            result([]),
+            result([]),
+            result([]),
             result([]),
             result([]),
             result([]),
@@ -374,6 +380,9 @@ async def test_prepare_chat_context_datos_queries_db() -> None:
             result([]),
             result([]),
             result([]),
+            result([]),
+            result([]),
+            result([]),
         ]
     )
 
@@ -385,7 +394,7 @@ async def test_prepare_chat_context_datos_queries_db() -> None:
     )
 
     assert data["intent"] == "datos"
-    assert db.execute.call_count == 8
+    assert db.execute.call_count == 11
     assert data["traceability"]["data_scope"] == "aggregated-user-data"
     assert "db:plots" in data["traceability"]["sources"]
     assert "db:plot_events" in data["traceability"]["sources"]
