@@ -7,7 +7,9 @@ from typing import AsyncIterator
 import httpx
 
 _OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions"
+_OPENAI_WHISPER_URL = "https://api.openai.com/v1/audio/transcriptions"
 _DEFAULT_MODEL = "gpt-4o-mini"
+_WHISPER_MODEL = "whisper-1"
 _MAX_TOKENS = 800
 _TEMPERATURE = 0.3
 
@@ -87,3 +89,22 @@ class OpenAIAdapter(LLMAdapter):
                             yield delta
                     except (KeyError, json.JSONDecodeError):
                         continue
+
+    async def transcribe(
+        self,
+        audio_bytes: bytes,
+        filename: str = "audio.webm",
+        content_type: str = "audio/webm",
+        language: str = "es",
+    ) -> str:
+        """Transcribe audio bytes using OpenAI Whisper API."""
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                _OPENAI_WHISPER_URL,
+                headers={"Authorization": f"Bearer {self._api_key}"},
+                files={"file": (filename, audio_bytes, content_type)},
+                data={"model": _WHISPER_MODEL, "language": language},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            return data["text"]
