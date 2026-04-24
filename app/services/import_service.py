@@ -424,7 +424,7 @@ async def import_wells_csv(
                 _warning("Línea {line}: error al parsear los datos — omitida", line=i)
             )
 
-    _BATCH_SIZE = 500
+    _BATCH_SIZE = 50
     for i in range(0, len(rows), _BATCH_SIZE):
         db.add_all(rows[i : i + _BATCH_SIZE])
         await db.flush()
@@ -517,7 +517,7 @@ async def import_irrigation_csv(
                 _warning("Línea {line}: error al parsear los datos — omitida", line=i)
             )
 
-    _BATCH_SIZE = 500
+    _BATCH_SIZE = 50
     for i in range(0, len(rows), _BATCH_SIZE):
         db.add_all(rows[i : i + _BATCH_SIZE])
         await db.flush()
@@ -613,7 +613,7 @@ async def import_truffles_csv(
                 _warning("Línea {line}: error al parsear los datos — omitida", line=i)
             )
 
-    _BATCH_SIZE = 500
+    _BATCH_SIZE = 50
     for i in range(0, len(rows), _BATCH_SIZE):
         db.add_all(rows[i : i + _BATCH_SIZE])
         await db.flush()
@@ -752,7 +752,7 @@ async def import_plot_events_csv(
     # Flush in batches to avoid a single massive INSERT statement that can
     # close the DB connection, and to prevent autoflush issues when the next
     # importer runs a SELECT.
-    _BATCH_SIZE = 500
+    _BATCH_SIZE = 50
     for i in range(0, len(rows), _BATCH_SIZE):
         db.add_all(rows[i : i + _BATCH_SIZE])
         await db.flush()
