@@ -38,7 +38,8 @@ async def test_expenses_list_context_filters_by_campaign() -> None:
         Expense(id=2, date=datetime.date(2026, 2, 1), description="B", amount=5.0),
     ]
     db = MagicMock()
-    db.execute = AsyncMock(side_effect=[result(expenses), result([])])
+    # 3 queries: (1) meta (date+person), (2) plots, (3) filtered expenses
+    db.execute = AsyncMock(side_effect=[result(expenses), result([]), result(expenses)])
 
     context = await get_expenses_list_context(db, 2025, user_id=1)
 
@@ -67,7 +68,8 @@ async def test_expenses_list_context_filters_by_plot() -> None:
         ),
     ]
     db = MagicMock()
-    db.execute = AsyncMock(side_effect=[result(expenses), result([])])
+    # 3 queries: (1) meta (date+person), (2) plots, (3) filtered expenses (DB applies WHERE plot_id=10)
+    db.execute = AsyncMock(side_effect=[result(expenses), result([]), result([expenses[0]])])
 
     context = await get_expenses_list_context(db, 2025, user_id=1, plot_id=10)
 

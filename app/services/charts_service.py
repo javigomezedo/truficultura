@@ -36,12 +36,22 @@ async def build_charts_context(
     all_plots = plots_result.scalars().all()
 
     expenses_result = await db.execute(
-        select(Expense).where(Expense.user_id == user_id)
+        select(Expense.date, Expense.amount, Expense.plot_id, Expense.category).where(
+            Expense.user_id == user_id
+        )
     )
-    all_expenses = expenses_result.scalars().all()
+    all_expenses = expenses_result.all()
 
-    incomes_result = await db.execute(select(Income).where(Income.user_id == user_id))
-    all_incomes = incomes_result.scalars().all()
+    incomes_result = await db.execute(
+        select(
+            Income.date,
+            Income.amount_kg,
+            Income.euros_per_kg,
+            Income.plot_id,
+            Income.category,
+        ).where(Income.user_id == user_id)
+    )
+    all_incomes = incomes_result.all()
 
     all_campaigns = sorted(
         {campaign_year(i.date) for i in all_incomes}
@@ -103,13 +113,14 @@ async def build_charts_context(
     for income in filtered_incomes:
         monday = income.date - timedelta(days=income.date.weekday())
         kg_by_week[monday] += income.amount_kg
-        total_by_week[monday] += income.total
+        income_total = round(income.amount_kg * income.euros_per_kg, 2)
+        total_by_week[monday] += income_total
 
         category = income.category if income.category else "Sin cat."
         cat_kg_by_week[category][monday] += income.amount_kg
 
         if income.euros_per_kg > 0:
-            precio_kg_sum[monday] += income.total
+            precio_kg_sum[monday] += income_total
             precio_kg_cnt[monday] += income.amount_kg
 
     sorted_weeks: list = []
@@ -178,7 +189,9 @@ async def build_charts_context(
     incomes_per_plot: dict = defaultdict(float)
     for income in filtered_incomes_bar:
         if income.plot_id is not None:
-            incomes_per_plot[income.plot_id] += income.total
+            incomes_per_plot[income.plot_id] += round(
+                income.amount_kg * income.euros_per_kg, 2
+            )
 
     plot_labels = [plot.name for plot in all_plots]
     income_values = [round(incomes_per_plot.get(plot.id, 0.0), 2) for plot in all_plots]

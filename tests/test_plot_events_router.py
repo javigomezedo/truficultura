@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from app.auth import require_user
 from app.database import get_db
 from app.main import app
+from tests.conftest import result
 
 
 def _user() -> SimpleNamespace:
@@ -16,7 +17,10 @@ def _user() -> SimpleNamespace:
 
 
 def _db() -> MagicMock:
-    return MagicMock()
+    db = MagicMock()
+    # The list_view now does db.execute(select(PlotEvent.date)) directly.
+    db.execute = AsyncMock(return_value=result([]))
+    return db
 
 
 def test_plot_events_list_renders(monkeypatch) -> None:
