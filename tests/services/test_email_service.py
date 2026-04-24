@@ -36,6 +36,7 @@ async def test_send_email_calls_aiosmtplib_when_configured(monkeypatch) -> None:
             "SMTP_PASSWORD": "pass",
             "SMTP_FROM": "noreply@example.com",
             "SMTP_TLS": True,
+            "SMTP_SSL": False,
         },
     )()
     monkeypatch.setattr("app.services.email_service.settings", fake_settings)
