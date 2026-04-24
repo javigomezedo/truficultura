@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from time import perf_counter
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,6 +21,7 @@ from app.services.llm_adapter import OpenAIAdapter
 router = APIRouter(prefix="/api/assistant", tags=["assistant"])
 logger = logging.getLogger(__name__)
 
+_MAX_AUDIO_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
 _RATE_LIMIT_KEY = "assistant_rate_timestamps"
 _RATE_LIMIT_MAX_REQUESTS = 20
 _RATE_LIMIT_WINDOW_SECONDS = 300
@@ -217,3 +218,29 @@ async def assistant_stream(
         media_type="text/event-stream",
         headers=headers,
     )
+
+
+@router.post("/transcribe")
+async def assistant_transcribe(
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_user),
+) -> dict:
+    adapter = _get_adapter()
+    audio_bytes = await file.read()
+    if len(audio_bytes) > _MAX_AUDIO_SIZE_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=_("El audio es demasiado grande. Máximo 10 MB."),
+        )
+    from app.i18n import AVAILABLE_LOCALES, DEFAULT_LOCALE
+    locale = request.session.get("locale", DEFAULT_LOCALE)
+    if locale not in AVAILABLE_LOCALES:
+        locale = DEFAULT_LOCALE
+    text = await adapter.transcribe(
+        audio_bytes,
+        filename=file.filename or "audio.webm",
+        content_type=file.content_type or "audio/webm",
+        language=locale,
+    )
+    return {"text": text}

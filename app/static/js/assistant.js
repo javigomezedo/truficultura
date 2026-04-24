@@ -141,6 +141,7 @@
         var suggestionsDetails = document.getElementById('assistantSuggestions');
         var sendBtn = document.getElementById('assistantSendBtn');
         var cancelBtn = document.getElementById('assistantCancelBtn');
+        var micBtn = document.getElementById('assistantMicBtn');
 
         if (!form || !input || !messages || !sendBtn || !cancelBtn) {
             return;
@@ -148,11 +149,16 @@
 
         var history = [];
         var controller = null;
+        var mediaRecorder = null;
+        var audioChunks = [];
 
         function setLoading(loading) {
             sendBtn.disabled = loading;
             cancelBtn.disabled = !loading;
             input.disabled = loading;
+            if (micBtn) {
+                micBtn.disabled = loading;
+            }
         }
 
         function pushMessage(role, text) {
@@ -208,6 +214,97 @@
                 pushMessage('system', 'Respuesta cancelada por el usuario.');
             }
         });
+
+        function micSetRecording(recording) {
+            if (!micBtn) return;
+            if (recording) {
+                micBtn.classList.remove('btn-outline-secondary');
+                micBtn.classList.add('btn-danger');
+                micBtn.innerHTML = '<i class="bi bi-stop-circle-fill me-1"></i>Detener';
+            } else {
+                micBtn.classList.remove('btn-danger');
+                micBtn.classList.add('btn-outline-secondary');
+                micBtn.innerHTML = '<i class="bi bi-mic-fill me-1"></i>Voz';
+            }
+        }
+
+        function transcribeBlob(blob) {
+            micBtn.disabled = true;
+            var ext = blob.type.includes('webm') ? 'webm' : blob.type.includes('ogg') ? 'ogg' : 'wav';
+            var formData = new FormData();
+            formData.append('file', blob, 'audio.' + ext);
+            fetch('/api/assistant/transcribe', {
+                method: 'POST',
+                body: formData
+            })
+                .then(function (response) {
+                    if (!response.ok) {
+                        return response.json().then(function (json) {
+                            throw new Error(json.detail || 'Error al transcribir');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(function (data) {
+                    if (data.text) {
+                        input.value = data.text;
+                        form.dispatchEvent(new Event('submit'));
+                    }
+                })
+                .catch(function (err) {
+                    pushMessage('system', 'No se pudo transcribir el audio: ' + err.message);
+                })
+                .finally(function () {
+                    micBtn.disabled = false;
+                });
+        }
+
+        if (micBtn) {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') {
+                micBtn.disabled = true;
+                micBtn.title = 'Tu navegador no soporta grabación de audio';
+            } else {
+                micBtn.addEventListener('click', function () {
+                    if (mediaRecorder && mediaRecorder.state === 'recording') {
+                        mediaRecorder.stop();
+                        micSetRecording(false);
+                    } else {
+                        audioChunks = [];
+                        navigator.mediaDevices.getUserMedia({ audio: true })
+                            .then(function (stream) {
+                                var mimeType = '';
+                                if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+                                    mimeType = 'audio/webm;codecs=opus';
+                                } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+                                    mimeType = 'audio/webm';
+                                } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
+                                    mimeType = 'audio/ogg;codecs=opus';
+                                }
+                                var options = mimeType ? { mimeType: mimeType } : {};
+                                mediaRecorder = new MediaRecorder(stream, options);
+
+                                mediaRecorder.ondataavailable = function (event) {
+                                    if (event.data.size > 0) {
+                                        audioChunks.push(event.data);
+                                    }
+                                };
+
+                                mediaRecorder.onstop = function () {
+                                    stream.getTracks().forEach(function (track) { track.stop(); });
+                                    var blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+                                    transcribeBlob(blob);
+                                };
+
+                                mediaRecorder.start();
+                                micSetRecording(true);
+                            })
+                            .catch(function () {
+                                pushMessage('system', 'No se pudo acceder al micrófono. Comprueba los permisos.');
+                            });
+                    }
+                });
+            }
+        }
 
         form.addEventListener('submit', function (event) {
             event.preventDefault();

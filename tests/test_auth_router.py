@@ -519,6 +519,8 @@ def test_register_post_first_user_redirects(monkeypatch) -> None:
     )
     monkeypatch.setattr("app.routers.auth._user_count", AsyncMock(return_value=0))
     monkeypatch.setattr("app.routers.auth.hash_password", lambda plain: "hashed")
+    # Ensure no ADMIN_EMAIL so is_first_user=True triggers the admin/confirmed path
+    monkeypatch.setattr("app.routers.auth.settings", type("S", (), {"ADMIN_EMAIL": "", "smtp_configured": False})())
     # First execute: check existing email. Next three: update Plot, Expense, Income.
     db.execute.side_effect = [result([]), MagicMock(), MagicMock(), MagicMock()]
 
