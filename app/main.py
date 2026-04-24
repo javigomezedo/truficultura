@@ -3,8 +3,6 @@ import binascii
 import json
 import logging
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.cron import CronTrigger
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from itsdangerous import BadSignature, BadTimeSignature, SignatureExpired
@@ -14,7 +12,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.auth import NotAuthenticatedException, NotAdminException, require_user
 from app.config import settings
-from app.database import AsyncSessionLocal, engine, get_db
+from app.database import engine, get_db
 from fastapi import Form
 from app.i18n import set_locale, AVAILABLE_LOCALES
 from app.jinja import templates
@@ -44,37 +42,14 @@ from app.routers import (
     wells,
 )
 from app.services.dashboard_service import build_dashboard_context
-from app.services.recurring_expenses_service import process_recurring_expenses
 
 logger = logging.getLogger(__name__)
-
-
-async def _run_recurring_expenses_job() -> None:
-    """Scheduler job: create due recurring expenses for all users."""
-    async with AsyncSessionLocal() as db:
-        try:
-            created = await process_recurring_expenses(db)
-            await db.commit()
-            if created:
-                logger.info("Gastos recurrentes creados: %d", len(created))
-        except Exception:
-            await db.rollback()
-            logger.exception("Error al procesar gastos recurrentes")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """App lifespan hook for graceful async engine disposal."""
-    scheduler = AsyncIOScheduler()
-    scheduler.add_job(
-        _run_recurring_expenses_job,
-        CronTrigger(hour=7, minute=0),
-        id="recurring_expenses",
-        replace_existing=True,
-    )
-    scheduler.start()
     yield
-    scheduler.shutdown(wait=False)
     await engine.dispose()
 
 
