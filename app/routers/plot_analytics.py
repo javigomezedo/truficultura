@@ -18,7 +18,7 @@ from app.services.plot_analytics_service import (
     get_multi_plot_comparison,
     get_plot_detail_context,
     get_pruning_vs_production_analysis,
-    get_tilling_digging_vs_production_analysis,
+    get_tilling_vs_production_analysis,
 )
 from app.utils import campaign_label
 
@@ -48,10 +48,8 @@ def _format_num(value: float | int | None, decimals: int = 1) -> str:
 
 def _management_group_label(group_key: str) -> str:
     labels = {
-        "sin_labrado_ni_picado": "Sin labrado ni picado",
-        "solo_labrado": "Solo labrado",
-        "solo_picado": "Solo picado",
-        "labrado_y_picado": "Labrado y picado",
+        "sin_labrado": "Sin labrado",
+        "con_labrado": "Con labrado",
     }
     return labels.get(group_key, group_key)
 
@@ -207,7 +205,7 @@ async def overview(
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
-    management_analysis = await get_tilling_digging_vs_production_analysis(
+    management_analysis = await get_tilling_vs_production_analysis(
         db,
         current_user.id,
         campaign_from=campaign_from_value,
@@ -316,7 +314,7 @@ async def management_impact_json(
 ):
     campaign_from_value = _parse_optional_int(campaign_from)
     campaign_to_value = _parse_optional_int(campaign_to)
-    return await get_tilling_digging_vs_production_analysis(
+    return await get_tilling_vs_production_analysis(
         db,
         current_user.id,
         campaign_from=campaign_from_value,

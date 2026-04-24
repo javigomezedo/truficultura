@@ -14,7 +14,7 @@ from app.services.plot_analytics_service import (
     get_multi_plot_comparison,
     get_plot_detail_context,
     get_pruning_vs_production_analysis,
-    get_tilling_digging_vs_production_analysis,
+    get_tilling_vs_production_analysis,
 )
 from tests.conftest import result
 
@@ -211,7 +211,7 @@ async def test_get_pruning_vs_production_analysis() -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_tilling_digging_vs_production_analysis() -> None:
+async def test_get_tilling_vs_production_analysis() -> None:
     plot = SimpleNamespace(
         id=1,
         user_id=1,
@@ -234,9 +234,6 @@ async def test_get_tilling_digging_vs_production_analysis() -> None:
         SimpleNamespace(
             user_id=1, plot_id=1, date=datetime.date(2026, 6, 2), event_type="labrado"
         ),
-        SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2026, 6, 3), event_type="picado"
-        ),
     ]
 
     db = MagicMock()
@@ -251,11 +248,15 @@ async def test_get_tilling_digging_vs_production_analysis() -> None:
         ]
     )
 
-    analysis = await get_tilling_digging_vs_production_analysis(db, user_id=1)
+    analysis = await get_tilling_vs_production_analysis(db, user_id=1)
 
     assert analysis["sample_size"] == 2
-    assert len(analysis["groups"]) == 4
+    assert len(analysis["groups"]) == 2
     assert sum(item["count"] for item in analysis["groups"]) == 2
+    con_labrado = next(g for g in analysis["groups"] if g["group"] == "con_labrado")
+    sin_labrado = next(g for g in analysis["groups"] if g["group"] == "sin_labrado")
+    assert con_labrado["count"] == 1
+    assert sin_labrado["count"] == 1
 
 
 @pytest.mark.asyncio

@@ -158,8 +158,6 @@ async def get_plot_detail_context(
     water_series = [row["total_water_m3"] for row in dataset]
     pruning_series = [row["pruning_events_count"] for row in dataset]
     tilling_series = [row["tilling_events_count"] for row in dataset]
-    digging_series = [row["digging_events_count"] for row in dataset]
-
     scatter_points = [
         {
             "x": row["total_water_m3"],
@@ -180,7 +178,6 @@ async def get_plot_detail_context(
         "water_series": water_series,
         "pruning_series": pruning_series,
         "tilling_series": tilling_series,
-        "digging_series": digging_series,
         "scatter_points": scatter_points,
         "insights": insights,
     }
@@ -256,15 +253,12 @@ async def get_campaign_dataset(
                 "water_m3_per_plant": None,
                 "pruning_events_count": 0,
                 "tilling_events_count": 0,
-                "digging_events_count": 0,
                 "days_since_last_pruning": None,
                 "days_since_last_tilling": None,
-                "days_since_last_digging": None,
                 "well_events_count": 0,
                 "wells_per_plant_total": 0,
                 "_last_pruning": None,
                 "_last_tilling": None,
-                "_last_digging": None,
             }
         return agg[key]
 
@@ -296,9 +290,6 @@ async def get_campaign_dataset(
         elif event.event_type == EventType.LABRADO.value:
             row["tilling_events_count"] += 1
             row["_last_tilling"] = max(filter(None, [row["_last_tilling"], event.date]))
-        elif event.event_type == EventType.PICADO.value:
-            row["digging_events_count"] += 1
-            row["_last_digging"] = max(filter(None, [row["_last_digging"], event.date]))
 
     rows = list(agg.values())
 
@@ -327,13 +318,9 @@ async def get_campaign_dataset(
         row["days_since_last_tilling"] = _days_since_last(
             row["_last_tilling"], row["campaign_year"]
         )
-        row["days_since_last_digging"] = _days_since_last(
-            row["_last_digging"], row["campaign_year"]
-        )
 
         row.pop("_last_pruning", None)
         row.pop("_last_tilling", None)
-        row.pop("_last_digging", None)
 
     # Acumular lluvia por (plot_id, campaign_year) con prioridad de fuente
     plot_municipio: dict[int, Optional[str]] = {
@@ -467,7 +454,7 @@ async def get_pruning_vs_production_analysis(
     }
 
 
-async def get_tilling_digging_vs_production_analysis(
+async def get_tilling_vs_production_analysis(
     db: AsyncSession,
     user_id: int,
     *,
@@ -484,32 +471,16 @@ async def get_tilling_digging_vs_production_analysis(
     )
     pairs = [row for row in rows if row["total_production_kg"] > 0]
 
-    groups = {
-        "sin_labrado_ni_picado": [],
-        "solo_labrado": [],
-        "solo_picado": [],
-        "labrado_y_picado": [],
+    groups: dict[str, list[float]] = {
+        "sin_labrado": [],
+        "con_labrado": [],
     }
     for row in pairs:
-        has_tilling = row["tilling_events_count"] > 0
-        has_digging = row["digging_events_count"] > 0
-        if has_tilling and has_digging:
-            group_key = "labrado_y_picado"
-        elif has_tilling:
-            group_key = "solo_labrado"
-        elif has_digging:
-            group_key = "solo_picado"
-        else:
-            group_key = "sin_labrado_ni_picado"
+        group_key = "con_labrado" if row["tilling_events_count"] > 0 else "sin_labrado"
         groups[group_key].append(row["total_production_kg"])
 
     summary = []
-    for key in (
-        "sin_labrado_ni_picado",
-        "solo_labrado",
-        "solo_picado",
-        "labrado_y_picado",
-    ):
+    for key in ("sin_labrado", "con_labrado"):
         values = groups[key]
         summary.append(
             {

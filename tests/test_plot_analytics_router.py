@@ -49,7 +49,7 @@ def test_plot_analytics_overview_renders(monkeypatch) -> None:
         ),
     )
     monkeypatch.setattr(
-        "app.routers.plot_analytics.get_tilling_digging_vs_production_analysis",
+        "app.routers.plot_analytics.get_tilling_vs_production_analysis",
         AsyncMock(
             return_value={
                 "sample_size": 0,
@@ -289,7 +289,7 @@ def test_plot_analytics_management_impact_json(monkeypatch) -> None:
         "groups": [{"group": "solo_labrado", "count": 2, "avg_production_kg": 61.2}],
     }
     monkeypatch.setattr(
-        "app.routers.plot_analytics.get_tilling_digging_vs_production_analysis",
+        "app.routers.plot_analytics.get_tilling_vs_production_analysis",
         AsyncMock(return_value=payload),
     )
 

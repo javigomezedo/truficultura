@@ -238,7 +238,7 @@
                     aria-describedby="help-plot-management"
                 >?</button>
                 <div class="tf-help-tip-text" id="help-plot-management" role="tooltip">
-                    {{ _('Muestra cuántas labores (poda, labrado y picado) se realizaron en cada campaña para relacionarlas con resultados.') }}
+                    {{ _('Muestra cuántas labores (poda y labrado) se realizaron en cada campaña para relacionarlas con resultados.') }}
                 </div>
             </div>
             <h6 class="mb-0">{{ _("Eventos de manejo por campaña") }}</h6>
@@ -275,7 +275,6 @@
                             <th class="text-end">{{ _("Agua (m3)") }}</th>
                             <th class="text-end">{{ _("Poda") }}</th>
                             <th class="text-end">{{ _("Labrado") }}</th>
-                            <th class="text-end">{{ _("Picado") }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -286,7 +285,6 @@
                             <td class="text-end">{{ row.total_water_m3 }}</td>
                             <td class="text-end">{{ row.pruning_events_count }}</td>
                             <td class="text-end">{{ row.tilling_events_count }}</td>
-                            <td class="text-end">{{ row.digging_events_count }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -311,7 +309,6 @@
     const waterSeries = {{ water_series | tojson }};
     const pruningSeries = {{ pruning_series | tojson }};
     const tillingSeries = {{ tilling_series | tojson }};
-    const diggingSeries = {{ digging_series | tojson }};
     const scatterPoints = {{ scatter_points | tojson }};
     const plotPlateau = {{ plot_thresholds.plateau_start_m3 | tojson if plot_thresholds.plateau_start_m3 is not none and plot_thresholds.sample_size >= 5 else 'null' }};
     const globalPlateau = {{ global_thresholds.plateau_start_m3 | tojson if global_thresholds.plateau_start_m3 is not none else 'null' }};
@@ -465,11 +462,6 @@
                     label: '{{ _("Labrado") }}',
                     data: tillingSeries,
                     backgroundColor: 'rgba(154, 63, 51, 0.7)',
-                },
-                {
-                    label: '{{ _("Picado") }}',
-                    data: diggingSeries,
-                    backgroundColor: 'rgba(73, 111, 119, 0.7)',
                 }
             ]
         },

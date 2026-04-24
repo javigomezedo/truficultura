@@ -132,7 +132,7 @@
                         <li><strong>{{ _("JSON dataset") }}</strong>: {{ _("lista completa por campaña y parcela (producción, agua y labores).") }}</li>
                         <li><strong>{{ _("JSON impacto riego") }}</strong>: {{ _("resumen de relación entre agua aplicada y producción.") }}</li>
                         <li><strong>{{ _("JSON impacto poda") }}</strong>: {{ _("comparación de producción entre campañas con poda y sin poda.") }}</li>
-                        <li><strong>{{ _("JSON impacto labores") }}</strong>: {{ _("comparación de producción según combinaciones de labrado y picado.") }}</li>
+                        <li><strong>{{ _("JSON impacto labores") }}</strong>: {{ _("comparación de producción con y sin labrado.") }}</li>
                         <li><strong>{{ _("JSON umbral riego") }}</strong>: {{ _("detección del punto a partir del cual añadir más riego aporta poco.") }}</li>
                         <li><strong>{{ _("JSON comparación parcelas") }}</strong>: {{ _("ranking de eficiencia entre parcelas (kg producidos por m3 de agua).") }}</li>
                     </ul>
@@ -374,14 +374,14 @@
                     <button
                         type="button"
                         class="btn btn-outline-secondary btn-sm tf-help-tip-btn"
-                        aria-label="{{ _('Ayuda sobre Impacto de labrado y picado') }}"
+                        aria-label="{{ _('Ayuda sobre Impacto de labrado') }}"
                         aria-describedby="help-management-impact"
                     >?</button>
                     <div class="tf-help-tip-text" id="help-management-impact" role="tooltip">
-                        {{ _('Agrupa campañas por combinación de labores (labrado y picado) para comparar cuántas muestras hay y su producción media.') }}
+                        {{ _('Agrupa campañas con y sin labrado para comparar la producción media.') }}
                     </div>
                 </div>
-                <h3 class="h6 mb-0">{{ _("Impacto de labrado y picado") }}</h3>
+                <h3 class="h6 mb-0">{{ _("Impacto del labrado") }}</h3>
             </div>
             <div class="table-responsive">
                 <table class="table table-sm table-hover mb-0">
@@ -435,7 +435,6 @@
                             <th class="text-end">{{ _("m3/planta") }}</th>
                             <th class="text-end">{{ _("Poda") }}</th>
                             <th class="text-end">{{ _("Labrado") }}</th>
-                            <th class="text-end">{{ _("Picado") }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -451,7 +450,6 @@
                             <td class="text-end">{{ row.water_m3_per_plant if row.water_m3_per_plant is not none else '—' }}</td>
                             <td class="text-end">{{ row.pruning_events_count }}</td>
                             <td class="text-end">{{ row.tilling_events_count }}</td>
-                            <td class="text-end">{{ row.digging_events_count }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
