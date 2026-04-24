@@ -290,27 +290,14 @@ async def main(dry_run: bool = False) -> None:
         log.error("DATABASE_URL no definida. Abortando.")
         sys.exit(1)
 
-    # Fly.io usa postgres://, SQLAlchemy asyncpg requiere postgresql+asyncpg://
-    if database_url.startswith("postgres://"):
-        database_url = database_url.replace("postgres://", "postgresql+asyncpg://", 1)
-    elif database_url.startswith("postgresql://") and "+asyncpg" not in database_url:
-        database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    # Reutilizamos la normalización de config.py que ya maneja:
+    # postgres:// → postgresql+asyncpg://, sslmode= → ssl=, etc.
+    from app.config import Settings
 
-    # asyncpg no acepta sslmode= como parámetro de URL; hay que extraerlo y
-    # pasarlo como connect_args={"ssl": True}.
-    from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+    settings = Settings(DATABASE_URL=database_url)
+    database_url = settings.SQLALCHEMY_DATABASE_URL
 
-    parsed = urlparse(database_url)
-    query_params = parse_qs(parsed.query, keep_blank_values=True)
-    sslmode_values = query_params.pop("sslmode", [])
-    ssl_required = any(
-        v in ("require", "verify-ca", "verify-full") for v in sslmode_values
-    )
-    new_query = urlencode({k: v[0] for k, v in query_params.items()})
-    database_url = urlunparse(parsed._replace(query=new_query))
-    connect_args: dict = {"ssl": True} if ssl_required else {}
-
-    engine = create_async_engine(database_url, echo=False, connect_args=connect_args)
+    engine = create_async_engine(database_url, echo=False)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)  # type: ignore[call-overload]
 
     today = datetime.date.today()
