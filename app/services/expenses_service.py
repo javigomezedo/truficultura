@@ -49,30 +49,41 @@ async def get_expenses_list_context(
     sort_by: str = "date",
     sort_order: str = "desc",
 ) -> dict:
-    result = await db.execute(
-        select(Expense).where(Expense.user_id == user_id).order_by(Expense.date.desc())
+    from sqlalchemy.orm import defer as sa_defer
+
+    # Lightweight query for dropdown options (avoid loading all expense data).
+    meta_result = await db.execute(
+        select(Expense.date, Expense.person).where(Expense.user_id == user_id)
     )
-    all_expenses = result.scalars().all()
+    meta_rows = meta_result.all()
+    years = sorted({campaign_year(r.date) for r in meta_rows}, reverse=True)
+    people = sorted({r.person for r in meta_rows if r.person})
 
     plots_result = await db.execute(
         select(Plot).where(Plot.user_id == user_id).order_by(Plot.name)
     )
     all_plots = plots_result.scalars().all()
 
-    years = sorted(set(campaign_year(e.date) for e in all_expenses), reverse=True)
-    people = sorted({e.person for e in all_expenses if e.person})
-
-    expenses = (
-        [e for e in all_expenses if campaign_year(e.date) == year]
-        if year
-        else list(all_expenses)
+    # Build the filtered expense query — filter by campaign year at DB level.
+    stmt = (
+        select(Expense)
+        .where(Expense.user_id == user_id)
+        .options(sa_defer(Expense.receipt_data))
+        .order_by(Expense.date.desc())
     )
+    if year is not None:
+        campaign_start = datetime.date(year, 5, 1)
+        campaign_end = datetime.date(year + 1, 4, 30)
+        stmt = stmt.where(Expense.date.between(campaign_start, campaign_end))
     if category:
-        expenses = [e for e in expenses if e.category == category]
+        stmt = stmt.where(Expense.category == category)
     if person:
-        expenses = [e for e in expenses if e.person == person]
+        stmt = stmt.where(Expense.person == person)
     if plot_id is not None:
-        expenses = [e for e in expenses if e.plot_id == plot_id]
+        stmt = stmt.where(Expense.plot_id == plot_id)
+
+    result = await db.execute(stmt)
+    expenses = list(result.scalars().all())
 
     _SORT_KEYS: dict = {
         "date": lambda x: x.date,
@@ -86,11 +97,7 @@ async def get_expenses_list_context(
     expenses.sort(key=key_fn, reverse=(sort_order == "desc"))
 
     total = sum(e.amount for e in expenses)
-    current_year = year or (
-        campaign_year(datetime.date.today())
-        if all_expenses
-        else datetime.date.today().year
-    )
+    current_year = year or campaign_year(datetime.date.today())
 
     # Breakdown table: direct expenses + distributed general expenses per plot
     direct_by_plot: dict = {p.id: 0.0 for p in all_plots}

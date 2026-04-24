@@ -15,6 +15,7 @@ from app.auth import require_user
 from app.database import get_db
 from app.i18n import _
 from app.models.plot import Plot
+from app.models.plot_event import PlotEvent
 from app.models.user import User
 from app.schemas.plot_event import EventType, PlotEventCreate, PlotEventUpdate
 from app.services.plot_events_service import (
@@ -138,13 +139,13 @@ async def list_view(
     event_types = _parse_event_types(event_type)
 
     # Build campaign selector options from user events (optionally filtered by plot).
-    campaign_source_records = await get_plot_events(
-        db,
-        current_user.id,
-        plot_id=selected_plot,
-    )
+    # Only fetch the date column to avoid loading all event data just for the dropdown.
+    dates_stmt = select(PlotEvent.date).where(PlotEvent.user_id == current_user.id)
+    if selected_plot is not None:
+        dates_stmt = dates_stmt.where(PlotEvent.plot_id == selected_plot)
+    dates_result = await db.execute(dates_stmt)
     campaign_options = sorted(
-        {campaign_year(record.date) for record in campaign_source_records}, reverse=True
+        {campaign_year(d) for d in dates_result.scalars().all()}, reverse=True
     )
 
     effective_date_from = None

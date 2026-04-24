@@ -4,6 +4,7 @@ from collections import defaultdict
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import lazyload
 
 from app.models import Expense, Income, Plot, Well
 from app.utils import campaign_year, distribute_unassigned_expenses
@@ -15,19 +16,29 @@ async def build_dashboard_context(db: AsyncSession, user_id: int) -> dict:
     )
     all_plots = plots_result.scalars().all()
 
+    # Use column-level selects to avoid loading joined relationships and binary data.
     expenses_result = await db.execute(
-        select(Expense).where(Expense.user_id == user_id)
+        select(Expense.date, Expense.amount, Expense.plot_id).where(
+            Expense.user_id == user_id
+        )
     )
-    all_expenses = expenses_result.scalars().all()
+    expense_rows = expenses_result.all()
 
-    incomes_result = await db.execute(select(Income).where(Income.user_id == user_id))
-    all_incomes = incomes_result.scalars().all()
+    incomes_result = await db.execute(
+        select(
+            Income.date, Income.amount_kg, Income.euros_per_kg, Income.plot_id
+        ).where(Income.user_id == user_id)
+    )
+    income_rows = incomes_result.all()
 
-    wells_result = await db.execute(select(Well).where(Well.user_id == user_id))
+    # For wells we need plot.num_plants (already eagerly joined) but NOT the expense.
+    wells_result = await db.execute(
+        select(Well).where(Well.user_id == user_id).options(lazyload(Well.expense))
+    )
     all_wells = wells_result.scalars().all()
 
-    grand_expenses = sum(e.amount for e in all_expenses)
-    grand_incomes = sum(i.total for i in all_incomes)
+    grand_expenses = sum(r.amount for r in expense_rows)
+    grand_incomes = sum(round(r.amount_kg * r.euros_per_kg, 2) for r in income_rows)
     grand_profitability = grand_incomes - grand_expenses
 
     total_wells_per_plant = sum(w.wells_per_plant for w in all_wells)
@@ -38,8 +49,8 @@ async def build_dashboard_context(db: AsyncSession, user_id: int) -> dict:
     total_well_events = len(all_wells)
 
     expenses_raw: dict = defaultdict(lambda: defaultdict(float))
-    for expense in all_expenses:
-        expenses_raw[campaign_year(expense.date)][expense.plot_id] += expense.amount
+    for r in expense_rows:
+        expenses_raw[campaign_year(r.date)][r.plot_id] += r.amount
 
     expenses_by_cy_plot = distribute_unassigned_expenses(expenses_raw, all_plots)
 
@@ -47,8 +58,10 @@ async def build_dashboard_context(db: AsyncSession, user_id: int) -> dict:
     for cy, by_plot in expenses_by_cy_plot.items():
         by_campaign[cy]["expenses"] += sum(by_plot.values())
 
-    for income in all_incomes:
-        by_campaign[campaign_year(income.date)]["incomes"] += income.total
+    for r in income_rows:
+        by_campaign[campaign_year(r.date)]["incomes"] += round(
+            r.amount_kg * r.euros_per_kg, 2
+        )
 
     campaigns = sorted(by_campaign.keys(), reverse=True)
     campaign_rows = [
@@ -62,8 +75,10 @@ async def build_dashboard_context(db: AsyncSession, user_id: int) -> dict:
     ]
 
     incomes_by_cy_plot: dict = defaultdict(lambda: defaultdict(float))
-    for income in all_incomes:
-        incomes_by_cy_plot[campaign_year(income.date)][income.plot_id] += income.total
+    for r in income_rows:
+        incomes_by_cy_plot[campaign_year(r.date)][r.plot_id] += round(
+            r.amount_kg * r.euros_per_kg, 2
+        )
 
     matrix = []
     plot_totals: dict = defaultdict(
