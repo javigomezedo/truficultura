@@ -31,13 +31,13 @@ primary_region = 'cdg'
   cpus = 1
   processes = ["cron"]
 
+
 # ---------------------------------------------------------------------------
 # Cron: importación diaria de lluvia + gastos recurrentes
-# Gestionada por fly deploy mediante el proceso "cron" definido arriba.
-# Machine: d894945a7d55e8 (lingering-darkness-4100, 256 MB, región cdg)
-#   process_group: cron  ← asociada con: fly machine update d894945a7d55e8 --metadata fly_process_group=cron
-#   schedule: daily      ← configurado en la máquina (persiste entre deploys)
-#   env: RUN_MIGRATIONS=0
+# Machine: d894945a7d55e8  schedule: daily  región: cdg  256 MB
+# IMPORTANTE: la máquina debe tener el metadata fly_process_group=cron para que
+# fly deploy la actualice en lugar de crear una nueva. Si se pierde, ejecutar:
+#   fly machine update d894945a7d55e8 --app truficultura-dev --metadata fly_process_group=cron
 # Para verificar: fly machine list --app truficultura-dev
 # Para logs:      fly logs --app truficultura-dev
 # ---------------------------------------------------------------------------
