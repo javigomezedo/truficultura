@@ -514,6 +514,7 @@ async def test_import_plots_csv_provincia_municipio_backwards_compat():
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([plot]))
     db.add_all = MagicMock()
+    db.flush = AsyncMock()
 
     content = _irrigation_csv(["15/06/2025;Bancal Sur;10,500;Primera pasada"])
     rows, warnings = await import_irrigation_csv(db, content, user_id=1)
@@ -534,6 +535,7 @@ async def test_import_irrigation_csv_missing_notas():
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([plot]))
     db.add_all = MagicMock()
+    db.flush = AsyncMock()
 
     content = _irrigation_csv(["15/06/2025;Bancal Sur;5,000"])
     rows, warnings = await import_irrigation_csv(db, content, user_id=1)
@@ -607,6 +609,7 @@ async def test_import_irrigation_csv_case_insensitive_bancal():
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([plot]))
     db.add_all = MagicMock()
+    db.flush = AsyncMock()
 
     content = _irrigation_csv(["15/06/2025;BANCAL SUR;3,000"])
     rows, warnings = await import_irrigation_csv(db, content, user_id=1)
@@ -646,6 +649,7 @@ async def test_import_truffles_csv_success():
     db = MagicMock()
     db.execute = AsyncMock(side_effect=[result([plot]), result([plant])])
     db.add_all = MagicMock()
+    db.flush = AsyncMock()
 
     rows, warnings = await import_truffles_csv(
         db,
@@ -710,6 +714,7 @@ async def test_import_plot_events_csv_success_and_defaults_recurring():
     db = MagicMock()
     db.execute = AsyncMock(side_effect=[result([plot]), result([])])
     db.add_all = MagicMock()
+    db.flush = AsyncMock()
 
     rows, warnings = await import_plot_events_csv(
         db,
