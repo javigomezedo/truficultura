@@ -25,7 +25,7 @@ primary_region = 'cdg'
 # Cron: importación diaria de datos de lluvia compartida
 # Se ejecuta cada día a las 06:00 UTC mediante un scheduled machine en Fly.io.
 # Machine activa: d894945a7d55e8 (lingering-darkness-4100, 256 MB, región cdg)
-#   schedule: daily | cmd: python scripts/import_rainfall_cron.py
+#   schedule: daily | cmd: python scripts/import_rainfall_cron.py | RUN_MIGRATIONS=0
 # Para verificar: fly machine list --app truficultura-dev
 # Para logs:      fly logs --app truficultura-dev
 # ---------------------------------------------------------------------------
