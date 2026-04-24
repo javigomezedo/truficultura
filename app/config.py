@@ -12,6 +12,25 @@ class Settings(BaseSettings):
     AEMET_BASE_URL: str = "https://opendata.aemet.es/opendata/api"
     AEMET_TIMEOUT_SECONDS: float = 30.0
 
+    # Email / SMTP
+    SMTP_HOST: Optional[str] = None
+    SMTP_PORT: int = 587
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    SMTP_FROM: str = "noreply@truficultura.app"
+    SMTP_TLS: bool = True   # STARTTLS (puerto 587)
+    SMTP_SSL: bool = False  # SSL directo (puerto 465)
+
+    # App base URL (used to build confirmation/reset links)
+    APP_BASE_URL: str = "http://localhost:8000"
+
+    # If set, the user who registers with this email gets role=admin immediately
+    ADMIN_EMAIL: Optional[str] = None
+
+    @property
+    def smtp_configured(self) -> bool:
+        return bool(self.SMTP_HOST and self.SMTP_USER and self.SMTP_PASSWORD)
+
     @property
     def SQLALCHEMY_DATABASE_URL(self) -> str:
         """Normalize DB URL schemes so Fly/local envs work with async SQLAlchemy.

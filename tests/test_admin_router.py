@@ -79,61 +79,6 @@ def test_admin_users_list_renders() -> None:
     assert "pepe" in response.text
 
 
-def test_admin_create_user_invalid_email_returns_400() -> None:
-    db = _fake_db()
-
-    app.dependency_overrides[require_admin] = _admin_user
-    app.dependency_overrides[get_db] = lambda: db
-    try:
-        client = TestClient(app)
-        response = client.post(
-            "/admin/users",
-            data={
-                "username": "nuevo",
-                "first_name": "Nuevo",
-                "last_name": "Usuario",
-                "email": "email-invalido",
-                "password": "12345678",
-                "role": "user",
-            },
-        )
-    finally:
-        app.dependency_overrides.clear()
-
-    assert response.status_code == 400
-    assert "formato v" in response.text.lower()
-
-
-def test_admin_create_user_success_redirects(monkeypatch) -> None:
-    db = _fake_db()
-    db.execute.side_effect = [result([]), result([])]
-    monkeypatch.setattr("app.routers.admin.hash_password", lambda plain: "hashed")
-
-    app.dependency_overrides[require_admin] = _admin_user
-    app.dependency_overrides[get_db] = lambda: db
-    try:
-        client = TestClient(app)
-        response = client.post(
-            "/admin/users",
-            data={
-                "username": "nuevo",
-                "first_name": "Nuevo",
-                "last_name": "Usuario",
-                "email": "nuevo@example.com",
-                "password": "12345678",
-                "role": "admin",
-            },
-            follow_redirects=False,
-        )
-    finally:
-        app.dependency_overrides.clear()
-
-    assert response.status_code == 303
-    assert response.headers["location"] == "/admin/users"
-    db.add.assert_called_once()
-    db.commit.assert_awaited_once()
-
-
 def test_admin_deactivate_self_redirects_without_commit() -> None:
     db = _fake_db()
 
@@ -150,100 +95,20 @@ def test_admin_deactivate_self_redirects_without_commit() -> None:
     db.commit.assert_not_called()
 
 
-def test_admin_create_user_page_renders() -> None:
+def test_admin_create_user_page_returns_404() -> None:
+    """The create-user endpoint has been removed; admin cannot create users anymore."""
     db = _fake_db()
 
     app.dependency_overrides[require_admin] = _admin_user
     app.dependency_overrides[get_db] = lambda: db
     try:
         client = TestClient(app)
-        response = client.get("/admin/users/create")
+        response = client.get("/admin/users/create", follow_redirects=False)
     finally:
         app.dependency_overrides.clear()
 
-    assert response.status_code == 200
-    assert "Crear" in response.text
-
-
-def test_admin_create_user_existing_username_returns_400() -> None:
-    db = _fake_db()
-    db.execute.return_value = result([_normal_user()])
-
-    app.dependency_overrides[require_admin] = _admin_user
-    app.dependency_overrides[get_db] = lambda: db
-    try:
-        client = TestClient(app)
-        response = client.post(
-            "/admin/users",
-            data={
-                "username": "pepe",
-                "first_name": "Pepe",
-                "last_name": "Perez",
-                "email": "otro@example.com",
-                "password": "12345678",
-                "role": "user",
-            },
-        )
-    finally:
-        app.dependency_overrides.clear()
-
-    assert response.status_code == 400
-    assert "usuario ya existe" in response.text.lower()
-
-
-def test_admin_create_user_existing_email_returns_400() -> None:
-    db = _fake_db()
-    db.execute.side_effect = [result([]), result([_normal_user()])]
-
-    app.dependency_overrides[require_admin] = _admin_user
-    app.dependency_overrides[get_db] = lambda: db
-    try:
-        client = TestClient(app)
-        response = client.post(
-            "/admin/users",
-            data={
-                "username": "nuevo",
-                "first_name": "Nuevo",
-                "last_name": "Usuario",
-                "email": "pepe@example.com",
-                "password": "12345678",
-                "role": "user",
-            },
-        )
-    finally:
-        app.dependency_overrides.clear()
-
-    assert response.status_code == 400
-    assert "email ya est" in response.text.lower()
-
-
-def test_admin_create_user_invalid_role_defaults_to_user(monkeypatch) -> None:
-    db = _fake_db()
-    db.execute.side_effect = [result([]), result([])]
-    monkeypatch.setattr("app.routers.admin.hash_password", lambda plain: "hashed")
-
-    app.dependency_overrides[require_admin] = _admin_user
-    app.dependency_overrides[get_db] = lambda: db
-    try:
-        client = TestClient(app)
-        response = client.post(
-            "/admin/users",
-            data={
-                "username": "nuevo2",
-                "first_name": "Nuevo",
-                "last_name": "Usuario",
-                "email": "nuevo2@example.com",
-                "password": "12345678",
-                "role": "root",
-            },
-            follow_redirects=False,
-        )
-    finally:
-        app.dependency_overrides.clear()
-
-    assert response.status_code == 303
-    created_user = db.add.call_args.args[0]
-    assert created_user.role == "user"
+    # The route no longer exists; FastAPI returns 404 or 405 depending on path matching
+    assert response.status_code in (404, 405)
 
 
 def test_admin_edit_user_page_not_found_redirects() -> None:
@@ -517,7 +382,9 @@ def test_admin_lluvia_importar_ibericam_form_uses_sitemap(monkeypatch) -> None:
     assert "mora-de-rubielos" in response.text
 
 
-def test_admin_lluvia_importar_ibericam_form_sitemap_error_graceful(monkeypatch) -> None:
+def test_admin_lluvia_importar_ibericam_form_sitemap_error_graceful(
+    monkeypatch,
+) -> None:
     """Si el sitemap falla, el formulario se muestra igualmente con campo vacío."""
     import app.routers.admin as admin_mod
 

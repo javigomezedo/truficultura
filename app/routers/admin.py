@@ -5,12 +5,12 @@ import re
 from typing import Optional
 from urllib.parse import quote_plus
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from sqlalchemy import select
+from sqlalchemy import asc, desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import hash_password, require_admin
+from app.auth import require_admin
 from app.database import get_db
 from app.i18n import _
 from app.jinja import templates
@@ -40,110 +40,49 @@ def is_valid_email(email: str) -> bool:
     return re.match(EMAIL_PATTERN, email) is not None
 
 
+_SORT_COLUMNS = {
+    "username": User.username,
+    "name": User.first_name,
+    "email": User.email,
+    "role": User.role,
+    "status": User.is_active,
+    "created_at": User.created_at,
+}
+
+
 @router.get("/users", response_class=HTMLResponse)
 async def list_users(
     request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_admin),
+    sort: str = Query(default="username"),
+    order: str = Query(default="asc"),
+    status: str = Query(default="all"),
 ):
-    result = await db.execute(select(User).order_by(User.username))
+    col = _SORT_COLUMNS.get(sort, User.username)
+    direction = desc if order == "desc" else asc
+    stmt = select(User)
+    if status == "active":
+        stmt = stmt.where(User.is_active.is_(True))
+    elif status == "inactive":
+        stmt = stmt.where(User.is_active.is_(False))
+    elif status == "unconfirmed":
+        stmt = stmt.where(User.email_confirmed.is_(False))
+    stmt = stmt.order_by(direction(col))
+    result = await db.execute(stmt)
     users = result.scalars().all()
     return templates.TemplateResponse(
         request,
         "admin/users_list.html",
-        {"request": request, "users": users, "current_user": current_user},
+        {
+            "request": request,
+            "users": users,
+            "current_user": current_user,
+            "sort": sort,
+            "order": order,
+            "status": status,
+        },
     )
-
-
-@router.get("/users/create", response_class=HTMLResponse)
-async def create_user_page(
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin),
-):
-    return templates.TemplateResponse(
-        request,
-        "admin/user_create.html",
-        {"request": request, "current_user": current_user},
-    )
-
-
-@router.post("/users")
-async def create_user(
-    request: Request,
-    username: str = Form(...),
-    first_name: str = Form(...),
-    last_name: str = Form(...),
-    email: str = Form(...),
-    password: str = Form(...),
-    role: str = Form(default="user"),
-    comunidad_regantes: Optional[str] = Form(None),
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin),
-):
-    password = password.strip()
-    email = email.strip().lower()
-
-    # Validate email format
-    if not is_valid_email(email):
-        return templates.TemplateResponse(
-            request,
-            "admin/user_create.html",
-            {
-                "request": request,
-                "error": "El email no tiene un formato válido.",
-                "current_user": current_user,
-            },
-            status_code=400,
-        )
-
-    # Check if username already exists
-    result = await db.execute(select(User).where(User.username == username))
-    existing = result.scalar_one_or_none()
-    if existing:
-        return templates.TemplateResponse(
-            request,
-            "admin/user_create.html",
-            {
-                "request": request,
-                "error": "El usuario ya existe.",
-                "current_user": current_user,
-            },
-            status_code=400,
-        )
-
-    # Check if email already exists
-    result = await db.execute(select(User).where(User.email == email))
-    if result.scalar_one_or_none():
-        return templates.TemplateResponse(
-            request,
-            "admin/user_create.html",
-            {
-                "request": request,
-                "error": "Este email ya está registrado.",
-                "current_user": current_user,
-            },
-            status_code=400,
-        )
-
-    # Validate role
-    if role not in ["user", "admin"]:
-        role = "user"
-
-    new_user = User(
-        username=username,
-        first_name=first_name.strip(),
-        last_name=last_name.strip(),
-        email=email,
-        hashed_password=hash_password(password),
-        role=role,
-        is_active=True,
-        comunidad_regantes=(comunidad_regantes == "on"),
-    )
-    db.add(new_user)
-    await db.commit()
-
-    return RedirectResponse("/admin/users", status_code=303)
 
 
 @router.get("/users/{user_id}/edit", response_class=HTMLResponse)
@@ -458,4 +397,3 @@ async def lluvia_importar_ibericam_post(
         return JSONResponse({"ok": True, **stats})
     except Exception as exc:  # noqa: BLE001
         return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
-

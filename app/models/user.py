@@ -34,6 +34,9 @@ class User(Base):
     )
     role: Mapped[str] = mapped_column(String(20), default="user", nullable=False)
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
+    email_confirmed: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false", nullable=False
+    )
     comunidad_regantes: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False
     )

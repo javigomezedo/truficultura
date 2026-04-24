@@ -29,6 +29,7 @@ def _active_user() -> User:
         hashed_password="hash",
         role="user",
         is_active=True,
+        email_confirmed=True,
     )
 
 
