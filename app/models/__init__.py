@@ -1,6 +1,7 @@
 from app.models.user import User
 from app.models.plot import Plot
 from app.models.expense import Expense
+from app.models.expense_proration_group import ExpenseProrationGroup
 from app.models.income import Income
 from app.models.irrigation import IrrigationRecord
 from app.models.plant import Plant
@@ -16,6 +17,7 @@ __all__ = [
     "User",
     "Plot",
     "Expense",
+    "ExpenseProrationGroup",
     "Income",
     "IrrigationRecord",
     "Plant",

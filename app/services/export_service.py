@@ -142,6 +142,7 @@ async def export_expenses_csv(db: AsyncSession, user_id: int) -> bytes:
                 plots_by_id.get(e.plot_id, "") if e.plot_id is not None else "",
                 _format_num(e.amount, 2),
                 e.category or "",
+                f"P-{e.proration_group_id}" if e.proration_group_id is not None else "",
             ]
         )
     return buf.getvalue().encode("utf-8")

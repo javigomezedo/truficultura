@@ -116,6 +116,56 @@
                     </div>
                 </div>
 
+                {% if not expense %}
+                <!-- Prorrateo (solo en modo creación) -->
+                <div class="col-12 mt-1">
+                    <div class="border rounded p-3 bg-light">
+                        <div class="form-check mb-0">
+                            <input class="form-check-input" type="checkbox" id="prorateToggle">
+                            <label class="form-check-label fw-semibold" for="prorateToggle">
+                                <i class="bi bi-calendar-range me-1"></i>
+                                {{ _("Prorratear en varios años") }}
+                            </label>
+                        </div>
+                        <div id="prorateFields" class="row g-3 mt-1" style="display:none;">
+                            <div class="col-md-6">
+                                <label for="prorate_years" class="form-label small fw-semibold">
+                                    {{ _("Número de años") }} <span class="text-danger">*</span>
+                                </label>
+                                <input type="number"
+                                       class="form-control"
+                                       id="prorate_years"
+                                       name="prorate_years"
+                                       min="2"
+                                       max="50"
+                                       value="2"
+                                       placeholder="2">
+                                <div class="form-text">{{ _("Mínimo 2 años.") }}</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="start_year" class="form-label small fw-semibold">
+                                    {{ _("Año de inicio") }} <span class="text-danger">*</span>
+                                </label>
+                                <input type="number"
+                                       class="form-control"
+                                       id="start_year"
+                                       name="start_year"
+                                       min="2000"
+                                       max="2100"
+                                       placeholder="2025">
+                                <div class="form-text">{{ _("Por defecto, el año de la fecha del gasto.") }}</div>
+                            </div>
+                            <div class="col-12">
+                                <div class="alert alert-info py-2 mb-0 small">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    {{ _("Se crearán N entradas de 1 de enero de cada año, con el importe total repartido a partes iguales (el último registro absorbe el redondeo).") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
                 <hr class="my-4">
 
                 <div class="d-flex gap-2 justify-content-end">
@@ -234,4 +284,43 @@
     </script>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if not expense %}
+<script>
+(function () {
+    var toggle = document.getElementById('prorateToggle');
+    var fields = document.getElementById('prorateFields');
+    var dateInput = document.getElementById('date');
+    var startYearInput = document.getElementById('start_year');
+    var yearsInput = document.getElementById('prorate_years');
+
+    function syncStartYear() {
+        if (dateInput && dateInput.value && startYearInput && !startYearInput.value) {
+            var d = new Date(dateInput.value + 'T00:00:00');
+            startYearInput.value = d.getFullYear();
+        }
+    }
+
+    if (toggle) {
+        toggle.addEventListener('change', function () {
+            var show = this.checked;
+            fields.style.display = show ? '' : 'none';
+            if (yearsInput) yearsInput.required = show;
+            if (startYearInput) startYearInput.required = show;
+            if (show) syncStartYear();
+        });
+    }
+
+    if (dateInput) {
+        dateInput.addEventListener('change', function () {
+            if (toggle && toggle.checked) syncStartYear();
+        });
+    }
+
+    syncStartYear();
+})();
+</script>
+{% endif %}
 {% endblock %}

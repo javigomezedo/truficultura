@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.i18n import _
 from app.models.expense import Expense, EXPENSE_CATEGORIES
+from app.models.expense_proration_group import ExpenseProrationGroup
 from app.models.plot import Plot
 from app.utils import campaign_year, distribute_unassigned_expenses
 
@@ -180,6 +181,80 @@ async def update_expense(
 
 async def delete_expense(db: AsyncSession, expense: Expense) -> None:
     await db.delete(expense)
+    await db.flush()
+
+
+async def create_prorated_expense(
+    db: AsyncSession,
+    *,
+    user_id: int,
+    date: datetime.date,
+    description: str,
+    person: str,
+    plot_id: Optional[int],
+    amount: float,
+    category: Optional[str] = None,
+    years: int,
+    start_year: int,
+) -> ExpenseProrationGroup:
+    """Create a prorated expense spread over N years.
+
+    Creates one ExpenseProrationGroup and N Expense records, one per year
+    starting from start_year. The per-year amount is rounded to 2 decimals;
+    the last entry absorbs any rounding difference so the total is exact.
+    """
+    group = ExpenseProrationGroup(
+        user_id=user_id,
+        description=description,
+        total_amount=amount,
+        years=years,
+        start_year=start_year,
+    )
+    db.add(group)
+    await db.flush()  # obtain group.id before creating child expenses
+
+    per_year = round(amount / years, 2)
+    for i in range(years):
+        if i < years - 1:
+            year_amount = per_year
+        else:
+            # Last entry absorbs rounding difference
+            year_amount = round(amount - per_year * (years - 1), 2)
+
+        expense = Expense(
+            user_id=user_id,
+            date=datetime.date(start_year + i, 1, 1),
+            description=description,
+            person=person,
+            plot_id=plot_id if plot_id else None,
+            amount=year_amount,
+            category=category or None,
+            proration_group_id=group.id,
+        )
+        db.add(expense)
+
+    await db.flush()
+    return group
+
+
+async def get_proration_group(
+    db: AsyncSession, group_id: int, user_id: int
+) -> Optional[ExpenseProrationGroup]:
+    """Fetch a proration group by id, filtered by user_id."""
+    result = await db.execute(
+        select(ExpenseProrationGroup).where(
+            ExpenseProrationGroup.id == group_id,
+            ExpenseProrationGroup.user_id == user_id,
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def delete_proration_group(
+    db: AsyncSession, group: ExpenseProrationGroup
+) -> None:
+    """Delete a proration group and all its child expenses (via DB cascade)."""
+    await db.delete(group)
     await db.flush()
 
 

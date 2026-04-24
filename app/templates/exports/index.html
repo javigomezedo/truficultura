@@ -120,14 +120,15 @@
         <div class="card tf-panel shadow-sm border-0">
             <div class="card-body p-4">
                 <h5 class="card-title mb-3">{{ _("Exportar gastos") }}</h5>
-                <p class="text-muted mb-3">{{ _("Descarga los gastos con el mismo orden de columnas admitido por la importación. Si un gasto no está asignado a ningún bancal, la columna bancal se exporta vacía.") }}</p>
+                <p class="text-muted mb-3">{{ _("Descarga los gastos con el mismo orden de columnas admitido por la importación. Si un gasto no está asignado a ningún bancal, la columna bancal se exporta vacía. Los gastos prorrateados incluyen el identificador de grupo en la columna <code>grupo_prorrateo</code> (p. ej. <code>P-3</code>).") }}</p>
                 <div class="mb-4">
                     <span class="badge text-bg-light me-2">fecha</span>
                     <span class="badge text-bg-light me-2">concepto</span>
                     <span class="badge text-bg-light me-2">persona</span>
                     <span class="badge text-bg-light me-2">bancal</span>
                     <span class="badge text-bg-light me-2">cantidad</span>
-                    <span class="badge text-bg-light">categoria</span>
+                    <span class="badge text-bg-light me-2">categoria</span>
+                    <span class="badge text-bg-info text-dark">grupo_prorrateo</span>
                 </div>
                 <a href="/export/expenses.csv" class="btn btn-success">
                     <i class="bi bi-download me-1"></i>{{ _("Descargar CSV") }}
