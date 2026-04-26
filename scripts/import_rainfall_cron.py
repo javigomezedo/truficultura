@@ -285,6 +285,7 @@ async def import_municipio(
 
 
 async def main(dry_run: bool = False) -> None:
+    log.info("=== Cron lluvia: inicio ===")
     database_url = os.environ.get("DATABASE_URL")
     if not database_url:
         log.error("DATABASE_URL no definida. Abortando.")
@@ -373,6 +374,7 @@ async def main(dry_run: bool = False) -> None:
             log.info("Importación completada.")
 
     await engine.dispose()
+    log.info("=== Cron lluvia: fin ===")
 
 
 if __name__ == "__main__":

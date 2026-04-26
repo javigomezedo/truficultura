@@ -33,6 +33,7 @@ log = logging.getLogger(__name__)
 
 
 async def main(dry_run: bool = False) -> None:
+    log.info("=== Cron gastos recurrentes: inicio ===")
     database_url = os.environ.get("DATABASE_URL")
     if not database_url:
         log.error("DATABASE_URL no definida. Abortando.")
@@ -78,6 +79,7 @@ async def main(dry_run: bool = False) -> None:
         sys.exit(1)
 
     await engine.dispose()
+    log.info("=== Cron gastos recurrentes: fin ===")
 
 
 if __name__ == "__main__":
