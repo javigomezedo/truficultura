@@ -285,6 +285,7 @@ async def import_municipio(
 
 
 async def main(dry_run: bool = False) -> None:
+    log.info("=== Cron lluvia: inicio ===")
     database_url = os.environ.get("DATABASE_URL")
     if not database_url:
         log.error("DATABASE_URL no definida. Abortando.")
@@ -297,7 +298,7 @@ async def main(dry_run: bool = False) -> None:
     settings = Settings(DATABASE_URL=database_url)
     database_url = settings.SQLALCHEMY_DATABASE_URL
 
-    engine = create_async_engine(database_url, echo=False)
+    engine = create_async_engine(database_url, echo=False, pool_pre_ping=True)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)  # type: ignore[call-overload]
 
     today = datetime.date.today()
@@ -373,6 +374,7 @@ async def main(dry_run: bool = False) -> None:
             log.info("Importación completada.")
 
     await engine.dispose()
+    log.info("=== Cron lluvia: fin ===")
 
 
 if __name__ == "__main__":
