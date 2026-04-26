@@ -224,28 +224,22 @@
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li>
-                                <form method="post" action="/set-language" class="m-0">
-                                    <input type="hidden" name="locale" value="es">
-                                    <button type="submit" class="dropdown-item {% if get_current_locale() == 'es' %}active{% endif %}">
-                                        {{ _("Español") }}
-                                    </button>
-                                </form>
+                                <a class="dropdown-item {% if get_current_locale() == 'es' %}active{% endif %}"
+                                   href="/set-language?locale=es">
+                                    {{ _("Español") }}
+                                </a>
                             </li>
                             <li>
-                                <form method="post" action="/set-language" class="m-0">
-                                    <input type="hidden" name="locale" value="en">
-                                    <button type="submit" class="dropdown-item {% if get_current_locale() == 'en' %}active{% endif %}">
-                                        {{ _("Inglés") }}
-                                    </button>
-                                </form>
+                                <a class="dropdown-item {% if get_current_locale() == 'en' %}active{% endif %}"
+                                   href="/set-language?locale=en">
+                                    {{ _("Inglés") }}
+                                </a>
                             </li>
                             <li>
-                                <form method="post" action="/set-language" class="m-0">
-                                    <input type="hidden" name="locale" value="fr">
-                                    <button type="submit" class="dropdown-item {% if get_current_locale() == 'fr' %}active{% endif %}">
-                                        {{ _("Francés") }}
-                                    </button>
-                                </form>
+                                <a class="dropdown-item {% if get_current_locale() == 'fr' %}active{% endif %}"
+                                   href="/set-language?locale=fr">
+                                    {{ _("Francés") }}
+                                </a>
                             </li>
                         </ul>
                     </div>
