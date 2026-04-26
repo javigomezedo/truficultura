@@ -297,7 +297,7 @@ async def main(dry_run: bool = False) -> None:
     settings = Settings(DATABASE_URL=database_url)
     database_url = settings.SQLALCHEMY_DATABASE_URL
 
-    engine = create_async_engine(database_url, echo=False)
+    engine = create_async_engine(database_url, echo=False, pool_pre_ping=True)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)  # type: ignore[call-overload]
 
     today = datetime.date.today()
