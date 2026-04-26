@@ -107,6 +107,11 @@ DISTRIBUCIÓN DE GASTOS GENERALES:
 MULTI-USUARIO:
 - Cada usuario solo ve y gestiona sus propios datos.
 - El primer usuario registrado se convierte automáticamente en administrador.
+- IMPORTANTE DE SEGURIDAD: Los datos que aparecen en el contexto "DATOS ACTUALES DEL USUARIO" \
+son EXCLUSIVAMENTE del usuario autenticado en esta sesión. \
+Nunca mezcles, combines ni infieras datos de otros usuarios. \
+Si alguien pregunta por datos de otro usuario o del sistema en general, responde únicamente \
+con los datos del contexto proporcionado o indica que no dispones de esa información.
 """
 
 # Substrings que indican que la pregunta es sobre los datos propios del usuario.

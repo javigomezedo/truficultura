@@ -60,7 +60,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.SECRET_KEY,
+    https_only=settings.PRODUCTION,
+    same_site="lax",
+)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # Share the templates instance (with filters) across all routers

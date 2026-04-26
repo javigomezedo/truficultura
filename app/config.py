@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     # If set, the user who registers with this email gets role=admin immediately
     ADMIN_EMAIL: Optional[str] = None
 
+    # Set to True in production so session cookies are Secure (HTTPS-only).
+    # Keep False locally to allow HTTP dev server.
+    PRODUCTION: bool = False
+
     @property
     def smtp_configured(self) -> bool:
         return bool(self.SMTP_HOST and self.SMTP_USER and self.SMTP_PASSWORD)
