@@ -166,20 +166,41 @@ async def recover_invalid_session_cookie(request: Request, call_next):
         return response
 
 
+def _apply_locale_to_response(request: Request, response: RedirectResponse, selected_locale: str | None) -> RedirectResponse:
+    """Persist the chosen locale in session and cookie on a redirect response."""
+    if selected_locale:
+        request.session["locale"] = selected_locale
+        response.set_cookie(
+            "locale",
+            selected_locale,
+            max_age=365 * 24 * 60 * 60,  # 1 year – survives browser restarts
+            samesite="lax",
+        )
+    return response
+
+
+@app.get("/set-language", response_class=RedirectResponse)
+async def set_language_get(
+    request: Request,
+    locale: str = "",
+):
+    """Persist the chosen locale via a simple GET link (used by the navbar dropdown)."""
+    selected_locale = locale if locale in AVAILABLE_LOCALES else None
+    referer = request.headers.get("referer", "/")
+    response = RedirectResponse(url=referer, status_code=303)
+    return _apply_locale_to_response(request, response, selected_locale)
+
+
 @app.post("/set-language", response_class=RedirectResponse)
 async def set_language(
     request: Request,
     locale: str = Form(...),
 ):
-    """Persist the chosen locale in the session and redirect back."""
+    """Persist the chosen locale in the session and redirect back (legacy POST form)."""
     selected_locale = locale if locale in AVAILABLE_LOCALES else None
-    if selected_locale:
-        request.session["locale"] = selected_locale
     referer = request.headers.get("referer", "/")
     response = RedirectResponse(url=referer, status_code=303)
-    if selected_locale:
-        response.set_cookie("locale", selected_locale, samesite="lax")
-    return response
+    return _apply_locale_to_response(request, response, selected_locale)
 
 
 @app.get("/", response_class=HTMLResponse)

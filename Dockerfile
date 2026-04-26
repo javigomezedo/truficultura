@@ -15,6 +15,7 @@ COPY pyproject.toml ./
 COPY app ./app
 COPY alembic ./alembic
 COPY alembic.ini ./
+COPY locales ./locales
 COPY scripts ./scripts
 COPY docker/entrypoint.sh /entrypoint.sh
 
