@@ -12,6 +12,7 @@ from app.models.well import Well
 from app.models.plot_event import PlotEvent
 from app.models.plot_harvest import PlotHarvest
 from app.models.recurring_expense import RecurringExpense
+from app.models.lead_capture import LeadCapture
 
 __all__ = [
     "User",
@@ -28,4 +29,5 @@ __all__ = [
     "PlotEvent",
     "PlotHarvest",
     "RecurringExpense",
+    "LeadCapture",
 ]
