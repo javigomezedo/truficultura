@@ -15,6 +15,7 @@ from app.database import get_db
 from app.i18n import _
 from app.jinja import templates
 from app.models.user import User
+from app.models.lead_capture import LeadCapture
 from app.services.admin_service import get_admin_rainfall_overview
 from app.services.aemet_service import (
     AemetClient,
@@ -397,3 +398,38 @@ async def lluvia_importar_ibericam_post(
         return JSONResponse({"ok": True, **stats})
     except Exception as exc:  # noqa: BLE001
         return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
+
+
+# ---------------------------------------------------------------------------
+# Leads de la landing page
+# ---------------------------------------------------------------------------
+
+@router.get("/leads", response_class=HTMLResponse)
+async def list_leads(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    result = await db.execute(select(LeadCapture).order_by(desc(LeadCapture.created_at)))
+    leads = result.scalars().all()
+    return templates.TemplateResponse(
+        request,
+        "admin/leads.html",
+        {"request": request, "leads": leads, "current_user": current_user},
+    )
+
+
+@router.post("/leads/{lead_id}/contacted")
+async def mark_lead_contacted(
+    lead_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    result = await db.execute(select(LeadCapture).where(LeadCapture.id == lead_id))
+    lead = result.scalars().first()
+    if lead and not lead.contacted:
+        lead.contacted = True
+        lead.contacted_at = datetime.datetime.now(datetime.timezone.utc)
+        await db.commit()
+    return RedirectResponse(url="/admin/leads", status_code=303)

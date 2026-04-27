@@ -92,3 +92,51 @@ async def send_password_reset_email(to_email: str, token: str) -> None:
 </html>
 """
     await send_email(to_email, "Recuperación de contraseña — Truficultura", html_body)
+
+
+async def send_lead_notification(name: str, email: str, message: str | None = None) -> None:
+    """Notifica al propietario de la app cuando un nuevo lead se registra en la landing."""
+    contact_email = settings.CONTACT_EMAIL or settings.SMTP_FROM
+    if not settings.smtp_configured:
+        logger.warning(
+            "[lead] SMTP no configurado — lead '%s' <%s> guardado en BD pero no se envió email.",
+            name,
+            email,
+        )
+        return
+
+    leads_url = f"{settings.APP_BASE_URL}/admin/leads"
+    message_row = (
+        f"""
+    <tr>
+      <td style="padding: 8px; font-weight: 600; border-bottom: 1px solid #e5e0d8; width: 100px; vertical-align: top;">Mensaje</td>
+      <td style="padding: 8px; border-bottom: 1px solid #e5e0d8; white-space: pre-wrap;">{message}</td>
+    </tr>"""
+        if message
+        else ""
+    )
+    html_body = f"""
+<!DOCTYPE html>
+<html lang="es">
+<body style="font-family: sans-serif; max-width: 540px; margin: 0 auto; padding: 24px; color: #2f261d;">
+  <h2 style="font-family: Georgia, serif; color: #566b2f;">Nuevo interesado en Truficultura</h2>
+  <table style="width:100%; border-collapse: collapse; margin-top: 1rem;">
+    <tr>
+      <td style="padding: 8px; font-weight: 600; border-bottom: 1px solid #e5e0d8; width: 100px;">Nombre</td>
+      <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;">{name}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; font-weight: 600; border-bottom: 1px solid #e5e0d8;">Email</td>
+      <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;"><a href="mailto:{email}">{email}</a></td>
+    </tr>    {message_row}  </table>
+  <p style="margin-top: 1.5rem;">
+    <a href="{leads_url}"
+       style="background: #566b2f; color: #fff; padding: 10px 20px; border-radius: 8px;
+              text-decoration: none; font-weight: 600;">
+      Ver panel de leads
+    </a>
+  </p>
+</body>
+</html>
+"""
+    await send_email(contact_email, f"[Truficultura] Nuevo interesado: {name}", html_body)

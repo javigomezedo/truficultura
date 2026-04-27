@@ -112,6 +112,71 @@ app.include_router(lluvia.router)
 app.include_router(aemet_admin.router)
 
 
+@app.get("/landing", response_class=HTMLResponse, include_in_schema=False)
+async def landing_page():
+    """Serve the standalone landing page."""
+    landing_path = "app/templates/landing_page.html"
+    with open(landing_path, encoding="utf-8") as f:
+        return HTMLResponse(content=f.read())
+
+
+@app.post("/landing/contact", include_in_schema=False)
+async def landing_contact(
+    request: Request,
+    name: str = Form(...),
+    email: str = Form(...),
+    message: str = Form(default=""),
+    db: AsyncSession = Depends(get_db),
+):
+    """Registra un lead desde la landing page y notifica al propietario."""
+    import hashlib
+    import re
+    from datetime import datetime, timedelta, timezone
+
+    from sqlalchemy import select
+
+    from app.models.lead_capture import LeadCapture
+    from app.services.email_service import send_lead_notification
+
+    EMAIL_RE = re.compile(r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$")
+
+    name = name.strip()
+    email = email.strip().lower()
+    message = message.strip()[:2000]  # Límite de caracteres por seguridad
+
+    if not name or not EMAIL_RE.match(email):
+        from fastapi.responses import JSONResponse
+        return JSONResponse({"ok": False, "error": "Datos inválidos."}, status_code=422)
+
+    # Deduplicación: mismo email en las últimas 24 h → devolver OK silencioso
+    since = datetime.now(timezone.utc) - timedelta(hours=24)
+    existing = await db.execute(
+        select(LeadCapture).where(
+            LeadCapture.email == email, LeadCapture.created_at >= since
+        )
+    )
+    if existing.scalars().first():
+        from fastapi.responses import JSONResponse
+        return JSONResponse({"ok": True})
+
+    # Hash parcial de IP (RGPD)
+    client_ip = request.client.host if request.client else ""
+    ip_hash = hashlib.sha256(client_ip.encode()).hexdigest()[:16] if client_ip else None
+
+    lead = LeadCapture(name=name, email=email, ip_hash=ip_hash, message=message or None)
+    db.add(lead)
+    await db.commit()
+
+    # Notificación por email (silenciosa si SMTP no está configurado)
+    try:
+        await send_lead_notification(name=name, email=email, message=message or None)
+    except Exception:
+        logger.exception("Error enviando notificación de lead para <%s>", email)
+
+    from fastapi.responses import JSONResponse
+    return JSONResponse({"ok": True})
+
+
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}

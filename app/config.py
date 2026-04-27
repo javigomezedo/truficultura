@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     SMTP_FROM: str = "noreply@truficultura.app"
     SMTP_TLS: bool = True   # STARTTLS (puerto 587)
     SMTP_SSL: bool = False  # SSL directo (puerto 465)
+    # Dirección de destino para notificaciones de leads. Si no se define, usa SMTP_FROM.
+    CONTACT_EMAIL: Optional[str] = None
 
     # App base URL (used to build confirmation/reset links)
     APP_BASE_URL: str = "http://localhost:8000"
