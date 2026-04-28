@@ -33,12 +33,16 @@ primary_region = 'cdg'
 #
 # Machine: d894945a7d55e8 (lingering-darkness-4100, 256 MB, región cdg)
 #   schedule: daily | env: RUN_MIGRATIONS=0
-#   cmd: sh -c 'python scripts/import_rainfall_cron.py && python scripts/process_recurring_expenses_cron.py'
+#   cmd: sh -c 'python scripts/import_rainfall_cron.py; python scripts/process_recurring_expenses_cron.py'
+#   NOTA: usa ; (no &&) para que el segundo script siempre se ejecute aunque el primero falle.
 #
 # La imagen se actualiza automáticamente tras cada push a main mediante
 # el step "Update cron machine image" en .github/workflows/fly-deploy.yml.
 #
 # Para verificar: fly machine list --app truficultura-dev
-# Para logs:      fly logs --app truficultura-dev
+# Para logs:      fly logs --app truficultura-dev --instance d894945a7d55e8
+# Para actualizar el comando:
+#   fly machine update d894945a7d55e8 --app truficultura-dev \
+#     --command "sh -c 'python scripts/import_rainfall_cron.py; python scripts/process_recurring_expenses_cron.py'"
 # ---------------------------------------------------------------------------
 
