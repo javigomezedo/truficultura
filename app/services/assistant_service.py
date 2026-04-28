@@ -69,6 +69,12 @@ Cada evento tiene fecha, notas y puede marcarse como recurrente.
 manual (el propio usuario), AEMET (red meteorológica oficial española), Ibericam (red privada). \
 Los registros AEMET/Ibericam se asocian al municipio. Incluye vista de calendario mensual y \
 listado filtrable por año, parcela, fuente y municipio.
+- Tiempo en directo (/tiempo/): pantalla de meteorología en tiempo real vía AEMET OpenData. \
+Muestra temperatura actual, humedad, precipitación del día, lluvia acumulada en el mes, \
+previsión para mañana (cielo, t. máx/mín, probabilidad de lluvia). La estación AEMET se \
+detecta automáticamente a partir del municipio del primer bancal del usuario. Si el municipio \
+no tiene estación AEMET, la lluvia mensual se obtiene de Ibericam. Los datos se cachean \
+20 minutos. Un widget compacto en el Panel de Control carga la información de forma asíncrona.
 - Ingresos: fecha, parcela (opcional), categoría de trufa (Extra, A, B…), kg y €/kg. \
 El total (€) se calcula automáticamente: cantidad_kg × euros_kg.
 - Gastos: fecha, descripción, persona, parcela (opcional), importe y categoría \
@@ -165,6 +171,15 @@ _DATA_KEYWORDS = {
     "precipitacion",
     "precipitaciones",
     "pluviometria",
+    "tiempo",
+    "temperatura",
+    "humedad",
+    "meteorologia",
+    "tiempo en directo",
+    "prevision",
+    "manana llueve",
+    "hace frio",
+    "aemet",
     "recurrente",
     "recurrentes",
     "gastos recurrentes",
@@ -223,6 +238,7 @@ _DATA_PATTERNS = [
         r"\b(donde)\b.*\b(gasto|gastando|gastos)\b.*\b(retorno|rentabilidad|menos)\b"
     ),
     re.compile(r"\b(lluvia|precipitacion|pluvio)\b.*\b(parcela|municipio|mes|ano|campana)\b"),
+    re.compile(r"\b(tiempo|temperatura|humedad|meteorologia|prevision)\b.*\b(manana|hoy|mañana|actual|ahora|directo)\b"),
     re.compile(r"\b(recurrente|recurrentes)\b.*\b(gasto|gastos)\b"),
     re.compile(r"\b(kpi|kpis)\b"),
     re.compile(r"\b(analitica|analisis)\b.*\b(parcela|riego|poda|labrado)\b"),

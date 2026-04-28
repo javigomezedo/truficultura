@@ -89,7 +89,7 @@
                         </a>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {% if '/irrigation' in request.url.path or '/wells' in request.url.path or '/lluvia' in request.url.path or '/plot-events' in request.url.path %}active{% endif %}"
+                        <a class="nav-link dropdown-toggle {% if '/irrigation' in request.url.path or '/wells' in request.url.path or '/lluvia' in request.url.path or '/plot-events' in request.url.path or '/tiempo' in request.url.path %}active{% endif %}"
                            href="#"
                            role="button"
                            data-bs-toggle="dropdown"
@@ -110,6 +110,11 @@
                             <li>
                                 <a class="dropdown-item {% if '/lluvia' in request.url.path %}active{% endif %}" href="/lluvia/">
                                     <i class="bi bi-cloud-rain-fill text-primary me-1"></i> {{ _("Lluvia") }}
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if '/tiempo' in request.url.path %}active{% endif %}" href="/tiempo/">
+                                    <i class="bi bi-thermometer-sun text-warning me-1"></i> {{ _("Tiempo") }}
                                 </a>
                             </li>
                             <li>

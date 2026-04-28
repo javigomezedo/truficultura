@@ -88,67 +88,166 @@
         </div>
     </div>
 
-    <!-- ===== SECCIÓN 2: Desglose por campaña ===== -->
-    <h6 class="text-uppercase text-muted fw-semibold mb-2 small">
-        <i class="bi bi-calendar3 me-1"></i>{{ _("Desglose por campaña") }}
-    </h6>
-    <div class="card tf-panel shadow-sm mb-4 border-0">
-        <div class="card-body p-0">
-            {% if campaign_rows %}
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>{{ _("Campaña") }}</th>
-                            <th class="text-end">{{ _("Gastos (€)") }}</th>
-                            <th class="text-end">{{ _("Ingresos (€)") }}</th>
-                            <th class="text-end">{{ _("Rentabilidad (€)") }}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in campaign_rows %}
-                        <tr>
-                            <td class="fw-semibold">
-                                <a href="/expenses/?year={{ row.year }}" class="text-decoration-none">
-                                    {{ row.year|campaign_label }}
-                                </a>
-                            </td>
-                            <td class="text-end text-danger">
-                                <a href="/expenses/?year={{ row.year }}" class="text-decoration-none text-danger">
-                                    {{ row.expenses|format_eu(2) }}
-                                </a>
-                            </td>
-                            <td class="text-end text-primary">
-                                <a href="/incomes/?year={{ row.year }}" class="text-decoration-none text-primary">
-                                    {{ row.incomes|format_eu(2) }}
-                                </a>
-                            </td>
-                            <td class="text-end fw-bold {% if row.profitability >= 0 %}text-positive{% else %}text-negative{% endif %}">
-                                {{ row.profitability|format_eu(2) }}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                    <tfoot class="table-secondary fw-bold">
-                        <tr>
-                            <td>{{ _("TOTAL") }}</td>
-                            <td class="text-end text-danger">{{ grand_expenses|format_eu(2) }}</td>
-                            <td class="text-end text-primary">{{ grand_incomes|format_eu(2) }}</td>
-                            <td class="text-end {% if grand_profitability >= 0 %}text-positive{% else %}text-negative{% endif %}">
-                                {{ grand_profitability|format_eu(2) }}
-                            </td>
-                        </tr>
-                    </tfoot>
-                </table>
+    <!-- ===== SECCIÓN 2: Desglose por campaña + Widget tiempo ===== -->
+    <div class="row g-3 mb-4 align-items-start">
+
+        <!-- Tabla de campañas -->
+        <div class="col-12 col-lg-8">
+            <h6 class="text-uppercase text-muted fw-semibold mb-2 small">
+                <i class="bi bi-calendar3 me-1"></i>{{ _("Desglose por campaña") }}
+            </h6>
+            <div class="card tf-panel shadow-sm border-0">
+                <div class="card-body p-0">
+                    {% if campaign_rows %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>{{ _("Campaña") }}</th>
+                                    <th class="text-end">{{ _("Gastos (€)") }}</th>
+                                    <th class="text-end">{{ _("Ingresos (€)") }}</th>
+                                    <th class="text-end">{{ _("Rentabilidad (€)") }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in campaign_rows %}
+                                <tr>
+                                    <td class="fw-semibold">
+                                        <a href="/expenses/?year={{ row.year }}" class="text-decoration-none">
+                                            {{ row.year|campaign_label }}
+                                        </a>
+                                    </td>
+                                    <td class="text-end text-danger">
+                                        <a href="/expenses/?year={{ row.year }}" class="text-decoration-none text-danger">
+                                            {{ row.expenses|format_eu(2) }}
+                                        </a>
+                                    </td>
+                                    <td class="text-end text-primary">
+                                        <a href="/incomes/?year={{ row.year }}" class="text-decoration-none text-primary">
+                                            {{ row.incomes|format_eu(2) }}
+                                        </a>
+                                    </td>
+                                    <td class="text-end fw-bold {% if row.profitability >= 0 %}text-positive{% else %}text-negative{% endif %}">
+                                        {{ row.profitability|format_eu(2) }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-secondary fw-bold">
+                                <tr>
+                                    <td>{{ _("TOTAL") }}</td>
+                                    <td class="text-end text-danger">{{ grand_expenses|format_eu(2) }}</td>
+                                    <td class="text-end text-primary">{{ grand_incomes|format_eu(2) }}</td>
+                                    <td class="text-end {% if grand_profitability >= 0 %}text-positive{% else %}text-negative{% endif %}">
+                                        {{ grand_profitability|format_eu(2) }}
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="tf-empty-state">
+                        <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                        <p class="mb-0">{{ _("Sin datos todavía.") }} <a href="/expenses/new">{{ _("Registrar gasto") }}</a> {{ _("o") }} <a href="/incomes/new">{{ _("ingreso") }}</a>.</p>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
-            {% else %}
-            <div class="tf-empty-state">
-                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                <p class="mb-0">{{ _("Sin datos todavía.") }} <a href="/expenses/new">{{ _("Registrar gasto") }}</a> {{ _("o") }} <a href="/incomes/new">{{ _("ingreso") }}</a>.</p>
-            </div>
-            {% endif %}
         </div>
+
+        <!-- Widget de tiempo -->
+        <div class="col-12 col-lg-4">
+            <h6 class="text-uppercase text-muted fw-semibold mb-2 small">
+                <i class="bi bi-thermometer-sun text-warning me-1"></i>{{ _("Tiempo en directo") }}
+            </h6>
+            <div class="card border-0 shadow-sm" id="weather-widget-card">
+                <div class="card-body" id="weather-widget-body">
+                    <div class="d-flex align-items-center gap-2 text-muted" id="weather-loading">
+                        <div class="spinner-border spinner-border-sm" role="status"></div>
+                        <span class="small">{{ _("Cargando tiempo…") }}</span>
+                    </div>
+                    <div id="weather-widget-content" style="display:none">
+                        <div id="w-municipios-list"></div>
+                        <a href="/tiempo/" class="stretched-link text-decoration-none tf-stat-link mt-2 d-block">
+                            <small>{{ _("Ver tiempo completo") }} &rarr;</small>
+                        </a>
+                    </div>
+                    <div id="weather-widget-error" style="display:none">
+                        <p class="small text-muted mb-1">
+                            <i class="bi bi-cloud-slash me-1"></i>{{ _("Tiempo no disponible") }}
+                        </p>
+                        <a href="/tiempo/" class="small text-decoration-none">{{ _("Configurar") }} &rarr;</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
+
+    <script>
+    (function () {
+        function tempIcon(t) {
+            if (t === null || t === undefined) return "";
+            const v = parseFloat(String(t).replace(",", "."));
+            if (v >= 30) return "☀️";
+            if (v >= 20) return "🌤️";
+            if (v >= 10) return "⛅";
+            if (v >= 0) return "🌥️";
+            return "❄️";
+        }
+        function renderMunicipio(m) {
+            const freshMap = {
+                success: ["bg-success", "En directo"],
+                warning: ["bg-warning text-dark", "Reciente"],
+                danger: ["bg-danger", "Desact."],
+                info: ["bg-info text-dark", "Previsión"],
+                secondary: ["bg-secondary", "Sin obs."],
+            };
+            const [freshCls, freshLabel] = freshMap[m.freshness] || ["bg-secondary", "–"];
+            const temp = m.temperature ? m.temperature + "°C" : "–";
+            const icon = tempIcon(m.temperature);
+            const tmw = m.tomorrow_sky
+                ? (m.tomorrow_t_min !== null && m.tomorrow_t_max !== null
+                    ? `${m.tomorrow_t_min}–${m.tomorrow_t_max}°C`
+                    : m.tomorrow_sky)
+                : "–";
+            const rainToday = m.precipitation_today !== null && m.precipitation_today !== undefined
+                ? m.precipitation_today + " mm hoy"
+                : "–";
+            return `
+            <div class="border-bottom pb-2 mb-2">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-semibold small text-truncate me-2">${m.display_name || ""}</span>
+                    <span class="badge ${freshCls} flex-shrink-0" style="font-size:.68rem">${freshLabel}</span>
+                </div>
+                <div class="d-flex align-items-center gap-2 small">
+                    <span class="fs-5">${icon}</span>
+                    <span class="fw-bold">${temp}</span>
+                    <span class="text-muted ms-auto">💧 ${rainToday}</span>
+                    <span class="text-muted">🌡️ ${tmw}</span>
+                </div>
+            </div>`;
+        }
+        fetch("/tiempo/widget")
+            .then(r => r.json())
+            .then(d => {
+                document.getElementById("weather-loading").classList.add("d-none");
+                if (!d.available || !d.municipios || d.municipios.length === 0) {
+                    document.getElementById("weather-widget-error").style.display = "";
+                    return;
+                }
+                const list = document.getElementById("w-municipios-list");
+                list.innerHTML = d.municipios.map(renderMunicipio).join("");
+                const last = list.querySelector(".border-bottom:last-child");
+                if (last) { last.classList.remove("border-bottom", "pb-2", "mb-2"); }
+                document.getElementById("weather-widget-content").style.display = "";
+            })
+            .catch(() => {
+                document.getElementById("weather-loading").classList.add("d-none");
+                document.getElementById("weather-widget-error").style.display = "";
+            });
+    })();
+    </script>
 
     <!-- ===== SECCIÓN 3: Matriz campaña x bancal ===== -->
     <h6 class="text-uppercase text-muted fw-semibold mb-2 small">

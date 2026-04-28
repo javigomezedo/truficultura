@@ -39,6 +39,7 @@ from app.routers import (
     recurring_expenses,
     reports,
     scan,
+    weather,
     wells,
 )
 from app.services.dashboard_service import build_dashboard_context
@@ -87,6 +88,7 @@ plot_events.templates = templates
 plot_analytics.templates = templates
 recurring_expenses.templates = templates
 lluvia.templates = templates
+weather.templates = templates
 
 # Include routers
 app.include_router(auth.router)
@@ -109,6 +111,7 @@ app.include_router(scan.router)
 app.include_router(kpis.router)
 app.include_router(recurring_expenses.router)
 app.include_router(lluvia.router)
+app.include_router(weather.router)
 app.include_router(aemet_admin.router)
 
 
