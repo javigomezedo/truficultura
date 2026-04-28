@@ -96,7 +96,26 @@
         return {
             element: el,
             setText: function (text) {
-                content.textContent = text;
+                if (window.marked) {
+                    // Protect LaTeX blocks from marked's escape handling (\[ → [)
+                    var maths = [];
+                    var safe = text
+                        .replace(/\\\[[\s\S]*?\\\]/g, function (m) {
+                            maths.push(m);
+                            return '\x00MATH' + (maths.length - 1) + '\x00';
+                        })
+                        .replace(/\\\([\s\S]*?\\\)/g, function (m) {
+                            maths.push(m);
+                            return '\x00MATH' + (maths.length - 1) + '\x00';
+                        });
+                    var html = marked.parse(safe);
+                    maths.forEach(function (m, i) {
+                        html = html.split('\x00MATH' + i + '\x00').join(m);
+                    });
+                    content.innerHTML = html;
+                } else {
+                    content.textContent = text;
+                }
                 if (window.renderMathInElement) {
                     renderMathInElement(content, {
                         delimiters: [
