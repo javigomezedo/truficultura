@@ -356,16 +356,20 @@ async def main(dry_run: bool = False) -> None:
 
         for municipio_cod in municipio_cods:
             municipio_name = municipio_names.get(municipio_cod) or municipio_cod
-            await import_municipio(
-                session,
-                municipio_cod,
-                municipio_name,
-                yesterday,
-                today,
-                all_aemet_stations,
-                ibericam_slugs,
-                dry_run=dry_run,
-            )
+            # Usar savepoint por municipio: si una importación falla a mitad, solo
+            # se deshacen los cambios de ese municipio y la sesión sigue válida para
+            # los siguientes (evita PendingRollbackError en el commit final).
+            async with session.begin_nested():
+                await import_municipio(
+                    session,
+                    municipio_cod,
+                    municipio_name,
+                    yesterday,
+                    today,
+                    all_aemet_stations,
+                    ibericam_slugs,
+                    dry_run=dry_run,
+                )
 
         if dry_run:
             log.info("[DRY-RUN] Simulación completada. No se ha escrito nada.")
