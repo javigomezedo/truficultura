@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.database import get_db
 from app.i18n import _
 from app.models.user import User
@@ -31,7 +31,7 @@ templates = Jinja2Templates(directory="app/templates")
 async def list_view(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
     year: Optional[str] = Query(default=None),
     plot_id: Optional[int] = Query(default=None),
     msg: Optional[str] = None,
@@ -58,7 +58,7 @@ async def list_view(
 async def new_form(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     from app.services.wells_service import _get_all_plots
 
@@ -79,7 +79,7 @@ async def create_view(
     expense_id: Optional[int] = Form(None),
     notes: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     data = WellCreate(
         plot_id=plot_id,
@@ -100,7 +100,7 @@ async def edit_form(
     request: Request,
     well_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     from app.services.wells_service import _get_all_plots
 
@@ -135,7 +135,7 @@ async def update_view(
     expense_id: Optional[int] = Form(None),
     notes: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     record = await get_service(db, well_id, current_user.id)
     if record is None:
@@ -162,7 +162,7 @@ async def delete_view(
     request: Request,
     well_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     await delete_service(db, well_id, current_user.id)
     return RedirectResponse(
@@ -175,7 +175,7 @@ async def delete_view(
 async def expenses_for_plot(
     plot_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     expenses = await get_well_expenses_for_plot(db, current_user.id, plot_id)
     return [

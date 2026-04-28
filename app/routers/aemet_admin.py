@@ -8,7 +8,7 @@ import httpx
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.config import settings
 from app.models.user import User
 
@@ -20,7 +20,7 @@ router = APIRouter(prefix="/admin/aemet", tags=["admin-aemet"])
 @router.get("/stations", response_class=JSONResponse)
 async def aemet_stations_proxy(
     api_key: Optional[str] = None,
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     """Proxy para obtener el listado de estaciones AEMET evitando CORS."""
     meta_url = "https://opendata.aemet.es/opendata/api/valores/climatologicos/inventarioestaciones/todasestaciones"

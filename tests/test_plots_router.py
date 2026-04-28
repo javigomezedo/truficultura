@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 from fastapi.testclient import TestClient
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.database import get_db
 from app.main import app
 
@@ -46,7 +46,7 @@ def test_plots_list_renders(monkeypatch) -> None:
         "app.routers.plots.get_plant_counts_by_plot",
         AsyncMock(return_value={10: 20}),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -60,7 +60,7 @@ def test_plots_list_renders(monkeypatch) -> None:
 
 
 def test_new_plot_form_renders() -> None:
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     try:
         client = TestClient(app)
         response = client.get("/plots/new")
@@ -75,7 +75,7 @@ def test_create_plot_redirects_and_maps_irrigation(monkeypatch) -> None:
     fake_db = _db()
     create_mock = AsyncMock()
     monkeypatch.setattr("app.routers.plots.create_plot_service", create_mock)
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -101,7 +101,7 @@ def test_create_plot_redirects_in_english_when_locale_changes(monkeypatch) -> No
     fake_db = _db()
     create_mock = AsyncMock()
     monkeypatch.setattr("app.routers.plots.create_plot_service", create_mock)
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -131,7 +131,7 @@ def test_create_plot_redirects_in_english_when_locale_changes(monkeypatch) -> No
 def test_edit_plot_not_found_redirects(monkeypatch) -> None:
     fake_db = _db()
     monkeypatch.setattr("app.routers.plots.get_plot", AsyncMock(return_value=None))
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -161,7 +161,7 @@ def test_edit_plot_form_renders(monkeypatch) -> None:
         has_irrigation=True,
     )
     monkeypatch.setattr("app.routers.plots.get_plot", AsyncMock(return_value=plot))
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -176,7 +176,7 @@ def test_edit_plot_form_renders(monkeypatch) -> None:
 def test_update_plot_not_found_redirects(monkeypatch) -> None:
     fake_db = _db()
     monkeypatch.setattr("app.routers.plots.get_plot", AsyncMock(return_value=None))
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -202,7 +202,7 @@ def test_update_plot_redirects_and_maps_irrigation_false(monkeypatch) -> None:
     monkeypatch.setattr("app.routers.plots.get_plot", AsyncMock(return_value=plot))
     update_mock = AsyncMock()
     monkeypatch.setattr("app.routers.plots.update_plot_service", update_mock)
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -229,7 +229,7 @@ def test_delete_plot_redirects(monkeypatch) -> None:
     monkeypatch.setattr("app.routers.plots.get_plot", AsyncMock(return_value=obj))
     delete_mock = AsyncMock()
     monkeypatch.setattr("app.routers.plots.delete_plot_service", delete_mock)
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -247,7 +247,7 @@ def test_delete_plot_redirects_when_not_found(monkeypatch) -> None:
     monkeypatch.setattr("app.routers.plots.get_plot", AsyncMock(return_value=None))
     delete_mock = AsyncMock()
     monkeypatch.setattr("app.routers.plots.delete_plot_service", delete_mock)
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)

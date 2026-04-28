@@ -5,7 +5,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.database import get_db
 from app.models.user import User
 from app.services.import_service import (
@@ -47,7 +47,7 @@ def _summarize_zip_import(imported_by_file: dict[str, int]) -> list[str]:
 @router.get("/", response_class=HTMLResponse)
 async def import_page(
     request: Request,
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     return templates.TemplateResponse(
         request,
@@ -61,7 +61,7 @@ async def upload_all_zip(
     request: Request,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     content = await file.read()
     imported_by_file, warnings = await import_all_csv_zip(db, content, current_user.id)
@@ -92,7 +92,7 @@ async def upload_expenses(
     request: Request,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     content = await file.read()
     rows, warnings = await import_expenses_csv(db, content, current_user.id)
@@ -119,7 +119,7 @@ async def upload_incomes(
     request: Request,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     content = await file.read()
     rows, warnings = await import_incomes_csv(db, content, current_user.id)
@@ -146,7 +146,7 @@ async def upload_plots(
     request: Request,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     content = await file.read()
     rows, warnings = await import_plots_csv(db, content, current_user.id)
@@ -173,7 +173,7 @@ async def upload_irrigation(
     request: Request,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     content = await file.read()
     rows, warnings = await import_irrigation_csv(db, content, current_user.id)
@@ -200,7 +200,7 @@ async def upload_wells(
     request: Request,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     content = await file.read()
     rows, warnings = await import_wells_csv(db, content, current_user.id)
@@ -227,7 +227,7 @@ async def upload_truffles(
     request: Request,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     content = await file.read()
     rows, warnings = await import_truffles_csv(db, content, current_user.id)
@@ -254,7 +254,7 @@ async def upload_plot_events(
     request: Request,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     content = await file.read()
     rows, warnings = await import_plot_events_csv(db, content, current_user.id)
@@ -281,7 +281,7 @@ async def upload_recurring_expenses(
     request: Request,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     content = await file.read()
     rows, warnings = await import_recurring_expenses_csv(db, content, current_user.id)
@@ -307,7 +307,7 @@ async def upload_harvests(
     request: Request,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     content = await file.read()
     rows, warnings = await import_harvests_csv(db, content, current_user.id)
@@ -333,7 +333,7 @@ async def upload_presences(
     request: Request,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     content = await file.read()
     rows, warnings = await import_presences_csv(db, content, current_user.id)

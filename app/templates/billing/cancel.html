@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 text-center">
+            <div class="mb-4">
+                <i class="bi bi-x-circle text-secondary" style="font-size: 4rem;"></i>
+            </div>
+            <h1 class="h2 fw-bold mb-3">{{ _("Pago cancelado") }}</h1>
+            <p class="text-muted mb-4">
+                {{ _("No se ha realizado ningún cargo. Puedes intentarlo de nuevo cuando quieras.") }}
+            </p>
+            <a href="/billing/subscribe" class="btn btn-primary btn-lg me-2">
+                <i class="bi bi-credit-card-fill me-2"></i>{{ _("Intentar de nuevo") }}
+            </a>
+            <a href="/" class="btn btn-outline-secondary btn-lg">
+                <i class="bi bi-house me-2"></i>{{ _("Ir al inicio") }}
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

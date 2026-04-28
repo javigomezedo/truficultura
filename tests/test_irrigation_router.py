@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 from fastapi.testclient import TestClient
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.database import get_db
 from app.main import app
 
@@ -36,7 +36,7 @@ def test_irrigation_list_renders(monkeypatch) -> None:
             }
         ),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -67,7 +67,7 @@ def test_irrigation_list_ignores_empty_plot_id(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.routers.irrigation.get_irrigation_list_context", context_mock
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -92,7 +92,7 @@ def test_irrigation_new_form_renders(monkeypatch) -> None:
         "app.services.irrigation_service._get_irrigable_plots",
         AsyncMock(return_value=[]),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -108,7 +108,7 @@ def test_irrigation_create_redirects(monkeypatch) -> None:
     fake_db = _db()
     create_mock = AsyncMock()
     monkeypatch.setattr("app.routers.irrigation.create_service", create_mock)
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -130,7 +130,7 @@ def test_irrigation_edit_not_found_redirects(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.routers.irrigation.get_irrigation_record", AsyncMock(return_value=None)
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -169,7 +169,7 @@ def test_irrigation_edit_form_renders(monkeypatch) -> None:
         "app.routers.irrigation.get_riego_expenses_for_plot",
         AsyncMock(return_value=[expense]),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -186,7 +186,7 @@ def test_irrigation_update_not_found_redirects(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.routers.irrigation.get_irrigation_record", AsyncMock(return_value=None)
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -210,7 +210,7 @@ def test_irrigation_update_redirects(monkeypatch) -> None:
     )
     update_mock = AsyncMock()
     monkeypatch.setattr("app.routers.irrigation.update_service", update_mock)
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -235,7 +235,7 @@ def test_irrigation_delete_redirects(monkeypatch) -> None:
     fake_db = _db()
     delete_mock = AsyncMock()
     monkeypatch.setattr("app.routers.irrigation.delete_service", delete_mock)
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -260,7 +260,7 @@ def test_irrigation_expenses_for_plot_returns_json(monkeypatch) -> None:
         "app.routers.irrigation.get_riego_expenses_for_plot",
         AsyncMock(return_value=[expense]),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -293,7 +293,7 @@ def test_irrigation_bulk_new_form_renders(monkeypatch) -> None:
         "app.routers.irrigation.get_riego_expenses_for_plots",
         AsyncMock(return_value={1: [], 2: []}),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -310,7 +310,7 @@ def test_irrigation_bulk_create_redirects(monkeypatch) -> None:
     fake_db = _db()
     bulk_mock = AsyncMock(return_value=[SimpleNamespace(), SimpleNamespace()])
     monkeypatch.setattr("app.routers.irrigation.create_bulk_service", bulk_mock)
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     body = urllib.parse.urlencode(
         [
@@ -350,7 +350,7 @@ def test_irrigation_bulk_skips_empty_water_m3(monkeypatch) -> None:
     fake_db = _db()
     bulk_mock = AsyncMock(return_value=[SimpleNamespace()])
     monkeypatch.setattr("app.routers.irrigation.create_bulk_service", bulk_mock)
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     body = urllib.parse.urlencode(
         [
@@ -402,7 +402,7 @@ def test_irrigation_bulk_invalid_date_skips_row(monkeypatch) -> None:
     fake_db = _db()
     bulk_mock = AsyncMock(return_value=[SimpleNamespace()])
     monkeypatch.setattr("app.routers.irrigation.create_bulk_service", bulk_mock)
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     body = urllib.parse.urlencode(
         [
@@ -440,7 +440,7 @@ def test_irrigation_bulk_passes_expense_id(monkeypatch) -> None:
     fake_db = _db()
     bulk_mock = AsyncMock(return_value=[SimpleNamespace()])
     monkeypatch.setattr("app.routers.irrigation.create_bulk_service", bulk_mock)
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     body = urllib.parse.urlencode(
         [

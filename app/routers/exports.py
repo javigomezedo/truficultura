@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.database import get_db
 from app.models.user import User
 from app.services.export_service import (
@@ -31,7 +31,7 @@ templates = Jinja2Templates(directory="app/templates")
 @router.get("/", response_class=HTMLResponse)
 async def export_page(
     request: Request,
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     return templates.TemplateResponse(
         request,
@@ -43,7 +43,7 @@ async def export_page(
 @router.get("/all.zip")
 async def download_all_csv_zip(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     data = await export_all_csv_zip(db, current_user.id)
     return StreamingResponse(
@@ -56,7 +56,7 @@ async def download_all_csv_zip(
 @router.get("/plots.csv")
 async def download_plots(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     data = await export_plots_csv(db, current_user.id)
     return StreamingResponse(
@@ -69,7 +69,7 @@ async def download_plots(
 @router.get("/expenses.csv")
 async def download_expenses(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     data = await export_expenses_csv(db, current_user.id)
     return StreamingResponse(
@@ -82,7 +82,7 @@ async def download_expenses(
 @router.get("/incomes.csv")
 async def download_incomes(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     data = await export_incomes_csv(db, current_user.id)
     return StreamingResponse(
@@ -95,7 +95,7 @@ async def download_incomes(
 @router.get("/irrigation.csv")
 async def download_irrigation(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     data = await export_irrigation_csv(db, current_user.id)
     return StreamingResponse(
@@ -108,7 +108,7 @@ async def download_irrigation(
 @router.get("/wells.csv")
 async def download_wells(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     data = await export_wells_csv(db, current_user.id)
     return StreamingResponse(
@@ -121,7 +121,7 @@ async def download_wells(
 @router.get("/truffles.csv")
 async def download_truffles(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     data = await export_truffles_csv(db, current_user.id)
     return StreamingResponse(
@@ -134,7 +134,7 @@ async def download_truffles(
 @router.get("/plot_events.csv")
 async def download_plot_events(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     data = await export_plot_events_csv(db, current_user.id)
     return StreamingResponse(
@@ -147,7 +147,7 @@ async def download_plot_events(
 @router.get("/recurring_expenses.csv")
 async def download_recurring_expenses(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     data = await export_recurring_expenses_csv(db, current_user.id)
     return StreamingResponse(
@@ -160,7 +160,7 @@ async def download_recurring_expenses(
 @router.get("/harvests.csv")
 async def download_harvests(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     data = await export_harvests_csv(db, current_user.id)
     return StreamingResponse(
@@ -173,7 +173,7 @@ async def download_harvests(
 @router.get("/presences.csv")
 async def download_presences(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     data = await export_presences_csv(db, current_user.id)
     return StreamingResponse(

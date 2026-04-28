@@ -10,7 +10,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.auth import NotAuthenticatedException, NotAdminException, require_user
+from app.auth import (
+    NotAuthenticatedException,
+    NotAdminException,
+    SubscriptionRequiredException,
+    require_subscription,
+)
 from app.config import settings
 from app.database import engine, get_db
 from fastapi import Form
@@ -23,6 +28,7 @@ from app.routers import (
     aemet_admin,
     assistant,
     auth,
+    billing,
     charts,
     expenses,
     exports,
@@ -89,6 +95,7 @@ plot_analytics.templates = templates
 recurring_expenses.templates = templates
 lluvia.templates = templates
 weather.templates = templates
+billing.templates = templates
 
 # Include routers
 app.include_router(auth.router)
@@ -113,6 +120,7 @@ app.include_router(recurring_expenses.router)
 app.include_router(lluvia.router)
 app.include_router(weather.router)
 app.include_router(aemet_admin.router)
+app.include_router(billing.router)
 
 
 @app.get("/landing", response_class=HTMLResponse, include_in_schema=False)
@@ -149,6 +157,7 @@ async def landing_contact(
 
     if not name or not EMAIL_RE.match(email):
         from fastapi.responses import JSONResponse
+
         return JSONResponse({"ok": False, "error": "Datos inválidos."}, status_code=422)
 
     # Deduplicación: mismo email en las últimas 24 h → devolver OK silencioso
@@ -160,6 +169,7 @@ async def landing_contact(
     )
     if existing.scalars().first():
         from fastapi.responses import JSONResponse
+
         return JSONResponse({"ok": True})
 
     # Hash parcial de IP (RGPD)
@@ -177,6 +187,7 @@ async def landing_contact(
         logger.exception("Error enviando notificación de lead para <%s>", email)
 
     from fastapi.responses import JSONResponse
+
     return JSONResponse({"ok": True})
 
 
@@ -193,6 +204,13 @@ async def not_authenticated_handler(request: Request, exc: NotAuthenticatedExcep
 @app.exception_handler(NotAdminException)
 async def not_admin_handler(request: Request, exc: NotAdminException):
     return RedirectResponse(url="/", status_code=303)
+
+
+@app.exception_handler(SubscriptionRequiredException)
+async def subscription_required_handler(
+    request: Request, exc: SubscriptionRequiredException
+):
+    return RedirectResponse(url="/billing/subscribe", status_code=303)
 
 
 @app.middleware("http")
@@ -234,7 +252,9 @@ async def recover_invalid_session_cookie(request: Request, call_next):
         return response
 
 
-def _apply_locale_to_response(request: Request, response: RedirectResponse, selected_locale: str | None) -> RedirectResponse:
+def _apply_locale_to_response(
+    request: Request, response: RedirectResponse, selected_locale: str | None
+) -> RedirectResponse:
     """Persist the chosen locale in session and cookie on a redirect response."""
     if selected_locale:
         request.session["locale"] = selected_locale
@@ -275,7 +295,7 @@ async def set_language(
 async def dashboard(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     context = await build_dashboard_context(db, current_user.id)
 

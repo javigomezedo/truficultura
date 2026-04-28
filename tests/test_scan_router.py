@@ -20,6 +20,8 @@ def _fake_db() -> MagicMock:
 
 
 def _active_user() -> User:
+    from datetime import UTC, datetime, timedelta
+
     return User(
         id=1,
         username="javier",
@@ -30,6 +32,8 @@ def _active_user() -> User:
         role="user",
         is_active=True,
         email_confirmed=True,
+        subscription_status="trialing",
+        trial_ends_at=datetime.now(UTC) + timedelta(days=14),
     )
 
 

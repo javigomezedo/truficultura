@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.database import get_db
 from app.i18n import _
 from app.models.user import User
@@ -32,7 +32,7 @@ templates = Jinja2Templates(directory="app/templates")
 async def simulate_view(
     plot_id: int = Query(...),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     sim = await simulate_irrigation(db, current_user.id, plot_id, datetime.date.today())
     if sim is None:
@@ -47,7 +47,7 @@ async def simulate_view(
 async def list_view(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
     year: Optional[str] = Query(default=None),
     plot_id: Optional[str] = Query(default=None),
     msg: Optional[str] = None,
@@ -75,7 +75,7 @@ async def list_view(
 async def new_form(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     from app.services.irrigation_service import _get_irrigable_plots
 
@@ -96,7 +96,7 @@ async def create_view(
     expense_id: Optional[int] = Form(None),
     notes: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     data = IrrigationCreate(
         plot_id=plot_id,
@@ -116,7 +116,7 @@ async def create_view(
 async def bulk_new_form(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     from app.services.irrigation_service import _get_irrigable_plots
 
@@ -140,7 +140,7 @@ async def bulk_new_form(
 async def bulk_create_view(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     form = await request.form()
     plot_ids = form.getlist("plot_id")
@@ -198,7 +198,7 @@ async def edit_form(
     request: Request,
     record_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     from app.services.irrigation_service import _get_irrigable_plots
 
@@ -233,7 +233,7 @@ async def update_view(
     expense_id: Optional[int] = Form(None),
     notes: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     record = await get_irrigation_record(db, record_id, current_user.id)
     if record is None:
@@ -260,7 +260,7 @@ async def delete_view(
     request: Request,
     record_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     await delete_service(db, record_id, current_user.id)
     return RedirectResponse(
@@ -273,7 +273,7 @@ async def delete_view(
 async def expenses_for_plot(
     plot_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     expenses = await get_riego_expenses_for_plot(db, current_user.id, plot_id)
     return [

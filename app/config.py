@@ -29,6 +29,13 @@ class Settings(BaseSettings):
     # If set, the user who registers with this email gets role=admin immediately
     ADMIN_EMAIL: Optional[str] = None
 
+    # Stripe billing
+    STRIPE_SECRET_KEY: Optional[str] = None
+    STRIPE_PUBLISHABLE_KEY: Optional[str] = None
+    STRIPE_WEBHOOK_SECRET: Optional[str] = None
+    STRIPE_PRICE_ID: Optional[str] = None  # Price ID del plan anual en Stripe
+    TRIAL_DAYS: int = 14
+
     # Set to True in production so session cookies are Secure (HTTPS-only).
     # Keep False locally to allow HTTP dev server.
     PRODUCTION: bool = False
