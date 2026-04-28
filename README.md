@@ -1,6 +1,6 @@
 # Truficultura
 
-Aplicación web para la gestión integral de una explotación trufícola: parcelas, producción por planta, pozos, riego, gastos, ingresos, rentabilidad por campañas, KPIs y gráficas de evolución.
+Aplicación web para la gestión integral de una explotación trufícola: parcelas, producción por planta, pozos, riego, gastos, ingresos, rentabilidad por campañas, KPIs, gráficas de evolución, lluvia, meteorología y suscripción de pago.
 
 ## 1. Resumen del proyecto
 
@@ -12,15 +12,25 @@ Truficultura permite registrar y analizar la actividad económica de una explota
 - Configuración de mapas de plantas por parcela (filas/columnas, huecos y etiquetas tipo A1, C2, AA10).
 - Registro de trufas por planta (manual o por QR), con histórico y filtros por campaña/parcela/planta.
 - Registro de pozos por parcela y campaña, con posibilidad de asociarlos a gasto.
-- Registro de gastos (con o sin parcela asignada).
+- Registro de gastos (con o sin parcela asignada) con opción de prorrateo plurianual.
+- Registro de gastos recurrentes (semanal, mensual, anual) con generación automática de gastos reales mediante cron.
 - Registro de ingresos por fecha, categoría, kg y precio por kg.
 - Registro de riegos por parcela con volumen de agua y notas.
+- Registro de cosechas (`PlotHarvest`) por parcela y fecha, con peso en gramos.
+- Registro de eventos de parcela (riego, pozos, poda, laboreo, etc.) con calendario visual.
+- Registro de presencia de trufa por planta y día (`PlantPresence`).
+- Registro de lluvia por parcela, municipio o fuente externa (AEMET / Ibericam) con importación automática vía cron.
+- Visualización meteorológica en tiempo real (temperatura, humedad, viento) por parcela vía API AEMET / Ibericam.
+- Análisis avanzado por parcela: correlación riego-producción, poda-producción, laboreo-producción, comparativa multi-parcela y umbrales de riego.
 - Cálculo automático de rentabilidad global, por campaña y por parcela.
 - Visualización de métricas semanales y comparativas mediante gráficas.
 - Panel de KPIs con ROI, precio medio, kg por campaña, crecimiento interanual y eficiencia hídrica.
 - Importación y exportación masiva de datos históricos desde CSV para parcelas, gastos, ingresos, riego, pozos y producción.
 - Asistente conversacional vía API para consultas sobre uso y datos, con métricas y rate limiting.
 - Distribución proporcional de gastos generales según número de plantas por parcela.
+- **Sistema de suscripción de pago** vía Stripe: periodo de prueba, checkout anual, portal de gestión y webhooks.
+- Página de landing pública con formulario de contacto/captura de leads.
+- Internacionalización (i18n) de la interfaz en español, inglés y francés.
 
 ### Lógica de negocio clave
 
@@ -29,6 +39,20 @@ Truficultura permite registrar y analizar la actividad económica de una explota
 - **Distribución de gastos sin parcela**:
   - Los gastos con `plot_id = None` se reparten proporcionalmente según el campo `porcentaje` de cada parcela.
   - El porcentaje se calcula automáticamente: `(num_plantas / total_plantas_usuario) * 100`
+- **Prorrateo plurianual de gastos**:
+  - Un gasto de inversión puede distribuirse en N campañas (ej: 3.000 € → 3 gastos de 1.000 €/año).
+  - Se almacena un `ExpenseProrationGroup` padre que agrupa todos los gastos hijos generados.
+- **Gastos recurrentes**:
+  - Definidos con frecuencia `weekly` / `monthly` / `annual`, importe, categoría y parcela opcional.
+  - El cron `scripts/process_recurring_expenses_cron.py` genera los gastos reales vencidos.
+- **Lluvia**:
+  - Los registros pueden ser `manual` (parcela concreta), `aemet` o `ibericam` (nivel municipio, `user_id` puede ser NULL).
+  - El cron `scripts/import_rainfall_cron.py` descarga automáticamente datos de lluvia por municipio priorizando AEMET sobre Ibericam.
+- **Suscripción**:
+  - Nuevo usuario → periodo de prueba de N días (`TRIAL_DAYS`, por defecto 14).
+  - Tras el trial, se requiere suscripción activa para acceder a la aplicación.
+  - Usuarios `admin` nunca son bloqueados.
+  - Estados posibles: `trialing`, `active`, `past_due`, `canceled`.
 - **Identificación de parcelas**:
   - `plot_num`: número de parcela dentro del polígono (ej: 120)
   - `cadastral_ref`: referencia catastral oficial (ej: 44223A021001200000FP)
@@ -50,7 +74,11 @@ Truficultura permite registrar y analizar la actividad económica de una explota
 - **Renderizado HTML**: Jinja2
 - **Frontend**: Bootstrap 5 + Bootstrap Icons
 - **Gráficas**: Chart.js
-- **Herramientas auxiliares**: python-multipart, aiofiles, greenlet
+- **Internacionalización**: Babel + gettext (es / en / fr)
+- **Autenticación**: sesiones `itsdangerous`, contraseñas Argon2
+- **Pagos**: Stripe (Checkout, Customer Portal, webhooks)
+- **Meteorología externa**: AEMET OpenData API + Ibericam (scraping)
+- **Herramientas auxiliares**: python-multipart, aiofiles, greenlet, httpx
 
 ## Arquitectura de carpetas
 
@@ -58,18 +86,29 @@ Truficultura permite registrar y analizar la actividad económica de una explota
 .
 ├── app/
 │   ├── main.py                 # Arranque FastAPI y dashboard principal
-│   ├── config.py               # Configuración (DATABASE_URL, etc.)
+│   ├── auth.py                 # Autenticación, roles y gating de suscripción
+│   ├── config.py               # Configuración (DATABASE_URL, Stripe, AEMET, SMTP…)
 │   ├── database.py             # Engine/sesiones async SQLAlchemy
+│   ├── i18n.py                 # Internacionalización (gettext, Babel)
+│   ├── jinja.py                # Globals y filtros Jinja2
 │   ├── utils.py                # Funciones de campaña y reparto de gastos
-│   ├── models/                 # Entidades ORM: Parcela, Planta, Producción, Riego, Pozos, etc.
+│   ├── models/                 # Entidades ORM (Parcela, Planta, Gasto, Lluvia, Suscripción…)
 │   ├── routers/                # Rutas por módulo funcional
 │   ├── services/               # Lógica de negocio y agregaciones
 │   ├── schemas/                # Esquemas Pydantic (DTOs)
 │   └── templates/              # Vistas Jinja2
 ├── alembic/                    # Configuración de migraciones
-├── import_data/                # Scripts + CSV de importación
+├── locales/                    # Ficheros de traducción .po (es/en/fr)
+├── scripts/                    # Scripts de mantenimiento y cron
+│   ├── process_recurring_expenses_cron.py
+│   ├── import_rainfall_cron.py
+│   ├── seed_full_demo.py
+│   ├── seed_truffle_demo_data.py
+│   └── proxy-dev-db.sh
+├── import_data/                # CSV de importación de muestra
 ├── pyproject.toml              # Dependencias y metadata
 ├── alembic.ini                 # Config Alembic
+├── fly.toml                    # Configuración despliegue Fly.io
 └── .env / .env.example         # Variables de entorno
 ```
 
@@ -94,17 +133,30 @@ La aplicación ya está refactorizada para separar responsabilidades.
 Servicios principales:
 
 - `app/services/plots_service.py`: CRUD de parcelas con cálculo automático de porcentajes.
-- `app/services/expenses_service.py`: CRUD y contexto de listado de gastos por campaña.
+- `app/services/expenses_service.py`: CRUD y contexto de listado de gastos por campaña, con soporte de prorrateo.
+- `app/services/recurring_expenses_service.py`: CRUD de gastos recurrentes y generación de gastos vencidos.
 - `app/services/incomes_service.py`: CRUD y contexto de listado de ingresos por campaña.
 - `app/services/irrigation_service.py`: CRUD y contexto de listados de riego por parcela y año.
 - `app/services/wells_service.py`: CRUD y agregados de pozos por parcela y campaña.
+- `app/services/plot_events_service.py`: CRUD de eventos de parcela (riego, poda, laboreo, etc.) con calendario.
+- `app/services/plot_harvest_service.py`: CRUD de cosechas (`PlotHarvest`) por parcela y fecha.
+- `app/services/plant_presence_service.py`: registro de presencia de trufa por planta y día.
+- `app/services/rainfall_service.py`: CRUD de registros de lluvia (manual, AEMET, Ibericam) y calendario de precipitaciones.
+- `app/services/weather_service.py`: consulta meteorológica en tiempo real por parcela (temperatura, humedad, viento).
+- `app/services/aemet_service.py`: cliente AEMET OpenData (estaciones, observaciones, climatología).
+- `app/services/ibericam_service.py`: scraping de datos meteorológicos de Ibericam.
+- `app/services/plot_analytics_service.py`: análisis avanzado por parcela (correlaciones riego/poda/laboreo vs producción, comparativa multi-parcela, umbrales).
 - `app/services/dashboard_service.py`: cálculo del dashboard global.
 - `app/services/reports_service.py`: cálculo del informe de rentabilidad.
 - `app/services/charts_service.py`: datasets para gráficas y tablas de producción.
 - `app/services/kpi_service.py`: cálculo de KPIs globales y por parcela.
+- `app/services/billing_service.py`: integración Stripe (trial, checkout, portal, webhooks).
 - `app/services/assistant_service.py`: preparación de contexto y orquestación del asistente.
 - `app/services/import_service.py`: importación de parcelas, gastos, ingresos, riego, pozos y producción desde CSV.
 - `app/services/export_service.py`: exportación de parcelas, gastos, ingresos, riego, pozos y producción a CSV/ZIP.
+- `app/services/email_service.py`: envío de emails (confirmación, notificaciones de leads) vía SMTP.
+- `app/services/token_service.py`: generación y validación de tokens firmados (confirmación email, QR).
+- `app/services/admin_service.py`: gestión de usuarios desde el panel de admin.
 
 Beneficios directos del refactor:
 
@@ -120,11 +172,15 @@ Campos relevantes:
 
 - `username`: identificador único del usuario
 - `email`: email único del usuario
-- `first_name`: nombre
-- `last_name`: apellido
-- `hashed_password`: contraseña hasheada (algoritmo Argon2)
-- `role`: rol del usuario (`admin` o `user`)
+- `first_name` / `last_name`: nombre y apellido
+- `hashed_password`: contraseña hasheada (Argon2)
+- `role`: `admin` o `user`
 - `is_active`: estado (activo/inactivo)
+- `email_confirmed`: indica si el email fue verificado (boolean)
+- `comunidad_regantes`: pertenece a comunidad de regantes (boolean)
+- `stripe_customer_id`: ID de cliente en Stripe
+- `subscription_status`: `trialing` | `active` | `past_due` | `canceled`
+- `trial_ends_at` / `subscription_ends_at`: fechas de expiración del trial o suscripción
 - `created_at`: fecha de creación
 
 Relaciones:
@@ -199,6 +255,83 @@ Campos relevantes:
 - `notes`: notas opcionales
 - `user_id`: usuario propietario del dato
 
+### Gasto recurrente (RecurringExpense)
+
+Campos relevantes:
+
+- `description`: descripción del gasto
+- `amount`: importe en euros
+- `category`: categoría opcional
+- `plot_id`: parcela asignada (opcional)
+- `person`: persona responsable
+- `frequency`: `weekly` | `monthly` | `annual`
+- `is_active`: si sigue activo para futuras generaciones
+- `last_run_date`: última fecha en que se generó un gasto real
+- `user_id`: usuario propietario
+
+### Prorrateo de gasto (ExpenseProrationGroup)
+
+Agrupa N gastos generados al distribuir una inversión en varias campañas:
+
+- `description`: descripción del gasto original
+- `total_amount`: importe total sin prorratear
+- `years`: número de años del prorrateo
+- `start_year`: campaña inicial
+- `user_id`: usuario propietario
+
+### Evento de parcela (PlotEvent)
+
+Campos relevantes:
+
+- `plot_id`: parcela asociada
+- `event_type`: tipo de evento (`riego`, `pozos`, `poda`, `laboreo`, `sulfatado`, etc.)
+- `date`: fecha del evento
+- `notes`: notas opcionales
+- `is_recurring`: si es recurrente
+- `related_irrigation_id` / `related_well_id`: referencias opcionales a riego o pozo asociado
+- `user_id`: usuario propietario
+
+### Cosecha de parcela (PlotHarvest)
+
+Campos relevantes:
+
+- `plot_id`: parcela asociada
+- `harvest_date`: fecha de recogida
+- `weight_grams`: peso recogido en gramos
+- `notes`: notas opcionales
+- `user_id`: usuario propietario
+
+### Presencia de trufa por planta (PlantPresence)
+
+Campos relevantes:
+
+- `plot_id` / `plant_id`: parcela y planta
+- `presence_date`: fecha del registro
+- `has_truffle`: indica si la planta tenía trufa ese día
+- `user_id`: usuario propietario
+
+### Registro de lluvia (RainfallRecord)
+
+Campos relevantes:
+
+- `user_id`: usuario propietario (NULL para registros compartidos AEMET/Ibericam)
+- `plot_id`: parcela asociada (NULL para registros a nivel de municipio)
+- `municipio_cod` / `municipio_name`: código INE y nombre del municipio
+- `date`: fecha del registro
+- `precipitation_mm`: precipitación en milímetros
+- `source`: `manual` | `aemet` | `ibericam`
+- `notes`: notas opcionales
+
+### Captura de lead (LeadCapture)
+
+Campos relevantes:
+
+- `name` / `email`: nombre y email del contacto
+- `ip_hash`: hash parcial SHA-256 de la IP (nunca se guarda la IP en claro, RGPD)
+- `message`: mensaje libre del formulario de contacto
+- `contacted` / `contacted_at`: gestión de seguimiento
+- `created_at`: fecha del registro
+
 ### Gasto (Expense)
 
 Campos relevantes:
@@ -238,10 +371,16 @@ Campos relevantes:
 
 - `/` Dashboard con totales globales y matriz campaña x parcela.
 - `/plots/` CRUD de parcelas con gestión automática de porcentajes.
-- `/expenses/` CRUD de gastos + filtros por campaña.
+- `/expenses/` CRUD de gastos + filtros por campaña + prorrateo plurianual.
+- `/recurring-expenses/` CRUD de gastos recurrentes (semanal/mensual/anual).
 - `/incomes/` CRUD de ingresos + filtros por campaña.
 - `/irrigation/` CRUD de registros de riego + filtros por parcela y año.
 - `/wells/` CRUD de registros de pozos + filtros por parcela y campaña.
+- `/plot-events/` CRUD de eventos de parcela con vista de calendario mensual.
+- `/harvests/` Registro de cosechas por parcela con desglose por campaña.
+- `/lluvia/` CRUD de registros de lluvia (manual, AEMET, Ibericam) con calendario de precipitaciones.
+- `/tiempo/` Visualización meteorológica en tiempo real (temperatura, humedad, viento) por parcelas del usuario.
+- `/plot-analytics/` Análisis avanzado por parcela: correlación riego/poda/laboreo-producción, comparativa multi-parcela, umbrales de riego.
 - `/plots/{id}/map` mapa visual por planta con conteos por campaña y alta rápida (+1).
 - `/plots/{id}/map/configure` configuración de geometría del mapa de plantas por parcela.
 - `/truffles/` listado cronológico de eventos de trufa con filtros por campaña, parcela y planta.
@@ -252,16 +391,22 @@ Campos relevantes:
 - `/import/` importación masiva desde CSV (parcelas, gastos, ingresos, riego, pozos, producción).
 - `/export/` exportación de datos a CSV/ZIP (parcelas, gastos, ingresos, riego, pozos, producción).
 - `/api/assistant/chat` y `/api/assistant/stream` API del asistente para consultas guiadas.
+- `/billing/subscribe` página de suscripción con estado actual (trial, activo, caducado).
+- `/billing/checkout` inicia sesión de Stripe Checkout (redirige al pago).
+- `/billing/success` / `/billing/cancel` páginas de retorno desde Stripe.
+- `/billing/portal` redirige al Customer Portal de Stripe para gestionar/cancelar.
+- `/stripe/webhook` receptor de eventos Stripe (checkout, invoice, subscription).
 - `/admin/users` Dashboard de gestión de usuarios (solo administrador).
-  - Listado de usuarios con estado (activo/inactivo)
+  - Listado de usuarios con estado (activo/inactivo) y estado de suscripción
   - Crear nuevos usuarios
   - Editar perfil y rol de usuarios existentes
   - Activar/desactivar usuarios
   - Validación de email y username únicos
+- `/` (landing pública) Página de presentación con formulario de contacto para captura de leads.
 
 ---
 
-## Sistema de roles y permisos
+## Sistema de roles, permisos y suscripción
 
 ### Roles disponibles
 
@@ -269,19 +414,31 @@ Campos relevantes:
 - Acceso a todo el dashboard de administración (`/admin/users`)
 - Gestión completa de usuarios (crear, editar, activar/desactivar)
 - Puede asignar roles (admin o user) a otros usuarios
+- **Nunca bloqueado por expiración de suscripción**
 - Acceso a todos los datos de todas las parcelas/gastos/ingresos como usuario normal
 
 **User** (usuario regular)
-- Acceso completo a su propia explotación (parcelas, gastos, ingresos, reportes, gráficas)
+- Acceso completo a su propia explotación (parcelas, gastos, ingresos, reportes, gráficas, lluvia, météo…)
 - CRUD completo de sus datos
 - No puede acceder al dashboard de admin u otros usuarios
-- Datos completamente aislados por usuario_id
+- Datos completamente aislados por `user_id`
+- **Requiere suscripción activa** (o trial vigente) para acceder a la aplicación
+
+### Estados de suscripción
+
+| Estado | Descripción | Acceso |
+|---|---|---|
+| `trialing` | Periodo de prueba activo | ✅ Acceso completo |
+| `active` | Suscripción Stripe activa | ✅ Acceso completo |
+| `active` (caducado) | `subscription_ends_at` en el pasado | ❌ Bloqueado → `/billing/subscribe` |
+| `past_due` | Pago fallido, Stripe reintentando | ❌ Bloqueado |
+| `canceled` | Suscripción cancelada | ❌ Bloqueado |
 
 ### Primeras acciones
 
 - El primer usuario registrado se crea automáticamente como **admin**
-- Los siguientes usuarios se crean como **user**
-- Solo un admin puede cambiar roles otros usuarios
+- Los siguientes usuarios se crean como **user** con periodo de prueba de `TRIAL_DAYS` días
+- Solo un admin puede cambiar roles a otros usuarios
 - No se puede desactivar a uno mismo (protección de seguridad)
 
 ---
@@ -302,10 +459,32 @@ Campos relevantes:
 cp .env.example .env
 ```
 
-2. Edita `.env` con tu conexión real:
+2. Edita `.env` con tu conexión real y los secretos necesarios:
 
 ```env
 DATABASE_URL=postgresql+asyncpg://usuario:password@localhost:5432/truficultura
+SECRET_KEY=una-clave-secreta-larga-y-aleatoria
+
+# Stripe (opcional; sin configurar, el billing queda deshabilitado)
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_PUBLISHABLE_KEY=pk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRICE_ID=price_...
+TRIAL_DAYS=14
+
+# Email/SMTP (opcional; para confirmación y notificaciones de leads)
+SMTP_HOST=smtp.ejemplo.com
+SMTP_PORT=587
+SMTP_USER=usuario@ejemplo.com
+SMTP_PASSWORD=contraseña
+SMTP_FROM=noreply@truficultura.app
+CONTACT_EMAIL=admin@truficultura.app
+
+# AEMET (opcional; para importación de lluvia y meteorología)
+AEMET_API_KEY=tu_api_key_aemet
+
+# URL pública de la app (para links en emails)
+APP_BASE_URL=https://tudominio.com
 ```
 
 ## Instalación de dependencias
@@ -640,9 +819,28 @@ La importación y exportación NO requieren ejecutar scripts; todo se hace desde
 
 ## Migraciones en desarrollo
 
-Historial de migraciones:
+Historial de migraciones activas (en `alembic/versions/`):
 
-- `0001`: baseline inicial tras reset de Alembic (schema completo actual).
+| Nº | Descripción |
+|---|---|
+| 0001 | Baseline inicial (schema completo) |
+| 0002 | Plantas y eventos de trufa |
+| 0003 | Columna visual en plantas |
+| 0004 | Campos catastrales en parcelas |
+| 0005 | Peso estimado en eventos de trufa |
+| 0006 | Tabla de pozos |
+| 0007 | Tabla de eventos de parcela |
+| 0008 | Comunidad de regantes, recinto y caudal |
+| 0009 | Gastos recurrentes |
+| 0010 | Cosechas de parcela y presencias de planta |
+| 0011 | Registros de lluvia |
+| 0012 | Campos de agua y nombre de municipio |
+| 0013 | Eliminación de `water_flow_lps` |
+| 0014 | `user_id` nullable en registros de lluvia |
+| 0015 | Grupos de prorrateo de gastos |
+| 0016 | `email_confirmed` en usuarios |
+| 0017 | Corrección de cascada en `wells.user_id` |
+| 0018 | Tabla de captura de leads |
 
 Nota: Las migraciones históricas previas al reset se conservaron en `alembic/versions_archive_YYYYMMDD_HHMMSS/` solo como referencia.
 
@@ -671,27 +869,25 @@ alembic downgrade -1
 curl -I http://localhost:8000
 
 # Ejecutar pruebas unitarias de servicios
-.venv/bin/python -m pytest -q tests/services
+uv run pytest -q tests/services/
 
 # Ejecutar pruebas de integración (SQLite real)
-.venv/bin/python -m pytest -q tests/integration
+uv run pytest -q tests/integration/
 
-# Ejecutar toda la suite
-.venv/bin/python -m pytest -q tests/
+# Ejecutar toda la suite con cobertura
+uv run pytest -q tests/
 
-# Listar usuarios desde Python shell
-python3 -c "
-from sqlalchemy.sync_engine import create_engine
-from sqlalchemy.orm import sessionmaker
-from app.models.user import User
-from app.config import settings
+# Generar gastos recurrentes vencidos (simular cron diario)
+uv run scripts/process_recurring_expenses_cron.py
 
-engine = create_engine(settings.DATABASE_URL.replace('asyncpg', 'psycopg2'))
-Session = sessionmaker(bind=engine)
-session = Session()
-for user in session.query(User).all():
-    print(f'{user.username} ({user.email}) - Role: {user.role} - Active: {user.is_active}')
-"
+# Vista previa sin escribir nada (dry-run)
+uv run scripts/process_recurring_expenses_cron.py --dry-run
+
+# Importar lluvia desde AEMET/Ibericam para todos los municipios
+uv run scripts/import_rainfall_cron.py
+
+# Vista previa sin escribir nada
+uv run scripts/import_rainfall_cron.py --dry-run
 ```
 
 ### Acceso inicial a la aplicación
@@ -705,26 +901,30 @@ for user in session.query(User).all():
 
 Se cuenta con una suite de tests unitarios y de integración en `tests/`.
 
-Cobertura actual:
+Cobertura actual: **>82%** (umbral mínimo exigido en CI).
+
+Cobertura por módulo:
 
 - CRUD de `plots_service` con cálculo automático de porcentajes.
-- CRUD y contexto de listados de `expenses_service` e `incomes_service`.
+- CRUD y contexto de listados de `expenses_service`, `recurring_expenses_service` e `incomes_service`.
 - CRUD y contexto de listados de `irrigation_service` y `wells_service`.
 - Cálculo de contexto en `dashboard_service` y `reports_service`.
 - Generación de contexto serializado de `charts_service`.
 - Cálculo de KPIs en `kpi_service`.
-- Autenticación y gestión de usuarios.
+- Integración Stripe en `billing_service` (trial, checkout, portal, webhooks).
+- Autenticación, roles y gating de suscripción en `auth.py`.
+- Routers: auth, billing, expenses, plots, incomes, irrigation, plants, wells, scan, assistant, exports, imports, plot events, plot analytics, recurring expenses.
 - Utilidades de campaña agrícola.
 
 Ejecutar pruebas:
 
 ```bash
-.venv/bin/python -m pytest -v tests/
+uv run pytest -v tests/
 ```
 
 Resultado actual de referencia:
 
-- **346 tests pasando** (unitarios, integración y routers)
+- **751 tests pasando** (unitarios, integración y routers)
 
 ## 3.2 Operativa Fly.io (Semana 1)
 
@@ -806,13 +1006,14 @@ Suite completa (unitarios + integración):
 
 ## Futuras mejoras recomendadas
 
-- Ampliar tests de integración con un contenedor PostgreSQL real para cubrir comportamientos específicos de pgSQL.
-- Añadir validaciones más estrictas en formularios (frontend y backend).
-- Incorporar exportación de reportes analíticos o dashboards en PDF.
+- Alertas por email ante heladas, sequía u otros umbrales climáticos configurables.
+- Exportación de informes analíticos a PDF.
+- Ampliar tests de integración con contenedor PostgreSQL real para comportamientos específicos de pgSQL.
 - Tipar los contextos de plantillas con dataclasses o Pydantic para evitar errores de claves.
 - Añadir más opciones de filtrado y búsqueda en listados.
-- Implementar notificaciones por email para alertas de campaña.
-- Mejorar visualizaciones con gráficas más avanzadas (tendencias, predicciones).
+- Comparativa anual con campañas anteriores en el dashboard global.
+- Integración con más fuentes meteorológicas (p. ej. Open-Meteo, Meteofrance).
+- App móvil / PWA optimizada para uso en campo.
 
 ---
 

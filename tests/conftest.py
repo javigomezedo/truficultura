@@ -17,6 +17,9 @@ class FakeExecuteResult:
     def scalar_one_or_none(self) -> Any:
         return self.items[0] if self.items else None
 
+    def scalar(self) -> Any:
+        return self.items[0] if self.items else None
+
 
 def result(items: Iterable[Any]) -> FakeExecuteResult:
     return FakeExecuteResult(list(items))
