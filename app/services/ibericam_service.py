@@ -106,6 +106,7 @@ HttpGetText = Callable[[str, float], str]
 
 async def _default_post_json(url: str, body: Any, timeout: float) -> Any:
     """Realiza POST a url con body JSON; devuelve el payload parseado."""
+    last_exc: Exception | None = None
     for attempt in range(3):
         try:
             async with httpx.AsyncClient(
@@ -116,13 +117,21 @@ async def _default_post_json(url: str, body: Any, timeout: float) -> Any:
                     json=body,
                     headers={"Content-Type": "application/json; charset=UTF-8"},
                 )
+                if resp.status_code >= 500:
+                    # Retry transient server errors with backoff
+                    last_exc = httpx.HTTPStatusError(
+                        f"{resp.status_code} (retry {attempt + 1}/3)",
+                        request=resp.request,
+                        response=resp,
+                    )
+                    await asyncio.sleep(2**attempt)
+                    continue
                 resp.raise_for_status()
                 return resp.json()
         except httpx.RequestError as exc:
+            last_exc = exc
             logger.warning("ibericam intento %d: %s", attempt + 1, exc)
-            if attempt == 2:
-                raise
-    return None  # inalcanzable
+    raise last_exc  # type: ignore[misc]
 
 
 async def _default_get_text(url: str, timeout: float) -> str:
