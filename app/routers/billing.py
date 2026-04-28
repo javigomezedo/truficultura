@@ -29,6 +29,7 @@ async def billing_subscribe(
 ):
     """Show the subscription / upgrade page."""
     return templates.TemplateResponse(
+        request,
         "billing/subscribe.html",
         {
             "request": request,
@@ -65,6 +66,7 @@ async def billing_success(
 ):
     """Show a success page after a successful Stripe Checkout."""
     return templates.TemplateResponse(
+        request,
         "billing/success.html",
         {"request": request, "current_user": current_user},
     )
@@ -77,6 +79,7 @@ async def billing_cancel(
 ):
     """Show a cancel page when the user abandons Stripe Checkout."""
     return templates.TemplateResponse(
+        request,
         "billing/cancel.html",
         {"request": request, "current_user": current_user},
     )
