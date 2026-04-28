@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock
 
 from fastapi.testclient import TestClient
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.database import get_db
 from app.main import app
 
@@ -33,7 +33,7 @@ def test_app_registers_import_routes() -> None:
 
 def test_import_page_renders() -> None:
     fake_db = _build_fake_db()
-    app.dependency_overrides[require_user] = _override_user
+    app.dependency_overrides[require_subscription] = _override_user
     app.dependency_overrides[get_db] = lambda: fake_db
 
     try:
@@ -58,7 +58,7 @@ def test_upload_irrigation_renders_result(monkeypatch) -> None:
         "app.routers.imports.import_irrigation_csv",
         fake_import_irrigation_csv,
     )
-    app.dependency_overrides[require_user] = _override_user
+    app.dependency_overrides[require_subscription] = _override_user
     app.dependency_overrides[get_db] = lambda: fake_db
 
     try:
@@ -86,7 +86,7 @@ def test_upload_wells_renders_result(monkeypatch) -> None:
         "app.routers.imports.import_wells_csv",
         fake_import_wells_csv,
     )
-    app.dependency_overrides[require_user] = _override_user
+    app.dependency_overrides[require_subscription] = _override_user
     app.dependency_overrides[get_db] = lambda: fake_db
 
     try:
@@ -114,7 +114,7 @@ def test_upload_expenses_renders_result(monkeypatch) -> None:
         "app.routers.imports.import_expenses_csv",
         fake_import_expenses_csv,
     )
-    app.dependency_overrides[require_user] = _override_user
+    app.dependency_overrides[require_subscription] = _override_user
     app.dependency_overrides[get_db] = lambda: fake_db
 
     try:
@@ -142,7 +142,7 @@ def test_upload_incomes_renders_result(monkeypatch) -> None:
         "app.routers.imports.import_incomes_csv",
         fake_import_incomes_csv,
     )
-    app.dependency_overrides[require_user] = _override_user
+    app.dependency_overrides[require_subscription] = _override_user
     app.dependency_overrides[get_db] = lambda: fake_db
 
     try:
@@ -169,7 +169,7 @@ def test_upload_plots_renders_result(monkeypatch) -> None:
         "app.routers.imports.import_plots_csv",
         fake_import_plots_csv,
     )
-    app.dependency_overrides[require_user] = _override_user
+    app.dependency_overrides[require_subscription] = _override_user
     app.dependency_overrides[get_db] = lambda: fake_db
 
     try:
@@ -196,7 +196,7 @@ def test_upload_truffles_renders_result(monkeypatch) -> None:
         "app.routers.imports.import_truffles_csv",
         fake_import_truffles_csv,
     )
-    app.dependency_overrides[require_user] = _override_user
+    app.dependency_overrides[require_subscription] = _override_user
     app.dependency_overrides[get_db] = lambda: fake_db
 
     try:
@@ -230,7 +230,7 @@ def test_upload_all_zip_renders_result(monkeypatch) -> None:
         "app.routers.imports.import_all_csv_zip",
         fake_import_all_csv_zip,
     )
-    app.dependency_overrides[require_user] = _override_user
+    app.dependency_overrides[require_subscription] = _override_user
     app.dependency_overrides[get_db] = lambda: fake_db
 
     try:
@@ -265,7 +265,7 @@ def test_upload_recurring_expenses_renders_result(monkeypatch) -> None:
         "app.routers.imports.import_recurring_expenses_csv",
         fake_import_recurring_expenses_csv,
     )
-    app.dependency_overrides[require_user] = _override_user
+    app.dependency_overrides[require_subscription] = _override_user
     app.dependency_overrides[get_db] = lambda: fake_db
 
     try:

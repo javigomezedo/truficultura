@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 from fastapi.testclient import TestClient
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.database import get_db
 from app.main import app
 
@@ -33,7 +33,7 @@ def test_incomes_list_renders(monkeypatch) -> None:
             }
         ),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -48,7 +48,7 @@ def test_incomes_list_renders(monkeypatch) -> None:
 def test_new_income_form_renders(monkeypatch) -> None:
     fake_db = _db()
     monkeypatch.setattr("app.routers.incomes.list_plots", AsyncMock(return_value=[]))
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -63,7 +63,7 @@ def test_new_income_form_renders(monkeypatch) -> None:
 def test_create_income_redirects(monkeypatch) -> None:
     fake_db = _db()
     monkeypatch.setattr("app.routers.incomes.create_income_service", AsyncMock())
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -87,7 +87,7 @@ def test_create_income_redirects(monkeypatch) -> None:
 def test_edit_income_not_found_redirects(monkeypatch) -> None:
     fake_db = _db()
     monkeypatch.setattr("app.routers.incomes.get_income", AsyncMock(return_value=None))
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -115,7 +115,7 @@ def test_edit_income_form_renders(monkeypatch) -> None:
         "app.routers.incomes.get_income", AsyncMock(return_value=income)
     )
     monkeypatch.setattr("app.routers.incomes.list_plots", AsyncMock(return_value=[]))
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -130,7 +130,7 @@ def test_edit_income_form_renders(monkeypatch) -> None:
 def test_update_income_not_found_redirects(monkeypatch) -> None:
     fake_db = _db()
     monkeypatch.setattr("app.routers.incomes.get_income", AsyncMock(return_value=None))
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -157,7 +157,7 @@ def test_update_income_redirects(monkeypatch) -> None:
     monkeypatch.setattr("app.routers.incomes.get_income", AsyncMock(return_value=obj))
     update_mock = AsyncMock()
     monkeypatch.setattr("app.routers.incomes.update_income_service", update_mock)
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -185,7 +185,7 @@ def test_delete_income_redirects(monkeypatch) -> None:
     monkeypatch.setattr("app.routers.incomes.get_income", AsyncMock(return_value=obj))
     delete_mock = AsyncMock()
     monkeypatch.setattr("app.routers.incomes.delete_income_service", delete_mock)
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -203,7 +203,7 @@ def test_delete_income_redirects_when_not_found(monkeypatch) -> None:
     monkeypatch.setattr("app.routers.incomes.get_income", AsyncMock(return_value=None))
     delete_mock = AsyncMock()
     monkeypatch.setattr("app.routers.incomes.delete_income_service", delete_mock)
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)

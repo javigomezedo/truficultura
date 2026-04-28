@@ -117,6 +117,8 @@ def test_register_page_redirects_with_session(monkeypatch) -> None:
 
 
 def test_login_post_success_redirects_and_sets_session(monkeypatch) -> None:
+    from datetime import UTC, datetime, timedelta
+
     db = _fake_db()
     user = User(
         id=1,
@@ -128,6 +130,8 @@ def test_login_post_success_redirects_and_sets_session(monkeypatch) -> None:
         role="user",
         is_active=True,
         email_confirmed=True,
+        subscription_status="trialing",
+        trial_ends_at=datetime.now(UTC) + timedelta(days=14),
     )
     db.execute.return_value = result([user])
     app.dependency_overrides.clear()
@@ -151,6 +155,8 @@ def test_login_post_success_redirects_and_sets_session(monkeypatch) -> None:
 
 
 def test_login_post_success_uses_next_url(monkeypatch) -> None:
+    from datetime import UTC, datetime, timedelta
+
     db = _fake_db()
     user = User(
         id=1,
@@ -162,6 +168,8 @@ def test_login_post_success_uses_next_url(monkeypatch) -> None:
         role="user",
         is_active=True,
         email_confirmed=True,
+        subscription_status="trialing",
+        trial_ends_at=datetime.now(UTC) + timedelta(days=14),
     )
     db.execute.return_value = result([user])
     app.dependency_overrides.clear()
@@ -189,6 +197,8 @@ def test_login_post_success_uses_next_url(monkeypatch) -> None:
 
 
 def test_login_page_prefills_next_url_from_pending_scan(monkeypatch) -> None:
+    from datetime import UTC, datetime, timedelta
+
     db = _fake_db()
     user = User(
         id=1,
@@ -200,6 +210,8 @@ def test_login_page_prefills_next_url_from_pending_scan(monkeypatch) -> None:
         role="user",
         is_active=True,
         email_confirmed=True,
+        subscription_status="trialing",
+        trial_ends_at=datetime.now(UTC) + timedelta(days=14),
     )
     db.execute.return_value = result([user])
     app.dependency_overrides[__import__("app.database", fromlist=["get_db"]).get_db] = (
@@ -224,6 +236,8 @@ def test_login_page_prefills_next_url_from_pending_scan(monkeypatch) -> None:
 
 
 def test_login_post_uses_pending_scan_when_next_url_empty(monkeypatch) -> None:
+    from datetime import UTC, datetime, timedelta
+
     db = _fake_db()
     user = User(
         id=1,
@@ -235,6 +249,8 @@ def test_login_post_uses_pending_scan_when_next_url_empty(monkeypatch) -> None:
         role="user",
         is_active=True,
         email_confirmed=True,
+        subscription_status="trialing",
+        trial_ends_at=datetime.now(UTC) + timedelta(days=14),
     )
     db.execute.return_value = result([user])
     app.dependency_overrides[__import__("app.database", fromlist=["get_db"]).get_db] = (
@@ -519,8 +535,12 @@ def test_register_post_first_user_redirects(monkeypatch) -> None:
     )
     monkeypatch.setattr("app.routers.auth._user_count", AsyncMock(return_value=0))
     monkeypatch.setattr("app.routers.auth.hash_password", lambda plain: "hashed")
+    monkeypatch.setattr("app.routers.auth.billing_service.start_trial", AsyncMock())
     # Ensure no ADMIN_EMAIL so is_first_user=True triggers the admin/confirmed path
-    monkeypatch.setattr("app.routers.auth.settings", type("S", (), {"ADMIN_EMAIL": "", "smtp_configured": False})())
+    monkeypatch.setattr(
+        "app.routers.auth.settings",
+        type("S", (), {"ADMIN_EMAIL": "", "smtp_configured": False})(),
+    )
     # First execute: check existing email. Next three: update Plot, Expense, Income.
     db.execute.side_effect = [result([]), MagicMock(), MagicMock(), MagicMock()]
 

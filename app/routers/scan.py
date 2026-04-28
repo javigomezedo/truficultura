@@ -8,7 +8,7 @@ from fastapi.templating import Jinja2Templates
 from itsdangerous import BadSignature, URLSafeSerializer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.config import settings
 from app.database import get_db
 from app.models.user import User

@@ -8,7 +8,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.database import get_db
 from app.i18n import _
 from app.models.expense import EXPENSE_CATEGORIES
@@ -36,7 +36,7 @@ templates = Jinja2Templates(directory="app/templates")
 async def list_expenses(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
     year: Optional[str] = Query(default=None),
     plot_id: Optional[str] = Query(default=None),
     category: Optional[str] = None,
@@ -73,7 +73,7 @@ async def list_expenses(
 async def new_expense_form(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     plots = await list_plots(db, current_user.id)
     return templates.TemplateResponse(
@@ -102,7 +102,7 @@ async def create_expense(
     prorate_years: Optional[int] = Form(None),
     start_year: Optional[int] = Form(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     if prorate_years and prorate_years >= 2:
         effective_start_year = start_year if start_year else date.year
@@ -142,7 +142,7 @@ async def edit_expense_form(
     request: Request,
     expense_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     expense = await get_expense(db, expense_id, current_user.id)
     if expense is None:
@@ -178,7 +178,7 @@ async def update_expense(
     amount: float = Form(0.0),
     category: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     obj = await get_expense(db, expense_id, current_user.id)
     if obj is None:
@@ -208,7 +208,7 @@ async def delete_proration_group(
     request: Request,
     group_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     group = await get_proration_group(db, group_id, current_user.id)
     if group:
@@ -224,7 +224,7 @@ async def delete_expense(
     request: Request,
     expense_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     obj = await get_expense(db, expense_id, current_user.id)
     if obj:
@@ -241,7 +241,7 @@ async def upload_receipt(
     expense_id: int,
     receipt: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     """Upload a receipt file to an expense."""
     obj = await get_expense(db, expense_id, current_user.id)
@@ -280,7 +280,7 @@ async def upload_receipt(
 async def download_receipt(
     expense_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     """Download a receipt file from an expense."""
     receipt_data = await get_receipt(db, expense_id, current_user.id)
@@ -303,7 +303,7 @@ async def delete_expense_receipt(
     request: Request,
     expense_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     """Delete a receipt from an expense."""
     obj = await get_expense(db, expense_id, current_user.id)

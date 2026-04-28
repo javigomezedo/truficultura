@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.database import get_db
 from app.i18n import _
 from app.models.user import User
@@ -30,7 +30,7 @@ templates = Jinja2Templates(directory="app/templates")
 async def list_view(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
     year: Optional[str] = Query(default=None),
     plot_id: Optional[str] = Query(default=None),
     source: Optional[str] = Query(default=None),
@@ -68,7 +68,7 @@ async def list_view(
 async def new_form(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     plots = await _get_user_plots(db, current_user.id)
     return templates.TemplateResponse(
@@ -94,7 +94,7 @@ async def create_view(
     source: str = Form("manual"),
     notes: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     try:
         data = RainfallCreate(
@@ -132,7 +132,7 @@ async def edit_form(
     request: Request,
     record_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     record = await get_rainfall_record(db, record_id, current_user.id)
     if record is None:
@@ -170,7 +170,7 @@ async def edit_view(
     source: str = Form("manual"),
     notes: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     record = await get_rainfall_record(db, record_id, current_user.id)
     if record is not None and record.user_id is None:
@@ -198,7 +198,7 @@ async def delete_view(
     request: Request,
     record_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     record = await get_rainfall_record(db, record_id, current_user.id)
     if record is not None and record.user_id is None:
@@ -222,7 +222,7 @@ async def delete_view(
 async def calendar_view(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
     year: Optional[str] = Query(default=None),
     plot_id: Optional[str] = Query(default=None),
     municipio_cod: Optional[str] = Query(default=None),

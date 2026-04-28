@@ -21,6 +21,7 @@ from app.services.email_service import (
     send_confirmation_email,
     send_password_reset_email,
 )
+from app.services import billing_service
 from app.services.token_service import (
     EMAIL_CONFIRMATION_SALT,
     PASSWORD_RESET_SALT,
@@ -115,6 +116,18 @@ async def login_post(
         request.session["first_name"] = user.first_name
         request.session["last_name"] = user.last_name
         request.session["email"] = user.email
+        request.session["subscription_status"] = user.subscription_status
+        if user.trial_ends_at:
+            from datetime import UTC, datetime
+            delta = user.trial_ends_at - datetime.now(UTC)
+            request.session["trial_days_left"] = delta.days
+        else:
+            request.session["trial_days_left"] = None
+
+        # If trial expired or subscription lapsed, send directly to billing
+        from app.auth import is_subscription_blocked
+        if is_subscription_blocked(user):
+            return RedirectResponse("/billing/subscribe", status_code=303)
 
         if not next_url:
             pending_scan = request.session.get("pending_scan")
@@ -265,6 +278,10 @@ async def register_post(
 
     await db.commit()
 
+    # Start trial for immediately confirmed users (admins, first user, or dev mode)
+    if new_user.email_confirmed:
+        await billing_service.start_trial(new_user, db)
+
     if not new_user.email_confirmed:
         # Send confirmation email (SMTP is configured at this point)
         token = generate_token(email, EMAIL_CONFIRMATION_SALT)
@@ -290,7 +307,7 @@ async def register_confirm(token: str, db: AsyncSession = Depends(get_db)):
 
     user.email_confirmed = True
     user.is_active = True
-    await db.commit()
+    await billing_service.start_trial(user, db)  # sets trial fields and commits
     return RedirectResponse("/login?confirmed=1", status_code=303)
 
 

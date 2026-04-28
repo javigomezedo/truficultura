@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 from fastapi.testclient import TestClient
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.database import get_db
 from app.main import app
 
@@ -59,7 +59,7 @@ def test_list_recurring_expenses_renders(monkeypatch) -> None:
         "app.routers.recurring_expenses.list_recurring_expenses",
         AsyncMock(return_value=[]),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -78,7 +78,7 @@ def test_list_recurring_expenses_with_msg(monkeypatch) -> None:
         "app.routers.recurring_expenses.list_recurring_expenses",
         AsyncMock(return_value=[]),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -101,7 +101,7 @@ def test_new_recurring_expense_form_renders(monkeypatch) -> None:
         "app.routers.recurring_expenses.list_plots",
         AsyncMock(return_value=[]),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -125,7 +125,7 @@ def test_create_recurring_expense_redirects(monkeypatch) -> None:
         "app.routers.recurring_expenses.create_recurring_expense_service",
         AsyncMock(return_value=_make_rec()),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app, follow_redirects=False)
@@ -163,7 +163,7 @@ def test_edit_recurring_expense_form_renders(monkeypatch) -> None:
         "app.routers.recurring_expenses.list_plots",
         AsyncMock(return_value=[]),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -186,7 +186,7 @@ def test_edit_recurring_expense_not_found_redirects(monkeypatch) -> None:
         "app.routers.recurring_expenses.list_plots",
         AsyncMock(return_value=[]),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app, follow_redirects=False)
@@ -214,7 +214,7 @@ def test_update_recurring_expense_redirects(monkeypatch) -> None:
         "app.routers.recurring_expenses.update_recurring_expense_service",
         AsyncMock(return_value=rec),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app, follow_redirects=False)
@@ -242,7 +242,7 @@ def test_update_recurring_expense_not_found_redirects(monkeypatch) -> None:
         "app.routers.recurring_expenses.get_recurring_expense",
         AsyncMock(return_value=None),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app, follow_redirects=False)
@@ -278,7 +278,7 @@ def test_delete_recurring_expense_redirects(monkeypatch) -> None:
         "app.routers.recurring_expenses.delete_recurring_expense_service",
         AsyncMock(return_value=None),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app, follow_redirects=False)
@@ -297,7 +297,7 @@ def test_delete_recurring_expense_not_found_still_redirects(monkeypatch) -> None
         "app.routers.recurring_expenses.get_recurring_expense",
         AsyncMock(return_value=None),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app, follow_redirects=False)
@@ -325,7 +325,7 @@ def test_toggle_recurring_expense_redirects(monkeypatch) -> None:
         "app.routers.recurring_expenses.toggle_recurring_expense_service",
         AsyncMock(return_value=rec),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app, follow_redirects=False)
@@ -344,7 +344,7 @@ def test_toggle_recurring_expense_not_found_redirects(monkeypatch) -> None:
         "app.routers.recurring_expenses.get_recurring_expense",
         AsyncMock(return_value=None),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app, follow_redirects=False)

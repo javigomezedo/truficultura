@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.database import get_db
 from app.i18n import _
 from app.models.user import User
@@ -102,7 +102,7 @@ async def map_view(
     view: Optional[str] = Query(default="weight"),
     msg: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     plot = await get_plot(db, plot_id, current_user.id)
     if plot is None:
@@ -188,7 +188,7 @@ async def toggle_plant_presence(
     presence_date: str = Form(...),
     campaign: Optional[str] = Form(default=None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     # Validate the plot belongs to the user
     from app.services.plots_service import get_plot as _get_plot
@@ -234,7 +234,7 @@ async def configure_map_form(
     request: Request,
     plot_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     plot = await get_plot(db, plot_id, current_user.id)
     if plot is None:
@@ -274,7 +274,7 @@ async def configure_map_submit(
     plot_id: int,
     row_config: str = Form(...),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     """row_config supports only sparse row format (e.g. A:2-5,8; B:1,3,4)."""
     plot = await get_plot(db, plot_id, current_user.id)
@@ -321,7 +321,7 @@ async def add_truffle_event(
     campaign: Optional[str] = Form(default=None),
     estimated_weight_grams: float = Form(default=1.0),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     plant = await plants_service.get_plant(db, plant_id, current_user.id)
     if plant is None or plant.plot_id != plot_id:
@@ -361,7 +361,7 @@ async def undo_truffle_event(
     plant_id: int,
     campaign: Optional[str] = Form(default=None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     plant = await plants_service.get_plant(db, plant_id, current_user.id)
     if plant is None or plant.plot_id != plot_id:
@@ -394,7 +394,7 @@ async def delete_truffle_event_from_list(
     plot_id: Optional[str] = Form(default=None),
     plant_id: Optional[str] = Form(default=None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     deleted = await truffle_events_service.delete_event(
         db,
@@ -433,7 +433,7 @@ async def list_truffle_events(
     sort: Optional[str] = Query(default=None),
     order: Optional[str] = Query(default=None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     camp_int = _parse_optional_int(camp)
     plot_id_int = _parse_optional_int(plot_id)
@@ -533,7 +533,7 @@ async def download_plot_qr_pdf(
     request: Request,
     plot_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     """Generate a PDF with one QR code per plant for the current user's plot."""
     import io

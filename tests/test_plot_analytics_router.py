@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 from fastapi.testclient import TestClient
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.database import get_db
 from app.main import app
 
@@ -74,7 +74,7 @@ def test_plot_analytics_overview_renders(monkeypatch) -> None:
         AsyncMock(return_value=[]),
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -94,7 +94,7 @@ def test_plot_analytics_dataset_json(monkeypatch) -> None:
         AsyncMock(return_value=[{"campaign_year": 2025, "plot_name": "Parcela A"}]),
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -119,7 +119,7 @@ def test_plot_analytics_irrigation_impact_json(monkeypatch) -> None:
         AsyncMock(return_value=payload),
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -182,7 +182,7 @@ def test_plot_analytics_comparison_view_renders(monkeypatch) -> None:
         AsyncMock(return_value=[{"campaign_year": 2025}]),
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -215,7 +215,7 @@ def test_plot_analytics_comparison_view_accepts_empty_campaign_from(
         AsyncMock(return_value=[]),
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -246,7 +246,7 @@ def test_plot_analytics_comparison_view_empty(monkeypatch) -> None:
         AsyncMock(return_value=[]),
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -270,7 +270,7 @@ def test_plot_analytics_comparison_view_empty(monkeypatch) -> None:
         AsyncMock(return_value=payload),
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -293,7 +293,7 @@ def test_plot_analytics_management_impact_json(monkeypatch) -> None:
         AsyncMock(return_value=payload),
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -319,7 +319,7 @@ def test_plot_analytics_irrigation_thresholds_json(monkeypatch) -> None:
         AsyncMock(return_value=payload),
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -360,7 +360,7 @@ def test_plot_analytics_plot_detail_renders(monkeypatch) -> None:
         AsyncMock(side_effect=[_threshold_empty, _threshold_empty]),
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -390,7 +390,7 @@ def test_plot_analytics_plot_detail_not_found(monkeypatch) -> None:
         AsyncMock(side_effect=[_threshold_empty, _threshold_empty]),
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -421,7 +421,7 @@ def test_plot_analytics_plot_detail_json(monkeypatch) -> None:
         AsyncMock(return_value=payload),
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -442,7 +442,7 @@ def test_plot_analytics_plot_detail_json_not_found(monkeypatch) -> None:
         AsyncMock(return_value=None),
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -467,7 +467,7 @@ def test_plot_analytics_comparison_json(monkeypatch) -> None:
         AsyncMock(return_value=payload),
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)

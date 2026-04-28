@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.database import get_db
 from app.i18n import _
 from app.models.user import User
@@ -28,7 +28,7 @@ templates = Jinja2Templates(directory="app/templates")
 async def list_incomes(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
     year: Optional[str] = Query(default=None),
     msg: Optional[str] = None,
     sort: Optional[str] = Query(default=None),
@@ -58,7 +58,7 @@ async def list_incomes(
 async def new_income_form(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     plots = await list_plots(db, current_user.id)
     return templates.TemplateResponse(
@@ -83,7 +83,7 @@ async def create_income(
     category: str = Form(""),
     euros_per_kg: float = Form(0.0),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     await create_income_service(
         db,
@@ -105,7 +105,7 @@ async def edit_income_form(
     request: Request,
     income_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     income = await get_income(db, income_id, current_user.id)
     if income is None:
@@ -139,7 +139,7 @@ async def update_income(
     category: str = Form(""),
     euros_per_kg: float = Form(0.0),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     obj = await get_income(db, income_id, current_user.id)
     if obj is None:
@@ -168,7 +168,7 @@ async def delete_income(
     request: Request,
     income_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     obj = await get_income(db, income_id, current_user.id)
     if obj:

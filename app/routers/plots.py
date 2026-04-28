@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.database import get_db
 from app.i18n import _
 from app.models.user import User
@@ -29,7 +29,7 @@ templates = Jinja2Templates(directory="app/templates")
 async def list_plots(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
     msg: Optional[str] = None,
 ):
     plots = await list_plots_service(db, current_user.id)
@@ -44,7 +44,7 @@ async def list_plots(
 @router.get("/new", response_class=HTMLResponse)
 async def new_plot_form(
     request: Request,
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     return templates.TemplateResponse(
         request,
@@ -66,7 +66,7 @@ async def sigpac_lookup(
     poligono: str = Query(...),
     parcela: str = Query(...),
     recinto: str = Query("1"),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     # Validate all parameters are numeric to prevent injection
     for param, value in [
@@ -114,7 +114,7 @@ async def create_plot(
     provincia_cod: Optional[str] = Form(None),
     municipio_cod: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     await create_plot_service(
         db,
@@ -146,7 +146,7 @@ async def edit_plot_form(
     request: Request,
     plot_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     obj = await get_plot(db, plot_id, current_user.id)
     if obj is None:
@@ -187,7 +187,7 @@ async def update_plot(
     provincia_cod: Optional[str] = Form(None),
     municipio_cod: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     obj = await get_plot(db, plot_id, current_user.id)
     if obj is None:
@@ -226,7 +226,7 @@ async def delete_plot(
     request: Request,
     plot_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     obj = await get_plot(db, plot_id, current_user.id)
     if obj:

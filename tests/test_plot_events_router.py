@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 from fastapi.testclient import TestClient
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.database import get_db
 from app.main import app
 from tests.conftest import result
@@ -33,7 +33,7 @@ def test_plot_events_list_renders(monkeypatch) -> None:
         "app.routers.plot_events._get_all_plots",
         AsyncMock(return_value=[]),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -55,7 +55,7 @@ def test_plot_events_list_accepts_empty_query_ints(monkeypatch) -> None:
         "app.routers.plot_events._get_all_plots",
         AsyncMock(return_value=[]),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -96,7 +96,7 @@ def test_plot_events_list_shows_links_for_linked_records(monkeypatch) -> None:
         "app.routers.plot_events._get_all_plots",
         AsyncMock(return_value=[]),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -111,7 +111,7 @@ def test_plot_events_list_shows_links_for_linked_records(monkeypatch) -> None:
 
 def test_plot_events_root_redirects_to_calendar(monkeypatch) -> None:
     fake_db = _db()
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -139,7 +139,7 @@ def test_plot_events_json_returns_data(monkeypatch) -> None:
         "app.routers.plot_events.get_plot_events",
         AsyncMock(return_value=[record]),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -166,7 +166,7 @@ def test_plot_events_create_redirects(monkeypatch) -> None:
     fake_db = _db()
     create_mock = AsyncMock()
     monkeypatch.setattr("app.routers.plot_events.create_plot_event", create_mock)
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -195,7 +195,7 @@ def test_plot_events_new_form_prefills_plot_and_date_from_query(monkeypatch) -> 
         AsyncMock(return_value=[SimpleNamespace(id=2, name="Parcela 2")]),
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -213,7 +213,7 @@ def test_plot_events_edit_not_found_redirects(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.routers.plot_events.get_plot_event", AsyncMock(return_value=None)
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -242,7 +242,7 @@ def test_plot_events_edit_form_renders(monkeypatch) -> None:
         AsyncMock(return_value=[SimpleNamespace(id=1, name="Plot1")]),
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -269,7 +269,7 @@ def test_plot_events_edit_linked_redirects(monkeypatch) -> None:
         "app.routers.plot_events.get_plot_event", AsyncMock(return_value=record)
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -290,7 +290,7 @@ def test_plot_events_update_redirects(monkeypatch) -> None:
     update_mock = AsyncMock()
     monkeypatch.setattr("app.routers.plot_events.update_plot_event", update_mock)
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -323,7 +323,7 @@ def test_plot_events_update_linked_redirects(monkeypatch) -> None:
     update_mock = AsyncMock()
     monkeypatch.setattr("app.routers.plot_events.update_plot_event", update_mock)
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -348,7 +348,7 @@ def test_plot_events_delete_redirects(monkeypatch) -> None:
     delete_mock = AsyncMock()
     monkeypatch.setattr("app.routers.plot_events.delete_plot_event", delete_mock)
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -374,7 +374,7 @@ def test_plot_events_delete_linked_redirects(monkeypatch) -> None:
     delete_mock = AsyncMock()
     monkeypatch.setattr("app.routers.plot_events.delete_plot_event", delete_mock)
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -404,7 +404,7 @@ def test_plot_events_calendar_json(monkeypatch) -> None:
         "app.routers.plot_events.get_plot_events", AsyncMock(return_value=records)
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -424,7 +424,7 @@ def test_plot_events_calendar_json_accepts_empty_plot_id(monkeypatch) -> None:
         "app.routers.plot_events.get_plot_events", AsyncMock(return_value=[])
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -441,7 +441,7 @@ def test_plot_events_calendar_json_passes_event_type_filter(monkeypatch) -> None
     get_events_mock = AsyncMock(return_value=[])
     monkeypatch.setattr("app.routers.plot_events.get_plot_events", get_events_mock)
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -461,7 +461,7 @@ def test_plot_events_calendar_json_passes_event_type_filter(monkeypatch) -> None
     get_events_mock = AsyncMock(return_value=[])
     monkeypatch.setattr("app.routers.plot_events.get_plot_events", get_events_mock)
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -485,7 +485,7 @@ def test_plot_events_calendar_view_renders(monkeypatch) -> None:
         "app.routers.plot_events._get_all_plots", AsyncMock(return_value=[])
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -506,7 +506,7 @@ def test_plot_events_calendar_view_day_cells_link_to_new_form(monkeypatch) -> No
         "app.routers.plot_events._get_all_plots", AsyncMock(return_value=[])
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -529,7 +529,7 @@ def test_plot_events_calendar_view_day_links_preserve_event_type_filters(
         "app.routers.plot_events._get_all_plots", AsyncMock(return_value=[])
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -553,7 +553,7 @@ def test_plot_events_calendar_view_highlights_today(monkeypatch) -> None:
         "app.routers.plot_events._get_all_plots", AsyncMock(return_value=[])
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -577,7 +577,7 @@ def test_plot_events_calendar_view_renders_event_type_filter_and_passes_it(
         "app.routers.plot_events._get_all_plots", AsyncMock(return_value=[])
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -605,7 +605,7 @@ def test_plot_events_calendar_view_renders_event_type_filter_and_passes_it(
         "app.routers.plot_events._get_all_plots", AsyncMock(return_value=[])
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)

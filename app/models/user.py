@@ -44,6 +44,20 @@ class User(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
+    # Subscription / billing
+    stripe_customer_id: Mapped[str | None] = mapped_column(
+        String(100), nullable=True, unique=True, index=True
+    )
+    subscription_status: Mapped[str] = mapped_column(
+        String(30), default="trialing", server_default="trialing", nullable=False
+    )
+    trial_ends_at: Mapped[datetime.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    subscription_ends_at: Mapped[datetime.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     # Relationships
     plots: Mapped[List["Plot"]] = relationship(
         "Plot", back_populates="user", lazy="select"

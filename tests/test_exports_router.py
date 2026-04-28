@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock
 
 from fastapi.testclient import TestClient
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.database import get_db
 from app.main import app
 
@@ -19,7 +19,7 @@ def _db() -> SimpleNamespace:
 
 
 def test_export_page_renders() -> None:
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     try:
         client = TestClient(app)
         response = client.get("/export/")
@@ -34,7 +34,7 @@ def test_download_plots_csv(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.routers.exports.export_plots_csv", AsyncMock(return_value=b"plots")
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = _db
     try:
         client = TestClient(app)
@@ -53,7 +53,7 @@ def test_download_expenses_csv(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.routers.exports.export_expenses_csv", AsyncMock(return_value=b"expenses")
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = _db
     try:
         client = TestClient(app)
@@ -70,7 +70,7 @@ def test_download_incomes_csv(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.routers.exports.export_incomes_csv", AsyncMock(return_value=b"incomes")
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = _db
     try:
         client = TestClient(app)
@@ -90,7 +90,7 @@ def test_download_irrigation_csv(monkeypatch) -> None:
         "app.routers.exports.export_irrigation_csv",
         AsyncMock(return_value=b"irrigation"),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = _db
     try:
         client = TestClient(app)
@@ -108,7 +108,7 @@ def test_download_truffles_csv(monkeypatch) -> None:
         "app.routers.exports.export_truffles_csv",
         AsyncMock(return_value=b"truffles"),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = _db
     try:
         client = TestClient(app)
@@ -128,7 +128,7 @@ def test_download_recurring_expenses_csv(monkeypatch) -> None:
         "app.routers.exports.export_recurring_expenses_csv",
         AsyncMock(return_value=b"recurrentes"),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = _db
     try:
         client = TestClient(app)
@@ -149,7 +149,7 @@ def test_download_all_csv_zip(monkeypatch) -> None:
         "app.routers.exports.export_all_csv_zip",
         AsyncMock(return_value=b"zip-content"),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = _db
     try:
         client = TestClient(app)

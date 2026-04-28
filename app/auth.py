@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Optional
 
 from fastapi import Depends, Request
@@ -72,6 +73,22 @@ async def get_current_user(
     # This prevents redirect loops when database is cleaned
     if user is None and user_id is not None:
         request.session.clear()
+        return None
+
+    # Refresh subscription data in session so base.html can read it without
+    # needing current_user in every router's template context.
+    if user is not None:
+        request.session["subscription_status"] = user.subscription_status
+        if user.trial_ends_at:
+            delta = user.trial_ends_at - datetime.now(UTC)
+            request.session["trial_days_left"] = delta.days
+        else:
+            request.session["trial_days_left"] = None
+        if user.subscription_ends_at:
+            delta = user.subscription_ends_at - datetime.now(UTC)
+            request.session["subscription_days_left"] = delta.days
+        else:
+            request.session["subscription_days_left"] = None
 
     return user
 
@@ -101,4 +118,42 @@ async def require_user(
     user = await get_current_user(request, db)
     if user is None:
         raise NotAuthenticatedException()
+    return user
+
+
+class SubscriptionRequiredException(Exception):
+    """Raised when a user's trial has expired and they have no active subscription."""
+
+
+def is_subscription_blocked(user: User) -> bool:
+    """Return True if the user should be blocked from accessing the app."""
+    if user.role == "admin":
+        return False
+    now = datetime.now(UTC)
+    status = user.subscription_status
+    if status == "trialing":
+        return not (user.trial_ends_at and user.trial_ends_at > now)
+    if status == "active":
+        return (
+            user.subscription_ends_at is not None and user.subscription_ends_at <= now
+        )
+    return True
+
+
+async def require_subscription(
+    user: User = Depends(require_user),
+) -> User:
+    """Verify the user has an active trial or paid subscription.
+
+    Admin users are always exempt.
+    Allowed subscription_status values:
+    - "trialing" with trial_ends_at > now
+    - "active" with subscription_ends_at > now (or no expiry set)
+    - "active" regardless (belt-and-suspenders for freshly activated users)
+    """
+    if user.role == "admin":
+        return user
+
+    if is_subscription_blocked(user):
+        raise SubscriptionRequiredException()
     return user

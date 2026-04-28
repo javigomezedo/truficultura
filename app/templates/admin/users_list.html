@@ -67,6 +67,8 @@
                         {{ sort_th("Email", "email") }}
                         {{ sort_th(_("Rol"), "role") }}
                         {{ sort_th(_("Estado"), "status") }}
+                        {{ sort_th(_("Suscripción"), "subscription") }}
+                        {{ sort_th(_("Prueba / Vence"), "trial_ends_at") }}
                         {{ sort_th(_("Creado"), "created_at") }}
                         <th>{{ _("Acciones") }}</th>
                     </tr>
@@ -102,6 +104,30 @@
                             <span class="badge bg-warning text-dark">{{ _("Desactivado") }}</span>
                             {% endif %}
                         </td>
+                        <td>
+                            {% set subs = user.subscription_status %}
+                            {% if subs == "active" %}
+                            <span class="badge bg-success">{{ _("Activa") }}</span>
+                            {% elif subs == "trialing" %}
+                            <span class="badge bg-info text-dark">{{ _("Prueba") }}</span>
+                            {% elif subs == "past_due" %}
+                            <span class="badge bg-warning text-dark">{{ _("Vencida") }}</span>
+                            {% elif subs == "canceled" %}
+                            <span class="badge bg-danger">{{ _("Cancelada") }}</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ subs }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small class="text-muted">
+                                {% if user.subscription_ends_at %}
+                                    {{ user.subscription_ends_at.strftime("%d/%m/%Y") }}
+                                {% elif user.trial_ends_at %}
+                                    {{ user.trial_ends_at.strftime("%d/%m/%Y") }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </small>
                         <td>
                             <small class="text-muted">
                                 {{ user.created_at.strftime("%d/%m/%Y") }}

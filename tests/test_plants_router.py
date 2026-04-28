@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 from fastapi.testclient import TestClient
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.database import get_db
 from app.main import app
 
@@ -42,7 +42,7 @@ def test_map_view_renders(monkeypatch) -> None:
         AsyncMock(return_value=[]),
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: db
     try:
         client = TestClient(app)
@@ -93,7 +93,7 @@ def test_map_view_renders_summary_table_sorted_by_grams_desc(monkeypatch) -> Non
         AsyncMock(return_value=[]),
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: db
     try:
         client = TestClient(app)
@@ -148,7 +148,7 @@ def test_map_view_summary_table_sorts_by_label_asc(monkeypatch) -> None:
         AsyncMock(return_value=[]),
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: db
     try:
         client = TestClient(app)
@@ -168,7 +168,7 @@ def test_configure_map_submit_redirects_on_invalid_format(monkeypatch) -> None:
     db = _db()
     monkeypatch.setattr("app.routers.plants.get_plot", AsyncMock(return_value=_plot()))
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: db
     try:
         client = TestClient(app)
@@ -194,7 +194,7 @@ def test_configure_map_submit_calls_service(monkeypatch) -> None:
         configure_mock,
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: db
     try:
         client = TestClient(app)
@@ -225,7 +225,7 @@ def test_configure_map_submit_accepts_sparse_format(monkeypatch) -> None:
         configure_mock,
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: db
     try:
         client = TestClient(app)
@@ -254,7 +254,7 @@ def test_configure_map_submit_rejects_legacy_format(monkeypatch) -> None:
         configure_mock,
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: db
     try:
         client = TestClient(app)
@@ -284,7 +284,7 @@ def test_add_truffle_event_redirects_with_campaign(monkeypatch) -> None:
         create_mock,
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: db
     try:
         client = TestClient(app)
@@ -314,7 +314,7 @@ def test_undo_truffle_event_redirects_when_no_event(monkeypatch) -> None:
         AsyncMock(return_value=None),
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: db
     try:
         client = TestClient(app)
@@ -338,7 +338,7 @@ def test_undo_truffle_event_redirects_when_deleted(monkeypatch) -> None:
         AsyncMock(return_value=SimpleNamespace(id=1)),
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: db
     try:
         client = TestClient(app)
@@ -403,7 +403,7 @@ def test_list_truffle_events_renders(monkeypatch) -> None:
         list_events_mock,
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: db
     try:
         client = TestClient(app)
@@ -425,7 +425,7 @@ def test_delete_truffle_event_from_list_redirects(monkeypatch) -> None:
         AsyncMock(return_value=True),
     )
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: db
     try:
         client = TestClient(app)
@@ -447,7 +447,7 @@ def test_download_plot_qr_pdf_redirects_when_plot_not_found(monkeypatch) -> None
     db = _db()
     monkeypatch.setattr("app.routers.plants.get_plot", AsyncMock(return_value=None))
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: db
     try:
         client = TestClient(app)
@@ -507,7 +507,7 @@ def test_download_plot_qr_pdf_returns_pdf(monkeypatch) -> None:
     monkeypatch.setattr("qrcode.make", lambda _url: _FakeQrImage())
     monkeypatch.setattr("fpdf.FPDF", _FakePdf)
 
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: db
     try:
         client = TestClient(app)

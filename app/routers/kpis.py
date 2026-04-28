@@ -5,7 +5,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.database import get_db
 from app.models.user import User
 from app.services.kpi_service import build_kpi_context
@@ -19,7 +19,7 @@ async def kpis_index(
     request: Request,
     campaign: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     context = await build_kpi_context(
         db, user_id=current_user.id, selected_campaign=campaign

@@ -6,7 +6,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.database import get_db
 from app.i18n import _
 from app.models.expense import EXPENSE_CATEGORIES
@@ -30,7 +30,7 @@ templates = Jinja2Templates(directory="app/templates")
 async def list_recurring_expenses_view(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
     msg: Optional[str] = Query(default=None),
 ):
     items = await list_recurring_expenses(db, current_user.id)
@@ -49,7 +49,7 @@ async def list_recurring_expenses_view(
 async def new_recurring_expense_form(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     plots = await list_plots(db, current_user.id)
     return templates.TemplateResponse(
@@ -77,7 +77,7 @@ async def create_recurring_expense(
     person: str = Form(""),
     frequency: str = Form("monthly"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     await create_recurring_expense_service(
         db,
@@ -100,7 +100,7 @@ async def edit_recurring_expense_form(
     request: Request,
     recurring_expense_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     obj = await get_recurring_expense(db, recurring_expense_id, current_user.id)
     if obj is None:
@@ -136,7 +136,7 @@ async def update_recurring_expense(
     frequency: str = Form("monthly"),
     is_active: bool = Form(False),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     obj = await get_recurring_expense(db, recurring_expense_id, current_user.id)
     if obj is None:
@@ -166,7 +166,7 @@ async def delete_recurring_expense(
     request: Request,
     recurring_expense_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     obj = await get_recurring_expense(db, recurring_expense_id, current_user.id)
     if obj:
@@ -182,7 +182,7 @@ async def toggle_recurring_expense(
     request: Request,
     recurring_expense_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     obj = await get_recurring_expense(db, recurring_expense_id, current_user.id)
     if obj is None:
