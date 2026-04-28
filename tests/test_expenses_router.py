@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 from fastapi.testclient import TestClient
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.database import get_db
 from app.main import app
 
@@ -45,7 +45,7 @@ def test_expenses_list_renders(monkeypatch) -> None:
             }
         ),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -78,7 +78,7 @@ def test_expenses_list_forwards_plot_filter(monkeypatch) -> None:
         }
     )
     monkeypatch.setattr("app.routers.expenses.get_expenses_list_context", context_mock)
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -95,7 +95,7 @@ def test_expenses_list_forwards_plot_filter(monkeypatch) -> None:
 def test_create_expense_redirects(monkeypatch) -> None:
     fake_db = _db()
     monkeypatch.setattr("app.routers.expenses.create_expense_service", AsyncMock())
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -120,7 +120,7 @@ def test_create_expense_redirects(monkeypatch) -> None:
 def test_new_expense_form_renders(monkeypatch) -> None:
     fake_db = _db()
     monkeypatch.setattr("app.routers.expenses.list_plots", AsyncMock(return_value=[]))
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -137,7 +137,7 @@ def test_edit_expense_not_found_redirects(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.routers.expenses.get_expense", AsyncMock(return_value=None)
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -158,7 +158,7 @@ def test_edit_expense_form_renders(monkeypatch) -> None:
         "app.routers.expenses.get_expense", AsyncMock(return_value=expense)
     )
     monkeypatch.setattr("app.routers.expenses.list_plots", AsyncMock(return_value=[]))
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -175,7 +175,7 @@ def test_update_expense_not_found_redirects(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.routers.expenses.get_expense", AsyncMock(return_value=None)
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -204,7 +204,7 @@ def test_update_expense_redirects(monkeypatch) -> None:
         "app.routers.expenses.get_expense", AsyncMock(return_value=expense)
     )
     monkeypatch.setattr("app.routers.expenses.update_expense_service", AsyncMock())
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -233,7 +233,7 @@ def test_delete_expense_redirects_even_when_not_found(monkeypatch) -> None:
     )
     delete_mock = AsyncMock()
     monkeypatch.setattr("app.routers.expenses.delete_expense_service", delete_mock)
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -254,7 +254,7 @@ def test_delete_expense_calls_service_when_found(monkeypatch) -> None:
     )
     delete_mock = AsyncMock()
     monkeypatch.setattr("app.routers.expenses.delete_expense_service", delete_mock)
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -276,7 +276,7 @@ def test_upload_receipt_value_error_redirects(monkeypatch) -> None:
         "app.routers.expenses.save_receipt",
         AsyncMock(side_effect=ValueError("archivo demasiado grande")),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -297,7 +297,7 @@ def test_upload_receipt_not_found_redirects(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.routers.expenses.get_expense", AsyncMock(return_value=None)
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -321,7 +321,7 @@ def test_upload_receipt_success_redirects(monkeypatch) -> None:
     )
     save_mock = AsyncMock()
     monkeypatch.setattr("app.routers.expenses.save_receipt", save_mock)
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -344,7 +344,7 @@ def test_download_receipt_streams_file(monkeypatch) -> None:
         "app.routers.expenses.get_receipt",
         AsyncMock(return_value=("factura.pdf", b"contenido", "application/pdf")),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -362,7 +362,7 @@ def test_download_receipt_not_found_redirects(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.routers.expenses.get_receipt", AsyncMock(return_value=None)
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -379,7 +379,7 @@ def test_delete_receipt_not_found_redirects(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.routers.expenses.get_expense", AsyncMock(return_value=None)
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -399,7 +399,7 @@ def test_delete_receipt_success_redirects(monkeypatch) -> None:
     )
     delete_mock = AsyncMock()
     monkeypatch.setattr("app.routers.expenses.delete_receipt", delete_mock)
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)

@@ -11,7 +11,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.database import get_db
 from app.i18n import _
 from app.models.plot import Plot
@@ -126,7 +126,7 @@ async def root_view():
 async def list_view(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
     plot_id: Optional[str] = Query(default=None),
     campaign: Optional[str] = Query(default=None),
     event_type: Optional[list[str]] = Query(default=None),
@@ -197,7 +197,7 @@ async def list_view(
 @router.get("/json/", response_class=JSONResponse)
 async def list_json(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
     plot_id: Optional[int] = Query(default=None),
     date_from: Optional[datetime.date] = Query(default=None),
     date_to: Optional[datetime.date] = Query(default=None),
@@ -230,7 +230,7 @@ async def list_json(
 @router.get("/calendar/", response_class=JSONResponse)
 async def calendar_json(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
     plot_id: Optional[str] = Query(default=None),
     year: Optional[int] = Query(default=None),
     month: Optional[int] = Query(default=None),
@@ -275,7 +275,7 @@ async def calendar_json(
 async def calendar_view(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
     plot_id: Optional[str] = Query(default=None),
     year: Optional[int] = Query(default=None),
     month: Optional[int] = Query(default=None),
@@ -411,7 +411,7 @@ async def calendar_view(
 async def new_form(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
     date: Optional[datetime.date] = Query(default=None),
     plot_id: Optional[str] = Query(default=None),
     event_type: Optional[list[str]] = Query(default=None),
@@ -474,7 +474,7 @@ async def create_view(
     notes: Optional[str] = Form(None),
     view_mode: str = Form(default="list"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     data = PlotEventCreate(
         plot_id=plot_id,
@@ -512,7 +512,7 @@ async def edit_form(
     request: Request,
     event_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     record = await get_plot_event(db, event_id, current_user.id)
     if record is None:
@@ -550,7 +550,7 @@ async def update_view(
     date: datetime.date = Form(...),
     notes: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     record = await get_plot_event(db, event_id, current_user.id)
     if record is None:
@@ -589,7 +589,7 @@ async def delete_view(
     request: Request,
     event_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     record = await get_plot_event(db, event_id, current_user.id)
     if record is not None and _is_linked_event(record):

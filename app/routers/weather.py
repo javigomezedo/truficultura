@@ -8,7 +8,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.database import get_db
 from app.models.user import User
 from app.services.weather_service import get_weather_contexts
@@ -22,7 +22,7 @@ templates = Jinja2Templates(directory="app/templates")
 async def weather_page(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ) -> HTMLResponse:
     """Página completa de tiempo meteorológico en tiempo real."""
     weather_list = await get_weather_contexts(db, current_user.id)
@@ -36,7 +36,7 @@ async def weather_page(
 @router.get("/widget", response_class=JSONResponse)
 async def weather_widget(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ) -> JSONResponse:
     """Endpoint JSON para el widget asíncrono del dashboard (todos los municipios)."""
     weather_list = await get_weather_contexts(db, current_user.id)

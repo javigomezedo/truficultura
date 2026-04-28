@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.database import get_db
 from app.models.user import User
 from app.services.plot_analytics_service import (
@@ -180,7 +180,7 @@ def _build_overview_explanation(
 async def overview(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
     campaign_from: Optional[str] = Query(default=None),
     campaign_to: Optional[str] = Query(default=None),
 ):
@@ -255,7 +255,7 @@ async def overview(
 @router.get("/dataset", response_class=JSONResponse)
 async def dataset_json(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
     campaign_from: Optional[str] = Query(default=None),
     campaign_to: Optional[str] = Query(default=None),
 ):
@@ -274,7 +274,7 @@ async def dataset_json(
 @router.get("/irrigation-impact", response_class=JSONResponse)
 async def irrigation_impact_json(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
     campaign_from: Optional[str] = Query(default=None),
     campaign_to: Optional[str] = Query(default=None),
 ):
@@ -291,7 +291,7 @@ async def irrigation_impact_json(
 @router.get("/pruning-impact", response_class=JSONResponse)
 async def pruning_impact_json(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
     campaign_from: Optional[str] = Query(default=None),
     campaign_to: Optional[str] = Query(default=None),
 ):
@@ -308,7 +308,7 @@ async def pruning_impact_json(
 @router.get("/management-impact", response_class=JSONResponse)
 async def management_impact_json(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
     campaign_from: Optional[str] = Query(default=None),
     campaign_to: Optional[str] = Query(default=None),
 ):
@@ -325,7 +325,7 @@ async def management_impact_json(
 @router.get("/irrigation-thresholds", response_class=JSONResponse)
 async def irrigation_thresholds_json(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
     campaign_from: Optional[str] = Query(default=None),
     campaign_to: Optional[str] = Query(default=None),
 ):
@@ -342,7 +342,7 @@ async def irrigation_thresholds_json(
 @router.get("/comparison", response_class=JSONResponse)
 async def comparison_json(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
     campaign_from: Optional[str] = Query(default=None),
     campaign_to: Optional[str] = Query(default=None),
 ):
@@ -360,7 +360,7 @@ async def comparison_json(
 async def comparison_view(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
     campaign_from: Optional[str] = Query(default=None),
     campaign_to: Optional[str] = Query(default=None),
 ):
@@ -399,7 +399,7 @@ async def plot_detail(
     request: Request,
     plot_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
     campaign_from: Optional[str] = Query(default=None),
     campaign_to: Optional[str] = Query(default=None),
 ):
@@ -464,7 +464,7 @@ async def plot_detail(
 async def plot_detail_json(
     plot_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
     campaign_from: Optional[str] = Query(default=None),
     campaign_to: Optional[str] = Query(default=None),
 ):

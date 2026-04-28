@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.database import get_db
 from app.i18n import _
 from app.models.user import User
@@ -47,7 +47,7 @@ async def production_total(
     camp: Optional[str] = Query(default=None),
     plot_id: Optional[str] = Query(default=None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     camp_int = _parse_optional_int(camp)
     plot_id_int = _parse_optional_int(plot_id)
@@ -180,7 +180,7 @@ async def list_harvests(
     camp: Optional[str] = Query(default=None),
     plot_id: Optional[str] = Query(default=None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     camp_int = _parse_optional_int(camp)
     plot_id_int = _parse_optional_int(plot_id)
@@ -239,7 +239,7 @@ async def new_harvest_form(
     request: Request,
     plot_id: Optional[str] = Query(default=None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     plots = await list_plots(db, current_user.id)
     today = datetime.date.today().isoformat()
@@ -265,7 +265,7 @@ async def new_harvest_form(
 async def create_harvest_batch(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     form = await request.form()
     harvest_date_str = form.get("harvest_date", "")
@@ -337,7 +337,7 @@ async def edit_harvest_form(
     request: Request,
     harvest_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     harvest = await plot_harvest_service.get_harvest(
         db, harvest_id=harvest_id, user_id=current_user.id
@@ -373,7 +373,7 @@ async def update_harvest(
     notes: str = Form(default=""),
     plot_id: int = Form(...),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     harvest = await plot_harvest_service.get_harvest(
         db, harvest_id=harvest_id, user_id=current_user.id
@@ -417,7 +417,7 @@ async def update_harvest(
 async def delete_harvest(
     harvest_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     await plot_harvest_service.delete_harvest(
         db, harvest_id=harvest_id, user_id=current_user.id

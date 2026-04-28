@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.database import get_db
 from app.models.user import User
 from app.services.reports_service import build_profitability_context
@@ -16,7 +16,7 @@ templates = Jinja2Templates(directory="app/templates")
 async def profitability(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_subscription),
 ):
     context = await build_profitability_context(db, current_user.id)
 

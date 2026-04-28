@@ -1,3 +1,4 @@
+from datetime import UTC, datetime, timedelta
 from urllib.parse import urlencode
 
 from fastapi.templating import Jinja2Templates
@@ -31,3 +32,5 @@ def sort_url(request, field: str, current_sort: str, current_order: str) -> str:
 
 
 templates.env.globals["sort_url"] = sort_url
+templates.env.globals["now_utc"] = lambda: datetime.now(UTC)
+templates.env.globals["timedelta_one_day"] = timedelta(days=1)

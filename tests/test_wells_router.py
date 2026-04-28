@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 from fastapi.testclient import TestClient
 
-from app.auth import require_user
+from app.auth import require_subscription
 from app.database import get_db
 from app.main import app
 
@@ -36,7 +36,7 @@ def test_wells_list_renders(monkeypatch) -> None:
             }
         ),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -54,7 +54,7 @@ def test_wells_new_form_renders(monkeypatch) -> None:
         "app.services.wells_service._get_all_plots",
         AsyncMock(return_value=[]),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -70,7 +70,7 @@ def test_create_well_redirects(monkeypatch) -> None:
     fake_db = _db()
     create_mock = AsyncMock()
     monkeypatch.setattr("app.routers.wells.create_service", create_mock)
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -95,7 +95,7 @@ def test_create_well_redirects(monkeypatch) -> None:
 def test_edit_well_not_found_redirects(monkeypatch) -> None:
     fake_db = _db()
     monkeypatch.setattr("app.routers.wells.get_service", AsyncMock(return_value=None))
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -127,7 +127,7 @@ def test_edit_well_form_renders(monkeypatch) -> None:
         "app.routers.wells.get_well_expenses_for_plot",
         AsyncMock(return_value=[]),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -142,7 +142,7 @@ def test_edit_well_form_renders(monkeypatch) -> None:
 def test_update_well_not_found_redirects(monkeypatch) -> None:
     fake_db = _db()
     monkeypatch.setattr("app.routers.wells.get_service", AsyncMock(return_value=None))
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -168,7 +168,7 @@ def test_update_well_redirects(monkeypatch) -> None:
     monkeypatch.setattr("app.routers.wells.get_service", AsyncMock(return_value=well))
     update_mock = AsyncMock()
     monkeypatch.setattr("app.routers.wells.update_service", update_mock)
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -192,7 +192,7 @@ def test_delete_well_redirects(monkeypatch) -> None:
     fake_db = _db()
     delete_mock = AsyncMock()
     monkeypatch.setattr("app.routers.wells.delete_service", delete_mock)
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
@@ -222,7 +222,7 @@ def test_expenses_for_plot_json(monkeypatch) -> None:
         "app.routers.wells.get_well_expenses_for_plot",
         AsyncMock(return_value=expenses),
     )
-    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: fake_db
     try:
         client = TestClient(app)
