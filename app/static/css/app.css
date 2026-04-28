@@ -1287,9 +1287,28 @@ footer.tf-footer {
 }
 
 .tf-assistant-offcanvas {
-    width: min(460px, 100vw);
+    width: min(680px, 100vw);
+    min-width: 300px;
+    max-width: 90vw;
     border-left: 1px solid var(--tf-border);
     background: linear-gradient(180deg, rgba(255, 250, 243, 0.96), rgba(247, 238, 226, 0.94));
+}
+
+.tf-assistant-resize-handle {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    cursor: ew-resize;
+    z-index: 10;
+    background: transparent;
+    transition: background 0.15s;
+}
+
+.tf-assistant-resize-handle:hover,
+.tf-assistant-resize-handle.tf-resizing {
+    background: rgba(73, 111, 119, 0.18);
 }
 
 .tf-assistant-body {
