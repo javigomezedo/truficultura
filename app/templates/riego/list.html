@@ -41,8 +41,8 @@
                         <i class="bi bi-droplet-fill text-primary fs-2 me-3 flex-shrink-0"></i>
                         <div>
                             <div class="text-muted small">{{ _("Total agua registrada") }}</div>
-                            <div class="fw-bold fs-4 lh-1">{{ total_water_m3|format_eu(3) }} m³</div>
-                            <div class="text-muted small mt-1">{{ total_water_liters|format_eu(1) }} L</div>
+                            <div class="fw-bold fs-4 lh-1">{{ total_water_m3|format_eu(0) }} m³</div>
+                            <div class="text-muted small mt-1">{{ total_water_liters|format_eu(0) }} L</div>
                         </div>
                     </div>
                     <div class="border-top pt-3 d-flex align-items-center">
@@ -155,7 +155,7 @@
                                 {{ r.water_m3|format_eu(3) }}
                             </td>
                             <td class="text-end text-muted">
-                                {{ (r.water_m3 * 1000)|format_eu(1) }}
+                                {{ (r.water_m3 * 1000)|format_eu(0) }}
                             </td>
                             <td>
                                 {% if r.expense %}
@@ -211,8 +211,8 @@
                     <tfoot class="table-light fw-bold">
                         <tr>
                             <td colspan="2" class="text-end">{{ _("TOTAL") }}:</td>
-                            <td class="text-end text-primary">{{ total_water_m3|format_eu(3) }}</td>
-                            <td class="text-end text-muted">{{ total_water_liters|format_eu(1) }}</td>
+                            <td class="text-end text-primary">{{ total_water_m3|format_eu(0) }}</td>
+                            <td class="text-end text-muted">{{ total_water_liters|format_eu(0) }}</td>
                             <td colspan="3"></td>
                         </tr>
                     </tfoot>
