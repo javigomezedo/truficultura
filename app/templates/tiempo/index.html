@@ -1,0 +1,328 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("Tiempo") }} &mdash; Truficultura{% endblock %}
+
+{% block extra_head %}
+<style>
+    .weather-stat-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.65rem 0;
+        border-bottom: 1px solid #e9ecef;
+        font-size: 0.95rem;
+    }
+    .weather-stat-row:last-child { border-bottom: none; }
+    .weather-stat-label { color: #495057; }
+    .weather-stat-value { font-weight: 600; color: #212529; }
+    .weather-stat-value-big {
+        font-size: 2.4rem;
+        font-weight: 700;
+        line-height: 1;
+        color: #212529;
+    }
+    .weather-icon-big { font-size: 2.8rem; }
+    .source-badge { font-size: 0.72rem; }
+    .weather-detail-card { border: none; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+</style>
+{% endblock %}
+
+{# =========================================================
+   MACRO: cards de observación + previsión para un municipio
+   ========================================================= #}
+{% macro render_weather(w) %}
+<div class="row g-3 mb-3">
+    {# ===== OBSERVACIÓN ACTUAL ===== #}
+    <div class="col-12 col-lg-7">
+        <div class="card weather-detail-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h5 class="mb-0 fw-bold">
+                            <i class="bi bi-geo-alt-fill text-secondary me-1"></i>
+                            {{ w.display_name }}
+                        </h5>
+                        <small class="text-muted">
+                            {% if w.source in ["aemet", "aemet_partial", "aemet_forecast"] %}
+                                Datos AEMET
+                                {% if w.source == "aemet_partial" %} + Ibericam{% endif %}
+                                {% if w.source == "aemet_forecast" %}
+                                    &middot; <span class="text-info-emphasis">Temperatura prevista</span>
+                                {% endif %}
+                            {% elif w.source == "ibericam" %}
+                                Datos Ibericam
+                            {% else %}
+                                {{ _("Fuente de datos desconocida") }}
+                            {% endif %}
+                            {% if w.updated_ago_label %}
+                                &middot; Actualizado {{ w.updated_ago_label }}
+                            {% endif %}
+                        </small>
+                    </div>
+                    <span class="badge bg-{{ w.freshness }} source-badge">
+                        {% if w.freshness == "success" %}
+                            <i class="bi bi-circle-fill me-1"></i>En directo
+                        {% elif w.freshness == "warning" %}
+                            <i class="bi bi-circle-fill me-1"></i>Reciente
+                        {% elif w.freshness == "danger" %}
+                            <i class="bi bi-circle-fill me-1"></i>Desactualizado
+                        {% elif w.freshness == "info" %}
+                            <i class="bi bi-clock me-1"></i>Previsión horaria
+                        {% else %}
+                            <i class="bi bi-circle me-1"></i>Sin obs.
+                        {% endif %}
+                    </span>
+                </div>
+
+                {# Temperatura destacada #}
+                <div class="d-flex align-items-end gap-3 mb-3">
+                    <div class="weather-stat-value-big">
+                        {% if w.temperature is not none %}
+                            {{ "%.1f"|format(w.temperature)|replace(".", ",") }}&deg;C
+                        {% else %}
+                            &mdash;
+                        {% endif %}
+                    </div>
+                    <div class="weather-icon-big mb-1">
+                        {% if w.temperature is not none %}
+                            {% if w.temperature >= 30 %}☀️
+                            {% elif w.temperature >= 20 %}🌤️
+                            {% elif w.temperature >= 10 %}⛅
+                            {% elif w.temperature >= 0 %}🌥️
+                            {% else %}❄️
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                    {% if w.humidity is not none %}
+                    <div class="ms-auto text-end">
+                        <div class="small text-muted">{{ _("Humedad") }}</div>
+                        <div class="fw-bold">{{ w.humidity|int }}&nbsp;%</div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {# Stats en filas #}
+                <div class="weather-stat-row">
+                    <span class="weather-stat-label">
+                        <i class="bi bi-cloud-drizzle text-primary me-2"></i>{{ _("Precipitación hoy") }}
+                    </span>
+                    <span class="weather-stat-value">
+                        {% if w.precipitation_today is not none %}
+                            {{ "%.1f"|format(w.precipitation_today)|replace(".", ",") }}&nbsp;mm
+                        {% else %}&mdash;{% endif %}
+                    </span>
+                </div>
+                <div class="weather-stat-row">
+                    <span class="weather-stat-label">
+                        <i class="bi bi-calendar-week text-info me-2"></i>{{ _("Lluvia acumulada (mes)") }}
+                    </span>
+                    <span class="weather-stat-value">
+                        {% if w.rain_month is not none %}
+                            {{ w.rain_month|int }}&nbsp;mm
+                        {% else %}&mdash;{% endif %}
+                    </span>
+                </div>
+                {% if w.wind_speed is not none %}
+                <div class="weather-stat-row">
+                    <span class="weather-stat-label">
+                        <i class="bi bi-wind text-secondary me-2"></i>{{ _("Viento") }}
+                    </span>
+                    <span class="weather-stat-value">
+                        {{ "%.1f"|format(w.wind_speed)|replace(".", ",") }}&nbsp;m/s
+                        {% if w.wind_dir_deg is not none %}
+                            <span class="text-muted small">({{ w.wind_dir_deg|int }}&deg;)</span>
+                        {% endif %}
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {# ===== PREVISIÓN MAÑANA ===== #}
+    <div class="col-12 col-lg-5">
+        <div class="card weather-detail-card h-100">
+            <div class="card-body d-flex flex-column">
+                <h6 class="text-uppercase text-muted fw-semibold small mb-3">
+                    <i class="bi bi-calendar-day me-1"></i>{{ _("Previsión mañana") }}
+                </h6>
+                {% if w.tomorrow_sky %}
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="weather-icon-big">
+                            {% set code = w.tomorrow_sky_code or "" %}
+                            {% if code in ["11", "12"] %}☀️
+                            {% elif code in ["13", "17"] %}🌤️
+                            {% elif code in ["14", "24", "14n"] %}⛅
+                            {% elif code in ["15", "25", "23"] %}🌦️
+                            {% elif code in ["16", "26"] %}🌧️
+                            {% elif code in ["33", "34", "35", "36"] %}🌨️
+                            {% elif code in ["43", "44", "45", "46"] %}⛈️
+                            {% elif code in ["51", "52", "53", "54"] %}🌩️
+                            {% elif code in ["61", "62", "63", "64"] %}🌫️
+                            {% else %}🌡️
+                            {% endif %}
+                        </div>
+                        <div>
+                            <div class="fw-semibold">{{ w.tomorrow_sky }}</div>
+                            {% if w.tomorrow_prob_prec is not none %}
+                            <small class="text-muted">
+                                <i class="bi bi-droplet me-1"></i>{{ w.tomorrow_prob_prec }}&nbsp;%&nbsp;{{ _("prob. lluvia") }}
+                            </small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if w.tomorrow_t_max is not none or w.tomorrow_t_min is not none %}
+                    <div class="d-flex gap-4 mb-2">
+                        {% if w.tomorrow_t_max is not none %}
+                        <div>
+                            <div class="small text-muted">{{ _("Máx.") }}</div>
+                            <div class="fw-bold text-danger">{{ w.tomorrow_t_max }}&deg;C</div>
+                        </div>
+                        {% endif %}
+                        {% if w.tomorrow_t_min is not none %}
+                        <div>
+                            <div class="small text-muted">{{ _("Mín.") }}</div>
+                            <div class="fw-bold text-primary">{{ w.tomorrow_t_min }}&deg;C</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                {% else %}
+                    <div class="text-muted d-flex align-items-center gap-2 my-auto">
+                        <i class="bi bi-cloud-slash fs-4"></i>
+                        <span>{{ _("Previsión no disponible") }}</span>
+                    </div>
+                {% endif %}
+
+                <div class="mt-auto pt-3">
+                    <small class="text-muted d-block">
+                        <i class="bi bi-info-circle me-1"></i>
+                        {% if w.source in ["aemet", "aemet_partial"] %}
+                            {{ _("Datos AEMET OpenData. Estación:") }}
+                            <code class="small">{{ w.station_id }}</code>
+                        {% elif w.source == "aemet_forecast" %}
+                            {{ _("Datos AEMET OpenData. Estación:") }}
+                            <code class="small">{{ w.station_id }}</code>
+                            &middot; <span class="fst-italic">{{ _("obs. en tiempo real no disponible") }}</span>
+                        {% else %}
+                            {{ _("Sin estación AEMET próxima. Temperatura y previsión por municipio.") }}
+                        {% endif %}
+                    </small>
+                    {% if w.municipio_name and w.municipio_name != w.municipio_cod %}
+                    <small class="text-muted">
+                        <i class="bi bi-geo-alt me-1"></i>{{ w.municipio_name }}
+                    </small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Aviso si fuente ibericam #}
+{% if w.source == "ibericam" %}
+<div class="alert alert-info d-flex align-items-start gap-2 mb-3">
+    <i class="bi bi-info-circle-fill fs-5 mt-1 flex-shrink-0"></i>
+    <div>
+        <strong>{{ _("Sin estación AEMET en este municipio.") }}</strong>
+        {{ _("La temperatura y humedad no están disponibles. La lluvia mensual se obtiene de Ibericam.") }}
+        {{ _("La previsión de mañana procede de AEMET por código de municipio.") }}
+    </div>
+</div>
+{% endif %}
+{% endmacro %}
+
+{# =========================================================
+   CONTENIDO PRINCIPAL
+   ========================================================= #}
+{% block content %}
+<div class="container-xl">
+    <div class="tf-page-header">
+        <div>
+            <p class="tf-page-kicker">{{ _("Meteorología") }}</p>
+            <h1 class="tf-page-title">{{ _("Tiempo en directo") }}</h1>
+            <p class="tf-page-subtitle">
+                {{ _("Datos en tiempo real de AEMET. Actualización automática cada 20 minutos.") }}
+            </p>
+        </div>
+        <a href="/lluvia/" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-cloud-rain-fill me-1"></i>{{ _("Registro de lluvia") }}
+        </a>
+    </div>
+
+    {# ===== ESTADO DE ERROR ===== #}
+    {% if weather_list|length == 1 and not weather_list[0].available %}
+        <div class="alert alert-warning d-flex align-items-center gap-2">
+            <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+            <div>
+                {% if weather_list[0].error == "no_municipio" %}
+                    {{ _("No hay parcelas con municipio asignado. Asigna un municipio a tus parcelas para ver el tiempo.") }}
+                    <a href="/plots/" class="alert-link ms-1">{{ _("Ir a parcelas") }}</a>
+                {% elif weather_list[0].error == "no_api_key" %}
+                    {{ _("La clave de API de AEMET no está configurada.") }}
+                {% else %}
+                    {{ _("No se han podido obtener datos meteorológicos en este momento.") }}
+                {% endif %}
+            </div>
+        </div>
+
+    {# ===== UN SOLO MUNICIPIO: vista directa sin tabs ===== #}
+    {% elif weather_list|length == 1 %}
+        {{ render_weather(weather_list[0]) }}
+
+    {# ===== MÚLTIPLES MUNICIPIOS: tabs Bootstrap ===== #}
+    {% else %}
+        <ul class="nav nav-tabs mb-3" role="tablist">
+            {% for w in weather_list %}
+            <li class="nav-item" role="presentation">
+                <button
+                    class="nav-link {% if loop.first %}active{% endif %}"
+                    id="tab-btn-{{ loop.index }}"
+                    data-bs-toggle="tab"
+                    data-bs-target="#tab-pane-{{ loop.index }}"
+                    type="button"
+                    role="tab"
+                    aria-controls="tab-pane-{{ loop.index }}"
+                    aria-selected="{{ 'true' if loop.first else 'false' }}"
+                >
+                    <i class="bi bi-geo-alt-fill me-1"></i>
+                    {{ w.municipio_name or w.municipio_cod }}
+                </button>
+            </li>
+            {% endfor %}
+        </ul>
+
+        <div class="tab-content">
+            {% for w in weather_list %}
+            <div
+                class="tab-pane fade {% if loop.first %}show active{% endif %}"
+                id="tab-pane-{{ loop.index }}"
+                role="tabpanel"
+                aria-labelledby="tab-btn-{{ loop.index }}"
+            >
+                {% if not w.available %}
+                <div class="alert alert-warning mt-2">
+                    {{ _("Datos no disponibles para este municipio.") }}
+                </div>
+                {% else %}
+                    {{ render_weather(w) }}
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {# ===== ENLACE A HISTORIAL ===== #}
+    {% if not (weather_list|length == 1 and not weather_list[0].available) %}
+    <div class="d-flex gap-2 flex-wrap mt-2">
+        <a href="/lluvia/" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-cloud-rain me-1"></i>{{ _("Historial de lluvia") }}
+        </a>
+        <a href="/lluvia/calendario" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-calendar3 me-1"></i>{{ _("Calendario de lluvia") }}
+        </a>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
