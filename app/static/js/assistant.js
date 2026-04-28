@@ -1,4 +1,49 @@
 (function () {
+    // ── Resize handle ──────────────────────────────────────────────────────────
+    (function () {
+        var STORAGE_KEY = 'tf-assistant-width';
+        var MIN_W = 300;
+        var MAX_W = Math.round(window.screen.width * 0.9);
+        var panel = document.getElementById('assistantPanel');
+        var handle = document.getElementById('assistantResizeHandle');
+        if (!panel || !handle) return;
+
+        // Restore saved width
+        var saved = parseInt(localStorage.getItem(STORAGE_KEY), 10);
+        if (saved && saved >= MIN_W && saved <= MAX_W) {
+            panel.style.width = saved + 'px';
+        }
+
+        var startX, startW;
+
+        handle.addEventListener('mousedown', function (e) {
+            e.preventDefault();
+            startX = e.clientX;
+            startW = panel.offsetWidth;
+            handle.classList.add('tf-resizing');
+            document.body.style.cursor = 'ew-resize';
+            document.body.style.userSelect = 'none';
+
+            function onMouseMove(e) {
+                var delta = startX - e.clientX; // dragging left = wider
+                var newW = Math.min(MAX_W, Math.max(MIN_W, startW + delta));
+                panel.style.width = newW + 'px';
+            }
+
+            function onMouseUp() {
+                handle.classList.remove('tf-resizing');
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+                localStorage.setItem(STORAGE_KEY, panel.offsetWidth);
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+            }
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
+    }());
+
     var SUGGESTED_QUESTION_GROUPS = [
         {
             title: 'Rentabilidad',
@@ -52,6 +97,15 @@
             element: el,
             setText: function (text) {
                 content.textContent = text;
+                if (window.renderMathInElement) {
+                    renderMathInElement(content, {
+                        delimiters: [
+                            { left: '\\[', right: '\\]', display: true },
+                            { left: '\\(', right: '\\)', display: false }
+                        ],
+                        throwOnError: false
+                    });
+                }
             },
             attachTraceability: function (traceability, intent) {
                 if (!traceability) {

@@ -22,6 +22,8 @@
           rel="stylesheet">
     <link rel="stylesheet" href="/static/css/app.css">
     <link rel="stylesheet" href="/static/css/themes/bodega-tecnica.css" id="tf-theme-link">
+    <!-- KaTeX (renderizado LaTeX en el asistente) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
     <script>
         (function () {
             var themeKey = 'truficultura-theme';
@@ -321,6 +323,7 @@
     </button>
 
     <div class="offcanvas offcanvas-end tf-assistant-offcanvas" tabindex="-1" id="assistantPanel" aria-labelledby="assistantPanelLabel">
+        <div class="tf-assistant-resize-handle" id="assistantResizeHandle" title="{{ _('Arrastrar para redimensionar') }}"></div>
         <div class="offcanvas-header">
             <h5 class="offcanvas-title" id="assistantPanelLabel">
                 <i class="bi bi-chat-square-text-fill me-2"></i>{{ _("Asistente Truficultura") }}
@@ -392,6 +395,9 @@
             integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2XoQrxeTUQyRjrOnlCoYta87iKBWq3EsdM2"
             crossorigin="anonymous"></script>
     <script src="/static/js/app.js"></script>
+    <!-- KaTeX -->
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
     {% if request.session.get("username") %}
     <script src="/static/js/assistant.js"></script>
     {% endif %}

@@ -60,6 +60,18 @@ para análisis). Único por planta y fecha.
 no está autenticado, redirige al login y retoma automáticamente el escaneo.
 - Riego: registro de riegos por parcela con volumen de agua en m³ y notas. Cada parcela puede \
 activar o desactivar el riego. Se integra con los eventos de parcela (tipo "riego").
+- Simulador de riego: herramienta accesible desde la pantalla de riego (/irrigation/) que calcula \
+si conviene regar hoy comparando el agua acumulada en la campaña con la meseta histórica de la parcela. \
+Cálculo paso a paso: (1) suma el riego registrado desde mayo hasta hoy (irrigation_m3); \
+(2) lluvia convertida a m³: \\( \\text{rain\\_m3} = \\text{mm\\_lluvia} \\times \\text{área\\_ha} \\times 10 \\); \
+(3) \\( \\text{total\\_water\\_m3} = \\text{irrigation\\_m3} + \\text{rain\\_m3} \\); \
+(4) la meseta (plateau_m3) se detecta con el historial de campañas anteriores \
+(por parcela si hay al menos 3 campañas, si no se usa la global del usuario); \
+(5) \\( \\text{remaining\\_m3} = \\text{plateau\\_m3} - \\text{total\\_water\\_m3} \\); \
+(6) \\( \\text{hours\\_needed} = \\text{remaining\\_m3} / \\text{caudal\\_riego} \\), \
+donde caudal_riego es el caudal del pozo de la parcela en m³/h. \
+Si la parcela no tiene caudal configurado, solo se muestran los m³ que faltan. \
+Si no hay suficientes datos históricos, el simulador lo indica sin emitir recomendación.
 - Pozos / Labores de pozo: registro de labores de pozo por parcela con número de pozos por \
 planta y fecha. Se integra con los eventos de parcela (tipo "pozo").
 - Eventos de parcela (labores): historial de labores agrícolas por parcela. Tipos disponibles: \
@@ -198,6 +210,21 @@ _DATA_KEYWORDS = {
     "presencia de planta",
     "cosecha por bancal",
     "produccion total",
+    "simulador de riego",
+    "simulador",
+    "simular riego",
+    "conviene regar",
+    "hay que regar",
+    "meseta de riego",
+    "meseta",
+    "horas para regar",
+    "horas que faltan",
+    "cuanto falta para regar",
+    "agua acumulada",
+    "water balance",
+    "balance hidrico",
+    "caudal",
+    "caudal riego",
 }
 
 _USAGE_KEYWORDS = {
