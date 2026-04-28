@@ -7,10 +7,11 @@ from urllib.parse import quote_plus
 
 from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from sqlalchemy import asc, desc, select
+from sqlalchemy import asc, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import require_admin
+from app.config import settings
 from app.database import get_db
 from app.i18n import _
 from app.jinja import templates
@@ -114,7 +115,6 @@ async def update_user(
     first_name: str = Form(...),
     last_name: str = Form(...),
     email: str = Form(...),
-    role: str = Form(...),
     comunidad_regantes: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_admin),
@@ -174,9 +174,16 @@ async def update_user(
                 status_code=400,
             )
 
-    # Validate role
-    if role not in ["user", "admin"]:
-        role = "user"
+    # Compute role from ADMIN_EMAIL or first-user rule — never accept it from the form
+    admin_email_cfg = (settings.ADMIN_EMAIL or "").strip().lower()
+    is_admin_email = bool(admin_email_cfg) and email == admin_email_cfg
+    if not is_admin_email:
+        min_result = await db.execute(select(func.min(User.id)))
+        first_user_id = min_result.scalar_one_or_none()
+        is_first_user = first_user_id is not None and user.id == first_user_id
+    else:
+        is_first_user = False
+    role = "admin" if (is_admin_email or is_first_user) else "user"
 
     user.username = username
     user.first_name = first_name.strip()

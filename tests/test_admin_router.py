@@ -245,10 +245,12 @@ def test_admin_update_user_existing_email_returns_400() -> None:
     assert "email ya est" in response.text.lower()
 
 
-def test_admin_update_user_success_with_invalid_role_defaults_user() -> None:
+def test_admin_update_user_role_is_auto_computed_as_user() -> None:
+    """Role is never accepted from the form; non-first, non-admin-email users become 'user'."""
     db = _fake_db()
     user = _normal_user()
-    db.execute.side_effect = [result([user]), result([]), result([])]
+    # Execute calls: find user, check new username, check new email, get min(User.id)
+    db.execute.side_effect = [result([user]), result([]), result([]), result([1])]
 
     app.dependency_overrides[require_admin] = _admin_user
     app.dependency_overrides[get_db] = lambda: db
@@ -261,7 +263,7 @@ def test_admin_update_user_success_with_invalid_role_defaults_user() -> None:
                 "first_name": "Pepe",
                 "last_name": "Perez",
                 "email": "nuevopepe@example.com",
-                "role": "superadmin",
+                # role field is ignored; not sent at all (or sent with any value)
             },
             follow_redirects=False,
         )
@@ -271,6 +273,36 @@ def test_admin_update_user_success_with_invalid_role_defaults_user() -> None:
     assert response.status_code == 303
     assert user.username == "nuevo_pepe"
     assert user.role == "user"
+    db.commit.assert_awaited_once()
+
+
+def test_admin_update_user_first_user_gets_admin_role() -> None:
+    """The user with the minimum ID is always assigned the admin role."""
+    db = _fake_db()
+    user = _normal_user()  # id=2, but will be treated as first user
+    user.id = 1  # make it the first user
+    # Execute calls: find user, check new username, check new email, get min(User.id)=1
+    db.execute.side_effect = [result([user]), result([]), result([]), result([1])]
+
+    app.dependency_overrides[require_admin] = _admin_user
+    app.dependency_overrides[get_db] = lambda: db
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/admin/users/1",
+            data={
+                "username": "nuevo_pepe",
+                "first_name": "Pepe",
+                "last_name": "Perez",
+                "email": "nuevopepe@example.com",
+            },
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert user.role == "admin"
     db.commit.assert_awaited_once()
 
 
