@@ -60,15 +60,25 @@ class AemetClient:
         timeout_seconds: float,
         params: Optional[dict[str, str]] = None,
     ) -> Any:
+        import asyncio as _asyncio
         import json as _json
 
         last_exc: Exception | None = None
-        for _attempt in range(3):
+        for attempt in range(3):
             try:
                 async with httpx.AsyncClient(
                     timeout=timeout_seconds, follow_redirects=True
                 ) as client:
                     response = await client.get(url, headers=headers, params=params)
+                    if response.status_code == 429:
+                        wait_seconds = 2**attempt  # 1s, 2s, 4s
+                        last_exc = httpx.HTTPStatusError(
+                            f"429 Too Many Requests (retry {attempt + 1}/3)",
+                            request=response.request,
+                            response=response,
+                        )
+                        await _asyncio.sleep(wait_seconds)
+                        continue
                     response.raise_for_status()
                     return _json.loads(response.content.decode("latin-1"))
             except httpx.RequestError as exc:

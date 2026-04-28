@@ -99,6 +99,10 @@ _all_stations_fetched_at: Optional[datetime.datetime] = None
 _STATIONS_CACHE_TTL_SECONDS = 24 * 3600  # 24 horas
 _all_stations_lock = asyncio.Lock()
 
+# Semáforo global: limita las llamadas simultáneas a AEMET a 1 municipio a la vez
+# para evitar errores 429 (rate limit) cuando hay múltiples municipios.
+_aemet_semaphore = asyncio.Semaphore(1)
+
 
 # ---------------------------------------------------------------------------
 # Helpers internos
@@ -660,7 +664,12 @@ async def _build_weather_data_for_municipio(municipio_cod: str) -> dict:
 
 
 async def _get_weather_for_municipio(municipio_cod: str) -> dict:
-    """Wrapper de caché de 20 min por municipio_cod."""
+    """Wrapper de caché de 20 min por municipio_cod.
+
+    Los resultados cacheados se devuelven sin adquirir el semáforo. En caso de
+    miss se serializa la descarga de AEMET (máx. 1 municipio a la vez) para
+    evitar errores 429 por exceso de peticiones simultáneas.
+    """
     async with _cache_lock:
         cached = _weather_cache.get(municipio_cod)
         if cached:
@@ -670,14 +679,26 @@ async def _get_weather_for_municipio(municipio_cod: str) -> dict:
             if age < _CACHE_TTL_SECONDS:
                 return cached["data"]
 
-    # Fuera del lock para no bloquear durante IO
-    data = await _build_weather_data_for_municipio(municipio_cod)
+    # Serializar las descargas a AEMET de 1 en 1 para no superar el rate limit.
+    async with _aemet_semaphore:
+        # Doble comprobación: puede que otra coroutine haya llenado la caché
+        # mientras esperábamos el semáforo.
+        async with _cache_lock:
+            cached = _weather_cache.get(municipio_cod)
+            if cached:
+                age = (
+                    datetime.datetime.now(datetime.UTC) - cached["fetched_at"]
+                ).total_seconds()
+                if age < _CACHE_TTL_SECONDS:
+                    return cached["data"]
 
-    async with _cache_lock:
-        _weather_cache[municipio_cod] = {
-            "data": data,
-            "fetched_at": datetime.datetime.now(datetime.UTC),
-        }
+        data = await _build_weather_data_for_municipio(municipio_cod)
+
+        async with _cache_lock:
+            _weather_cache[municipio_cod] = {
+                "data": data,
+                "fetched_at": datetime.datetime.now(datetime.UTC),
+            }
 
     return data
 
