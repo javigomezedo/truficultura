@@ -1,42 +1,53 @@
-# Monitorizacion y alertas (Fly Managed Grafana)
+# Monitorizacion y alertas (stack externo)
 
-Este proyecto usa el Grafana gestionado por Fly (`fly-metrics.net`) como fuente unica de verdad para logs, metricas y alertas.
+Este directorio documenta el enfoque recomendado para Truficultura cuando el Grafana gestionado por Fly no permite administrar alertas.
 
-## 1) Aplicar observabilidad en Fly
+Resumen de arquitectura recomendada:
 
-Ejecuta:
+- Fly como runtime de aplicacion y fuente de metricas (Prometheus API).
+- Grafana externo (por ejemplo Grafana Cloud) para dashboards, reglas y notificaciones.
+- Opcional: Sentry para trazas de excepcion y contexto de errores.
 
-```bash
-./scripts/fly_enable_observability.sh truficultura-dev
-```
+Documento principal:
 
-Este script:
+- `monitoring/external-observability-plan.md`
+- `monitoring/truficultura-overview-dashboard.json`
 
-- activa `METRICS_ENABLED=1`
-- activa `LOG_JSON=1`
-- elimina `METRICS_TOKEN` para permitir scrape gestionado por Fly
-- despliega cambios y valida checks
+Estado:
 
-## 2) Verificacion en plataforma
+- DEV ya validado con alertas reales y notificacion por email.
+- El siguiente hito es crear STAGING y despues promover la configuracion a PROD con canales y umbrales adaptados.
 
-```bash
-fly status --app truficultura-dev
-fly checks list --app truficultura-dev
-```
+Nota de fase actual:
 
-## 3) Logs y alertas en Grafana gestionado
+- El dashboard de DEV queda congelado como baseline operativo.
+- No se aplicaran cambios de promocion a STAGING/PROD hasta que se habilite STAGING.
 
-- Logs: `https://fly-metrics.net/d/fly-logs/fly-logs?orgId=1569106&var-app=truficultura-dev`
-- Guia de reglas y consultas: `monitoring/fly-managed-grafana.md`
+Diseno recomendado:
 
-## 4) Contact points y politicas
+- Un unico Grafana externo.
+- Un datasource por entorno: DEV, STAGING y PROD.
+- Carpetas y reglas separadas por entorno.
+- Canales de notificacion distintos segun entorno y severidad.
 
-En `fly-metrics.net`:
+Dashboard base disponible:
 
-- `Alerting -> Contact points`
-- `Alerting -> Notification policies`
+- `monitoring/truficultura-overview-dashboard.json`
+- Pensado para importar primero en DEV.
+- Reutilizable en STAGING y PROD cambiando datasource y app.
 
-Recomendacion minima:
+Uso recomendado:
 
-- `severity=critical` -> PagerDuty/Slack + email
-- `severity=warning` -> Slack
+- Importar el JSON en Grafana Cloud.
+- Seleccionar `Fly Prometheus DEV` como datasource inicial.
+- Mantener `truficultura-dev` como valor de `app` en DEV.
+- Duplicar o reimportar el mismo dashboard para STAGING y PROD cambiando:
+	- datasource a `Fly Prometheus STAGING` o `Fly Prometheus PROD`
+	- `app` a `truficultura-staging` o `truficultura-prod`
+	- folder a `Truficultura / STAGING` o `Truficultura / PROD`
+
+Comprobaciones base en Fly:
+
+- `fly status --app truficultura-dev`
+- `fly checks list --app truficultura-dev`
+- `curl -sS https://truficultura-dev.fly.dev/metrics | head`
