@@ -5,7 +5,7 @@ applyTo: app/models/**,app/routers/**,app/services/**
 
 ## Contexto del asistente IA
 
-El asistente de Truficultura obtiene su conocimiento de la aplicación desde `app/services/assistant_service.py`.
+El asistente de Trufiq obtiene su conocimiento de la aplicación desde `app/services/assistant_service.py`.
 **Cada vez que añadas o modifiques una funcionalidad, actualiza ese fichero** para que el asistente sepa explicarla y pueda responder preguntas sobre ella.
 
 ---

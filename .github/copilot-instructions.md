@@ -1,4 +1,4 @@
-# Truficultura — Copilot Instructions
+# Trufiq — Copilot Instructions
 
 Web application for managing a truffle farm: plots, expenses, incomes, profitability by agricultural campaign, and charts.
 
