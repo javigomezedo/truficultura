@@ -317,7 +317,7 @@ msgid "Asistente"
 msgstr ""
 
 #: app/templates/base.html:270
-msgid "Asistente Truficultura"
+msgid "Asistente Trufiq"
 msgstr ""
 
 #: app/templates/base.html:276
@@ -662,7 +662,7 @@ msgid "Explotación y rentabilidad"
 msgstr ""
 
 #: app/templates/auth/login.html:57
-msgid "Truficultura con presencia más profesional."
+msgid "Trufiq con presencia más profesional."
 msgstr ""
 
 #: app/templates/auth/login.html:58

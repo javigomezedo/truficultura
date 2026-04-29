@@ -20,11 +20,11 @@ jobs:
         env:
           POSTGRES_USER: trufi
           POSTGRES_PASSWORD: trufi
-          POSTGRES_DB: truficultura
+          POSTGRES_DB: trufiq
         ports:
           - 5433:5432
         options: >-
-          --health-cmd="pg_isready -U trufi -d truficultura"
+          --health-cmd="pg_isready -U trufi -d trufiq"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
@@ -46,7 +46,7 @@ jobs:
 
       - name: Validate migrations bootstrap from empty DB
         env:
-          DATABASE_URL: postgres://trufi:trufi@localhost:5433/truficultura
+          DATABASE_URL: postgres://trufi:trufi@localhost:5433/trufiq
         run: |
           alembic upgrade head
 
@@ -54,4 +54,4 @@ jobs:
         run: pytest -q tests/
 
       - name: Build Docker image
-        run: docker build -t truficultura:ci .
+        run: docker build -t trufiq:ci .

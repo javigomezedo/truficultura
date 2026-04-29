@@ -1,18 +1,17 @@
-# French translations for PROJECT.
+# Translations template for PROJECT.
 # Copyright (C) 2026 ORGANIZATION
 # This file is distributed under the same license as the PROJECT project.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
+#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2026-04-15 14:28+0200\n"
-"PO-Revision-Date: 2026-04-15 12:10+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language: fr\n"
-"Language-Team: fr <LL@li.org>\n"
-"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -20,323 +19,321 @@ msgstr ""
 
 #: app/routers/assistant.py:39
 msgid "Asistente no disponible: configura OPENAI_API_KEY en el servidor."
-msgstr "Assistant indisponible : configurez OPENAI_API_KEY sur le serveur."
+msgstr ""
 
 #: app/routers/assistant.py:62
 msgid ""
 "Has superado el límite temporal de consultas al asistente. Inténtalo de "
 "nuevo en unos minutos."
-msgstr "Vous avez dépassé la limite temporaire de requêtes vers l'assistant. Réessayez dans quelques minutes."
+msgstr ""
 
 #: app/routers/expenses.py:113
 msgid "Gasto registrado correctamente"
-msgstr "Dépense enregistrée correctement"
+msgstr ""
 
 #: app/routers/expenses.py:128 app/routers/expenses.py:164
 #: app/routers/expenses.py:212 app/routers/expenses.py:274
 msgid "Gasto no encontrado"
-msgstr "Dépense introuvable"
+msgstr ""
 
 #: app/routers/expenses.py:179
 msgid "Gasto actualizado correctamente"
-msgstr "Dépense mise à jour correctamente"
+msgstr ""
 
 #: app/routers/expenses.py:195
 msgid "Gasto eliminado correctamente"
-msgstr "Dépense supprimée correctement"
+msgstr ""
 
 #: app/routers/expenses.py:230
 msgid "Recibo cargado correctamente"
-msgstr "Reçu téléversé correctement"
+msgstr ""
 
 #: app/routers/expenses.py:251
 msgid "Recibo no encontrado"
-msgstr "Reçu introuvable"
+msgstr ""
 
 #: app/routers/expenses.py:282
 msgid "Recibo eliminado correctamente"
-msgstr "Reçu supprimé correctement"
+msgstr ""
 
 #: app/routers/incomes.py:98
 msgid "Ingreso registrado correctamente"
-msgstr "Revenu enregistré correctement"
+msgstr ""
 
 #: app/routers/incomes.py:113 app/routers/incomes.py:147
 msgid "Ingreso no encontrado"
-msgstr "Revenu introuvable"
+msgstr ""
 
 #: app/routers/incomes.py:161
 msgid "Ingreso actualizado correctamente"
-msgstr "Revenu mis à jour correctement"
+msgstr ""
 
 #: app/routers/incomes.py:177
 msgid "Ingreso eliminado correctamente"
-msgstr "Revenu supprimé correctement"
+msgstr ""
 
 #: app/routers/irrigation.py:91
 msgid "Riego registrado correctamente"
-msgstr "Irrigation enregistrée correctement"
+msgstr ""
 
 #: app/routers/irrigation.py:108 app/routers/irrigation.py:141
 #: app/routers/wells.py:110 app/routers/wells.py:143
 msgid "Registro no encontrado"
-msgstr "Enregistrement introuvable"
+msgstr ""
 
 #: app/routers/irrigation.py:153
 msgid "Riego actualizado correctamente"
-msgstr "Irrigation mise à jour correctement"
+msgstr ""
 
 #: app/routers/irrigation.py:167
 msgid "Riego eliminado correctamente"
-msgstr "Irrigation supprimée correctement"
+msgstr ""
 
 #: app/routers/plants.py:50 app/routers/plants.py:109 app/routers/plants.py:150
 #: app/routers/plants.py:408 app/routers/plots.py:107 app/routers/plots.py:145
 #: app/services/irrigation_service.py:130 app/services/wells_service.py:120
 #: app/services/wells_service.py:162
 msgid "Parcela no encontrada"
-msgstr "Parcelle introuvable"
+msgstr ""
 
 #: app/routers/plants.py:173
 msgid "Mapa configurado correctamente"
-msgstr "Carte configurée correctement"
+msgstr ""
 
 #: app/routers/plants.py:196 app/routers/plants.py:236
 msgid "Planta no encontrada"
-msgstr "Plant introuvable"
+msgstr ""
 
 #: app/routers/plants.py:214 app/routers/plants.py:219
 msgid "Trufa registrada correctamente"
-msgstr "Truffe enregistrée correctement"
+msgstr ""
 
 #: app/routers/plants.py:245
 msgid "Último registro eliminado"
-msgstr "Dernier enregistrement supprimé"
+msgstr ""
 
 #: app/routers/plants.py:247
 msgid "No hay registro para deshacer"
-msgstr "Aucun enregistrement à annuler"
+msgstr ""
 
 #: app/routers/plants.py:281
 msgid "Registro de trufa eliminado"
-msgstr "Enregistrement de truffe supprimé"
+msgstr ""
 
 #: app/routers/plants.py:283
 msgid "No se ha encontrado el registro"
-msgstr "Enregistrement introuvable"
+msgstr ""
 
 #: app/routers/plants.py:415
 msgid "La parcela no tiene plantas configuradas"
-msgstr "La parcelle n'a pas de plants configurés"
+msgstr ""
 
 #: app/routers/plots.py:92
 msgid "Parcela creada correctamente"
-msgstr "Parcelle créée correctement"
+msgstr ""
 
 #: app/routers/plots.py:167
 msgid "Parcela actualizada correctamente"
-msgstr "Parcelle mise à jour correctement"
+msgstr ""
 
 #: app/routers/plots.py:183
 msgid "Parcela eliminada correctamente"
-msgstr "Parcelle supprimée correctement"
+msgstr ""
 
 #: app/routers/wells.py:93
 msgid "Pozo registrado correctamente"
-msgstr "Puits enregistré correctement"
+msgstr ""
 
 #: app/routers/wells.py:155
 msgid "Pozo actualizado correctamente"
-msgstr "Puits mis à jour correctement"
+msgstr ""
 
 #: app/routers/wells.py:169
 msgid "Pozo eliminado correctamente"
-msgstr "Puits supprimé correctement"
+msgstr ""
 
 #: app/services/expenses_service.py:210
 #, python-brace-format
 msgid ""
 "Tipo de archivo no permitido: {content_type}. Permitidos: PDF e imágenes "
 "(JPEG, PNG, GIF, WebP)"
-msgstr "Type de fichier non autorisé : {content_type}. Autorisés : PDF et images (JPEG, PNG, GIF, WebP)"
+msgstr ""
 
 #: app/services/expenses_service.py:219
 #, python-brace-format
 msgid "Archivo demasiado grande. Máximo: 5MB, Tamaño actual: {size_mb:.1f}MB"
-msgstr "Fichier trop volumineux. Maximum : 5 Mo, taille actuelle : {size_mb:.1f} Mo"
+msgstr ""
 
 #: app/services/irrigation_service.py:135
 msgid "La parcela no tiene sistema de riego activado"
-msgstr "La parcelle n'a pas le système d'irrigation activé"
+msgstr ""
 
 #: app/services/irrigation_service.py:152
 msgid "El gasto debe pertenecer a la misma parcela y tener categoría 'Riego'"
-msgstr "La dépense doit appartenir à la même parcelle et avoir la catégorie 'Riego'"
+msgstr ""
 
 #: app/services/plants_service.py:79
 msgid "No se puede regenerar el mapa: existen registros de trufas activos."
-msgstr "La carte ne peut pas être régénérée car il existe des enregistrements de truffes actifs."
+msgstr ""
 
 #: app/services/wells_service.py:136 app/services/wells_service.py:182
 msgid "El gasto debe pertenecer a la misma parcela y tener categoría 'Pozos'"
-msgstr "La dépense doit appartenir à la même parcelle et avoir la catégorie 'Pozos'"
+msgstr ""
 
 #: app/templates/base.html:53
 msgid "Mostrar navegación"
-msgstr "Afficher la navigation"
+msgstr ""
 
 #: app/templates/base.html:61
 msgid "Inicio"
-msgstr "Accueil"
+msgstr ""
 
 #: app/templates/base.html:67 app/templates/exports/index.html:19
 #: app/templates/imports/index.html:46
 msgid "Parcelas"
-msgstr "Parcelles"
+msgstr ""
 
 #: app/templates/base.html:73 app/templates/exports/index.html:44
 #: app/templates/imports/index.html:81 app/templates/reportes/trufas.html:10
 msgid "Producción"
-msgstr "Production"
+msgstr ""
 
 #: app/templates/base.html:82
 msgid "Campo"
-msgstr "Terrain"
+msgstr ""
 
 #: app/templates/base.html:87 app/templates/exports/index.html:34
 #: app/templates/imports/index.html:67 app/templates/parcelas/form.html:200
 #: app/templates/riego/list.html:3 app/templates/riego/list.html:11
 msgid "Riego"
-msgstr "Irrigation"
+msgstr ""
 
 #: app/templates/base.html:92 app/templates/exports/index.html:39
 #: app/templates/imports/index.html:74 app/templates/pozos/list.html:3
 #: app/templates/pozos/list.html:11
 msgid "Pozos"
-msgstr "Puits"
+msgstr ""
 
 #: app/templates/base.html:103
 msgid "Finanzas"
-msgstr "Finances"
+msgstr ""
 
 #: app/templates/base.html:108 app/templates/exports/index.html:29
 #: app/templates/imports/index.html:60 app/templates/index.html:239
 #: app/templates/ingresos/list.html:3 app/templates/ingresos/list.html:11
 #: app/templates/reportes/rentabilidad.html:109
 msgid "Ingresos"
-msgstr "Revenus"
+msgstr ""
 
 #: app/templates/base.html:113 app/templates/exports/index.html:24
 #: app/templates/gastos/list.html:3 app/templates/gastos/list.html:11
 #: app/templates/imports/index.html:53 app/templates/index.html:239
 #: app/templates/reportes/rentabilidad.html:109
 msgid "Gastos"
-msgstr "Dépenses"
+msgstr ""
 
 #: app/templates/base.html:118
 msgid "Rentabilidad"
-msgstr "Rentabilité"
+msgstr ""
 
 #: app/templates/base.html:129
 msgid "Herramientas"
-msgstr "Outils"
+msgstr ""
 
 #: app/templates/base.html:134 app/templates/graficas/index.html:3
 #: app/templates/graficas/index.html:20
 msgid "Gráficas"
-msgstr "Graphiques"
+msgstr ""
 
 #: app/templates/base.html:139
 msgid "Importar"
-msgstr "Importer"
+msgstr ""
 
 #: app/templates/base.html:144
 msgid "Exportar"
-msgstr "Exporter"
+msgstr ""
 
 #: app/templates/admin/users_list.html:58 app/templates/base.html:153
 msgid "Admin"
-msgstr "Admin"
+msgstr ""
 
 #: app/templates/base.html:164 app/templates/base.html:165
 msgid "Cambiar idioma"
-msgstr "Changer de langue"
+msgstr ""
 
 #: app/templates/base.html:173
 msgid "Español"
-msgstr "Espagnol"
+msgstr ""
 
 #: app/templates/base.html:181
 msgid "Inglés"
-msgstr "Anglais"
+msgstr ""
 
 #: app/templates/base.html:189
 msgid "Francés"
-msgstr "Français"
+msgstr ""
 
 #: app/templates/auth/login.html:40 app/templates/auth/register.html:40
 #: app/templates/base.html:200 app/templates/base.html:201
 msgid "Cambiar estilo visual"
-msgstr "Changer le style visuel"
+msgstr ""
 
 #: app/templates/auth/login.html:41 app/templates/auth/register.html:41
 #: app/templates/base.html:206 app/templates/base.html:207
 msgid "Terracota Editorial"
-msgstr "Terracota Editorial"
+msgstr ""
 
 #: app/templates/auth/login.html:44 app/templates/auth/register.html:44
 #: app/templates/base.html:211 app/templates/base.html:212
 msgid "Piedra y Olivo"
-msgstr "Pierre et Olive"
+msgstr ""
 
 #: app/templates/auth/login.html:47 app/templates/auth/register.html:47
 #: app/templates/base.html:216 app/templates/base.html:217
 msgid "Bodega Técnica"
-msgstr "Chai Technique"
+msgstr ""
 
 #: app/templates/base.html:231
 msgid "Salir"
-msgstr "Se déconnecter"
+msgstr ""
 
 #: app/templates/base.html:244 app/templates/base.html:272
 #: app/templates/base.html:307 app/templates/imports/index.html:36
 #: app/templates/parcelas/mapa.html:161
 msgid "Cerrar"
-msgstr "Fermer"
+msgstr ""
 
 #: app/templates/base.html:254
 msgid "Gestión de explotación trufícola"
-msgstr "Gestion d'exploitation truffière"
+msgstr ""
 
 #: app/templates/base.html:263
 msgid "Abrir asistente"
-msgstr "Ouvrir l'assistant"
+msgstr ""
 
 #: app/templates/base.html:264
 msgid "Asistente"
-msgstr "Assistant"
+msgstr ""
 
 #: app/templates/base.html:270
 msgid "Asistente Trufiq"
-msgstr "Assistant Trufiq"
+msgstr ""
 
 #: app/templates/base.html:276
 msgid "Pregúntame sobre uso de la app y sobre tus datos (modo lectura)."
 msgstr ""
-"Posez-moi des questions sur l'utilisation de l'application et vos données"
-" (mode lecture seule)."
 
 #: app/templates/base.html:280
 msgid "Tu pregunta"
-msgstr "Votre question"
+msgstr ""
 
 #: app/templates/base.html:285
 msgid "Ejemplo: ¿Cuál fue mi mejor campaña y por qué?"
-msgstr "Exemple : Quelle a été ma meilleure campagne et pourquoi ?"
+msgstr ""
 
 #: app/templates/base.html:288
 msgid "Preguntar"
-msgstr "Demander"
+msgstr ""
 
 #: app/templates/admin/user_create.html:71
 #: app/templates/admin/user_edit.html:74 app/templates/base.html:291
@@ -347,116 +344,116 @@ msgstr "Demander"
 #: app/templates/pozos/form.html:128 app/templates/riego/form.html:136
 #: app/templates/scan/confirm.html:38
 msgid "Cancelar"
-msgstr "Annuler"
+msgstr ""
 
 #: app/templates/base.html:305
 msgid "Confirmar eliminación"
-msgstr "Confirmer la suppression"
+msgstr ""
 
 #: app/templates/base.html:310
 msgid ""
 "¿Está seguro de que desea eliminar este registro? Esta acción no se puede"
 " deshacer."
-msgstr "Êtes-vous sûr de vouloir supprimer cet enregistrement ? Cette action ne peut pas être annulée."
+msgstr ""
 
 #: app/templates/base.html:315 app/templates/gastos/list.html:199
 #: app/templates/ingresos/list.html:108 app/templates/parcelas/list.html:106
 #: app/templates/pozos/list.html:170 app/templates/reportes/trufas.html:115
 #: app/templates/riego/list.html:175
 msgid "Eliminar"
-msgstr "Supprimer"
+msgstr ""
 
 #: app/templates/index.html:3 app/templates/index.html:20
 msgid "Panel de Control"
-msgstr "Tableau de bord"
+msgstr ""
 
 #: app/templates/index.html:19
 msgid "Explotación trufícola"
-msgstr "Exploitation truffière"
+msgstr ""
 
 #: app/templates/index.html:21
 msgid ""
 "Visión general de campañas, rentabilidad y actividad reciente con una "
 "presentación más sobria y clara para el trabajo diario."
-msgstr "Vue d'ensemble des campagnes, de la rentabilité et de l'activité récente avec une présentation plus sobre et plus claire pour le travail quotidien."
+msgstr ""
 
 #: app/templates/index.html:24
 msgid "bancal(es)"
-msgstr "parcelle(s)"
+msgstr ""
 
 #: app/templates/index.html:30
 msgid "Totales históricos (todas las campañas)"
-msgstr "Totaux historiques (toutes les campagnes)"
+msgstr ""
 
 #: app/templates/index.html:38
 msgid "Total Gastos"
-msgstr "Total dépenses"
+msgstr ""
 
 #: app/templates/index.html:46
 msgid "Ver gastos"
-msgstr "Voir les dépenses"
+msgstr ""
 
 #: app/templates/index.html:56
 msgid "Total Ingresos"
-msgstr "Total revenus"
+msgstr ""
 
 #: app/templates/index.html:64
 msgid "Ver ingresos"
-msgstr "Voir les revenus"
+msgstr ""
 
 #: app/templates/index.html:74
 msgid "Rentabilidad Total"
-msgstr "Rentabilité totale"
+msgstr ""
 
 #: app/templates/index.html:84
 msgid "Ver informe"
-msgstr "Voir le rapport"
+msgstr ""
 
 #: app/templates/index.html:97
 msgid "Eventos de pozos"
-msgstr "Événements de puits"
+msgstr ""
 
 #: app/templates/index.html:105 app/templates/index.html:123
 #: app/templates/index.html:141
 msgid "Ver pozos"
-msgstr "Voir les puits"
+msgstr ""
 
 #: app/templates/index.html:115
 msgid "Pozos por planta totales"
-msgstr "Total de puits par plant"
+msgstr ""
 
 #: app/templates/index.html:133 app/templates/pozos/list.html:51
 #: app/templates/pozos/list.html:111
 msgid "Pozos estimados"
-msgstr "Puits estimés"
+msgstr ""
 
 #: app/templates/index.html:150
 msgid "Desglose por campaña"
-msgstr "Ventilation par campagne"
+msgstr ""
 
 #: app/templates/gastos/list.html:23 app/templates/graficas/index.html:40
 #: app/templates/graficas/index.html:104 app/templates/index.html:159
 #: app/templates/index.html:221 app/templates/reportes/rentabilidad.html:94
 #: app/templates/reportes/rentabilidad.html:169
 msgid "Campaña"
-msgstr "Campagne"
+msgstr ""
 
 #: app/templates/graficas/index.html:435 app/templates/index.html:160
 #: app/templates/reportes/rentabilidad.html:171
 #: app/templates/reportes/rentabilidad.html:222
 msgid "Gastos (€)"
-msgstr "Dépenses (€)"
+msgstr ""
 
 #: app/templates/graficas/index.html:430 app/templates/index.html:161
 #: app/templates/reportes/rentabilidad.html:170
 #: app/templates/reportes/rentabilidad.html:221
 msgid "Ingresos (€)"
-msgstr "Revenus (€)"
+msgstr ""
 
 #: app/templates/index.html:162 app/templates/reportes/rentabilidad.html:172
 #: app/templates/reportes/rentabilidad.html:223
 msgid "Rentabilidad (€)"
-msgstr "Rentabilité (€)"
+msgstr ""
 
 #: app/templates/gastos/list.html:64 app/templates/gastos/list.html:142
 #: app/templates/index.html:191 app/templates/index.html:225
@@ -468,158 +465,156 @@ msgstr "Rentabilité (€)"
 #: app/templates/reportes/rentabilidad.html:241
 #: app/templates/riego/list.html:187
 msgid "TOTAL"
-msgstr "TOTAL"
+msgstr ""
 
 #: app/templates/index.html:204
 msgid "Sin datos todavía."
-msgstr "Pas encore de données."
+msgstr ""
 
 #: app/templates/gastos/form.html:127 app/templates/index.html:204
 #: app/templates/reportes/rentabilidad.html:76
 msgid "Registrar gasto"
-msgstr "Enregistrer une dépense"
+msgstr ""
 
 #: app/templates/index.html:204
 msgid "o"
-msgstr "ou"
+msgstr ""
 
 #: app/templates/index.html:204
 msgid "ingreso"
-msgstr "revenu"
+msgstr ""
 
 #: app/templates/index.html:212
 msgid "Rentabilidad por bancal y campaña (€)"
-msgstr "Rentabilité par parcelle et campagne (€)"
+msgstr ""
 
 #: app/templates/index.html:280
 msgid "Pase el ratón sobre cada celda para ver el desglose de ingresos y gastos."
 msgstr ""
-"Passez la souris sur chaque cellule pour voir le détail des revenus et "
-"dépenses."
 
 #: app/templates/index.html:281
 msgid "Ver informe completo"
-msgstr "Voir le rapport complet"
+msgstr ""
 
 #: app/templates/index.html:286
 msgid "Sin datos para mostrar la matriz."
-msgstr "Pas de données pour afficher la matrice."
+msgstr ""
 
 #: app/templates/admin/user_create.html:7 app/templates/admin/user_edit.html:7
 #: app/templates/admin/users_list.html:7
 msgid "Administración"
-msgstr "Administration"
+msgstr ""
 
 #: app/templates/admin/user_create.html:8
 msgid "Crear Nuevo Usuario"
-msgstr "Créer un nouvel utilisateur"
+msgstr ""
 
 #: app/templates/admin/user_create.html:9
 msgid "Alta de cuentas con nombre completo, credenciales y nivel de acceso."
-msgstr "Création de comptes avec nom complet, identifiants et niveau d'accès."
+msgstr ""
 
 #: app/templates/admin/user_create.html:12
 #: app/templates/admin/user_edit.html:12 app/templates/gastos/form.html:19
 #: app/templates/ingresos/form.html:19 app/templates/parcelas/form.html:19
 #: app/templates/pozos/form.html:18 app/templates/riego/form.html:18
 msgid "Volver al listado"
-msgstr "Retour à la liste"
+msgstr ""
 
 #: app/templates/admin/user_create.html:28
 #: app/templates/admin/user_edit.html:28 app/templates/admin/users_list.html:33
 #: app/templates/auth/register.html:92 app/templates/parcelas/form.html:36
 #: app/templates/parcelas/list.html:27
 msgid "Nombre"
-msgstr "Nom"
+msgstr ""
 
 #: app/templates/admin/user_create.html:34
 #: app/templates/admin/user_edit.html:34 app/templates/auth/register.html:97
 msgid "Apellidos"
-msgstr "Nom de famille"
+msgstr ""
 
 #: app/templates/admin/user_create.html:40
 #: app/templates/admin/user_edit.html:40 app/templates/auth/register.html:102
 msgid "Email"
-msgstr "E-mail"
+msgstr ""
 
 #: app/templates/admin/user_create.html:46
 #: app/templates/admin/user_edit.html:46 app/templates/auth/register.html:107
 msgid "Nombre de usuario"
-msgstr "Nom d'utilisateur"
+msgstr ""
 
 #: app/templates/admin/user_create.html:52 app/templates/auth/login.html:110
 #: app/templates/auth/register.html:112
 msgid "Contraseña"
-msgstr "Mot de passe"
+msgstr ""
 
 #: app/templates/admin/user_create.html:55 app/templates/auth/register.html:116
 msgid "Mínimo 8 caracteres."
-msgstr "Minimum 8 caractères."
+msgstr ""
 
 #: app/templates/admin/user_create.html:59
 #: app/templates/admin/user_edit.html:52 app/templates/admin/users_list.html:35
 msgid "Rol"
-msgstr "Rôle"
+msgstr ""
 
 #: app/templates/admin/user_create.html:61
 #: app/templates/admin/user_edit.html:54 app/templates/admin/users_list.html:32
 #: app/templates/admin/users_list.html:60 app/templates/auth/login.html:105
 msgid "Usuario"
-msgstr "Utilisateur"
+msgstr ""
 
 #: app/templates/admin/user_create.html:62
 #: app/templates/admin/user_edit.html:55
 msgid "Administrador"
-msgstr "Administrateur"
+msgstr ""
 
 #: app/templates/admin/user_create.html:68
 #: app/templates/admin/users_list.html:15
 msgid "Crear Usuario"
-msgstr "Créer un utilisateur"
+msgstr ""
 
 #: app/templates/admin/user_edit.html:8
 msgid "Editar Usuario"
-msgstr "Modifier l'utilisateur"
+msgstr ""
 
 #: app/templates/admin/user_edit.html:9
 msgid "Actualiza los datos de perfil y el rol de acceso del usuario."
-msgstr "Mettez à jour les données de profil et le rôle d'accès de l'utilisateur."
+msgstr ""
 
 #: app/templates/admin/user_edit.html:61
 msgid "Estado:"
-msgstr "État :"
+msgstr ""
 
 #: app/templates/admin/user_edit.html:63 app/templates/admin/users_list.html:65
 msgid "Activo"
-msgstr "Actif"
+msgstr ""
 
 #: app/templates/admin/user_edit.html:65 app/templates/admin/users_list.html:67
 msgid "Desactivado"
-msgstr "Désactivé"
+msgstr ""
 
 #: app/templates/admin/user_edit.html:71
 msgid "Guardar Cambios"
-msgstr "Enregistrer les modifications"
+msgstr ""
 
 #: app/templates/admin/users_list.html:9
 msgid "Gestión de Usuarios"
-msgstr "Gestion des utilisateurs"
+msgstr ""
 
 #: app/templates/admin/users_list.html:11
 msgid "Control de usuarios, roles y estado de acceso."
-msgstr "Contrôle des utilisateurs, rôles et état d'accès."
+msgstr ""
 
 #: app/templates/admin/users_list.html:23
 msgid "No puedes desactivar tu propia cuenta."
-msgstr "Vous ne pouvez pas désactiver votre propre compte."
+msgstr ""
 
 #: app/templates/admin/users_list.html:36
 msgid "Estado"
-msgstr "État"
+msgstr ""
 
 #: app/templates/admin/users_list.html:37
 msgid "Creado"
-msgstr "Créé"
+msgstr ""
 
 #: app/templates/admin/users_list.html:38
 #: app/templates/admin/users_list.html:81 app/templates/gastos/list.html:139
@@ -629,257 +624,257 @@ msgstr "Créé"
 #: app/templates/pozos/list.html:155 app/templates/reportes/trufas.html:96
 #: app/templates/riego/list.html:117 app/templates/riego/list.html:160
 msgid "Acciones"
-msgstr "Actions"
+msgstr ""
 
 #: app/templates/admin/users_list.html:47
 msgid "Tú"
-msgstr "Vous"
+msgstr ""
 
 #: app/templates/admin/users_list.html:87 app/templates/gastos/list.html:190
 #: app/templates/ingresos/list.html:99 app/templates/parcelas/list.html:97
 #: app/templates/pozos/list.html:161 app/templates/riego/list.html:166
 msgid "Editar"
-msgstr "Modifier"
+msgstr ""
 
 #: app/templates/admin/users_list.html:97
 msgid "Desactivar"
-msgstr "Désactiver"
+msgstr ""
 
 #: app/templates/admin/users_list.html:105
 msgid "Activar"
-msgstr "Activer"
+msgstr ""
 
 #: app/templates/admin/users_list.html:123
 msgid "No hay usuarios aún."
-msgstr "Il n'y a pas encore d'utilisateurs."
+msgstr ""
 
 #: app/templates/auth/login.html:6 app/templates/auth/login.html:86
 msgid "Iniciar sesión"
-msgstr "Se connecter"
+msgstr ""
 
 #: app/templates/auth/login.html:39 app/templates/auth/register.html:39
 msgid "Estilo"
-msgstr "Style"
+msgstr ""
 
 #: app/templates/auth/login.html:56
 msgid "Explotación y rentabilidad"
-msgstr "Exploitation et rentabilité"
+msgstr ""
 
 #: app/templates/auth/login.html:57
 msgid "Trufiq con presencia más profesional."
-msgstr "Trufiq avec une image plus professionnelle."
+msgstr ""
 
 #: app/templates/auth/login.html:58
 msgid ""
 "Controla campañas, gastos, ingresos y trazabilidad operativa desde un "
 "entorno pensado para trabajo real, no solo para almacenar registros."
-msgstr "Pilotez campagnes, dépenses, revenus et traçabilité opérationnelle depuis un environnement conçu pour un usage réel, pas seulement pour stocker des enregistrements."
+msgstr ""
 
 #: app/templates/auth/login.html:63
 msgid "Rentabilidad por campaña"
-msgstr "Rentabilité par campagne"
+msgstr ""
 
 #: app/templates/auth/login.html:64
 msgid "Visión clara de ingresos, gastos y márgenes por explotación."
-msgstr "Vue claire des revenus, dépenses et marges par exploitation."
+msgstr ""
 
 #: app/templates/auth/login.html:70
 msgid "Importación y exportación coherentes"
-msgstr "Importation et exportation cohérentes"
+msgstr ""
 
 #: app/templates/auth/login.html:71
 msgid "Procesos CSV consistentes para mover datos con menos fricción."
-msgstr "Processus CSV cohérents pour déplacer les données avec moins de friction."
+msgstr ""
 
 #: app/templates/auth/login.html:77
 msgid "Seguimiento operativo"
-msgstr "Suivi opérationnel"
+msgstr ""
 
 #: app/templates/auth/login.html:78
 msgid "Parcelas, riego y actividad reciente en una sola aplicación."
-msgstr "Parcelles, irrigation et activité récente dans une seule application."
+msgstr ""
 
 #: app/templates/auth/login.html:85
 msgid "Acceso seguro"
-msgstr "Accès sécurisé"
+msgstr ""
 
 #: app/templates/auth/login.html:87
 msgid ""
 "Accede a tu panel para revisar campañas, movimientos y estado de la "
 "explotación."
-msgstr "Accédez à votre tableau de bord pour consulter les campagnes, mouvements et l'état de l'exploitation."
+msgstr ""
 
 #: app/templates/auth/login.html:92
 msgid "Cuenta creada correctamente. Ya puedes iniciar sesión."
-msgstr "Compte créé avec succès. Vous pouvez maintenant vous connecter."
+msgstr ""
 
 #: app/templates/auth/login.html:115
 msgid "Entrar"
-msgstr "Entrer"
+msgstr ""
 
 #: app/templates/auth/login.html:121
 msgid "¿No tienes cuenta?"
-msgstr "Vous n'avez pas de compte ?"
+msgstr ""
 
 #: app/templates/auth/login.html:122
 msgid "Crear una nueva"
-msgstr "En créer un nouveau"
+msgstr ""
 
 #: app/templates/auth/register.html:6 app/templates/auth/register.html:79
 #: app/templates/auth/register.html:124
 msgid "Crear cuenta"
-msgstr "Créer un compte"
+msgstr ""
 
 #: app/templates/auth/register.html:56
 msgid "Cuenta individual"
-msgstr "Compte individuel"
+msgstr ""
 
 #: app/templates/auth/register.html:57
 msgid "Crea un espacio propio para tu explotación."
-msgstr "Créez un espace dédié à votre exploitation."
+msgstr ""
 
 #: app/templates/auth/register.html:58
 msgid ""
 "Cada usuario mantiene sus parcelas, campañas y movimientos de forma "
 "independiente, con una experiencia más ordenada desde el primer acceso."
-msgstr "Chaque utilisateur conserve ses parcelles, campagnes et mouvements de manière indépendante, avec une expérience plus ordonnée dès le premier accès."
+msgstr ""
 
 #: app/templates/auth/register.html:63
 msgid "Datos separados por usuario"
-msgstr "Données séparées par utilisateur"
+msgstr ""
 
 #: app/templates/auth/register.html:64
 msgid "Cada explotación conserva su propio contexto de gestión."
-msgstr "Chaque exploitation conserve son propre contexte de gestion."
+msgstr ""
 
 #: app/templates/auth/register.html:70
 msgid "Estructura preparada para crecer"
-msgstr "Structure prête à grandir"
+msgstr ""
 
 #: app/templates/auth/register.html:71
 msgid "Parcelas, gastos, ingresos y riego conectados en la misma vista operativa."
-msgstr "Parcelles, dépenses, revenus et irrigation connectés dans la même vue opérationnelle."
+msgstr ""
 
 #: app/templates/auth/register.html:78
 msgid "Alta de usuario"
-msgstr "Création d'utilisateur"
+msgstr ""
 
 #: app/templates/auth/register.html:81
 msgid "Cada usuario tiene sus propios datos de parcelas, gastos e ingresos."
-msgstr "Chaque utilisateur dispose de ses propres données de parcelles, dépenses et revenus."
+msgstr ""
 
 #: app/templates/auth/register.html:119
 msgid "Confirmar contraseña"
-msgstr "Confirmer le mot de passe"
+msgstr ""
 
 #: app/templates/auth/register.html:130
 msgid "¿Ya tienes cuenta?"
-msgstr "Vous avez déjà un compte ?"
+msgstr ""
 
 #: app/templates/auth/register.html:131
 msgid "Inicia sesión"
-msgstr "Connectez-vous"
+msgstr ""
 
 #: app/templates/exports/index.html:3
 msgid "Exportar datos"
-msgstr "Exporter les données"
+msgstr ""
 
 #: app/templates/exports/index.html:9
 msgid "Copia y portabilidad"
-msgstr "Sauvegarde et portabilité"
+msgstr ""
 
 #: app/templates/exports/index.html:10
 msgid "Exportar datos CSV"
-msgstr "Exporter les données CSV"
+msgstr ""
 
 #: app/templates/exports/index.html:11
 msgid ""
 "Descarga tus datos en un formato consistente para backup, revisión "
 "externa o reutilización en procesos de importación."
-msgstr "Téléchargez vos données dans un format cohérent pour la sauvegarde, la revue externe ou la réutilisation dans des processus d'importation."
+msgstr ""
 
 #: app/templates/exports/index.html:13
 msgid "Formato compatible con importación"
-msgstr "Format compatible avec l'importation"
+msgstr ""
 
 #: app/templates/exports/index.html:53
 msgid "Exportar parcelas"
-msgstr "Exporter les parcelles"
+msgstr ""
 
 #: app/templates/exports/index.html:54
 msgid ""
 "Descarga todas tus parcelas en formato CSV semicolon-delimited y sin "
 "cabecera. Incluye tiene_riego (1/0) y config_mapa para poder reconstruir "
 "el mapa en otro entorno."
-msgstr "Téléchargez toutes vos parcelles au format CSV délimité par des points-virgules et sans en-tête. Inclut tiene_riego (1/0) et config_mapa pour pouvoir reconstruire la carte dans un autre environnement."
+msgstr ""
 
 #: app/templates/exports/index.html:70 app/templates/exports/index.html:90
 #: app/templates/exports/index.html:109 app/templates/exports/index.html:127
 #: app/templates/exports/index.html:145 app/templates/exports/index.html:164
 msgid "Descargar CSV"
-msgstr "Télécharger CSV"
+msgstr ""
 
 #: app/templates/exports/index.html:79
 msgid "Exportar gastos"
-msgstr "Exporter les dépenses"
+msgstr ""
 
 #: app/templates/exports/index.html:80
 msgid ""
 "Descarga los gastos con el mismo orden de columnas admitido por la "
 "importación. Si un gasto no está asignado a ningún bancal, la columna "
 "bancal se exporta vacía."
-msgstr "Téléchargez les dépenses avec le même ordre de colonnes que l'importation. Si une dépense n'est affectée à aucune parcelle, la colonne parcelle est exportée vide."
+msgstr ""
 
 #: app/templates/exports/index.html:99
 msgid "Exportar ingresos"
-msgstr "Exporter les revenus"
+msgstr ""
 
 #: app/templates/exports/index.html:100
 msgid ""
 "Descarga los ingresos en el mismo formato de importación. El total no se "
 "exporta porque se calcula automáticamente a partir de kg y euros/kg."
-msgstr "Téléchargez les revenus dans le même format d'importation. Le total n'est pas exporté car il est calculé automatiquement à partir des kg et euros/kg."
+msgstr ""
 
 #: app/templates/exports/index.html:118
 msgid "Exportar riego"
-msgstr "Exporter l'irrigation"
+msgstr ""
 
 #: app/templates/exports/index.html:119
 msgid ""
 "Descarga los registros de riego en formato reutilizable para la "
 "importación. El vínculo interno con gastos no se exporta; solo se "
 "incluyen los datos funcionales del registro."
-msgstr "Téléchargez les enregistrements d'irrigation dans un format réutilisable pour l'importation. Le lien interne avec les dépenses n'est pas exporté ; seules les données fonctionnelles de l'enregistrement sont incluses."
+msgstr ""
 
 #: app/templates/exports/index.html:136
 msgid "Exportar pozos"
-msgstr "Exporter les puits"
+msgstr ""
 
 #: app/templates/exports/index.html:137
 msgid ""
 "Descarga los registros de pozos en formato CSV. El vínculo interno con "
 "gastos no se exporta; solo se incluyen los datos funcionales del "
 "registro."
-msgstr "Téléchargez les enregistrements de puits au format CSV. Le lien interne avec les dépenses n'est pas exporté ; seules les données fonctionnelles de l'enregistrement sont incluses."
+msgstr ""
 
 #: app/templates/exports/index.html:154
 msgid "Exportar producción"
-msgstr "Exporter la production"
+msgstr ""
 
 #: app/templates/exports/index.html:155
 msgid ""
 "Descarga los registros de producción activos para poder importarlos en "
 "otro entorno preservando fecha/hora, parcela, planta, peso y origen."
-msgstr "Téléchargez les enregistrements de production actifs afin de pouvoir les importer dans un autre environnement en conservant la date/heure, la parcelle, le plant, le poids et l'origine."
+msgstr ""
 
 #: app/templates/gastos/form.html:3 app/templates/gastos/form.html:12
 msgid "Editar Gasto"
-msgstr "Modifier la dépense"
+msgstr ""
 
 #: app/templates/gastos/form.html:3 app/templates/gastos/form.html:12
 #: app/templates/gastos/list.html:16
 msgid "Nuevo Gasto"
-msgstr "Nouvelle dépense"
+msgstr ""
 
 #: app/templates/gastos/form.html:36 app/templates/gastos/list.html:133
 #: app/templates/ingresos/form.html:36 app/templates/ingresos/list.html:50
@@ -887,147 +882,147 @@ msgstr "Nouvelle dépense"
 #: app/templates/reportes/trufas.html:91 app/templates/riego/form.html:58
 #: app/templates/riego/list.html:111
 msgid "Fecha"
-msgstr "Date"
+msgstr ""
 
 #: app/templates/gastos/form.html:48 app/templates/gastos/list.html:31
 #: app/templates/gastos/list.html:137 app/templates/graficas/index.html:121
 #: app/templates/ingresos/form.html:48 app/templates/ingresos/list.html:51
 #: app/templates/reportes/rentabilidad.html:220
 msgid "Bancal"
-msgstr "Parcelle"
+msgstr ""
 
 #: app/templates/gastos/form.html:50 app/templates/ingresos/form.html:50
 msgid "-- Sin bancal asignado --"
-msgstr "-- Aucune parcelle assignée --"
+msgstr ""
 
 #: app/templates/gastos/form.html:63 app/templates/gastos/list.html:134
 msgid "Concepto"
-msgstr "Libellé"
+msgstr ""
 
 #: app/templates/gastos/form.html:71 app/templates/imports/index.html:187
 msgid "Descripción del gasto"
-msgstr "Description de la dépense"
+msgstr ""
 
 #: app/templates/gastos/form.html:76 app/templates/gastos/list.html:136
 msgid "Persona"
-msgstr "Personne"
+msgstr ""
 
 #: app/templates/gastos/form.html:82
 msgid "Nombre del responsable"
-msgstr "Nom du responsable"
+msgstr ""
 
 #: app/templates/gastos/form.html:87 app/templates/gastos/list.html:135
 #: app/templates/ingresos/form.html:62 app/templates/ingresos/list.html:53
 msgid "Categoría"
-msgstr "Catégorie"
+msgstr ""
 
 #: app/templates/gastos/form.html:89
 msgid "-- Sin categoría --"
-msgstr "-- Sans catégorie --"
+msgstr ""
 
 #: app/templates/gastos/form.html:102 app/templates/gastos/list.html:138
 msgid "Cantidad (€)"
-msgstr "Montant (€)"
+msgstr ""
 
 #: app/templates/gastos/form.html:127 app/templates/ingresos/form.html:137
 #: app/templates/parcelas/form.html:227 app/templates/pozos/form.html:132
 #: app/templates/riego/form.html:140
 msgid "Guardar cambios"
-msgstr "Sauvegarder"
+msgstr ""
 
 #: app/templates/gastos/form.html:143
 msgid "Recibo del banco"
-msgstr "Reçu bancaire"
+msgstr ""
 
 #: app/templates/gastos/form.html:155
 msgid "Recibo cargado:"
-msgstr "Reçu téléversé :"
+msgstr ""
 
 #: app/templates/gastos/form.html:159 app/templates/gastos/list.html:184
 msgid "Ver recibo"
-msgstr "Voir le reçu"
+msgstr ""
 
 #: app/templates/gastos/form.html:165
 msgid "¿Eliminar el recibo?"
-msgstr "Supprimer le reçu ?"
+msgstr ""
 
 #: app/templates/gastos/form.html:166
 msgid "Eliminar recibo"
-msgstr "Supprimer le reçu"
+msgstr ""
 
 #: app/templates/gastos/form.html:176
 msgid "No hay recibo adjunto"
-msgstr "Aucun reçu joint"
+msgstr ""
 
 #: app/templates/gastos/form.html:185
 msgid "Cambiar recibo"
-msgstr "Changer le reçu"
+msgstr ""
 
 #: app/templates/gastos/form.html:187
 msgid "Adjuntar recibo"
-msgstr "Joindre un reçu"
+msgstr ""
 
 #: app/templates/gastos/form.html:196
 msgid "PDF o imagen"
-msgstr "PDF ou image"
+msgstr ""
 
 #: app/templates/gastos/form.html:198
 msgid "Máximo 5MB. Formatos: PDF, JPEG, PNG, GIF, WebP"
-msgstr "Maximum 5 Mo. Formats : PDF, JPEG, PNG, GIF, WebP"
+msgstr ""
 
 #: app/templates/gastos/form.html:201
 msgid "Cargar"
-msgstr "Charger"
+msgstr ""
 
 #: app/templates/gastos/form.html:206
 msgid "Tipos permitidos: PDF e imágenes (JPEG, PNG, GIF, WebP). Máximo 5MB."
-msgstr "Types autorisés : PDF et images (JPEG, PNG, GIF, WebP). Maximum 5 Mo."
+msgstr ""
 
 #: app/templates/gastos/list.html:9
 msgid "Costes y operaciones"
-msgstr "Coûts et opérations"
+msgstr ""
 
 #: app/templates/gastos/list.html:13
 msgid "gasto(s) registrado(s)"
-msgstr "dépense(s) enregistrée(s)"
+msgstr ""
 
 #: app/templates/gastos/list.html:13 app/templates/ingresos/list.html:13
 #: app/templates/pozos/list.html:15 app/templates/riego/list.html:15
 msgid "en campaña"
-msgstr "en campagne"
+msgstr ""
 
 #: app/templates/gastos/list.html:23
 msgid "Desglose por bancal"
-msgstr "Détail par parcelle"
+msgstr ""
 
 #: app/templates/gastos/list.html:32
 msgid "Porcentaje"
-msgstr "Pourcentage"
+msgstr ""
 
 #: app/templates/gastos/list.html:33
 msgid "Gastos directos (€)"
-msgstr "Dépenses directes (€)"
+msgstr ""
 
 #: app/templates/gastos/list.html:34
 msgid "Gastos generales (€)"
-msgstr "Dépenses générales (€)"
+msgstr ""
 
 #: app/templates/gastos/list.html:35 app/templates/ingresos/form.html:113
 #: app/templates/ingresos/list.html:55
 msgid "Total (€)"
-msgstr "Total (€)"
+msgstr ""
 
 #: app/templates/gastos/list.html:75
 msgid ""
 "Los gastos generales (sin bancal asignado) se distribuyen "
 "proporcionalmente según el porcentaje de cada bancal."
-msgstr "Les dépenses générales (sans parcelle assignée) sont réparties proportionnellement selon le pourcentage de chaque parcelle."
+msgstr ""
 
 #: app/templates/gastos/list.html:87 app/templates/parcelas/mapa.html:69
 #: app/templates/pozos/list.html:78 app/templates/reportes/trufas.html:18
 #: app/templates/riego/list.html:80
 msgid "Filtrar:"
-msgstr "Filtrer :"
+msgstr ""
 
 #: app/templates/gastos/list.html:91 app/templates/graficas/index.html:109
 #: app/templates/graficas/index.html:232 app/templates/graficas/index.html:251
@@ -1035,168 +1030,166 @@ msgstr "Filtrer :"
 #: app/templates/pozos/list.html:81 app/templates/reportes/trufas.html:21
 #: app/templates/riego/list.html:83
 msgid "Todas las campañas"
-msgstr "Toutes les campagnes"
+msgstr ""
 
 #: app/templates/gastos/list.html:98
 msgid "Todas las categorías"
-msgstr "Toutes les catégories"
+msgstr ""
 
 #: app/templates/gastos/list.html:105 app/templates/graficas/index.html:125
 msgid "Todos los bancales"
-msgstr "Toutes les parcelles"
+msgstr ""
 
 #: app/templates/gastos/list.html:112
 msgid "Todas las personas"
-msgstr "Toutes les personnes"
+msgstr ""
 
 #: app/templates/gastos/list.html:119 app/templates/parcelas/mapa.html:79
 #: app/templates/pozos/list.html:94 app/templates/reportes/trufas.html:41
 #: app/templates/riego/list.html:96
 msgid "Limpiar filtros"
-msgstr "Effacer les filtres"
+msgstr ""
 
 #: app/templates/gastos/list.html:216
 msgid "No hay gastos que coincidan con los filtros seleccionados."
-msgstr "Aucune dépense ne correspond aux filtres sélectionnés."
+msgstr ""
 
 #: app/templates/gastos/list.html:218
 msgid "No hay gastos registrados todavía."
-msgstr "Aucune dépense enregistrée pour l'instant."
+msgstr ""
 
 #: app/templates/gastos/list.html:222
 msgid "Registrar primer gasto"
-msgstr "Enregistrer la première dépense"
+msgstr ""
 
 #: app/templates/graficas/index.html:19
 msgid "Visión analítica"
-msgstr "Vue analytique"
+msgstr ""
 
 #: app/templates/graficas/index.html:21
 msgid "Análisis visual de producción, ingresos y gastos por campaña y bancal."
 msgstr ""
-"Analyse visuelle de la production, des revenus et des dépenses par "
-"campagne et parcelle."
 
 #: app/templates/graficas/index.html:23
 msgid "Comparativa semanal"
-msgstr "Comparaison hebdomadaire"
+msgstr ""
 
 #: app/templates/graficas/index.html:32
 msgid "Producción por Campaña y Bancal (kg/ha)"
-msgstr "Production par campagne et parcelle (kg/ha)"
+msgstr ""
 
 #: app/templates/graficas/index.html:71
 msgid "Total"
-msgstr "Total"
+msgstr ""
 
 #: app/templates/graficas/index.html:136
 msgid "Aplicar"
-msgstr "Appliquer"
+msgstr ""
 
 #: app/templates/graficas/index.html:147
 msgid "Gráficas Semanales"
-msgstr "Graphiques hebdomadaires"
+msgstr ""
 
 #: app/templates/graficas/index.html:160
 msgid "Sin datos para el filtro seleccionado."
-msgstr "Aucune donnée pour le filtre sélectionné."
+msgstr ""
 
 #: app/templates/graficas/index.html:169
 msgid "Precio Medio €/kg por Semana"
-msgstr "Prix moyen €/kg par semaine"
+msgstr ""
 
 #: app/templates/graficas/index.html:181
 msgid "Kg Recogidos por Semana"
-msgstr "Kg récoltés par semaine"
+msgstr ""
 
 #: app/templates/graficas/index.html:197
 msgid "Ingresos Acumulados por Semana (€)"
-msgstr "Revenus cumulés par semaine (€)"
+msgstr ""
 
 #: app/templates/graficas/index.html:209
 msgid "Kg por Categoría por Semana"
-msgstr "Kg par catégorie par semaine"
+msgstr ""
 
 #: app/templates/graficas/index.html:228
 msgid "Ingresos vs Gastos por Bancal (€)"
-msgstr "Revenus vs dépenses par parcelle (€)"
+msgstr ""
 
 #: app/templates/graficas/index.html:247
 msgid "Gastos por Categoría (€)"
-msgstr "Dépenses par catégorie (€)"
+msgstr ""
 
 #: app/templates/graficas/index.html:263
 msgid "Sin gastos para el filtro seleccionado."
-msgstr "Aucune dépense pour le filtre sélectionné."
+msgstr ""
 
 #: app/templates/graficas/index.html:387
 msgid "Ingresos acumulados (€)"
-msgstr "Revenus cumulés (€)"
+msgstr ""
 
 #: app/templates/imports/index.html:3
 msgid "Importar datos"
-msgstr "Importer des données"
+msgstr ""
 
 #: app/templates/imports/index.html:9
 msgid "Operaciones masivas"
-msgstr "Opérations en masse"
+msgstr ""
 
 #: app/templates/imports/index.html:10
 msgid "Importar datos CSV"
-msgstr "Importer des données CSV"
+msgstr ""
 
 #: app/templates/imports/index.html:11
 msgid ""
 "Carga parcelas, gastos, ingresos, riego, pozos y producción con una "
 "interfaz más clara y profesional. Los archivos se procesan puntualmente y"
 " no se almacenan en el servidor."
-msgstr "Chargez les parcelles, dépenses, revenus, irrigations, puits et production avec une interface plus claire et plus professionnelle. Les fichiers sont traités immédiatement et ne sont pas stockés sur le serveur."
+msgstr ""
 
 #: app/templates/imports/index.html:13
 msgid "Validación en tiempo de importación"
-msgstr "Validation à l'importation"
+msgstr ""
 
 #: app/templates/imports/index.html:22
 msgid "Importación de gastos completada"
-msgstr "Importation des dépenses terminée"
+msgstr ""
 
 #: app/templates/imports/index.html:22
 msgid "Importación de ingresos completada"
-msgstr "Importation des revenus terminée"
+msgstr ""
 
 #: app/templates/imports/index.html:22
 msgid "Importación de riego completada"
-msgstr "Importation de l'irrigation terminée"
+msgstr ""
 
 #: app/templates/imports/index.html:22
 msgid "Importación de pozos completada"
-msgstr "Importation des puits terminée"
+msgstr ""
 
 #: app/templates/imports/index.html:22
 msgid "Importación de producción completada"
-msgstr "Importation de la production terminée"
+msgstr ""
 
 #: app/templates/imports/index.html:22
 msgid "Importación de parcelas completada"
-msgstr "Importation des parcelles terminée"
+msgstr ""
 
 #: app/templates/imports/index.html:26
 msgid "Archivo:"
-msgstr "Fichier :"
+msgstr ""
 
 #: app/templates/imports/index.html:27
 msgid "registros importados"
-msgstr "enregistrements importés"
+msgstr ""
 
 #: app/templates/imports/index.html:28
 msgid "aviso(s)"
-msgstr "avertissement(s)"
+msgstr ""
 
 #: app/templates/imports/index.html:95 app/templates/imports/index.html:171
 #: app/templates/imports/index.html:241 app/templates/imports/index.html:310
 #: app/templates/imports/index.html:377 app/templates/imports/index.html:444
 msgid "Formato del archivo"
-msgstr "Format du fichier"
+msgstr ""
 
 #: app/templates/imports/index.html:99 app/templates/imports/index.html:175
 #: app/templates/imports/index.html:245 app/templates/imports/index.html:314
@@ -1204,101 +1197,101 @@ msgstr "Format du fichier"
 msgid ""
 "Archivo CSV delimitado por <code>;</code>, sin cabecera, codificación "
 "UTF-8."
-msgstr "Fichier CSV délimité par <code>;</code>, sans en-tête, encodage UTF-8."
+msgstr ""
 
 #: app/templates/imports/index.html:104 app/templates/imports/index.html:180
 #: app/templates/imports/index.html:250 app/templates/imports/index.html:319
 #: app/templates/imports/index.html:386 app/templates/imports/index.html:453
 msgid "Columna"
-msgstr "Colonne"
+msgstr ""
 
 #: app/templates/imports/index.html:105 app/templates/imports/index.html:181
 #: app/templates/imports/index.html:251 app/templates/imports/index.html:320
 #: app/templates/imports/index.html:387 app/templates/imports/index.html:454
 msgid "Descripción"
-msgstr "Description"
+msgstr ""
 
 #: app/templates/imports/index.html:106 app/templates/imports/index.html:182
 #: app/templates/imports/index.html:252 app/templates/imports/index.html:321
 #: app/templates/imports/index.html:388 app/templates/imports/index.html:455
 msgid "Ejemplo"
-msgstr "Exemple"
+msgstr ""
 
 #: app/templates/imports/index.html:110
 msgid "Nombre de la parcela"
-msgstr "Nom de la parcelle"
+msgstr ""
 
 #: app/templates/imports/index.html:111
 msgid "Fecha plantación (DD/MM/AAAA)"
-msgstr "Date de plantation (JJ/MM/AAAA)"
+msgstr ""
 
 #: app/templates/imports/index.html:112
 msgid "Polígono (opcional)"
-msgstr "Polygone (optionnel)"
+msgstr ""
 
 #: app/templates/imports/index.html:113
 msgid "Número de parcela (opcional)"
-msgstr "Numéro de parcelle (optionnel)"
+msgstr ""
 
 #: app/templates/imports/index.html:114
 msgid "Referencia catastral oficial (opcional)"
-msgstr "Référence cadastrale officielle (optionnel)"
+msgstr ""
 
 #: app/templates/imports/index.html:115
 msgid "Hidrante (opcional)"
-msgstr "Borne (optionnelle)"
+msgstr ""
 
 #: app/templates/imports/index.html:116
 msgid "Sector (opcional)"
-msgstr "Secteur (optionnel)"
+msgstr ""
 
 #: app/templates/imports/index.html:117
 msgid "Nº plantas (opcional)"
-msgstr "Nb de plants (optionnel)"
+msgstr ""
 
 #: app/templates/imports/index.html:118
 msgid "Superficie en ha (opcional)"
-msgstr "Surface en ha (optionnel)"
+msgstr ""
 
 #: app/templates/imports/index.html:119
 msgid "Inicio producción DD/MM/AAAA (opcional)"
-msgstr "Début production JJ/MM/AAAA (optionnel)"
+msgstr ""
 
 #: app/templates/imports/index.html:120
 msgid "Tiene riego (1=sí, 0=no, opcional)"
-msgstr "A l'irrigation (1=oui, 0=non, optionnel)"
+msgstr ""
 
 #: app/templates/imports/index.html:121
 msgid "Configuración de mapa (opcional, formato A:1-4; B:2-5)"
-msgstr "Configuration de la carte (optionnel, format A:1-4 ; B:2-5)"
+msgstr ""
 
 #: app/templates/imports/index.html:126
 msgid ""
 "Solo son obligatorios nombre y fecha de plantación. El resto de columnas "
 "pueden omitirse o dejarse vacías."
-msgstr "Seuls le nom et la date de plantation sont obligatoires. Les autres colonnes peuvent être omises ou laissées vides."
+msgstr ""
 
 #: app/templates/imports/index.html:129 app/templates/imports/index.html:199
 #: app/templates/imports/index.html:268 app/templates/imports/index.html:336
 #: app/templates/imports/index.html:403 app/templates/imports/index.html:471
 msgid "Ejemplo de línea:"
-msgstr "Exemple de ligne :"
+msgstr ""
 
 #: app/templates/imports/index.html:138 app/templates/imports/index.html:208
 #: app/templates/imports/index.html:277 app/templates/imports/index.html:345
 #: app/templates/imports/index.html:412 app/templates/imports/index.html:480
 msgid "Subir archivo"
-msgstr "Charger le fichier"
+msgstr ""
 
 #: app/templates/imports/index.html:144
 msgid "Archivo CSV de parcelas"
-msgstr "Fichier CSV des parcelles"
+msgstr ""
 
 #: app/templates/imports/index.html:148 app/templates/imports/index.html:218
 #: app/templates/imports/index.html:287 app/templates/imports/index.html:355
 #: app/templates/imports/index.html:422 app/templates/imports/index.html:490
 msgid "Solo archivos .csv codificados en UTF-8."
-msgstr "Uniquement des fichiers .csv encodés en UTF-8."
+msgstr ""
 
 #: app/templates/imports/index.html:152 app/templates/imports/index.html:222
 #: app/templates/imports/index.html:291 app/templates/imports/index.html:359
@@ -1306,350 +1299,348 @@ msgstr "Uniquement des fichiers .csv encodés en UTF-8."
 msgid ""
 "Esta acción insertará todos los registros del archivo en la base de "
 "datos. Asegúrate de que el archivo no contiene duplicados."
-msgstr "Cette action insérera tous les enregistrements du fichier dans la base de données. Assurez-vous que le fichier ne contient pas de doublons."
+msgstr ""
 
 #: app/templates/imports/index.html:155
 msgid "Importar parcelas"
-msgstr "Importer les parcelles"
+msgstr ""
 
 #: app/templates/imports/index.html:186 app/templates/imports/index.html:256
 #: app/templates/imports/index.html:325 app/templates/imports/index.html:392
 msgid "Fecha (DD/MM/AAAA)"
-msgstr "Date (JJ/MM/AAAA)"
+msgstr ""
 
 #: app/templates/imports/index.html:188
 msgid "Persona responsable"
-msgstr "Personne responsable"
+msgstr ""
 
 #: app/templates/imports/index.html:189 app/templates/imports/index.html:257
 msgid "Nombre del bancal (opcional)"
-msgstr "Nom de la parcelle (optionnel)"
+msgstr ""
 
 #: app/templates/imports/index.html:190
 msgid "Importe en €"
-msgstr "Montant en €"
+msgstr ""
 
 #: app/templates/imports/index.html:191 app/templates/imports/index.html:259
 msgid "Categoría (opcional)"
-msgstr "Catégorie (optionnelle)"
+msgstr ""
 
 #: app/templates/imports/index.html:196
 msgid ""
 "Si el bancal está vacío, el gasto se registra como gasto general (sin "
 "bancal asignado)."
-msgstr "Si la parcelle est vide, la dépense est enregistrée comme dépense générale (sans parcelle assignée)."
+msgstr ""
 
 #: app/templates/imports/index.html:214
 msgid "Archivo CSV de gastos"
-msgstr "Fichier CSV des dépenses"
+msgstr ""
 
 #: app/templates/imports/index.html:225
 msgid "Importar gastos"
-msgstr "Importer les dépenses"
+msgstr ""
 
 #: app/templates/imports/index.html:258
 msgid "Kilogramos recolectados"
-msgstr "Kilogrammes récoltés"
+msgstr ""
 
 #: app/templates/imports/index.html:260
 msgid "Precio por kg en €"
-msgstr "Prix par kg en €"
+msgstr ""
 
 #: app/templates/imports/index.html:265
 msgid "El total (€) se calcula automáticamente como kg × euros/kg."
-msgstr "Le total (€) est calculé automatiquement comme kg × euros/kg."
+msgstr ""
 
 #: app/templates/imports/index.html:283
 msgid "Archivo CSV de ingresos"
-msgstr "Fichier CSV des revenus"
+msgstr ""
 
 #: app/templates/imports/index.html:294
 msgid "Importar ingresos"
-msgstr "Importer les revenus"
+msgstr ""
 
 #: app/templates/imports/index.html:326 app/templates/imports/index.html:393
 #: app/templates/imports/index.html:460
 msgid "Nombre del bancal"
-msgstr "Nom de la parcelle"
+msgstr ""
 
 #: app/templates/imports/index.html:327
 msgid "Agua en m³"
-msgstr "Eau en m³"
+msgstr ""
 
 #: app/templates/imports/index.html:328 app/templates/imports/index.html:395
 msgid "Notas (opcional)"
-msgstr "Notes (optionnel)"
+msgstr ""
 
 #: app/templates/imports/index.html:333
 msgid ""
 "El bancal debe existir y tener riego habilitado. Las filas que no cumplan"
 " esta condición generarán un aviso y serán omitidas."
-msgstr "La parcelle doit exister et avoir l'irrigation activée. Les lignes qui ne respectent pas cette condition généreront un avertissement et seront ignorées."
+msgstr ""
 
 #: app/templates/imports/index.html:351
 msgid "Archivo CSV de riego"
-msgstr "Fichier CSV de l'irrigation"
+msgstr ""
 
 #: app/templates/imports/index.html:362
 msgid "Importar riego"
-msgstr "Importer l'irrigation"
+msgstr ""
 
 #: app/templates/imports/index.html:394 app/templates/pozos/form.html:68
 #: app/templates/pozos/list.html:38
 msgid "Pozos por planta"
-msgstr "Puits par plant"
+msgstr ""
 
 #: app/templates/imports/index.html:400
 msgid "El bancal debe existir. Las filas con bancal no encontrado serán omitidas."
 msgstr ""
-"La parcelle doit exister. Les lignes avec une parcelle introuvable seront"
-" ignorées."
 
 #: app/templates/imports/index.html:418
 msgid "Archivo CSV de pozos"
-msgstr "Fichier CSV des puits"
+msgstr ""
 
 #: app/templates/imports/index.html:429
 msgid "Importar pozos"
-msgstr "Importer les puits"
+msgstr ""
 
 #: app/templates/imports/index.html:459
 msgid "Fecha y hora (DD/MM/AAAA HH:MM:SS)"
-msgstr "Date et heure (JJ/MM/AAAA HH:MM:SS)"
+msgstr ""
 
 #: app/templates/imports/index.html:461
 msgid "Etiqueta de planta dentro del bancal"
-msgstr "Étiquette du plant dans la parcelle"
+msgstr ""
 
 #: app/templates/imports/index.html:462
 msgid "Peso en gramos"
-msgstr "Poids en grammes"
+msgstr ""
 
 #: app/templates/imports/index.html:463
 msgid "Origen (opcional, manual/qr)"
-msgstr "Origine (optionnel, manuel/qr)"
+msgstr ""
 
 #: app/templates/imports/index.html:468
 msgid ""
 "El bancal y la planta deben existir previamente. Las filas no válidas se "
 "omiten con aviso."
-msgstr "La parcelle et le plant doivent déjà exister. Les lignes non valides sont ignorées avec un avertissement."
+msgstr ""
 
 #: app/templates/imports/index.html:486
 msgid "Archivo CSV de producción"
-msgstr "Fichier CSV de production"
+msgstr ""
 
 #: app/templates/imports/index.html:497
 msgid "Importar producción"
-msgstr "Importer la production"
+msgstr ""
 
 #: app/templates/ingresos/form.html:3 app/templates/ingresos/form.html:12
 msgid "Editar Ingreso"
-msgstr "Modifier le revenu"
+msgstr ""
 
 #: app/templates/ingresos/form.html:3 app/templates/ingresos/form.html:12
 #: app/templates/ingresos/list.html:16
 msgid "Nuevo Ingreso"
-msgstr "Nouveau revenu"
+msgstr ""
 
 #: app/templates/ingresos/form.html:68
 msgid "Ej: Extra, Primera, Segunda"
-msgstr "Ex. : Extra, Première, Deuxième"
+msgstr ""
 
 #: app/templates/ingresos/form.html:69
 msgid "Calidad o categoría de la trufa"
-msgstr "Qualité ou catégorie de la truffe"
+msgstr ""
 
 #: app/templates/ingresos/form.html:75 app/templates/ingresos/list.html:52
 msgid "Cantidad (kg)"
-msgstr "Quantité (kg)"
+msgstr ""
 
 #: app/templates/ingresos/form.html:121
 msgid "Calculado automáticamente"
-msgstr "Calculé automatiquement"
+msgstr ""
 
 #: app/templates/ingresos/form.html:125
 msgid "Calculado automáticamente: cantidad × €/kg"
-msgstr "Calculé automatiquement : quantité × €/kg"
+msgstr ""
 
 #: app/templates/ingresos/form.html:137
 #: app/templates/reportes/rentabilidad.html:75
 msgid "Registrar ingreso"
-msgstr "Enregistrer un revenu"
+msgstr ""
 
 #: app/templates/ingresos/list.html:9
 msgid "Producción y ventas"
-msgstr "Production et ventes"
+msgstr ""
 
 #: app/templates/ingresos/list.html:13
 msgid "ingreso(s) registrado(s)"
-msgstr "revenu(s) enregistré(s)"
+msgstr ""
 
 #: app/templates/ingresos/list.html:25
 msgid "Filtrar por campaña:"
-msgstr "Filtrer par campagne :"
+msgstr ""
 
 #: app/templates/ingresos/list.html:36
 msgid "Limpiar filtro"
-msgstr "Effacer le filtre"
+msgstr ""
 
 #: app/templates/ingresos/list.html:125
 msgid "No hay ingresos registrados para la campaña"
-msgstr "Aucun revenu enregistré pour la campagne"
+msgstr ""
 
 #: app/templates/ingresos/list.html:127
 msgid "No hay ingresos registrados todavía."
-msgstr "Aucun revenu enregistré pour l'instant."
+msgstr ""
 
 #: app/templates/ingresos/list.html:131
 msgid "Registrar primer ingreso"
-msgstr "Enregistrer le premier revenu"
+msgstr ""
 
 #: app/templates/parcelas/form.html:3 app/templates/parcelas/form.html:12
 msgid "Editar Parcela"
-msgstr "Modifier la parcelle"
+msgstr ""
 
 #: app/templates/parcelas/form.html:3 app/templates/parcelas/form.html:12
 #: app/templates/parcelas/list.html:16
 msgid "Nueva Parcela"
-msgstr "Nouvelle parcelle"
+msgstr ""
 
 #: app/templates/parcelas/form.html:44
 msgid "Ej: Bancal Norte"
-msgstr "Ex. : Parcelle Nord"
+msgstr ""
 
 #: app/templates/parcelas/form.html:49 app/templates/parcelas/list.html:31
 msgid "Sector"
-msgstr "Secteur"
+msgstr ""
 
 #: app/templates/parcelas/form.html:55
 msgid "Ej: A1"
-msgstr "Ex. : A1"
+msgstr ""
 
 #: app/templates/parcelas/form.html:60 app/templates/parcelas/list.html:44
 msgid "Polígono"
-msgstr "Polygone"
+msgstr ""
 
 #: app/templates/parcelas/form.html:66
 msgid "Ej: 5"
-msgstr "Ex. : 5"
+msgstr ""
 
 #: app/templates/parcelas/form.html:71
 msgid "Parcela nº"
-msgstr "Parcelle n°"
+msgstr ""
 
 #: app/templates/parcelas/form.html:77
 msgid "Ej: 120"
-msgstr "Ex. : 120"
+msgstr ""
 
 #: app/templates/parcelas/form.html:78
 msgid "Número de parcela dentro del polígono"
-msgstr "Numéro de parcelle dans le polygone"
+msgstr ""
 
 #: app/templates/parcelas/form.html:83 app/templates/parcelas/list.html:29
 msgid "Ref. Catastral"
-msgstr "Réf. cadastrale"
+msgstr ""
 
 #: app/templates/parcelas/form.html:89
 msgid "Ej: 44223A021001200000FP"
-msgstr "Ex. : 44223A021001200000FP"
+msgstr ""
 
 #: app/templates/parcelas/form.html:90 app/templates/parcelas/form.html:91
 msgid "Identificador único del catastro"
-msgstr "Identifiant cadastral unique"
+msgstr ""
 
 #: app/templates/parcelas/form.html:96
 msgid "Provincia (Catastro)"
-msgstr "Province (Cadastre)"
+msgstr ""
 
 #: app/templates/parcelas/form.html:101
 msgid "— Selecciona provincia —"
-msgstr "— Sélectionnez une province —"
+msgstr ""
 
 #: app/templates/parcelas/form.html:107
 msgid "Municipio (Catastro)"
-msgstr "Commune (Cadastre)"
+msgstr ""
 
 #: app/templates/parcelas/form.html:112
 msgid "— Selecciona municipio —"
-msgstr "— Sélectionnez une commune —"
+msgstr ""
 
 #: app/templates/parcelas/form.html:118 app/templates/parcelas/list.html:30
 msgid "Hidrante"
-msgstr "Borne d'incendie"
+msgstr ""
 
 #: app/templates/parcelas/form.html:124
 msgid "Ej: H-03"
-msgstr "Ex. : H-03"
+msgstr ""
 
 #: app/templates/parcelas/form.html:129 app/templates/parcelas/list.html:32
 msgid "N° Plantas"
-msgstr "Nb de plants"
+msgstr ""
 
 #: app/templates/parcelas/form.html:141
 msgid "Superficie (Ha)"
-msgstr "Surface (Ha)"
+msgstr ""
 
 #: app/templates/parcelas/form.html:150
 msgid "Opcional"
-msgstr "Optionnel"
+msgstr ""
 
 #: app/templates/parcelas/form.html:157
 #, python-format
 msgid "Porcentaje (%%)"
-msgstr "Pourcentage (%%)"
+msgstr ""
 
 #: app/templates/parcelas/form.html:167
 msgid "Se calcula automáticamente según el número de plantas"
-msgstr "Calculé automatiquement d'après le nombre de plants"
+msgstr ""
 
 #: app/templates/parcelas/form.html:173
 msgid "Fecha Plantación"
-msgstr "Date de plantation"
+msgstr ""
 
 #: app/templates/parcelas/form.html:185
 msgid "Inicio Producción"
-msgstr "Début de production"
+msgstr ""
 
 #: app/templates/parcelas/form.html:210
 msgid "Tiene sistema de riego instalado"
-msgstr "Système d'irrigation installé"
+msgstr ""
 
 #: app/templates/parcelas/form.html:213
 msgid "Activa esta opción para poder registrar riegos en esta parcela."
-msgstr "Activez cette option pour enregistrer des irrigations sur cette parcelle."
+msgstr ""
 
 #: app/templates/parcelas/form.html:227
 msgid "Crear parcela"
-msgstr "Créer la parcelle"
+msgstr ""
 
 #: app/templates/parcelas/list.html:3 app/templates/parcelas/list.html:11
 msgid "Parcelas (Bancales)"
-msgstr "Parcelles"
+msgstr ""
 
 #: app/templates/parcelas/list.html:9
 msgid "Estructura de explotación"
-msgstr "Structure d'exploitation"
+msgstr ""
 
 #: app/templates/parcelas/list.html:13
 msgid "parcela(s) registrada(s)"
-msgstr "parcelle(s) enregistrée(s)"
+msgstr ""
 
 #: app/templates/parcelas/list.html:28
 msgid "Ubicación"
-msgstr "Emplacement"
+msgstr ""
 
 #: app/templates/parcelas/list.html:33
 msgid "F. Plantación"
-msgstr "Date plantation"
+msgstr ""
 
 #: app/templates/parcelas/list.html:34
 msgid "Sup. (Ha)"
-msgstr "Surface (Ha)"
+msgstr ""
 
 #: app/templates/parcelas/list.html:35
 msgid "Inicio Prod."
-msgstr "Début prod."
+msgstr ""
 
 #: app/templates/parcelas/list.html:44 app/templates/pozos/form.html:31
 #: app/templates/pozos/list.html:109 app/templates/reportes/trufas.html:58
@@ -1657,628 +1648,443 @@ msgstr "Début prod."
 #: app/templates/riego/list.html:112 app/templates/scan/confirm.html:13
 #: app/templates/scan/success.html:11
 msgid "Parcela"
-msgstr "Parcelle"
+msgstr ""
 
 #: app/templates/parcelas/list.html:50
 msgid "Ver en sede electrónica del catastro"
-msgstr "Voir sur le portail cadastral"
+msgstr ""
 
 #: app/templates/parcelas/list.html:66
 #, python-brace-format
 msgid ""
 "El mapa tiene {actual} plantas pero la parcela declara {expected}. Revisa"
 " la configuración del mapa."
-msgstr "La carte comporte {actual} plants mais la parcelle en déclare {expected}. Vérifiez la configuration de la carte."
+msgstr ""
 
 #: app/templates/parcelas/list.html:87
 msgid "Mapa"
-msgstr "Carte"
+msgstr ""
 
 #: app/templates/parcelas/list.html:92
 msgid "Descargar QR"
-msgstr "Télécharger QR"
+msgstr ""
 
 #: app/templates/parcelas/list.html:121
 msgid "No hay parcelas registradas todavía."
-msgstr "Aucune parcelle enregistrée pour l'instant."
+msgstr ""
 
 #: app/templates/parcelas/list.html:123
 msgid "Crear primera parcela"
-msgstr "Créer la première parcelle"
+msgstr ""
 
 #: app/templates/parcelas/mapa.html:3 app/templates/parcelas/mapa.html:47
 msgid "Mapa de plantas"
-msgstr "Carte des plants"
+msgstr ""
 
 #: app/templates/parcelas/mapa.html:45
 msgid "Trazabilidad por planta"
-msgstr "Traçabilité par plant"
+msgstr ""
 
 #: app/templates/parcelas/mapa.html:49
 msgid "Visualiza el peso orientativo (g) por celda según la campaña seleccionada."
 msgstr ""
-"Visualisez le poids indicatif (g) par cellule selon la campagne "
-"sélectionnée."
 
 #: app/templates/parcelas/mapa.html:53
 #: app/templates/parcelas/mapa_configure.html:3
 #: app/templates/parcelas/mapa_configure.html:11
 msgid "Configurar mapa"
-msgstr "Configurer la carte"
+msgstr ""
 
 #: app/templates/parcelas/mapa.html:56
 msgid "Volver"
-msgstr "Retour"
+msgstr ""
 
 #: app/templates/parcelas/mapa.html:88
 msgid ""
 "No hay plantas configuradas para esta parcela. Configura el mapa para "
 "empezar."
-msgstr "Aucun plant n'est configuré pour cette parcelle. Configurez la carte pour commencer."
+msgstr ""
 
 #: app/templates/parcelas/mapa.html:159
 msgid "Registrar trufa"
-msgstr "Enregistrer une truffe"
+msgstr ""
 
 #: app/templates/parcelas/mapa.html:165 app/templates/reportes/trufas.html:93
 #: app/templates/scan/confirm.html:12 app/templates/scan/success.html:10
 msgid "Planta"
-msgstr "Plant"
+msgstr ""
 
 #: app/templates/parcelas/mapa.html:167
 msgid "Introduce el peso orientativo y usa atajos para sumar rápido."
 msgstr ""
-"Entrez le poids indicatif et utilisez des raccourcis pour additionner "
-"rapidement."
 
 #: app/templates/parcelas/mapa.html:169 app/templates/scan/confirm.html:17
 msgid "Peso orientativo (g)"
-msgstr "Poids indicatif (g)"
+msgstr ""
 
 #: app/templates/parcelas/mapa.html:192
 msgid "Ver producción"
-msgstr "Voir la production"
+msgstr ""
 
 #: app/templates/parcelas/mapa.html:194 app/templates/scan/confirm.html:36
 msgid "Registrar"
-msgstr "Enregistrer"
+msgstr ""
 
 #: app/templates/parcelas/mapa_configure.html:9
 msgid "Diseño de plantación"
-msgstr "Plan de plantation"
+msgstr ""
 
 #: app/templates/parcelas/mapa_configure.html:13
 msgid "Configura la parcela usando únicamente el editor visual del mapa."
 msgstr ""
-"Configurez la parcelle en utilisant uniquement l'éditeur visuel de la "
-"carte."
 
 #: app/templates/parcelas/mapa_configure.html:19
 msgid "No puedes regenerar el mapa porque ya existen registros de trufas activos."
 msgstr ""
-"Vous ne pouvez pas régénérer la carte car des enregistrements de truffes "
-"actifs existent déjà."
 
 #: app/templates/parcelas/mapa_configure.html:32
 msgid "Editor visual del mapa"
-msgstr "Éditeur visuel de la carte"
+msgstr ""
 
 #: app/templates/parcelas/mapa_configure.html:34
 msgid ""
 "Arrastra el borde inferior para cambiar filas y el borde derecho para "
 "columnas. Haz clic en una celda para marcarla como hueco."
-msgstr "Faites glisser le bord inférieur pour modifier les lignes et le bord droit pour modifier les colonnes. Cliquez sur une cellule pour la marquer comme vide."
+msgstr ""
 
 #: app/templates/parcelas/mapa_configure.html:42
 msgid "Celda nueva = activa"
-msgstr "Nouvelle cellule = active"
+msgstr ""
 
 #: app/templates/parcelas/mapa_configure.html:45
 msgid "Clic para convertir en hueco"
-msgstr "Cliquer pour convertir en vide"
+msgstr ""
 
 #: app/templates/parcelas/mapa_configure.html:51
 msgid "Arrastra para cambiar el tamaño de la cuadrícula"
-msgstr "Faites glisser pour redimensionner la grille"
+msgstr ""
 
 #: app/templates/parcelas/mapa_configure.html:57
 msgid ""
 "Consejo: ajusta filas y columnas arrastrando el borde inferior y derecho "
 "de la cuadrícula."
-msgstr "Conseil : ajustez les lignes et les colonnes en faisant glisser le bord inférieur et droit de la grille."
+msgstr ""
 
 #: app/templates/parcelas/mapa_configure.html:61
 msgid "Guardar mapa"
-msgstr "Sauvegarder la carte"
+msgstr ""
 
 #: app/templates/pozos/form.html:4
 msgid "Editar Pozos"
-msgstr "Modifier les puits"
+msgstr ""
 
 #: app/templates/pozos/form.html:4 app/templates/pozos/form.html:14
 msgid "Nuevo Registro de Pozos"
-msgstr "Nouvel enregistrement de puits"
+msgstr ""
 
 #: app/templates/pozos/form.html:14
 msgid "Editar Registro de Pozos"
-msgstr "Modifier l'enregistrement de puits"
+msgstr ""
 
 #: app/templates/pozos/form.html:38 app/templates/riego/form.html:39
 msgid "— Selecciona una parcela —"
-msgstr "— Sélectionnez une parcelle —"
+msgstr ""
 
 #: app/templates/pozos/form.html:49
 msgid "No hay parcelas disponibles. Crea una parcela primero."
-msgstr "Aucune parcelle disponible. Créez d'abord une parcelle."
+msgstr ""
 
 #: app/templates/pozos/form.html:81
 msgid "Pozos estimados:"
-msgstr "Puits estimés :"
+msgstr ""
 
 #: app/templates/pozos/form.html:90
 msgid "Gasto de Pozos asociado"
-msgstr "Dépense de puits associée"
+msgstr ""
 
 #: app/templates/pozos/form.html:91 app/templates/pozos/form.html:113
 #: app/templates/riego/form.html:98 app/templates/riego/form.html:121
 msgid "(opcional)"
-msgstr "(optionnel)"
+msgstr ""
 
 #: app/templates/pozos/form.html:94 app/templates/riego/form.html:101
 msgid "— Sin gasto asociado —"
-msgstr "— Sans dépense associée —"
+msgstr ""
 
 #: app/templates/pozos/form.html:106
 msgid "Solo se muestran gastos de categoría \"Pozos\" de la parcela seleccionada."
 msgstr ""
-"Seules les dépenses de catégorie \"Puits\" de la parcelle sélectionnée "
-"sont affichées."
 
 #: app/templates/pozos/form.html:112 app/templates/pozos/list.html:113
 #: app/templates/riego/form.html:120 app/templates/riego/list.html:116
 msgid "Notas"
-msgstr "Notes"
+msgstr ""
 
 #: app/templates/pozos/form.html:120
 msgid "Observaciones sobre este pozo..."
-msgstr "Observations sur ce puits..."
+msgstr ""
 
 #: app/templates/pozos/form.html:132
 msgid "Registrar pozo"
-msgstr "Enregistrer le puits"
+msgstr ""
 
 #: app/templates/pozos/list.html:14 app/templates/riego/list.html:14
 msgid "registro(s)"
-msgstr "enregistrement(s)"
+msgstr ""
 
 #: app/templates/pozos/list.html:19
 msgid "Nuevo registro de pozos"
-msgstr "Nouvel enregistrement de puits"
+msgstr ""
 
 #: app/templates/pozos/list.html:64
 msgid "Nº de registros"
-msgstr "Nb d'enregistrements"
+msgstr ""
 
 #: app/templates/pozos/list.html:87 app/templates/reportes/trufas.html:27
 #: app/templates/riego/list.html:89
 msgid "Todas las parcelas"
-msgstr "Toutes les parcelles"
+msgstr ""
 
 #: app/templates/pozos/list.html:110
 msgid "Pozos/planta"
-msgstr "Puits/plant"
+msgstr ""
 
 #: app/templates/pozos/list.html:112 app/templates/riego/list.html:115
 msgid "Gasto asociado"
-msgstr "Dépense associée"
+msgstr ""
 
 #: app/templates/pozos/list.html:168
 msgid "¿Eliminar este registro de pozos?"
-msgstr "Supprimer cet enregistrement de puits ?"
+msgstr ""
 
 #: app/templates/pozos/list.html:193
 msgid "No hay registros de pozos"
-msgstr "Aucun enregistrement de puits"
+msgstr ""
 
 #: app/templates/pozos/list.html:193 app/templates/riego/list.html:199
 msgid "para los filtros seleccionados"
-msgstr "pour les filtres sélectionnés"
+msgstr ""
 
 #: app/templates/pozos/list.html:196
 msgid "Registrar primer pozo"
-msgstr "Enregistrer le premier puits"
+msgstr ""
 
 #: app/templates/reportes/rentabilidad.html:3
 #: app/templates/reportes/rentabilidad.html:58
 msgid "Informe de Rentabilidad"
-msgstr "Rapport de rentabilité"
+msgstr ""
 
 #: app/templates/reportes/rentabilidad.html:56
 msgid "Análisis consolidado"
-msgstr "Analyse consolidée"
+msgstr ""
 
 #: app/templates/reportes/rentabilidad.html:60
 msgid ""
 "Vista completa por campaña y bancal para identificar márgenes y "
 "tendencias de rentabilidad."
-msgstr "Vue complète par campagne et parcelle pour identifier les marges et les tendances de rentabilité."
+msgstr ""
 
 #: app/templates/reportes/rentabilidad.html:64
 msgid "Imprimir"
-msgstr "Imprimer"
+msgstr ""
 
 #: app/templates/reportes/rentabilidad.html:73
 msgid "No hay datos suficientes para generar el informe de rentabilidad."
-msgstr "Pas assez de données pour générer le rapport de rentabilité."
+msgstr ""
 
 #: app/templates/reportes/rentabilidad.html:86
 msgid "Rentabilidad por Campaña y Bancal (€)"
-msgstr "Rentabilité par campagne et parcelle (€)"
+msgstr ""
 
 #: app/templates/reportes/rentabilidad.html:150
 msgid ""
 "Los valores muestran la rentabilidad neta (ingresos − gastos). Pase el "
 "ratón sobre cada celda para ver el desglose."
-msgstr "Les valeurs indiquent la rentabilité nette (revenus − dépenses). Survolez chaque cellule pour voir le détail."
+msgstr ""
 
 #: app/templates/reportes/rentabilidad.html:161
 msgid "Resumen por Campaña"
-msgstr "Résumé par campagne"
+msgstr ""
 
 #: app/templates/reportes/rentabilidad.html:212
 msgid "Resumen por Bancal"
-msgstr "Résumé par parcelle"
+msgstr ""
 
 #: app/templates/reportes/rentabilidad.html:261
 msgid "Leyenda:"
-msgstr "Légende :"
+msgstr ""
 
 #: app/templates/reportes/rentabilidad.html:262
 msgid "Rentabilidad positiva"
-msgstr "Rentabilité positive"
+msgstr ""
 
 #: app/templates/reportes/rentabilidad.html:263
 msgid "Rentabilidad negativa"
-msgstr "Rentabilité négative"
+msgstr ""
 
 #: app/templates/reportes/rentabilidad.html:264
 msgid "Sin datos"
-msgstr "Aucune donnée"
+msgstr ""
 
 #: app/templates/reportes/trufas.html:3
 msgid "Listado de trufas"
-msgstr "Liste des truffes"
+msgstr ""
 
 #: app/templates/reportes/trufas.html:9
 msgid "Registro cronológico"
-msgstr "Registre chronologique"
+msgstr ""
 
 #: app/templates/reportes/trufas.html:33
 msgid "Todas las plantas"
-msgstr "Tous les plants"
+msgstr ""
 
 #: app/templates/reportes/trufas.html:38
 msgid "Filtrar"
-msgstr "Filtrer"
+msgstr ""
 
 #: app/templates/reportes/trufas.html:51
 msgid "Resumen por parcela"
-msgstr "Résumé par parcelle"
+msgstr ""
 
 #: app/templates/reportes/trufas.html:59
 msgid "Total campaña (g)"
-msgstr "Total campagne (g)"
+msgstr ""
 
 #: app/templates/reportes/trufas.html:60
 msgid "Total histórico (g)"
-msgstr "Total historique (g)"
+msgstr ""
 
 #: app/templates/reportes/trufas.html:61
 msgid "Top plantas (g)"
-msgstr "Meilleurs plants (g)"
+msgstr ""
 
 #: app/templates/reportes/trufas.html:94
 msgid "Peso (g)"
-msgstr "Poids (g)"
+msgstr ""
 
 #: app/templates/reportes/trufas.html:95
 msgid "Origen"
-msgstr "Origine"
+msgstr ""
 
 #: app/templates/reportes/trufas.html:123
 msgid "Sin eventos para los filtros seleccionados"
-msgstr "Aucun événement pour les filtres sélectionnés"
+msgstr ""
 
 #: app/templates/riego/form.html:4
 msgid "Editar Riego"
-msgstr "Modifier l'irrigation"
+msgstr ""
 
 #: app/templates/riego/form.html:4 app/templates/riego/form.html:14
 msgid "Nuevo Registro de Riego"
-msgstr "Nouvel enregistrement d'irrigation"
+msgstr ""
 
 #: app/templates/riego/form.html:14
 msgid "Editar Registro de Riego"
-msgstr "Modifier l'enregistrement d'irrigation"
+msgstr ""
 
 #: app/templates/riego/form.html:50
 msgid ""
 "No hay parcelas con sistema de riego activado. Actívalo en la "
 "configuración de la parcela."
-msgstr "Aucune parcelle avec irrigation activée. Activez-la dans la configuration de la parcelle."
+msgstr ""
 
 #: app/templates/riego/form.html:71
 msgid "Agua (m³)"
-msgstr "Eau (m³)"
+msgstr ""
 
 #: app/templates/riego/form.html:87
 msgid "Equivale a"
-msgstr "Équivaut à"
+msgstr ""
 
 #: app/templates/riego/form.html:97
 msgid "Gasto de Riego asociado"
-msgstr "Dépense d'irrigation associée"
+msgstr ""
 
 #: app/templates/riego/form.html:113
 msgid "Solo se muestran gastos de categoría 'Riego' de la parcela seleccionada."
 msgstr ""
-"Seules les dépenses de catégorie 'Irrigation' de la parcelle sélectionnée"
-" sont affichées."
 
 #: app/templates/riego/form.html:128
 msgid "Observaciones sobre este riego..."
-msgstr "Observations sur cette irrigation..."
+msgstr ""
 
 #: app/templates/riego/form.html:140
 msgid "Registrar riego"
-msgstr "Enregistrer l'irrigation"
+msgstr ""
 
 #: app/templates/riego/list.html:9
 msgid "Operación hídrica"
-msgstr "Opération hydraulique"
+msgstr ""
 
 #: app/templates/riego/list.html:19
 msgid "Nuevo registro de riego"
-msgstr "Nouvel enregistrement d'irrigation"
+msgstr ""
 
 #: app/templates/riego/list.html:39
 msgid "Total agua (m³)"
-msgstr "Total eau (m³)"
+msgstr ""
 
 #: app/templates/riego/list.html:52
 msgid "Total agua (litros)"
-msgstr "Total eau (litres)"
+msgstr ""
 
 #: app/templates/riego/list.html:65
 msgid "Nº de riegos"
-msgstr "Nb d'irrigations"
+msgstr ""
 
 #: app/templates/riego/list.html:113
 msgid "m³"
-msgstr "m³"
+msgstr ""
 
 #: app/templates/riego/list.html:114
 msgid "Litros"
-msgstr "Litres"
+msgstr ""
 
 #: app/templates/riego/list.html:173
 msgid "¿Eliminar este registro de riego?"
-msgstr "Supprimer cet enregistrement d'irrigation ?"
+msgstr ""
 
 #: app/templates/riego/list.html:198
 msgid "No hay registros de riego"
-msgstr "Aucun enregistrement d'irrigation"
+msgstr ""
 
 #: app/templates/riego/list.html:202
 msgid "Registrar primer riego"
-msgstr "Enregistrer la première irrigation"
+msgstr ""
 
 #: app/templates/scan/confirm.html:3
 msgid "Registrar peso de trufa"
-msgstr "Enregistrer le poids de la truffe"
+msgstr ""
 
 #: app/templates/scan/confirm.html:10
 msgid "Registro por QR"
-msgstr "Enregistrement par QR"
+msgstr ""
 
 #: app/templates/scan/invalid.html:3
 msgid "QR inválido"
-msgstr "QR invalide"
+msgstr ""
 
 #: app/templates/scan/invalid.html:8
 msgid "QR inválido o caducado"
-msgstr "QR invalide ou expiré"
+msgstr ""
 
 #: app/templates/scan/invalid.html:9
 msgid "No hemos podido validar este código QR."
-msgstr "Nous n'avons pas pu valider ce code QR."
+msgstr ""
 
 #: app/templates/scan/success.html:3 app/templates/scan/success.html:9
 msgid "Peso de trufa registrado"
-msgstr "Poids de truffe enregistré"
+msgstr ""
 
 #: app/templates/scan/success.html:12
 msgid "Peso orientativo"
-msgstr "Poids indicatif"
+msgstr ""
 
 #: app/templates/scan/success.html:15
 msgid "Registrar más en esta planta"
-msgstr "Enregistrer d'autres sur ce plant"
+msgstr ""
 
 #: app/templates/scan/success.html:16
 msgid "Ir al mapa"
-msgstr "Aller à la carte"
+msgstr ""
 
-#~ msgid ""
-#~ "Este usuario ha sido desactivado. Por"
-#~ " favor, contacta con el administrador "
-#~ "si necesitas reactivar tu cuenta."
-#~ msgstr ""
-#~ "Cet utilisateur a été désactivé. "
-#~ "Veuillez contacter l'administrateur si vous"
-#~ " devez réactiver votre compte."
-
-#~ msgid "Usuario o contraseña incorrectos."
-#~ msgstr "Nom d'utilisateur ou mot de passe incorrect."
-
-#~ msgid "El email no tiene un formato válido."
-#~ msgstr "Le format de l'e-mail est invalide."
-
-#~ msgid "Este email ya está registrado."
-#~ msgstr "Cet e-mail est déjà enregistré."
-
-#~ msgid "Las contraseñas no coinciden."
-#~ msgstr "Les mots de passe ne correspondent pas."
-
-#~ msgid "La contraseña debe tener al menos 8 caracteres."
-#~ msgstr "Le mot de passe doit contenir au moins 8 caractères."
-
-#~ msgid "La contraseña es demasiado larga (máximo 72 bytes)."
-#~ msgstr "Le mot de passe est trop long (72 octets maximum)."
-
-#~ msgid "El usuario ya existe."
-#~ msgstr "L'utilisateur existe déjà."
-
-#~ msgid "Línea {line}: se esperaban 5 columnas, se encontraron {count} — omitida"
-#~ msgstr "Ligne {line} : 5 colonnes étaient attendues, {count} trouvées — ignorée"
-
-#~ msgid ""
-#~ "Línea {line}: se esperaban al menos "
-#~ "2 columnas, se encontraron {count} — "
-#~ "omitida"
-#~ msgstr ""
-#~ "Ligne {line} : au moins 2 colonnes"
-#~ " étaient attendues, {count} trouvées — "
-#~ "ignorée"
-
-#~ msgid ""
-#~ "Línea {line}: se esperaban al menos "
-#~ "3 columnas, se encontraron {count} — "
-#~ "omitida"
-#~ msgstr ""
-#~ "Ligne {line} : au moins 3 colonnes"
-#~ " étaient attendues, {count} trouvées — "
-#~ "ignorée"
-
-#~ msgid ""
-#~ "Línea {line}: se esperaban al menos "
-#~ "4 columnas, se encontraron {count} — "
-#~ "omitida"
-#~ msgstr ""
-#~ "Ligne {line} : au moins 4 colonnes"
-#~ " étaient attendues, {count} trouvées — "
-#~ "ignorée"
-
-#~ msgid "Línea {line}: bancal '{plot}' no encontrado — importado sin bancal"
-#~ msgstr "Ligne {line} : parcelle '{plot}' introuvable — importée sans parcelle"
-
-#~ msgid "Línea {line}: error al parsear los datos — omitida"
-#~ msgstr "Ligne {line} : erreur d'analyse des données — ignorée"
-
-#~ msgid "Parcela '{plot}': config_mapa inválida — mapa omitido"
-#~ msgstr "Parcelle '{plot}' : config_mapa invalide — carte ignorée"
-
-#~ msgid ""
-#~ "Línea {line}: bancal vacío — omitida "
-#~ "(el registro de pozos siempre requiere"
-#~ " parcela)"
-#~ msgstr ""
-#~ "Ligne {line} : parcelle vide — "
-#~ "ignorée (un enregistrement de puits "
-#~ "nécessite toujours une parcelle)"
-
-#~ msgid "Línea {line}: bancal '{plot}' no encontrado — omitida"
-#~ msgstr "Ligne {line} : parcelle '{plot}' introuvable — ignorée"
-
-#~ msgid ""
-#~ "Línea {line}: bancal vacío — omitida "
-#~ "(el riego siempre requiere parcela)"
-#~ msgstr ""
-#~ "Ligne {line} : parcelle vide — "
-#~ "ignorée (l'irrigation nécessite toujours une"
-#~ " parcelle)"
-
-#~ msgid "Línea {line}: bancal '{plot}' no tiene riego habilitado — omitida"
-#~ msgstr ""
-#~ "Ligne {line} : la parcelle '{plot}' "
-#~ "n'a pas l'irrigation activée — ignorée"
-
-#~ msgid "Línea {line}: bancal vacío — omitida"
-#~ msgstr "Ligne {line} : parcelle vide — ignorée"
-
-#~ msgid "Línea {line}: planta vacía — omitida"
-#~ msgstr "Ligne {line} : plant vide — ignoré"
-
-#~ msgid ""
-#~ "Línea {line}: planta '{plant}' no "
-#~ "encontrada en bancal '{plot}' — omitida"
-#~ msgstr ""
-#~ "Ligne {line} : plant '{plant}' "
-#~ "introuvable dans la parcelle '{plot}' —"
-#~ " ignoré"
-
-msgid "Este usuario ha sido desactivado. Por favor, contacta con el administrador si necesitas reactivar tu cuenta."
-msgstr "Cet utilisateur a été désactivé. Veuillez contacter l'administrateur si vous devez réactiver votre compte."
-
-msgid "Usuario o contraseña incorrectos."
-msgstr "Nom d'utilisateur ou mot de passe incorrect."
-
-msgid "El email no tiene un formato válido."
-msgstr "Le format de l'e-mail est invalide."
-
-msgid "Este email ya está registrado."
-msgstr "Cet e-mail est déjà enregistré."
-
-msgid "Las contraseñas no coinciden."
-msgstr "Les mots de passe ne correspondent pas."
-
-msgid "La contraseña debe tener al menos 8 caracteres."
-msgstr "Le mot de passe doit contenir au moins 8 caractères."
-
-msgid "La contraseña es demasiado larga (máximo 72 bytes)."
-msgstr "Le mot de passe est trop long (72 octets maximum)."
-
-msgid "El usuario ya existe."
-msgstr "L'utilisateur existe déjà."
-
-msgid "Línea {line}: se esperaban 5 columnas, se encontraron {count} — omitida"
-msgstr "Ligne {line} : 5 colonnes étaient attendues, {count} trouvées — ignorée"
-
-msgid "Línea {line}: se esperaban al menos 2 columnas, se encontraron {count} — omitida"
-msgstr "Ligne {line} : au moins 2 colonnes étaient attendues, {count} trouvées — ignorée"
-
-msgid "Línea {line}: se esperaban al menos 3 columnas, se encontraron {count} — omitida"
-msgstr "Ligne {line} : au moins 3 colonnes étaient attendues, {count} trouvées — ignorée"
-
-msgid "Línea {line}: se esperaban al menos 4 columnas, se encontraron {count} — omitida"
-msgstr "Ligne {line} : au moins 4 colonnes étaient attendues, {count} trouvées — ignorée"
-
-msgid "Línea {line}: bancal '{plot}' no encontrado — importado sin bancal"
-msgstr "Ligne {line} : parcelle '{plot}' introuvable — importée sans parcelle"
-
-msgid "Línea {line}: error al parsear los datos — omitida"
-msgstr "Ligne {line} : erreur d'analyse des données — ignorée"
-
-msgid "Parcela '{plot}': config_mapa inválida — mapa omitido"
-msgstr "Parcelle '{plot}' : config_mapa invalide — carte ignorée"
-
-msgid "Línea {line}: bancal vacío — omitida (el registro de pozos siempre requiere parcela)"
-msgstr "Ligne {line} : parcelle vide — ignorée (un enregistrement de puits nécessite toujours une parcelle)"
-
-msgid "Línea {line}: bancal '{plot}' no encontrado — omitida"
-msgstr "Ligne {line} : parcelle '{plot}' introuvable — ignorée"
-
-msgid "Línea {line}: bancal vacío — omitida (el riego siempre requiere parcela)"
-msgstr "Ligne {line} : parcelle vide — ignorée (l'irrigation nécessite toujours une parcelle)"
-
-msgid "Línea {line}: bancal '{plot}' no tiene riego habilitado — omitida"
-msgstr "Ligne {line} : la parcelle '{plot}' n'a pas l'irrigation activée — ignorée"
-
-msgid "Línea {line}: bancal vacío — omitida"
-msgstr "Ligne {line} : parcelle vide — ignorée"
-
-msgid "Línea {line}: planta vacía — omitida"
-msgstr "Ligne {line} : plant vide — ignoré"
-
-msgid "Línea {line}: planta '{plant}' no encontrada en bancal '{plot}' — omitida"
-msgstr "Ligne {line} : plant '{plant}' introuvable dans la parcelle '{plot}' — ignoré"

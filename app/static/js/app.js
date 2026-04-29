@@ -1,5 +1,5 @@
 (function () {
-    var THEME_KEY = 'truficultura-theme';
+    var THEME_KEY = 'trufiq-theme';
     var THEME_HREFS = {
         'terracota-editorial': '/static/css/themes/terracota-editorial.css',
         'piedra-y-olivo': '/static/css/themes/piedra-y-olivo.css',

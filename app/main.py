@@ -69,7 +69,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Truficultura",
+    title="Trufiq",
     description="Gestión de explotación trufícola",
     version="0.1.0",
     lifespan=lifespan,

@@ -1,10 +1,10 @@
-# Truficultura
+# Trufiq
 
 Aplicación web para la gestión integral de una explotación trufícola: parcelas, producción por planta, pozos, riego, gastos, ingresos, rentabilidad por campañas, KPIs, gráficas de evolución, lluvia, meteorología y suscripción de pago.
 
 ## 1. Resumen del proyecto
 
-Truficultura permite registrar y analizar la actividad económica de una explotación de trufa con una lógica de campañas agrícolas (de mayo a abril).
+Trufiq permite registrar y analizar la actividad económica de una explotación de trufa con una lógica de campañas agrícolas (de mayo a abril).
 
 ### Qué resuelve
 
@@ -477,8 +477,8 @@ SMTP_HOST=smtp.ejemplo.com
 SMTP_PORT=587
 SMTP_USER=usuario@ejemplo.com
 SMTP_PASSWORD=contraseña
-SMTP_FROM=noreply@truficultura.app
-CONTACT_EMAIL=admin@truficultura.app
+SMTP_FROM=noreply@trufiq.app
+CONTACT_EMAIL=admin@trufiq.app
 
 # AEMET (opcional; para importación de lluvia y meteorología)
 AEMET_API_KEY=tu_api_key_aemet

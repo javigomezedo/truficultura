@@ -1,5 +1,5 @@
 [project]
-name = "truficultura"
+name = "trufiq"
 version = "0.1.0"
 description = "Gestión de explotación trufícola"
 requires-python = ">=3.11"

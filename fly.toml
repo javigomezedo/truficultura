@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for truficultura-dev on 2026-04-03T09:08:10+02:00
+# fly.toml app configuration file generated for trufiq-dev on 2026-04-03T09:08:10+02:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'truficultura-dev'
+app = 'trufiq-dev'
 primary_region = 'cdg'
 
 [build]
@@ -50,10 +50,10 @@ primary_region = 'cdg'
 # La imagen se actualiza automáticamente tras cada push a main mediante
 # el step "Update cron machine image" en .github/workflows/fly-deploy.yml.
 #
-# Para verificar: fly machine list --app truficultura-dev
-# Para logs:      fly logs --app truficultura-dev --instance d894945a7d55e8
+# Para verificar: fly machine list --app trufiq-dev
+# Para logs:      fly logs --app trufiq-dev --instance <cron-machine-id>
 # Para actualizar el comando:
-#   fly machine update d894945a7d55e8 --app truficultura-dev \
+#   fly machine update <cron-machine-id> --app trufiq-dev \
 #     --command "sh -c 'python scripts/import_rainfall_cron.py; python scripts/process_recurring_expenses_cron.py'"
 # ---------------------------------------------------------------------------
 

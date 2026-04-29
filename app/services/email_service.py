@@ -49,7 +49,7 @@ async def send_confirmation_email(to_email: str, token: str) -> None:
 <!DOCTYPE html>
 <html lang="es">
 <body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #333;">
-  <h2 style="color: #5a3e1b;">Confirma tu cuenta en Truficultura</h2>
+  <h2 style="color: #5a3e1b;">Confirma tu cuenta en Trufiq</h2>
   <p>Hola,</p>
   <p>Gracias por registrarte. Pulsa el enlace siguiente para confirmar tu dirección de email y activar tu cuenta:</p>
   <p style="margin: 32px 0;">
@@ -65,7 +65,7 @@ async def send_confirmation_email(to_email: str, token: str) -> None:
 </body>
 </html>
 """
-    await send_email(to_email, "Confirma tu cuenta en Truficultura", html_body)
+    await send_email(to_email, "Confirma tu cuenta en Trufiq", html_body)
 
 
 async def send_password_reset_email(to_email: str, token: str) -> None:
@@ -75,7 +75,7 @@ async def send_password_reset_email(to_email: str, token: str) -> None:
 <!DOCTYPE html>
 <html lang="es">
 <body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #333;">
-  <h2 style="color: #5a3e1b;">Recuperación de contraseña — Truficultura</h2>
+  <h2 style="color: #5a3e1b;">Recuperación de contraseña — Trufiq</h2>
   <p>Hola,</p>
   <p>Hemos recibido una solicitud para restablecer la contraseña de tu cuenta. Pulsa el enlace siguiente para crear una nueva:</p>
   <p style="margin: 32px 0;">
@@ -91,7 +91,7 @@ async def send_password_reset_email(to_email: str, token: str) -> None:
 </body>
 </html>
 """
-    await send_email(to_email, "Recuperación de contraseña — Truficultura", html_body)
+    await send_email(to_email, "Recuperación de contraseña — Trufiq", html_body)
 
 
 async def send_lead_notification(name: str, email: str, message: str | None = None) -> None:
@@ -119,7 +119,7 @@ async def send_lead_notification(name: str, email: str, message: str | None = No
 <!DOCTYPE html>
 <html lang="es">
 <body style="font-family: sans-serif; max-width: 540px; margin: 0 auto; padding: 24px; color: #2f261d;">
-  <h2 style="font-family: Georgia, serif; color: #566b2f;">Nuevo interesado en Truficultura</h2>
+  <h2 style="font-family: Georgia, serif; color: #566b2f;">Nuevo interesado en Trufiq</h2>
   <table style="width:100%; border-collapse: collapse; margin-top: 1rem;">
     <tr>
       <td style="padding: 8px; font-weight: 600; border-bottom: 1px solid #e5e0d8; width: 100px;">Nombre</td>
@@ -139,4 +139,4 @@ async def send_lead_notification(name: str, email: str, message: str | None = No
 </body>
 </html>
 """
-    await send_email(contact_email, f"[Truficultura] Nuevo interesado: {name}", html_body)
+    await send_email(contact_email, f"[Trufiq] Nuevo interesado: {name}", html_body)
