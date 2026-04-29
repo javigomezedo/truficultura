@@ -56,12 +56,13 @@ from app.services.ibericam_service import (
     _NON_STATION_SLUGS,
     import_ibericam_rainfall,
 )
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
+from app.observability import (
+    configure_logging,
+    install_global_exception_hooks,
+    record_unhandled_exception,
 )
+
+configure_logging(level=os.environ.get("LOG_LEVEL", "INFO"), json_logs=False)
 log = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -232,7 +233,7 @@ async def import_municipio(
                 stats.get("updated", 0),
             )
         except Exception as exc:
-            log.error("AEMET %s: ERROR — %s", municipio_cod, exc)
+            log.exception("AEMET %s: ERROR — %s", municipio_cod, exc)
         return
 
     # --- Prioridad 2: Ibericam ---
@@ -268,7 +269,7 @@ async def import_municipio(
                 stats.get("updated", 0),
             )
         except Exception as exc:
-            log.error("Ibericam %s: ERROR — %s", municipio_cod, exc)
+            log.exception("Ibericam %s: ERROR — %s", municipio_cod, exc)
         return
 
     # --- Sin fuente ---
@@ -376,7 +377,7 @@ async def main(dry_run: bool = False) -> None:
                 if not dry_run:
                     await session.commit()
         except Exception as exc:
-            log.error(
+            log.exception(
                 "Error inesperado procesando municipio %s (%s): %s",
                 municipio_cod,
                 municipio_name,
@@ -393,6 +394,7 @@ async def main(dry_run: bool = False) -> None:
 
 
 if __name__ == "__main__":
+    install_global_exception_hooks(log)
     parser = argparse.ArgumentParser(
         description="Importa lluvia (AEMET / Ibericam) para todos los municipios con parcelas."
     )
@@ -402,4 +404,12 @@ if __name__ == "__main__":
         help="Muestra qué importaría sin escribir nada en la base de datos.",
     )
     args = parser.parse_args()
-    asyncio.run(main(dry_run=args.dry_run))
+    try:
+        asyncio.run(main(dry_run=args.dry_run))
+    except Exception:
+        record_unhandled_exception(
+            logger=log,
+            source="cron",
+            message="Fallo fatal en cron de importacion de lluvia.",
+        )
+        sys.exit(1)

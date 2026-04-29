@@ -23,12 +23,13 @@ from sqlalchemy.orm import sessionmaker
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.services.recurring_expenses_service import process_recurring_expenses
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
+from app.observability import (
+    configure_logging,
+    install_global_exception_hooks,
+    record_unhandled_exception,
 )
+
+configure_logging(level=os.environ.get("LOG_LEVEL", "INFO"), json_logs=False)
 log = logging.getLogger(__name__)
 
 
@@ -83,6 +84,7 @@ async def main(dry_run: bool = False) -> None:
 
 
 if __name__ == "__main__":
+    install_global_exception_hooks(log)
     parser = argparse.ArgumentParser(
         description="Genera los gastos recurrentes vencidos para todos los usuarios."
     )
@@ -92,4 +94,12 @@ if __name__ == "__main__":
         help="Muestra qué gastos crearía sin escribir nada en la base de datos.",
     )
     args = parser.parse_args()
-    asyncio.run(main(dry_run=args.dry_run))
+    try:
+        asyncio.run(main(dry_run=args.dry_run))
+    except Exception:
+        record_unhandled_exception(
+            logger=log,
+            source="cron",
+            message="Fallo fatal en cron de gastos recurrentes.",
+        )
+        sys.exit(1)

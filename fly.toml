@@ -19,6 +19,17 @@ primary_region = 'cdg'
   min_machines_running = 2
   processes = ['app']
 
+  [[http_service.checks]]
+    grace_period = "30s"
+    interval = "30s"
+    method = "GET"
+    timeout = "10s"
+    path = "/health"
+
+[metrics]
+  port = 8000
+  path = "/metrics"
+
 [[vm]]
   memory = '1gb'
   cpus = 1
