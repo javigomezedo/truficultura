@@ -24,67 +24,67 @@ Leyenda de estado:
 ### Hoja de Control
 
 Fase 0 - Preparacion
-- Estado: [ ]
-- Responsable:
-- Inicio:
-- Fin:
-- Evidencias (comandos/salidas clave):
+- Estado: [x]
+- Responsable: Javier / Copilot
+- Inicio: 2026-04-29 22:21
+- Fin: 2026-04-29 22:21
+- Evidencias (comandos/salidas clave): rama `chore/rebrand-trufiq`, tag `pre-trufiq-migration-20260429-2221`
 - Go/No-Go: NO-GO hasta tener tag pre-migracion
 
 Fase 1 - Inventario y linea base
-- Estado: [ ]
-- Responsable:
-- Inicio:
-- Fin:
-- Evidencias (ruta del inventario y resumen):
+- Estado: [x]
+- Responsable: Javier / Copilot
+- Inicio: 2026-04-29 22:21
+- Fin: 2026-04-29 22:22
+- Evidencias (ruta del inventario y resumen): `/tmp/trufiq_inventory_main.txt` (192), `/tmp/trufiq_inventory_aux.txt` (21), cobertura completa de archivos criticos
 - Go/No-Go: NO-GO si faltan archivos criticos en el inventario
 
 Fase 2 - Renombrado de repo
-- Estado: [ ]
-- Responsable:
-- Inicio:
-- Fin:
-- Evidencias (remote origin y push a rama):
+- Estado: [x]
+- Responsable: Javier / Copilot
+- Inicio: 2026-04-29 22:24
+- Fin: 2026-04-29 22:25
+- Evidencias (remote origin y push a rama): repo GitHub renombrado a `javigomezedo/trufiq`, `origin` actualizado y push de `chore/rebrand-trufiq` correcto
 - Go/No-Go: NO-GO si falla push al nuevo origin
 
 Fase 3 - Rebranding codigo/config
-- Estado: [ ]
-- Responsable:
-- Inicio:
-- Fin:
-- Evidencias (diff, lock actualizado, tests):
+- Estado: [x]
+- Responsable: Javier / Copilot
+- Inicio: 2026-04-29 22:27
+- Fin: 2026-04-29 22:30
+- Evidencias (diff, lock actualizado, tests): `uv lock` actualizado a `trufiq`, `pytest -q tests/` OK, 759 tests pasando, cobertura 82.20%
 - Go/No-Go: NO-GO si no hay tests verdes
 
 Fase 4 - CI/CD
-- Estado: [ ]
-- Responsable:
-- Inicio:
-- Fin:
-- Evidencias (run de CI y resultado):
+- Estado: [x]
+- Responsable: Javier / Copilot
+- Inicio: 2026-04-29 22:31
+- Fin: 2026-04-29 22:35
+- Evidencias (run de CI y resultado): workflow `CI` lanzado manualmente tras añadir `workflow_dispatch`, run `25132411182` completado con `success`
 - Go/No-Go: NO-GO si CI no esta en verde
 
 Fase 5 - Fly DEV en paralelo
-- Estado: [ ]
-- Responsable:
-- Inicio:
-- Fin:
-- Evidencias (status/checks/health/metrics):
+- Estado: [x]
+- Responsable: Javier / Copilot
+- Inicio: 2026-04-29 22:35
+- Fin: 2026-04-29 22:40
+- Evidencias (status/checks/health/metrics): app `trufiq-dev` creada, DB adjunta, `fly status` OK, checks passing, `/health` 200, `/login` devuelve `Iniciar sesión — Trufiq`, metricas custom visibles
 - Go/No-Go: NO-GO si health o checks fallan
 
 Fase 6 - DB y scripts operativos
-- Estado: [ ]
-- Responsable:
-- Inicio:
-- Fin:
-- Evidencias (alembic + tests integration):
+- Estado: [x]
+- Responsable: Javier / Copilot
+- Inicio: 2026-04-29 22:41
+- Fin: 2026-04-29 22:44
+- Evidencias (alembic + tests integration): `bash -n scripts/proxy-dev-db.sh` OK, `uv run alembic upgrade head` OK, `pytest -q --no-cov tests/integration` OK (16 passed)
 - Go/No-Go: NO-GO si integracion no esta en verde
 
 Fase 7 - Grafana y observabilidad
-- Estado: [ ]
-- Responsable:
-- Inicio:
-- Fin:
-- Evidencias (dashboard con datos + alertas):
+- Estado: [x]
+- Responsable: Javier / Copilot
+- Inicio: 2026-04-29 22:44
+- Fin: 2026-04-29 22:47
+- Evidencias (dashboard con datos + alertas): docs y dashboard actualizados a `trufiq-*`, sin restos de `truficultura-*` en nombres de entorno; metricas `truficultura_*` siguen presentes en `trufiq-dev`
 - Go/No-Go: NO-GO si no hay visibilidad en dashboard
 
 Fase 8 - STAGING y PROD

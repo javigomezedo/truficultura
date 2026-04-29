@@ -1,6 +1,6 @@
 # Monitorizacion y alertas (stack externo)
 
-Este directorio documenta el enfoque recomendado para Truficultura cuando el Grafana gestionado por Fly no permite administrar alertas.
+Este directorio documenta el enfoque recomendado para Trufiq cuando el Grafana gestionado por Fly no permite administrar alertas.
 
 Resumen de arquitectura recomendada:
 
@@ -40,14 +40,14 @@ Uso recomendado:
 
 - Importar el JSON en Grafana Cloud.
 - Seleccionar `Fly Prometheus DEV` como datasource inicial.
-- Mantener `truficultura-dev` como valor de `app` en DEV.
+- Mantener `trufiq-dev` como valor de `app` en DEV.
 - Duplicar o reimportar el mismo dashboard para STAGING y PROD cambiando:
 	- datasource a `Fly Prometheus STAGING` o `Fly Prometheus PROD`
-	- `app` a `truficultura-staging` o `truficultura-prod`
-	- folder a `Truficultura / STAGING` o `Truficultura / PROD`
+	- `app` a `trufiq-staging` o `trufiq-prod`
+	- folder a `Trufiq / STAGING` o `Trufiq / PROD`
 
 Comprobaciones base en Fly:
 
-- `fly status --app truficultura-dev`
-- `fly checks list --app truficultura-dev`
-- `curl -sS https://truficultura-dev.fly.dev/metrics | head`
+- `fly status --app trufiq-dev`
+- `fly checks list --app trufiq-dev`
+- `curl -sS https://trufiq-dev.fly.dev/metrics | head`
