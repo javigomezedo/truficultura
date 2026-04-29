@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 _NOMINATIM_TIMEOUT = 15.0
 # Nominatim ToS: identificar la aplicación con un User-Agent descriptivo.
-_USER_AGENT = "truficultura-app/1.0 (truffle-farm management; non-commercial)"
+_USER_AGENT = "trufiq-app/1.0 (truffle-farm management; non-commercial)"
 
 HttpGetJson = Callable[[str, dict, float], Any]
 

@@ -30,7 +30,7 @@ from app.utils import (
 _MAX_HISTORY_TURNS = 5
 _MAX_MESSAGE_LEN = 1000
 
-_APP_KNOWLEDGE = """Eres el asistente de Truficultura, una aplicación web para gestionar \
+_APP_KNOWLEDGE = """Eres el asistente de Trufiq, una aplicación web para gestionar \
 explotaciones trufícolas. Respondes siempre en español, con claridad y concisión. \
 No ejecutas acciones: solo explicas y consultas datos en modo lectura.
 

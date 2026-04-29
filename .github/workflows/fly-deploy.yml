@@ -19,21 +19,26 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
       - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Set deployment metadata
+        run: |
+          echo "APP_NAME=trufiq-dev" >> "$GITHUB_ENV"
+          echo "CRON_MACHINE_ID=${{ vars.FLY_CRON_MACHINE_ID_DEV }}" >> "$GITHUB_ENV"
       - run: flyctl deploy --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
       - name: Update cron machine image
+        if: ${{ vars.FLY_CRON_MACHINE_ID_DEV != '' }}
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
-          IMAGE=$(flyctl machine list --app truficultura-dev --json | python3 -c "
+          IMAGE=$(flyctl machine list --app "$APP_NAME" --json | python3 -c "
           import json, sys
           machines = json.load(sys.stdin)
           app_machines = [m for m in machines if m['config'].get('metadata', {}).get('fly_process_group') == 'app']
           print(app_machines[0]['config']['image'])
           ")
           echo "Updating cron machine with image: $IMAGE"
-          flyctl machine update d894945a7d55e8 --app truficultura-dev --image "$IMAGE" --yes
+          flyctl machine update "$CRON_MACHINE_ID" --app "$APP_NAME" --image "$IMAGE" --yes
       - name: Healthcheck post-deploy
         run: |
-          curl --fail --silent --show-error https://truficultura-dev.fly.dev/health
+          curl --fail --silent --show-error https://trufiq-dev.fly.dev/health

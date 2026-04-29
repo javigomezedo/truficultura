@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Truficultura{% endblock %}</title>
+    <title>{% block title %}Trufiq{% endblock %}</title>
     <link rel="icon" type="image/svg+xml" href="/static/img/favicon.svg">
     <link rel="shortcut icon" href="/static/img/favicon.svg">
 
@@ -26,7 +26,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
     <script>
         (function () {
-            var themeKey = 'truficultura-theme';
+            var themeKey = 'trufiq-theme';
             var validThemes = ['terracota-editorial', 'piedra-y-olivo', 'bodega-tecnica'];
             var selectedTheme = window.localStorage.getItem(themeKey) || 'bodega-tecnica';
             if (validThemes.indexOf(selectedTheme) === -1) {
@@ -48,7 +48,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark sticky-top tf-navbar">
         <div class="container-fluid">
             <a class="navbar-brand" href="/">
-                <span class="truffle-icon">&#127811;</span>Truficultura
+                <span class="truffle-icon">&#127811;</span>Trufiq
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                     data-bs-target="#navbarMain" aria-controls="navbarMain"
@@ -344,7 +344,7 @@
         {% elif sub_status and sub_status not in ("trialing", "active") %}
         <div class="alert alert-danger alert-dismissible fade show mb-0 rounded-0 border-0 border-bottom text-center py-2 small" role="alert">
             <i class="bi bi-exclamation-circle-fill me-1"></i>
-            {{ _("Tu suscripción ha finalizado. Renueva para seguir usando Truficultura.") }}
+            {{ _("Tu suscripción ha finalizado. Renueva para seguir usando Trufiq.") }}
             <a href="/billing/subscribe" class="alert-link ms-2">{{ _("Renovar suscripción") }}</a>
             <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert" aria-label="{{ _('Cerrar') }}"></button>
         </div>
@@ -357,7 +357,7 @@
     </main>
 
     <footer class="container-fluid text-center tf-footer">
-        <span>Truficultura &mdash; {{ _("Gestión de explotación trufícola") }}</span>
+        <span>Trufiq &mdash; {{ _("Gestión de explotación trufícola") }}</span>
     </footer>
 
     {% if request.session.get("username") %}
@@ -374,7 +374,7 @@
         <div class="tf-assistant-resize-handle" id="assistantResizeHandle" title="{{ _('Arrastrar para redimensionar') }}"></div>
         <div class="offcanvas-header">
             <h5 class="offcanvas-title" id="assistantPanelLabel">
-                <i class="bi bi-chat-square-text-fill me-2"></i>{{ _("Asistente Truficultura") }}
+                <i class="bi bi-chat-square-text-fill me-2"></i>{{ _("Asistente Trufiq") }}
             </h5>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="{{ _('Cerrar') }}"></button>
         </div>

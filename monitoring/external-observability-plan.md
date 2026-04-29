@@ -22,25 +22,25 @@ Tener control de errores, alertas y salud de infraestructura con un sistema exte
 Nombres sugeridos:
 
 - Apps Fly
-  - `truficultura-dev`
-  - `truficultura-staging`
-  - `truficultura-prod`
+  - `trufiq-dev`
+  - `trufiq-staging`
+  - `trufiq-prod`
 - Datasources
   - `Fly Prometheus DEV`
   - `Fly Prometheus STAGING`
   - `Fly Prometheus PROD`
 - Folders de alertas y dashboards
-  - `Truficultura / DEV`
-  - `Truficultura / STAGING`
-  - `Truficultura / PROD`
+  - `Trufiq / DEV`
+  - `Trufiq / STAGING`
+  - `Trufiq / PROD`
 - Evaluation groups
-  - `truficultura-dev-core`
-  - `truficultura-staging-core`
-  - `truficultura-prod-core`
+  - `trufiq-dev-core`
+  - `trufiq-staging-core`
+  - `trufiq-prod-core`
 
 Labels recomendados en todas las reglas:
 
-- `service=truficultura`
+- `service=trufiq`
 - `environment=dev|staging|prod`
 - `severity=warning|critical`
 - `team=backend`
@@ -74,11 +74,11 @@ Canales recomendados:
 
 2. Validar endpoint de metricas en dev
 - Ejecutar:
-  - curl -sS https://truficultura-dev.fly.dev/metrics
+  - curl -sS https://trufiq-dev.fly.dev/metrics
 - Verificar presencia de:
-  - truficultura_http_requests_total
-  - truficultura_http_request_duration_seconds
-  - truficultura_unhandled_exceptions_total
+  - trufiq_http_requests_total
+  - trufiq_http_request_duration_seconds
+  - trufiq_unhandled_exceptions_total
 
 3. Configurar logs estructurados
 - En secrets de Fly dev:
@@ -88,9 +88,9 @@ Canales recomendados:
 - Nota: si necesitas proteger /metrics con token para scrapers externos, usar METRICS_TOKEN y cabecera x-metrics-token.
 
 4. Verificacion de plataforma
-- fly status --app truficultura-dev
-- fly checks list --app truficultura-dev
-- fly logs --app truficultura-dev --no-tail | tail -n 80
+- fly status --app trufiq-dev
+- fly checks list --app trufiq-dev
+- fly logs --app trufiq-dev --no-tail | tail -n 80
 
 Criterio de salida Fase 1:
 - checks pasando
@@ -115,21 +115,21 @@ Criterio de salida Fase 1:
 - Panel latencia p95
 - Panel excepciones no controladas
 - Base exportable disponible en `monitoring/truficultura-overview-dashboard.json`
-- Importar en folder `Truficultura / DEV` usando datasource `Fly Prometheus DEV`
+- Importar en folder `Trufiq / DEV` usando datasource `Fly Prometheus DEV`
 
 4. Crear reglas de alerta DEV
 
 A) Excepciones no controladas (critical)
 - Query:
-  sum(increase(truficultura_unhandled_exceptions_total{app="truficultura-dev"}[5m]))
+  sum(increase(trufiq_unhandled_exceptions_total{app="trufiq-dev"}[5m]))
 - Condicion: > 0
 - For: 1m
 
 B) Ratio 5xx warning
 - Query:
-  sum(rate(fly_app_http_responses_count{app="truficultura-dev",status=~"5.."}[5m]))
+  sum(rate(fly_app_http_responses_count{app="trufiq-dev",status=~"5.."}[5m]))
   /
-  clamp_min(sum(rate(fly_app_http_responses_count{app="truficultura-dev"}[5m])), 0.001)
+  clamp_min(sum(rate(fly_app_http_responses_count{app="trufiq-dev"}[5m])), 0.001)
 - Condicion: > 0.05
 - For: 10m
 
@@ -140,7 +140,7 @@ C) Ratio 5xx critical
 
 D) Instancia down (critical)
 - Query:
-  max by (instance) (fly_instance_up{app="truficultura-dev"})
+  max by (instance) (fly_instance_up{app="trufiq-dev"})
 - Condicion: < 1
 - For: 2m
 
@@ -148,7 +148,7 @@ E) Latencia p95 warning
 - Query:
   histogram_quantile(
     0.95,
-    sum by (le) (rate(truficultura_http_request_duration_seconds_bucket{app="truficultura-dev"}[5m]))
+    sum by (le) (rate(trufiq_http_request_duration_seconds_bucket{app="trufiq-dev"}[5m]))
   )
 - Condicion: > 1.5
 - For: 10m
@@ -204,9 +204,9 @@ Objetivo:
 - token readonly dedicado a staging
 
 2. Clonar dashboards y reglas desde development
-- cambiar `app="truficultura-dev"` por `app="truficultura-staging"`
-- mover o duplicar en folder `Truficultura / STAGING`
-- usar evaluation group `truficultura-staging-core`
+- cambiar `app="trufiq-dev"` por `app="trufiq-staging"`
+- mover o duplicar en folder `Trufiq / STAGING`
+- usar evaluation group `trufiq-staging-core`
 - reutilizar `monitoring/truficultura-overview-dashboard.json` si prefieres reimportar desde fichero en vez de duplicar desde Grafana
 
 3. Endurecer notificaciones
@@ -230,7 +230,7 @@ Criterio de salida Fase 4:
 ## Fase 5 (PROD) - Paso a produccion
 
 1. Clonar dashboards y reglas de DEV a PROD
-- Cambiar filtros app a truficultura-prod.
+- Cambiar filtros app a trufiq-prod.
 - Mantener mismos nombres de alerta con prefijo PROD.
 - Reutilizar el mismo dashboard base exportable y ajustar variables por entorno.
 
@@ -262,9 +262,9 @@ Checklist exacto de promocion a PROD:
 - token readonly dedicado a PROD
 
 2. Clonar reglas desde STAGING
-- cambiar `app="truficultura-staging"` por `app="truficultura-prod"`
+- cambiar `app="trufiq-staging"` por `app="trufiq-prod"`
 - mantener mismo folder pero con subcarpeta o prefijo PROD
-- mantener mismo evaluation group o crear `truficultura-prod-core`
+- mantener mismo evaluation group o crear `trufiq-prod-core`
 
 3. Ajustar umbrales y comportamiento por regla
 - `Unhandled exceptions`
@@ -335,7 +335,7 @@ Beneficio:
 
 - Finalidad: detectar roturas funcionales y validar cambios de observabilidad.
 - Datasource: `Fly Prometheus DEV`.
-- Folder: `Truficultura / DEV`.
+- Folder: `Trufiq / DEV`.
 - Canales: email unico o Slack de desarrollo.
 - Politica: tolerar algo mas de ruido; sirve para aprender y ajustar.
 
@@ -343,7 +343,7 @@ Beneficio:
 
 - Finalidad: validar que las reglas se comportan como en produccion antes de promocionar.
 - Datasource: `Fly Prometheus STAGING`.
-- Folder: `Truficultura / STAGING`.
+- Folder: `Trufiq / STAGING`.
 - Canales: Slack de equipo + email tecnico.
 - Politica: casi igual que PROD; solo reducir ruido si staging tiene muy poco trafico.
 
@@ -351,6 +351,6 @@ Beneficio:
 
 - Finalidad: detectar incidentes reales y disparar respuesta operativa.
 - Datasource: `Fly Prometheus PROD`.
-- Folder: `Truficultura / PROD`.
+- Folder: `Trufiq / PROD`.
 - Canales: on-call/PagerDuty + Slack + email.
 - Politica: minima tolerancia a falsos negativos; labels y ownership cerrados.

@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = "postgresql+asyncpg://user:password@localhost:5432/truficultura"
+    DATABASE_URL: str = "postgresql+asyncpg://user:password@localhost:5432/trufiq"
     SECRET_KEY: str = "change-me-in-production-please"
     OPENAI_API_KEY: Optional[str] = None
     AEMET_API_KEY: Optional[str] = None
@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USER: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
-    SMTP_FROM: str = "noreply@truficultura.app"
+    SMTP_FROM: str = "noreply@trufiq.app"
     SMTP_TLS: bool = True   # STARTTLS (puerto 587)
     SMTP_SSL: bool = False  # SSL directo (puerto 465)
     # Dirección de destino para notificaciones de leads. Si no se define, usa SMTP_FROM.

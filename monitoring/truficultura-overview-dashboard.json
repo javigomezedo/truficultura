@@ -83,7 +83,7 @@
                         "uid": "${datasource}"
                     },
                     "editorMode": "code",
-                    "expr": "sum(rate(truficultura_http_requests_total{app=~\"$app\", path!~\"/health|/metrics|/static/.*|/favicon.ico|/favicon.svg\"}[5m]))",
+                    "expr": "sum(rate(trufiq_http_requests_total{app=~\"$app\", path!~\"/health|/metrics|/static/.*|/favicon.ico|/favicon.svg\"}[5m]))",
                     "legendFormat": "req/s",
                     "range": true,
                     "refId": "A"
@@ -223,7 +223,7 @@
                         "uid": "${datasource}"
                     },
                     "editorMode": "code",
-                    "expr": "histogram_quantile(0.95, sum by (le) (rate(truficultura_http_request_duration_seconds_bucket{app=~\"$app\", path!~\"/health|/metrics|/static/.*|/favicon.ico|/favicon.svg\"}[5m])))",
+                    "expr": "histogram_quantile(0.95, sum by (le) (rate(trufiq_http_request_duration_seconds_bucket{app=~\"$app\", path!~\"/health|/metrics|/static/.*|/favicon.ico|/favicon.svg\"}[5m])))",
                     "legendFormat": "p95",
                     "range": true,
                     "refId": "A"
@@ -293,7 +293,7 @@
                         "uid": "${datasource}"
                     },
                     "editorMode": "code",
-                    "expr": "sum(increase(truficultura_unhandled_exceptions_total{app=~\"$app\"}[5m]))",
+                    "expr": "sum(increase(trufiq_unhandled_exceptions_total{app=~\"$app\"}[5m]))",
                     "legendFormat": "exceptions",
                     "range": true,
                     "refId": "A"
@@ -361,7 +361,7 @@
                         "uid": "${datasource}"
                     },
                     "editorMode": "code",
-                    "expr": "sum by (path) (rate(truficultura_http_requests_total{app=~\"$app\", path!~\"/health|/metrics|/static/.*|/favicon.ico|/favicon.svg\"}[5m]))",
+                    "expr": "sum by (path) (rate(trufiq_http_requests_total{app=~\"$app\", path!~\"/health|/metrics|/static/.*|/favicon.ico|/favicon.svg\"}[5m]))",
                     "legendFormat": "{{path}}",
                     "range": true,
                     "refId": "A"
@@ -429,7 +429,7 @@
                         "uid": "${datasource}"
                     },
                     "editorMode": "code",
-                    "expr": "sum by (status) (rate(truficultura_http_requests_total{app=~\"$app\"}[5m]))",
+                    "expr": "sum by (status) (rate(trufiq_http_requests_total{app=~\"$app\"}[5m]))",
                     "legendFormat": "{{status}}",
                     "range": true,
                     "refId": "A"
@@ -497,7 +497,7 @@
                         "uid": "${datasource}"
                     },
                     "editorMode": "code",
-                    "expr": "histogram_quantile(0.95, sum by (le, path) (rate(truficultura_http_request_duration_seconds_bucket{app=~\"$app\", path!~\"/health|/metrics|/static/.*|/favicon.ico|/favicon.svg\"}[5m])))",
+                    "expr": "histogram_quantile(0.95, sum by (le, path) (rate(trufiq_http_request_duration_seconds_bucket{app=~\"$app\", path!~\"/health|/metrics|/static/.*|/favicon.ico|/favicon.svg\"}[5m])))",
                     "legendFormat": "{{path}}",
                     "range": true,
                     "refId": "A"
@@ -635,7 +635,7 @@
                         "uid": "${datasource}"
                     },
                     "editorMode": "code",
-                    "expr": "sum by (class) (label_replace(rate(truficultura_http_requests_total{app=~\"$app\", path!~\"/health|/metrics|/static/.*|/favicon.ico|/favicon.svg\"}[5m]), \"class\", \"${1}xx\", \"status\", \"([0-9])[0-9][0-9]\"))",
+                    "expr": "sum by (class) (label_replace(rate(trufiq_http_requests_total{app=~\"$app\", path!~\"/health|/metrics|/static/.*|/favicon.ico|/favicon.svg\"}[5m]), \"class\", \"${1}xx\", \"status\", \"([0-9])[0-9][0-9]\"))",
                     "legendFormat": "{{class}}",
                     "range": true,
                     "refId": "A"
@@ -649,7 +649,7 @@
     "schemaVersion": 39,
     "style": "dark",
     "tags": [
-        "truficultura",
+        "trufiq",
         "observability",
         "fly",
         "prometheus"
@@ -677,8 +677,8 @@
             {
                 "current": {
                     "selected": true,
-                    "text": "truficultura-dev",
-                    "value": "truficultura-dev"
+                    "text": "trufiq-dev",
+                    "value": "trufiq-dev"
                 },
                 "hide": 0,
                 "includeAll": false,
@@ -688,21 +688,21 @@
                 "options": [
                     {
                         "selected": true,
-                        "text": "truficultura-dev",
-                        "value": "truficultura-dev"
+                        "text": "trufiq-dev",
+                        "value": "trufiq-dev"
                     },
                     {
                         "selected": false,
-                        "text": "truficultura-staging",
-                        "value": "truficultura-staging"
+                        "text": "trufiq-staging",
+                        "value": "trufiq-staging"
                     },
                     {
                         "selected": false,
-                        "text": "truficultura-prod",
-                        "value": "truficultura-prod"
+                        "text": "trufiq-prod",
+                        "value": "trufiq-prod"
                     }
                 ],
-                "query": "truficultura-dev,truficultura-staging,truficultura-prod",
+                "query": "trufiq-dev,trufiq-staging,trufiq-prod",
                 "skipUrlSync": false,
                 "type": "custom"
             }
@@ -714,8 +714,8 @@
     },
     "timepicker": {},
     "timezone": "browser",
-    "title": "Truficultura / Overview",
-    "uid": "truficultura-overview",
+    "title": "Trufiq / Overview",
+    "uid": "trufiq-overview",
     "version": 2,
     "weekStart": ""
 }

@@ -1,10 +1,10 @@
-# Truficultura
+# Trufiq
 
 Aplicación web para la gestión integral de una explotación trufícola: parcelas, producción por planta, pozos, riego, gastos, ingresos, rentabilidad por campañas, KPIs, gráficas de evolución, lluvia, meteorología y suscripción de pago.
 
 ## 1. Resumen del proyecto
 
-Truficultura permite registrar y analizar la actividad económica de una explotación de trufa con una lógica de campañas agrícolas (de mayo a abril).
+Trufiq permite registrar y analizar la actividad económica de una explotación de trufa con una lógica de campañas agrícolas (de mayo a abril).
 
 ### Qué resuelve
 
@@ -462,7 +462,7 @@ cp .env.example .env
 2. Edita `.env` con tu conexión real y los secretos necesarios:
 
 ```env
-DATABASE_URL=postgresql+asyncpg://usuario:password@localhost:5432/truficultura
+DATABASE_URL=postgresql+asyncpg://usuario:password@localhost:5432/trufiq
 SECRET_KEY=una-clave-secreta-larga-y-aleatoria
 
 # Stripe (opcional; sin configurar, el billing queda deshabilitado)
@@ -477,8 +477,8 @@ SMTP_HOST=smtp.ejemplo.com
 SMTP_PORT=587
 SMTP_USER=usuario@ejemplo.com
 SMTP_PASSWORD=contraseña
-SMTP_FROM=noreply@truficultura.app
-CONTACT_EMAIL=admin@truficultura.app
+SMTP_FROM=noreply@trufiq.app
+CONTACT_EMAIL=admin@trufiq.app
 
 # AEMET (opcional; para importación de lluvia y meteorología)
 AEMET_API_KEY=tu_api_key_aemet
@@ -529,7 +529,7 @@ Abrir en navegador:
 Ejemplo de `DATABASE_URL` para la base de datos del `docker-compose.yml` actual:
 
 ```env
-DATABASE_URL=postgresql+asyncpg://trufi:trufi@localhost:5433/truficultura
+DATABASE_URL=postgresql+asyncpg://trufi:trufi@localhost:5433/trufiq
 ```
 
 ### 1) Levantar PostgreSQL local con Docker Compose
@@ -541,13 +541,13 @@ docker compose up -d db
 ### 2) Construir la imagen de la app
 
 ```bash
-docker build -t truficultura:local .
+docker build -t trufiq:local .
 ```
 
 ### 3) Ejecutar la app en contenedor
 
 ```bash
-docker run --rm -p 8000:8000 --env-file .env truficultura:local
+docker run --rm -p 8000:8000 --env-file .env trufiq:local
 ```
 
 Notas:
@@ -592,14 +592,14 @@ Mantén esta terminal abierta mientras uses el cliente.
 
 - Host: `localhost`
 - Port: `5434`
-- Database: `truficultura_dev`
+- Database: `trufiq_dev`
 - User: `postgres`
-- Password: usa la variable local `TRUFICULTURA_DB_DEV_PASSWORD`
+- Password: usa la variable local `TRUFIQ_DB_DEV_PASSWORD`
 
 Connection string:
 
 ```text
-postgresql://postgres:<password>@localhost:5434/truficultura_dev
+postgresql://postgres:<password>@localhost:5434/trufiq_dev
 ```
 
 Puedes obtener la password desde Fly cuando la necesites:
@@ -611,7 +611,7 @@ flyctl postgres credentials --app truficultura-db-dev
 Y guardarla solo en local en un `.env` (no versionado):
 
 ```env
-TRUFICULTURA_DB_DEV_PASSWORD=tu_password_real
+TRUFIQ_DB_DEV_PASSWORD=tu_password_real
 ```
 
 Nota: Se usa `5434` para evitar conflicto con PostgreSQL local (`5432`) y con `docker-compose` (`5433`).
@@ -943,9 +943,9 @@ Resultado actual de referencia:
 ### Verificación rápida de entorno dev
 
 ```bash
-curl -sS -i https://truficultura-dev.fly.dev/health | head -n 20
-flyctl status --app truficultura-dev
-flyctl logs --app truficultura-dev --no-tail | tail -n 120
+curl -sS -i https://trufiq-dev.fly.dev/health | head -n 20
+flyctl status --app trufiq-dev
+flyctl logs --app trufiq-dev --no-tail | tail -n 120
 ```
 
 ### Rollback rápido (imagen previa)
@@ -963,10 +963,10 @@ flyctl logs --app truficultura-dev --no-tail | tail -n 120
 La app incorpora observabilidad base para detectar fallos sin vigilancia manual:
 
 - Logging centralizado (app y crons) con stacktrace en excepciones no controladas.
-- Contador Prometheus de excepciones no controladas: `truficultura_unhandled_exceptions_total`.
+- Contador Prometheus de excepciones no controladas: `trufiq_unhandled_exceptions_total`.
 - Métricas HTTP:
-  - `truficultura_http_requests_total`
-  - `truficultura_http_request_duration_seconds`
+  - `trufiq_http_requests_total`
+  - `trufiq_http_request_duration_seconds`
 - Endpoint de scrape: `/metrics` (opcionalmente protegido por `METRICS_TOKEN`).
 
 ### Variables recomendadas en producción
@@ -991,15 +991,15 @@ Si usas Prometheus + Grafana, crea al menos estas alertas:
 1. Errores no controlados en aplicación/crons
 
 ```promql
-sum(increase(truficultura_unhandled_exceptions_total[5m])) > 0
+sum(increase(trufiq_unhandled_exceptions_total[5m])) > 0
 ```
 
 2. Tasa alta de respuestas 5xx
 
 ```promql
-sum(rate(truficultura_http_requests_total{status=~"5.."}[5m]))
+sum(rate(trufiq_http_requests_total{status=~"5.."}[5m]))
 /
-sum(rate(truficultura_http_requests_total[5m]))
+sum(rate(trufiq_http_requests_total[5m]))
 > 0.05
 ```
 
@@ -1008,7 +1008,7 @@ sum(rate(truficultura_http_requests_total[5m]))
 ```promql
 histogram_quantile(
   0.95,
-  sum by (le) (rate(truficultura_http_request_duration_seconds_bucket[5m]))
+  sum by (le) (rate(trufiq_http_request_duration_seconds_bucket[5m]))
 ) > 1.5
 ```
 

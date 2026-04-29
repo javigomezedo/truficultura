@@ -5,10 +5,10 @@
 # Parámetros de conexión (úsalos en tu cliente SQL):
 #   Host:     localhost
 #   Port:     5434
-#   Database: truficultura_dev
+#   Database: trufiq_dev
 #   User:     postgres
-#   Password: variable local TRUFICULTURA_DB_DEV_PASSWORD
-#   URL:      postgresql://postgres:<password>@localhost:5434/truficultura_dev
+#   Password: variable local TRUFIQ_DB_DEV_PASSWORD
+#   URL:      postgresql://postgres:<password>@localhost:5434/trufiq_dev
 
 set -euo pipefail
 
@@ -18,21 +18,22 @@ if [ -f .env ]; then
 	source .env
 fi
 
-DB_PASSWORD="${TRUFICULTURA_DB_DEV_PASSWORD:-}"
+# Compatibilidad temporal con el nombre antiguo de variable local.
+DB_PASSWORD="${TRUFIQ_DB_DEV_PASSWORD:-${TRUFICULTURA_DB_DEV_PASSWORD:-}}"
 
 if [ -z "$DB_PASSWORD" ]; then
-	echo "TRUFICULTURA_DB_DEV_PASSWORD no definida; intentando obtenerla desde Fly..."
+	echo "TRUFIQ_DB_DEV_PASSWORD no definida; intentando obtenerla desde Fly..."
 	DB_PASSWORD="$(flyctl postgres credentials --app truficultura-db-dev 2>/dev/null | awk '/Password:/ {print $2; exit}')"
 fi
 
 if [ -z "$DB_PASSWORD" ]; then
 	echo "No se pudo obtener la password."
-	echo "Define TRUFICULTURA_DB_DEV_PASSWORD en .env o ejecuta flyctl postgres credentials --app truficultura-db-dev"
+	echo "Define TRUFIQ_DB_DEV_PASSWORD en .env o ejecuta flyctl postgres credentials --app truficultura-db-dev"
 	exit 1
 fi
 
 echo "Iniciando proxy → truficultura-db-dev (localhost:5434)"
-echo "Conecta tu cliente a: postgresql://postgres:${DB_PASSWORD}@localhost:5434/truficultura_dev"
+echo "Conecta tu cliente a: postgresql://postgres:${DB_PASSWORD}@localhost:5434/trufiq_dev"
 echo "Ctrl+C para cerrar el proxy"
 echo ""
 

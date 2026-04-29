@@ -317,8 +317,8 @@ msgid "Asistente"
 msgstr "Assistant"
 
 #: app/templates/base.html:270
-msgid "Asistente Truficultura"
-msgstr "Truficultura Assistant"
+msgid "Asistente Trufiq"
+msgstr "Trufiq Assistant"
 
 #: app/templates/base.html:276
 msgid "Pregúntame sobre uso de la app y sobre tus datos (modo lectura)."
@@ -662,8 +662,8 @@ msgid "Explotación y rentabilidad"
 msgstr "Farm and profitability"
 
 #: app/templates/auth/login.html:57
-msgid "Truficultura con presencia más profesional."
-msgstr "Truficultura with a more professional presence."
+msgid "Trufiq con presencia más profesional."
+msgstr "Trufiq with a more professional presence."
 
 #: app/templates/auth/login.html:58
 msgid ""
