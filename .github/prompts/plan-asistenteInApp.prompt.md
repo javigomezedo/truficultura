@@ -63,12 +63,12 @@ Enfoque recomendado: implementar por fases con base de arquitectura estable desd
 - Cons: sobrecoste inicial alto, más piezas a mantener, no ideal para primera iteración.
 
 **Relevant files**
-- /Users/javiergomez/Dev/Sandbox/truficultura/app/main.py — incluir nuevo router y cableado general.
-- /Users/javiergomez/Dev/Sandbox/truficultura/app/auth.py — reutilizar dependencias de autenticación y sesión.
-- /Users/javiergomez/Dev/Sandbox/truficultura/app/templates/base.html — punto ideal para inyectar widget global del chat.
-- /Users/javiergomez/Dev/Sandbox/truficultura/app/services/ — capa para lógica de negocio del asistente y recuperación de contexto del usuario.
-- /Users/javiergomez/Dev/Sandbox/truficultura/tests/ — cobertura de router y servicios del asistente siguiendo patrón actual de tests.
-- /Users/javiergomez/Dev/Sandbox/truficultura/pyproject.toml — dependencias del proveedor LLM/cliente HTTP si son necesarias.
+- app/main.py — incluir nuevo router y cableado general.
+- app/auth.py — reutilizar dependencias de autenticación y sesión.
+- app/templates/base.html — punto ideal para inyectar widget global del chat.
+- app/services/ — capa para lógica de negocio del asistente y recuperación de contexto del usuario.
+- tests/ — cobertura de router y servicios del asistente siguiendo patrón actual de tests.
+- pyproject.toml — dependencias del proveedor LLM/cliente HTTP si son necesarias.
 
 **Verification**
 1. Verificar que una consulta de usuario A nunca retorna información de usuario B (pruebas de aislamiento por user_id).

@@ -11,7 +11,7 @@ Resumen de arquitectura recomendada:
 Documento principal:
 
 - `monitoring/external-observability-plan.md`
-- `monitoring/truficultura-overview-dashboard.json`
+- `monitoring/trufiq-overview-dashboard.json`
 
 Estado:
 
@@ -32,7 +32,7 @@ Diseno recomendado:
 
 Dashboard base disponible:
 
-- `monitoring/truficultura-overview-dashboard.json`
+- `monitoring/trufiq-overview-dashboard.json`
 - Pensado para importar primero en DEV.
 - Reutilizable en STAGING y PROD cambiando datasource y app.
 

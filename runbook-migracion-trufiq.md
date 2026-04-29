@@ -1,6 +1,6 @@
 # Runbook Operativo: Migracion de Nombre a Trufiq
 
-Objetivo: ejecutar el rebranding de Truficultura a Trufiq con riesgo bajo, validaciones por fase y rollback claro.
+Objetivo: ejecutar el rebranding completo a Trufiq con riesgo bajo, validaciones por fase y rollback claro.
 
 Duracion estimada:
 - DEV completo: 2-3 horas.
@@ -84,7 +84,7 @@ Fase 7 - Grafana y observabilidad
 - Responsable: Javier / Copilot
 - Inicio: 2026-04-29 22:44
 - Fin: 2026-04-29 22:47
-- Evidencias (dashboard con datos + alertas): docs y dashboard actualizados a `trufiq-*`, sin restos de `truficultura-*` en nombres de entorno; metricas `truficultura_*` siguen presentes en `trufiq-dev`
+- Evidencias (dashboard con datos + alertas): docs y dashboard actualizados a `trufiq-*`, sin restos de naming anterior en nombres de entorno; metricas `trufiq_*` visibles en `trufiq-dev`
 - Go/No-Go: NO-GO si no hay visibilidad en dashboard
 
 Fase 8 - STAGING y PROD
@@ -164,13 +164,13 @@ Objetivo: capturar donde vive el nombre actual para no dejar restos criticos.
 
 Comandos:
 ```bash
-rg -n "truficultura|TRUFICULTURA|truficultura-dev|truficultura-staging|truficultura-prod" .
-rg -n "TRUFICULTURA_DB_DEV_PASSWORD|truficultura-theme|truficultura-overview" .
+rg -n "trufiq|TRUFIQ|trufiq-dev|trufiq-staging|trufiq-prod" .
+rg -n "TRUFIQ_DB_DEV_PASSWORD|trufiq-theme|trufiq-overview" .
 ```
 
 Validacion:
 - Guardar salida en un archivo temporal local para checklist de cierre.
-- Confirmar que aparecen al menos estos archivos clave: `pyproject.toml`, `fly.toml`, `.github/workflows/ci.yml`, `.github/workflows/fly-deploy.yml`, `app/main.py`, `app/config.py`, `app/observability.py`, `monitoring/README.md`, `monitoring/truficultura-overview-dashboard.json`, `README.md`.
+- Confirmar que aparecen al menos estos archivos clave: `pyproject.toml`, `fly.toml`, `.github/workflows/ci.yml`, `.github/workflows/fly-deploy.yml`, `app/main.py`, `app/config.py`, `app/observability.py`, `monitoring/README.md`, `monitoring/trufiq-overview-dashboard.json`, `README.md`.
 
 Go/No-Go:
 - Si faltan archivos esperados en el inventario, parar y revisar.
@@ -226,7 +226,7 @@ Convencion en esta fase:
 
 Comandos de control:
 ```bash
-rg -n "Truficultura|truficultura" app locales README.md pyproject.toml .env.example
+rg -n "Trufiq|trufiq" app locales README.md pyproject.toml .env.example
 uv lock
 uv run pytest
 ```
@@ -325,7 +325,7 @@ Validacion:
 Objetivo: dashboards y alertas apuntando al nuevo app label.
 
 Archivos:
-- `monitoring/truficultura-overview-dashboard.json`
+- `monitoring/trufiq-overview-dashboard.json`
 - `monitoring/README.md`
 - `monitoring/external-observability-plan.md`
 - `app/observability.py`
@@ -388,7 +388,7 @@ Objetivo: cerrar migracion y retirar legado.
 
 Comandos:
 ```bash
-rg -n "Truficultura|truficultura" .
+rg -n "Trufiq|trufiq" .
 git status
 uv run pytest
 ```

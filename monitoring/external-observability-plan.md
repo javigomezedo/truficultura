@@ -114,7 +114,7 @@ Criterio de salida Fase 1:
 - Panel ratio 5xx
 - Panel latencia p95
 - Panel excepciones no controladas
-- Base exportable disponible en `monitoring/truficultura-overview-dashboard.json`
+- Base exportable disponible en `monitoring/trufiq-overview-dashboard.json`
 - Importar en folder `Trufiq / DEV` usando datasource `Fly Prometheus DEV`
 
 4. Crear reglas de alerta DEV
@@ -207,7 +207,7 @@ Objetivo:
 - cambiar `app="trufiq-dev"` por `app="trufiq-staging"`
 - mover o duplicar en folder `Trufiq / STAGING`
 - usar evaluation group `trufiq-staging-core`
-- reutilizar `monitoring/truficultura-overview-dashboard.json` si prefieres reimportar desde fichero en vez de duplicar desde Grafana
+- reutilizar `monitoring/trufiq-overview-dashboard.json` si prefieres reimportar desde fichero en vez de duplicar desde Grafana
 
 3. Endurecer notificaciones
 - `warning` -> Slack de equipo

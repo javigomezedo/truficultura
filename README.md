@@ -575,7 +575,7 @@ docker compose down
 
 ## 3.2 Conectar a la DB dev de Fly.io desde local
 
-Para conectarte a `truficultura-db-dev` desde tu cliente SQL local, usa el proxy de Fly.
+Para conectarte a `trufiq-db-dev` desde tu cliente SQL local, usa el proxy de Fly.
 
 ### 1) Levantar el proxy
 
@@ -585,7 +585,7 @@ Se incluye un script auxiliar:
 ./scripts/proxy-dev-db.sh
 ```
 
-Este comando abre un túnel local en `localhost:5434` hacia `truficultura-db-dev`.
+Este comando abre un túnel local en `localhost:5434` hacia `trufiq-db-dev`.
 Mantén esta terminal abierta mientras uses el cliente.
 
 ### 2) Parámetros de conexión
@@ -605,7 +605,7 @@ postgresql://postgres:<password>@localhost:5434/trufiq_dev
 Puedes obtener la password desde Fly cuando la necesites:
 
 ```bash
-flyctl postgres credentials --app truficultura-db-dev
+flyctl postgres connect -a trufiq-db-dev -d postgres
 ```
 
 Y guardarla solo en local en un `.env` (no versionado):
@@ -1016,7 +1016,7 @@ histogram_quantile(
 
 Además de métricas de app, configura alertas de plataforma para:
 
-- Máquina caída / no healthy en `truficultura-dev`.
+- Máquina caída / no healthy en `trufiq-dev`.
 - Reinicios anómalos de máquina.
 - Errores de conexión a PostgreSQL.
 - Fallo de ejecución en la machine de cron.
