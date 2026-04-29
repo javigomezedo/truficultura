@@ -113,7 +113,7 @@
 
 19. **Local**: test keys en `.env`. Stripe CLI: `stripe listen --forward-to localhost:8000/stripe/webhook` (el CLI genera su propio `whsec_` temporal que va en `STRIPE_WEBHOOK_SECRET` del `.env`)
 
-20. **DEV** (`truficultura-dev`): `fly secrets set STRIPE_SECRET_KEY=sk_test_... STRIPE_WEBHOOK_SECRET=whsec_dev_...`. Registrar `https://truficultura-dev.fly.dev/stripe/webhook` en Stripe Dashboard
+20. **DEV** (`trufiq-dev`): `fly secrets set STRIPE_SECRET_KEY=sk_test_... STRIPE_WEBHOOK_SECRET=whsec_dev_...`. Registrar `https://trufiq-dev.fly.dev/stripe/webhook` en Stripe Dashboard
 
 21. **Staging** (futuro): misma mecánica que DEV, endpoint propio en Dashboard, `whsec_staging` propio. `STRIPE_PRICE_ID` puede apuntar a un precio de test diferente
 

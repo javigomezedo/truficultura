@@ -1,7 +1,7 @@
 # Plan: Funcionalidad de Riego (Irrigation)
 
 ## TL;DR
-Añadir gestión de riego al sistema de truficultura. Implica: (1) flag `has_irrigation` en parcelas, (2) nuevo modelo `IrrigationRecord`, (3) servicio + router + templates CRUD completos, (4) migración Alembic. Agua en m³ (se mostrará también en litros), solo parcelas con riego activado, gastos vinculados solo de categoría "Riego", campo de notas opcional.
+Añadir gestión de riego al sistema de trufiq. Implica: (1) flag `has_irrigation` en parcelas, (2) nuevo modelo `IrrigationRecord`, (3) servicio + router + templates CRUD completos, (4) migración Alembic. Agua en m³ (se mostrará también en litros), solo parcelas con riego activado, gastos vinculados solo de categoría "Riego", campo de notas opcional.
 
 ---
 

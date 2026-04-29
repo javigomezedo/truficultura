@@ -15,4 +15,4 @@ htmlcov/
 *.db
 tests/
 import_data/
-truficultura.code-workspace
+*.code-workspace
