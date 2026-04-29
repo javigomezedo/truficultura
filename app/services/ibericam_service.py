@@ -118,13 +118,13 @@ async def _default_post_json(url: str, body: Any, timeout: float) -> Any:
                     headers={"Content-Type": "application/json; charset=UTF-8"},
                 )
                 if resp.status_code >= 500:
-                    # Retry transient server errors with backoff
+                    # Retry transient server errors with backoff (0.5s, 1s, 2s)
                     last_exc = httpx.HTTPStatusError(
                         f"{resp.status_code} (retry {attempt + 1}/3)",
                         request=resp.request,
                         response=resp,
                     )
-                    await asyncio.sleep(2**attempt)
+                    await asyncio.sleep(0.5 * (2**attempt))
                     continue
                 resp.raise_for_status()
                 return resp.json()
