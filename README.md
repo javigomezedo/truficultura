@@ -963,10 +963,10 @@ flyctl logs --app trufiq-dev --no-tail | tail -n 120
 La app incorpora observabilidad base para detectar fallos sin vigilancia manual:
 
 - Logging centralizado (app y crons) con stacktrace en excepciones no controladas.
-- Contador Prometheus de excepciones no controladas: `truficultura_unhandled_exceptions_total`.
+- Contador Prometheus de excepciones no controladas: `trufiq_unhandled_exceptions_total`.
 - Métricas HTTP:
-  - `truficultura_http_requests_total`
-  - `truficultura_http_request_duration_seconds`
+  - `trufiq_http_requests_total`
+  - `trufiq_http_request_duration_seconds`
 - Endpoint de scrape: `/metrics` (opcionalmente protegido por `METRICS_TOKEN`).
 
 ### Variables recomendadas en producción
@@ -991,15 +991,15 @@ Si usas Prometheus + Grafana, crea al menos estas alertas:
 1. Errores no controlados en aplicación/crons
 
 ```promql
-sum(increase(truficultura_unhandled_exceptions_total[5m])) > 0
+sum(increase(trufiq_unhandled_exceptions_total[5m])) > 0
 ```
 
 2. Tasa alta de respuestas 5xx
 
 ```promql
-sum(rate(truficultura_http_requests_total{status=~"5.."}[5m]))
+sum(rate(trufiq_http_requests_total{status=~"5.."}[5m]))
 /
-sum(rate(truficultura_http_requests_total[5m]))
+sum(rate(trufiq_http_requests_total[5m]))
 > 0.05
 ```
 
@@ -1008,7 +1008,7 @@ sum(rate(truficultura_http_requests_total[5m]))
 ```promql
 histogram_quantile(
   0.95,
-  sum by (le) (rate(truficultura_http_request_duration_seconds_bucket[5m]))
+  sum by (le) (rate(trufiq_http_request_duration_seconds_bucket[5m]))
 ) > 1.5
 ```
 

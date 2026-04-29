@@ -12,17 +12,17 @@ from fastapi import Request, Response
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 
 REQUEST_COUNTER = Counter(
-    "truficultura_http_requests_total",
+    "trufiq_http_requests_total",
     "Total de peticiones HTTP",
     ["method", "path", "status"],
 )
 REQUEST_LATENCY = Histogram(
-    "truficultura_http_request_duration_seconds",
+    "trufiq_http_request_duration_seconds",
     "Duracion de peticiones HTTP en segundos",
     ["method", "path"],
 )
 UNHANDLED_EXCEPTIONS_COUNTER = Counter(
-    "truficultura_unhandled_exceptions_total",
+    "trufiq_unhandled_exceptions_total",
     "Total de excepciones no controladas",
     ["source"],
 )

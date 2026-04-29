@@ -76,9 +76,9 @@ Canales recomendados:
 - Ejecutar:
   - curl -sS https://trufiq-dev.fly.dev/metrics
 - Verificar presencia de:
-  - truficultura_http_requests_total
-  - truficultura_http_request_duration_seconds
-  - truficultura_unhandled_exceptions_total
+  - trufiq_http_requests_total
+  - trufiq_http_request_duration_seconds
+  - trufiq_unhandled_exceptions_total
 
 3. Configurar logs estructurados
 - En secrets de Fly dev:
@@ -121,7 +121,7 @@ Criterio de salida Fase 1:
 
 A) Excepciones no controladas (critical)
 - Query:
-  sum(increase(truficultura_unhandled_exceptions_total{app="trufiq-dev"}[5m]))
+  sum(increase(trufiq_unhandled_exceptions_total{app="trufiq-dev"}[5m]))
 - Condicion: > 0
 - For: 1m
 
@@ -148,7 +148,7 @@ E) Latencia p95 warning
 - Query:
   histogram_quantile(
     0.95,
-    sum by (le) (rate(truficultura_http_request_duration_seconds_bucket{app="trufiq-dev"}[5m]))
+    sum by (le) (rate(trufiq_http_request_duration_seconds_bucket{app="trufiq-dev"}[5m]))
   )
 - Condicion: > 1.5
 - For: 10m

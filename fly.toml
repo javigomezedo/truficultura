@@ -42,7 +42,7 @@ primary_region = 'cdg'
 # Máquina gestionada MANUALMENTE (fly deploy no la toca — las scheduled machines
 # no son compatibles con el ciclo de deploy de procesos regulares en fly.io).
 #
-# Machine: d894945a7d55e8 (lingering-darkness-4100, 256 MB, región cdg)
+# Machine: 287e6dece12e68 (trufiq-dev-cron, 256 MB, región cdg)
 #   schedule: daily | env: RUN_MIGRATIONS=0
 #   cmd: sh -c 'python scripts/import_rainfall_cron.py; python scripts/process_recurring_expenses_cron.py'
 #   NOTA: usa ; (no &&) para que el segundo script siempre se ejecute aunque el primero falle.
