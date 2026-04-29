@@ -339,27 +339,30 @@ async def main(dry_run: bool = False) -> None:
     # ------------------------------------------------------------------
     # 3. Procesar cada municipio con parcelas
     # ------------------------------------------------------------------
+    # Obtener la lista de municipios y sus nombres con una sesión temporal.
     async with async_session() as session:
         municipio_cods = await get_municipios_with_plots(session)
         if not municipio_cods:
             log.info("No hay municipios con parcelas. Nada que importar.")
             await engine.dispose()
             return
-
         municipio_names = await get_municipio_names(session, municipio_cods)
-        log.info("Municipios a procesar: %s", municipio_cods)
 
-        if dry_run:
-            log.info(
-                "[DRY-RUN] Modo simulación activado — no se escribirá nada en la BD."
-            )
+    log.info("Municipios a procesar: %s", municipio_cods)
 
-        for municipio_cod in municipio_cods:
-            municipio_name = municipio_names.get(municipio_cod) or municipio_cod
-            # Usar savepoint por municipio: si una importación falla a mitad, solo
-            # se deshacen los cambios de ese municipio y la sesión sigue válida para
-            # los siguientes (evita PendingRollbackError en el commit final).
-            async with session.begin_nested():
+    if dry_run:
+        log.info(
+            "[DRY-RUN] Modo simulación activado — no se escribirá nada en la BD."
+        )
+
+    # Cada municipio se procesa con su propia sesión y commit independiente.
+    # Así, si la conexión cae durante los reintentos HTTP de un municipio
+    # (p.ej. ibericam 500 × 3 con backoff exponencial), los demás no se ven
+    # afectados y la sesión comienza fresca con pool_pre_ping=True.
+    for municipio_cod in municipio_cods:
+        municipio_name = municipio_names.get(municipio_cod) or municipio_cod
+        try:
+            async with async_session() as session:
                 await import_municipio(
                     session,
                     municipio_cod,
@@ -370,12 +373,20 @@ async def main(dry_run: bool = False) -> None:
                     ibericam_slugs,
                     dry_run=dry_run,
                 )
+                if not dry_run:
+                    await session.commit()
+        except Exception as exc:
+            log.error(
+                "Error inesperado procesando municipio %s (%s): %s",
+                municipio_cod,
+                municipio_name,
+                exc,
+            )
 
-        if dry_run:
-            log.info("[DRY-RUN] Simulación completada. No se ha escrito nada.")
-        else:
-            await session.commit()
-            log.info("Importación completada.")
+    if dry_run:
+        log.info("[DRY-RUN] Simulación completada. No se ha escrito nada.")
+    else:
+        log.info("Importación completada.")
 
     await engine.dispose()
     log.info("=== Cron lluvia: fin ===")
