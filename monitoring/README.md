@@ -1,42 +1,31 @@
-# Monitorizacion y alertas (Fly Managed Grafana)
+# Monitorizacion y alertas (stack externo)
 
-Este proyecto usa el Grafana gestionado por Fly (`fly-metrics.net`) como fuente unica de verdad para logs, metricas y alertas.
+Este directorio documenta el enfoque recomendado para Truficultura cuando el Grafana gestionado por Fly no permite administrar alertas.
 
-## 1) Aplicar observabilidad en Fly
+Resumen de arquitectura recomendada:
 
-Ejecuta:
+- Fly como runtime de aplicacion y fuente de metricas (Prometheus API).
+- Grafana externo (por ejemplo Grafana Cloud) para dashboards, reglas y notificaciones.
+- Opcional: Sentry para trazas de excepcion y contexto de errores.
 
-```bash
-./scripts/fly_enable_observability.sh truficultura-dev
-```
+Documento principal:
 
-Este script:
+- `monitoring/external-observability-plan.md`
 
-- activa `METRICS_ENABLED=1`
-- activa `LOG_JSON=1`
-- elimina `METRICS_TOKEN` para permitir scrape gestionado por Fly
-- despliega cambios y valida checks
+Estado:
 
-## 2) Verificacion en plataforma
+- DEV ya validado con alertas reales y notificacion por email.
+- El siguiente hito es crear STAGING y despues promover la configuracion a PROD con canales y umbrales adaptados.
 
-```bash
-fly status --app truficultura-dev
-fly checks list --app truficultura-dev
-```
+Diseno recomendado:
 
-## 3) Logs y alertas en Grafana gestionado
+- Un unico Grafana externo.
+- Un datasource por entorno: DEV, STAGING y PROD.
+- Carpetas y reglas separadas por entorno.
+- Canales de notificacion distintos segun entorno y severidad.
 
-- Logs: `https://fly-metrics.net/d/fly-logs/fly-logs?orgId=1569106&var-app=truficultura-dev`
-- Guia de reglas y consultas: `monitoring/fly-managed-grafana.md`
+Comprobaciones base en Fly:
 
-## 4) Contact points y politicas
-
-En `fly-metrics.net`:
-
-- `Alerting -> Contact points`
-- `Alerting -> Notification policies`
-
-Recomendacion minima:
-
-- `severity=critical` -> PagerDuty/Slack + email
-- `severity=warning` -> Slack
+- `fly status --app truficultura-dev`
+- `fly checks list --app truficultura-dev`
+- `curl -sS https://truficultura-dev.fly.dev/metrics | head`

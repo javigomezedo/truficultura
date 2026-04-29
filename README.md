@@ -978,10 +978,11 @@ METRICS_ENABLED=1
 METRICS_TOKEN=<token-largo-y-aleatorio>
 ```
 
-Nota para Fly Managed Grafana (`fly-metrics.net`):
+Nota para stack externo (recomendado):
 
-- Si quieres que Fly scrapee automaticamente tus metricas custom (`/metrics`), no protejas ese endpoint con `METRICS_TOKEN`.
-- Si necesitas proteger `/metrics`, deberas scrapearlo desde un Prometheus externo controlado por ti, anadiendo la cabecera `x-metrics-token`.
+- Usa Grafana externo para reglas/alertas y conecta como datasource la Prometheus API de Fly.
+- Mantener `METRICS_ENABLED=1` permite que Fly recoja metricas custom y las publique en su API de Prometheus.
+- Si necesitas scrapear `/metrics` directamente desde fuera de Fly, protege el endpoint con `METRICS_TOKEN` y usa cabecera `x-metrics-token` en el scraper.
 
 ### Alertas recomendadas en Grafana
 
