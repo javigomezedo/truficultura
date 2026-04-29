@@ -114,6 +114,8 @@ Criterio de salida Fase 1:
 - Panel ratio 5xx
 - Panel latencia p95
 - Panel excepciones no controladas
+- Base exportable disponible en `monitoring/truficultura-overview-dashboard.json`
+- Importar en folder `Truficultura / DEV` usando datasource `Fly Prometheus DEV`
 
 4. Crear reglas de alerta DEV
 
@@ -205,6 +207,7 @@ Objetivo:
 - cambiar `app="truficultura-dev"` por `app="truficultura-staging"`
 - mover o duplicar en folder `Truficultura / STAGING`
 - usar evaluation group `truficultura-staging-core`
+- reutilizar `monitoring/truficultura-overview-dashboard.json` si prefieres reimportar desde fichero en vez de duplicar desde Grafana
 
 3. Endurecer notificaciones
 - `warning` -> Slack de equipo
@@ -229,6 +232,7 @@ Criterio de salida Fase 4:
 1. Clonar dashboards y reglas de DEV a PROD
 - Cambiar filtros app a truficultura-prod.
 - Mantener mismos nombres de alerta con prefijo PROD.
+- Reutilizar el mismo dashboard base exportable y ajustar variables por entorno.
 
 2. Configurar canales de notificacion de PROD
 - Critical: PagerDuty/On-call + Slack + email

@@ -1,0 +1,721 @@
+{
+    "annotations": {
+        "list": [
+            {
+                "builtIn": 1,
+                "datasource": {
+                    "type": "grafana",
+                    "uid": "-- Grafana --"
+                },
+                "enable": true,
+                "hide": true,
+                "iconColor": "rgba(0, 211, 255, 1)",
+                "name": "Annotations & Alerts",
+                "type": "dashboard"
+            }
+        ]
+    },
+    "editable": true,
+    "fiscalYearStartMonth": 0,
+    "graphTooltip": 0,
+    "id": null,
+    "links": [],
+    "liveNow": false,
+    "panels": [
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "decimals": 2,
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "orange",
+                                "value": 5
+                            },
+                            {
+                                "color": "red",
+                                "value": 20
+                            }
+                        ]
+                    },
+                    "unit": "reqps"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 6,
+                "w": 6,
+                "x": 0,
+                "y": 0
+            },
+            "id": 1,
+            "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "textMode": "auto"
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "${datasource}"
+                    },
+                    "editorMode": "code",
+                    "expr": "sum(rate(truficultura_http_requests_total{app=~\"$app\", path!~\"/health|/metrics|/static/.*|/favicon.ico|/favicon.svg\"}[5m]))",
+                    "legendFormat": "req/s",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "Request Rate",
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "decimals": 2,
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "orange",
+                                "value": 0.05
+                            },
+                            {
+                                "color": "red",
+                                "value": 0.2
+                            }
+                        ]
+                    },
+                    "unit": "percentunit"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 6,
+                "w": 6,
+                "x": 6,
+                "y": 0
+            },
+            "id": 2,
+            "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "textMode": "auto"
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "${datasource}"
+                    },
+                    "editorMode": "code",
+                    "expr": "sum(rate(fly_app_http_responses_count{app=~\"$app\", status=~\"5..\"}[5m])) / clamp_min(sum(rate(fly_app_http_responses_count{app=~\"$app\"}[5m])), 0.001)",
+                    "legendFormat": "5xx ratio",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "HTTP 5xx Ratio",
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "decimals": 3,
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "orange",
+                                "value": 1.5
+                            },
+                            {
+                                "color": "red",
+                                "value": 3
+                            }
+                        ]
+                    },
+                    "unit": "s"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 6,
+                "w": 6,
+                "x": 12,
+                "y": 0
+            },
+            "id": 3,
+            "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "textMode": "auto"
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "${datasource}"
+                    },
+                    "editorMode": "code",
+                    "expr": "histogram_quantile(0.95, sum by (le) (rate(truficultura_http_request_duration_seconds_bucket{app=~\"$app\", path!~\"/health|/metrics|/static/.*|/favicon.ico|/favicon.svg\"}[5m])))",
+                    "legendFormat": "p95",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "Latency p95",
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "decimals": 0,
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "orange",
+                                "value": 1
+                            },
+                            {
+                                "color": "red",
+                                "value": 5
+                            }
+                        ]
+                    },
+                    "unit": "short"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 6,
+                "w": 6,
+                "x": 18,
+                "y": 0
+            },
+            "id": 4,
+            "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "textMode": "auto"
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "${datasource}"
+                    },
+                    "editorMode": "code",
+                    "expr": "sum(increase(truficultura_unhandled_exceptions_total{app=~\"$app\"}[5m]))",
+                    "legendFormat": "exceptions",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "Unhandled Exceptions (5m)",
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "palette-classic"
+                    },
+                    "custom": {
+                        "drawStyle": "line",
+                        "fillOpacity": 15,
+                        "lineInterpolation": "linear",
+                        "lineWidth": 2,
+                        "pointSize": 4,
+                        "showPoints": "never",
+                        "spanNulls": false
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            }
+                        ]
+                    },
+                    "unit": "reqps"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 6
+            },
+            "id": 5,
+            "options": {
+                "legend": {
+                    "calcs": [],
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true
+                },
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
+                }
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "${datasource}"
+                    },
+                    "editorMode": "code",
+                    "expr": "sum by (path) (rate(truficultura_http_requests_total{app=~\"$app\", path!~\"/health|/metrics|/static/.*|/favicon.ico|/favicon.svg\"}[5m]))",
+                    "legendFormat": "{{path}}",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "Traffic by Path",
+            "type": "timeseries"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "palette-classic"
+                    },
+                    "custom": {
+                        "drawStyle": "line",
+                        "fillOpacity": 15,
+                        "lineInterpolation": "linear",
+                        "lineWidth": 2,
+                        "pointSize": 4,
+                        "showPoints": "never",
+                        "spanNulls": false
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            }
+                        ]
+                    },
+                    "unit": "short"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 6
+            },
+            "id": 6,
+            "options": {
+                "legend": {
+                    "calcs": [],
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true
+                },
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
+                }
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "${datasource}"
+                    },
+                    "editorMode": "code",
+                    "expr": "sum by (status) (rate(truficultura_http_requests_total{app=~\"$app\"}[5m]))",
+                    "legendFormat": "{{status}}",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "Requests by Status",
+            "type": "timeseries"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "palette-classic"
+                    },
+                    "custom": {
+                        "drawStyle": "line",
+                        "fillOpacity": 15,
+                        "lineInterpolation": "linear",
+                        "lineWidth": 2,
+                        "pointSize": 4,
+                        "showPoints": "never",
+                        "spanNulls": false
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            }
+                        ]
+                    },
+                    "unit": "s"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 14
+            },
+            "id": 7,
+            "options": {
+                "legend": {
+                    "calcs": [],
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true
+                },
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
+                }
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "${datasource}"
+                    },
+                    "editorMode": "code",
+                    "expr": "histogram_quantile(0.95, sum by (le, path) (rate(truficultura_http_request_duration_seconds_bucket{app=~\"$app\", path!~\"/health|/metrics|/static/.*|/favicon.ico|/favicon.svg\"}[5m])))",
+                    "legendFormat": "{{path}}",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "Latency p95 by Path",
+            "type": "timeseries"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "decimals": 0,
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "red",
+                                "value": null
+                            },
+                            {
+                                "color": "orange",
+                                "value": 1
+                            },
+                            {
+                                "color": "green",
+                                "value": 2
+                            }
+                        ]
+                    },
+                    "unit": "short"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 14
+            },
+            "id": 8,
+            "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "textMode": "auto"
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "${datasource}"
+                    },
+                    "editorMode": "code",
+                    "expr": "sum(max_over_time(fly_instance_up{app=~\"$app\"}[2m]))",
+                    "legendFormat": "instances",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "Active Instances",
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "palette-classic"
+                    },
+                    "custom": {
+                        "drawStyle": "line",
+                        "fillOpacity": 20,
+                        "lineInterpolation": "linear",
+                        "lineWidth": 2,
+                        "pointSize": 4,
+                        "showPoints": "never",
+                        "spanNulls": false
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            }
+                        ]
+                    },
+                    "unit": "reqps"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 24,
+                "x": 0,
+                "y": 22
+            },
+            "id": 9,
+            "options": {
+                "legend": {
+                    "calcs": [],
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true
+                },
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
+                }
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "${datasource}"
+                    },
+                    "editorMode": "code",
+                    "expr": "sum by (class) (label_replace(rate(truficultura_http_requests_total{app=~\"$app\", path!~\"/health|/metrics|/static/.*|/favicon.ico|/favicon.svg\"}[5m]), \"class\", \"${1}xx\", \"status\", \"([0-9])[0-9][0-9]\"))",
+                    "legendFormat": "{{class}}",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "Requests by Status Class",
+            "type": "timeseries"
+        }
+    ],
+    "refresh": "30s",
+    "schemaVersion": 39,
+    "style": "dark",
+    "tags": [
+        "truficultura",
+        "observability",
+        "fly",
+        "prometheus"
+    ],
+    "templating": {
+        "list": [
+            {
+                "current": {
+                    "selected": true,
+                    "text": "Fly Prometheus DEV",
+                    "value": "Fly Prometheus DEV"
+                },
+                "hide": 0,
+                "includeAll": false,
+                "label": "Datasource",
+                "multi": false,
+                "name": "datasource",
+                "options": [],
+                "query": "prometheus",
+                "refresh": 1,
+                "regex": "",
+                "skipUrlSync": false,
+                "type": "datasource"
+            },
+            {
+                "current": {
+                    "selected": true,
+                    "text": "truficultura-dev",
+                    "value": "truficultura-dev"
+                },
+                "hide": 0,
+                "includeAll": false,
+                "label": "App",
+                "multi": false,
+                "name": "app",
+                "options": [
+                    {
+                        "selected": true,
+                        "text": "truficultura-dev",
+                        "value": "truficultura-dev"
+                    },
+                    {
+                        "selected": false,
+                        "text": "truficultura-staging",
+                        "value": "truficultura-staging"
+                    },
+                    {
+                        "selected": false,
+                        "text": "truficultura-prod",
+                        "value": "truficultura-prod"
+                    }
+                ],
+                "query": "truficultura-dev,truficultura-staging,truficultura-prod",
+                "skipUrlSync": false,
+                "type": "custom"
+            }
+        ]
+    },
+    "time": {
+        "from": "now-6h",
+        "to": "now"
+    },
+    "timepicker": {},
+    "timezone": "browser",
+    "title": "Truficultura / Overview",
+    "uid": "truficultura-overview",
+    "version": 2,
+    "weekStart": ""
+}
