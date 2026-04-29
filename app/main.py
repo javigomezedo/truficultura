@@ -3,7 +3,7 @@ import binascii
 import json
 import logging
 
-from fastapi import Depends, FastAPI, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from itsdangerous import BadSignature, BadTimeSignature, SignatureExpired
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,6 +23,12 @@ from app.i18n import set_locale, AVAILABLE_LOCALES
 from app.jinja import templates
 import app.models  # noqa: F401 - ensure models are registered
 from app.models.user import User
+from app.observability import (
+    configure_logging,
+    install_global_exception_hooks,
+    metrics_middleware,
+    render_metrics,
+)
 from app.routers import (
     admin,
     aemet_admin,
@@ -50,12 +56,14 @@ from app.routers import (
 )
 from app.services.dashboard_service import build_dashboard_context
 
+configure_logging(level=settings.LOG_LEVEL, json_logs=settings.LOG_JSON)
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """App lifespan hook for graceful async engine disposal."""
+    install_global_exception_hooks(logger)
     yield
     await engine.dispose()
 
@@ -196,6 +204,19 @@ async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.get("/metrics", include_in_schema=False)
+async def metrics(request: Request):
+    if not settings.METRICS_ENABLED:
+        raise HTTPException(status_code=404)
+
+    if settings.METRICS_TOKEN:
+        provided_token = request.headers.get("x-metrics-token")
+        if provided_token != settings.METRICS_TOKEN:
+            raise HTTPException(status_code=403, detail="Forbidden")
+
+    return render_metrics()
+
+
 @app.exception_handler(NotAuthenticatedException)
 async def not_authenticated_handler(request: Request, exc: NotAuthenticatedException):
     return RedirectResponse(url="/login", status_code=303)
@@ -250,6 +271,11 @@ async def recover_invalid_session_cookie(request: Request, call_next):
         response = RedirectResponse(url="/login", status_code=303)
         response.delete_cookie("session")
         return response
+
+
+@app.middleware("http")
+async def observability_middleware(request: Request, call_next):
+    return await metrics_middleware(request, call_next, logger)
 
 
 def _apply_locale_to_response(

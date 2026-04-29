@@ -558,6 +558,13 @@ Notas:
 
 ```bash
 curl http://localhost:8000/health
+curl http://localhost:8000/metrics
+```
+
+Si configuras `METRICS_TOKEN`, el scrape de métricas requiere cabecera:
+
+```bash
+curl -H "x-metrics-token: <token>" http://localhost:8000/metrics
 ```
 
 ### 5) Parar la base de datos local
@@ -950,6 +957,70 @@ flyctl logs --app truficultura-dev --no-tail | tail -n 120
 ### Notas de disponibilidad
 
 - `fly.toml` mantiene `min_machines_running = 2` y `auto_stop_machines = 'off'` para reducir riesgo de downtime en dev durante despliegues.
+
+## Observabilidad y alertas
+
+La app incorpora observabilidad base para detectar fallos sin vigilancia manual:
+
+- Logging centralizado (app y crons) con stacktrace en excepciones no controladas.
+- Contador Prometheus de excepciones no controladas: `truficultura_unhandled_exceptions_total`.
+- Métricas HTTP:
+  - `truficultura_http_requests_total`
+  - `truficultura_http_request_duration_seconds`
+- Endpoint de scrape: `/metrics` (opcionalmente protegido por `METRICS_TOKEN`).
+
+### Variables recomendadas en producción
+
+```env
+LOG_LEVEL=INFO
+LOG_JSON=1
+METRICS_ENABLED=1
+METRICS_TOKEN=<token-largo-y-aleatorio>
+```
+
+Nota para Fly Managed Grafana (`fly-metrics.net`):
+
+- Si quieres que Fly scrapee automaticamente tus metricas custom (`/metrics`), no protejas ese endpoint con `METRICS_TOKEN`.
+- Si necesitas proteger `/metrics`, deberas scrapearlo desde un Prometheus externo controlado por ti, anadiendo la cabecera `x-metrics-token`.
+
+### Alertas recomendadas en Grafana
+
+Si usas Prometheus + Grafana, crea al menos estas alertas:
+
+1. Errores no controlados en aplicación/crons
+
+```promql
+sum(increase(truficultura_unhandled_exceptions_total[5m])) > 0
+```
+
+2. Tasa alta de respuestas 5xx
+
+```promql
+sum(rate(truficultura_http_requests_total{status=~"5.."}[5m]))
+/
+sum(rate(truficultura_http_requests_total[5m]))
+> 0.05
+```
+
+3. Latencia p95 elevada
+
+```promql
+histogram_quantile(
+  0.95,
+  sum by (le) (rate(truficultura_http_request_duration_seconds_bucket[5m]))
+) > 1.5
+```
+
+### Alertas de infraestructura (Fly)
+
+Además de métricas de app, configura alertas de plataforma para:
+
+- Máquina caída / no healthy en `truficultura-dev`.
+- Reinicios anómalos de máquina.
+- Errores de conexión a PostgreSQL.
+- Fallo de ejecución en la machine de cron.
+
+En Fly puedes apoyarte en `flyctl logs` y en exportar logs/métricas a tu stack de observabilidad (Grafana Cloud, Loki/Promtail, etc.) para alertas centralizadas.
 
 ---
 

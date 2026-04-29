@@ -40,6 +40,12 @@ class Settings(BaseSettings):
     # Keep False locally to allow HTTP dev server.
     PRODUCTION: bool = False
 
+    # Observability
+    LOG_LEVEL: str = "INFO"
+    LOG_JSON: bool = False
+    METRICS_ENABLED: bool = True
+    METRICS_TOKEN: Optional[str] = None
+
     @property
     def smtp_configured(self) -> bool:
         return bool(self.SMTP_HOST and self.SMTP_USER and self.SMTP_PASSWORD)
