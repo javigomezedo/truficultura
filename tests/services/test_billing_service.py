@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+import stripe
 
 from app.services import billing_service
 
@@ -565,6 +566,542 @@ async def test_handle_webhook_subscription_updated_canceled_status(monkeypatch) 
 
     assert user.subscription_status == "canceled"
     db.commit.assert_awaited_once()
+
+
+# ── require_subscription (auth.py logic) ──────────────────────────────────────
+
+
+# ── create_portal_session ─────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_create_portal_session_raises_when_stripe_not_configured(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr("app.config.settings.STRIPE_SECRET_KEY", None)
+    user = _make_user(stripe_customer_id="cus_abc")
+
+    with pytest.raises(RuntimeError, match="Stripe is not configured"):
+        await billing_service.create_portal_session(user)
+
+
+@pytest.mark.asyncio
+async def test_create_portal_session_raises_when_no_customer_id(monkeypatch) -> None:
+    monkeypatch.setattr("app.config.settings.STRIPE_SECRET_KEY", "sk_test_abc")
+    user = _make_user(stripe_customer_id=None)
+
+    with pytest.raises(RuntimeError, match="no Stripe customer ID"):
+        await billing_service.create_portal_session(user)
+
+
+@pytest.mark.asyncio
+async def test_create_portal_session_returns_url(monkeypatch) -> None:
+    monkeypatch.setattr("app.config.settings.STRIPE_SECRET_KEY", "sk_test_abc")
+    monkeypatch.setattr("app.config.settings.APP_BASE_URL", "https://example.com")
+
+    fake_session = SimpleNamespace(url="https://billing.stripe.com/session/xyz")
+    mock_client = MagicMock()
+    mock_client.billing_portal.sessions.create.return_value = fake_session
+    monkeypatch.setattr(billing_service, "_get_stripe_client", lambda: mock_client)
+
+    user = _make_user(stripe_customer_id="cus_abc")
+
+    url = await billing_service.create_portal_session(user)
+
+    assert url == "https://billing.stripe.com/session/xyz"
+    mock_client.billing_portal.sessions.create.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_handle_webhook_checkout_completed_no_subscription_id(
+    monkeypatch,
+) -> None:
+    """User found but no subscription_id — skip Stripe retrieval, still activate."""
+    monkeypatch.setattr("app.config.settings.STRIPE_WEBHOOK_SECRET", "whsec_test")
+
+    user = _make_user(stripe_customer_id="cus_abc", subscription_status="trialing")
+
+    from tests.conftest import result as fake_result
+
+    db = _fake_db()
+    db.execute = AsyncMock(return_value=fake_result([user]))
+
+    fake_event = {
+        "type": "checkout.session.completed",
+        "data": {
+            "object": SimpleNamespace(
+                customer="cus_abc",
+                subscription=None,
+            )
+        },
+    }
+
+    with (
+        patch("stripe.Webhook.construct_event", return_value=fake_event),
+        patch(
+            "app.services.billing_service.send_subscription_activated_email",
+            new=AsyncMock(),
+        ),
+    ):
+        await billing_service.handle_webhook(b"payload", "sig", db)
+
+    assert user.subscription_status == "active"
+    db.commit.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_handle_webhook_checkout_completed_subscription_items_fallback_fails(
+    monkeypatch,
+) -> None:
+    """sub.items.data[0] raises → period_end stays None, user still activated."""
+    monkeypatch.setattr("app.config.settings.STRIPE_WEBHOOK_SECRET", "whsec_test")
+    monkeypatch.setattr("app.config.settings.STRIPE_SECRET_KEY", "sk_test_abc")
+
+    user = _make_user(stripe_customer_id="cus_abc", subscription_status="trialing")
+
+    from tests.conftest import result as fake_result
+
+    db = _fake_db()
+    db.execute = AsyncMock(return_value=fake_result([user]))
+
+    # current_period_end is None AND items.data is empty → IndexError on fallback
+    fake_sub = SimpleNamespace(
+        current_period_end=None,
+        items=SimpleNamespace(data=[]),
+    )
+    mock_client = MagicMock()
+    mock_client.subscriptions.retrieve.return_value = fake_sub
+    monkeypatch.setattr(billing_service, "_get_stripe_client", lambda: mock_client)
+
+    fake_event = {
+        "type": "checkout.session.completed",
+        "data": {
+            "object": SimpleNamespace(
+                customer="cus_abc",
+                subscription="sub_789",
+            )
+        },
+    }
+
+    with (
+        patch("stripe.Webhook.construct_event", return_value=fake_event),
+        patch(
+            "app.services.billing_service.send_subscription_activated_email",
+            new=AsyncMock(),
+        ),
+    ):
+        await billing_service.handle_webhook(b"payload", "sig", db)
+
+    assert user.subscription_status == "active"
+    assert user.subscription_ends_at is None
+    db.commit.assert_awaited_once()
+
+
+# ── checkout.session.completed with subscription_id ───────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_handle_webhook_checkout_completed_with_subscription_id(
+    monkeypatch,
+) -> None:
+    """When checkout has a subscription_id, we retrieve it from Stripe to get period_end."""
+    monkeypatch.setattr("app.config.settings.STRIPE_WEBHOOK_SECRET", "whsec_test")
+    monkeypatch.setattr("app.config.settings.STRIPE_SECRET_KEY", "sk_test_abc")
+
+    user = _make_user(stripe_customer_id="cus_abc", subscription_status="trialing")
+
+    from tests.conftest import result as fake_result
+
+    db = _fake_db()
+    db.execute = AsyncMock(return_value=fake_result([user]))
+
+    future_ts = int((datetime.now(UTC) + timedelta(days=365)).timestamp())
+    fake_sub = SimpleNamespace(
+        current_period_end=future_ts, items=SimpleNamespace(data=[])
+    )
+    mock_client = MagicMock()
+    mock_client.subscriptions.retrieve.return_value = fake_sub
+    monkeypatch.setattr(billing_service, "_get_stripe_client", lambda: mock_client)
+
+    fake_event = {
+        "type": "checkout.session.completed",
+        "data": {
+            "object": SimpleNamespace(
+                customer="cus_abc",
+                subscription="sub_123",
+            )
+        },
+    }
+
+    with (
+        patch("stripe.Webhook.construct_event", return_value=fake_event),
+        patch(
+            "app.services.billing_service.send_subscription_activated_email",
+            new=AsyncMock(),
+        ),
+    ):
+        await billing_service.handle_webhook(b"payload", "sig", db)
+
+    assert user.subscription_status == "active"
+    assert user.subscription_ends_at is not None
+    db.commit.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_handle_webhook_checkout_completed_period_end_from_items(
+    monkeypatch,
+) -> None:
+    """Fallback: period_end comes from sub.items.data[0] when current_period_end is None."""
+    monkeypatch.setattr("app.config.settings.STRIPE_WEBHOOK_SECRET", "whsec_test")
+    monkeypatch.setattr("app.config.settings.STRIPE_SECRET_KEY", "sk_test_abc")
+
+    user = _make_user(stripe_customer_id="cus_abc", subscription_status="trialing")
+
+    from tests.conftest import result as fake_result
+
+    db = _fake_db()
+    db.execute = AsyncMock(return_value=fake_result([user]))
+
+    future_ts = int((datetime.now(UTC) + timedelta(days=365)).timestamp())
+    fake_sub = SimpleNamespace(
+        current_period_end=None,
+        items=SimpleNamespace(data=[SimpleNamespace(current_period_end=future_ts)]),
+    )
+    mock_client = MagicMock()
+    mock_client.subscriptions.retrieve.return_value = fake_sub
+    monkeypatch.setattr(billing_service, "_get_stripe_client", lambda: mock_client)
+
+    fake_event = {
+        "type": "checkout.session.completed",
+        "data": {
+            "object": SimpleNamespace(
+                customer="cus_abc",
+                subscription="sub_456",
+            )
+        },
+    }
+
+    with (
+        patch("stripe.Webhook.construct_event", return_value=fake_event),
+        patch(
+            "app.services.billing_service.send_subscription_activated_email",
+            new=AsyncMock(),
+        ),
+    ):
+        await billing_service.handle_webhook(b"payload", "sig", db)
+
+    assert user.subscription_status == "active"
+    assert user.subscription_ends_at is not None
+
+
+@pytest.mark.asyncio
+async def test_handle_webhook_invoice_payment_failed_user_not_found(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr("app.config.settings.STRIPE_WEBHOOK_SECRET", "whsec_test")
+
+    from tests.conftest import result as fake_result
+
+    db = _fake_db()
+    db.execute = AsyncMock(return_value=fake_result([]))
+
+    fake_event = {
+        "type": "invoice.payment_failed",
+        "data": {"object": SimpleNamespace(customer="cus_gone")},
+    }
+
+    with patch("stripe.Webhook.construct_event", return_value=fake_event):
+        await billing_service.handle_webhook(b"payload", "sig", db)
+
+    db.commit.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_handle_webhook_invoice_paid_skips_line_without_period_end(
+    monkeypatch,
+) -> None:
+    """Loop iterates past a line with no period.end before finding one with it."""
+    monkeypatch.setattr("app.config.settings.STRIPE_WEBHOOK_SECRET", "whsec_test")
+
+    user = _make_user(stripe_customer_id="cus_abc", subscription_status="past_due")
+
+    from tests.conftest import result as fake_result
+
+    db = _fake_db()
+    db.execute = AsyncMock(return_value=fake_result([user]))
+
+    future_ts = int((datetime.now(UTC) + timedelta(days=365)).timestamp())
+    fake_event = {
+        "type": "invoice.paid",
+        "data": {
+            "object": SimpleNamespace(
+                customer="cus_abc",
+                lines=SimpleNamespace(
+                    data=[
+                        # First line: no usable period.end — loop continues
+                        SimpleNamespace(period=SimpleNamespace(end=None)),
+                        # Second line: has period.end — loop breaks
+                        SimpleNamespace(period=SimpleNamespace(end=future_ts)),
+                    ]
+                ),
+            )
+        },
+    }
+
+    with (
+        patch("stripe.Webhook.construct_event", return_value=fake_event),
+        patch(
+            "app.services.billing_service.send_subscription_renewed_email",
+            new=AsyncMock(),
+        ),
+    ):
+        await billing_service.handle_webhook(b"payload", "sig", db)
+
+    assert user.subscription_status == "active"
+    assert user.subscription_ends_at is not None
+    db.commit.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_handle_webhook_subscription_updated_unrecognized_status(
+    monkeypatch,
+) -> None:
+    """stripe_status not in known set → no status change, still commits."""
+    monkeypatch.setattr("app.config.settings.STRIPE_WEBHOOK_SECRET", "whsec_test")
+
+    user = _make_user(stripe_customer_id="cus_tri", subscription_status="trialing")
+
+    from tests.conftest import result as fake_result
+
+    db = _fake_db()
+    db.execute = AsyncMock(return_value=fake_result([user]))
+
+    fake_event = {
+        "type": "customer.subscription.updated",
+        "data": {
+            "object": SimpleNamespace(
+                customer="cus_tri",
+                status="trialing",  # not in the handled set
+                cancel_at_period_end=False,
+                current_period_end=None,
+                items=SimpleNamespace(data=[]),
+            )
+        },
+    }
+
+    with patch("stripe.Webhook.construct_event", return_value=fake_event):
+        await billing_service.handle_webhook(b"payload", "sig", db)
+
+    # Status unchanged — none of the elif branches matched
+    assert user.subscription_status == "trialing"
+    db.commit.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_handle_webhook_subscription_updated_incomplete_expired_status(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr("app.config.settings.STRIPE_WEBHOOK_SECRET", "whsec_test")
+
+    user = _make_user(stripe_customer_id="cus_ie", subscription_status="active")
+
+    from tests.conftest import result as fake_result
+
+    db = _fake_db()
+    db.execute = AsyncMock(return_value=fake_result([user]))
+
+    fake_event = {
+        "type": "customer.subscription.updated",
+        "data": {
+            "object": SimpleNamespace(
+                customer="cus_ie",
+                status="incomplete_expired",
+                cancel_at_period_end=False,
+                current_period_end=None,
+                items=SimpleNamespace(data=[]),
+            )
+        },
+    }
+
+    with patch("stripe.Webhook.construct_event", return_value=fake_event):
+        await billing_service.handle_webhook(b"payload", "sig", db)
+
+    assert user.subscription_status == "canceled"
+    db.commit.assert_awaited_once()
+
+
+# ── invoice.paid edge cases ────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_handle_webhook_invoice_paid_user_not_found(monkeypatch) -> None:
+    monkeypatch.setattr("app.config.settings.STRIPE_WEBHOOK_SECRET", "whsec_test")
+
+    from tests.conftest import result as fake_result
+
+    db = _fake_db()
+    db.execute = AsyncMock(return_value=fake_result([]))
+
+    fake_event = {
+        "type": "invoice.paid",
+        "data": {
+            "object": SimpleNamespace(
+                customer="cus_gone",
+                lines=SimpleNamespace(data=[]),
+            )
+        },
+    }
+
+    with patch("stripe.Webhook.construct_event", return_value=fake_event):
+        await billing_service.handle_webhook(b"payload", "sig", db)
+
+    db.commit.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_handle_webhook_invoice_paid_no_period_end(monkeypatch) -> None:
+    """invoice.paid with lines that have no usable period — still sets active, no ends_at."""
+    monkeypatch.setattr("app.config.settings.STRIPE_WEBHOOK_SECRET", "whsec_test")
+
+    user = _make_user(stripe_customer_id="cus_abc", subscription_status="past_due")
+
+    from tests.conftest import result as fake_result
+
+    db = _fake_db()
+    db.execute = AsyncMock(return_value=fake_result([user]))
+
+    fake_event = {
+        "type": "invoice.paid",
+        "data": {
+            "object": SimpleNamespace(
+                customer="cus_abc",
+                lines=SimpleNamespace(data=[]),
+            )
+        },
+    }
+
+    with (
+        patch("stripe.Webhook.construct_event", return_value=fake_event),
+        patch(
+            "app.services.billing_service.send_subscription_renewed_email",
+            new=AsyncMock(),
+        ),
+    ):
+        await billing_service.handle_webhook(b"payload", "sig", db)
+
+    assert user.subscription_status == "active"
+    assert user.subscription_ends_at is None
+    db.commit.assert_awaited_once()
+
+
+# ── subscription.deleted edge cases ───────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_handle_webhook_subscription_deleted_no_customer(monkeypatch) -> None:
+    monkeypatch.setattr("app.config.settings.STRIPE_WEBHOOK_SECRET", "whsec_test")
+
+    db = _fake_db()
+
+    fake_event = {
+        "type": "customer.subscription.deleted",
+        "data": {"object": SimpleNamespace(customer=None)},
+    }
+
+    with patch("stripe.Webhook.construct_event", return_value=fake_event):
+        await billing_service.handle_webhook(b"payload", "sig", db)
+
+    db.commit.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_handle_webhook_subscription_deleted_user_not_found(monkeypatch) -> None:
+    monkeypatch.setattr("app.config.settings.STRIPE_WEBHOOK_SECRET", "whsec_test")
+
+    from tests.conftest import result as fake_result
+
+    db = _fake_db()
+    db.execute = AsyncMock(return_value=fake_result([]))
+
+    fake_event = {
+        "type": "customer.subscription.deleted",
+        "data": {"object": SimpleNamespace(customer="cus_gone")},
+    }
+
+    with patch("stripe.Webhook.construct_event", return_value=fake_event):
+        await billing_service.handle_webhook(b"payload", "sig", db)
+
+    db.commit.assert_not_awaited()
+
+
+# ── unknown webhook event ──────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_handle_webhook_unknown_event_type_is_noop(monkeypatch) -> None:
+    monkeypatch.setattr("app.config.settings.STRIPE_WEBHOOK_SECRET", "whsec_test")
+
+    db = _fake_db()
+
+    fake_event = {
+        "type": "some.unknown.event",
+        "data": {"object": SimpleNamespace()},
+    }
+
+    with patch("stripe.Webhook.construct_event", return_value=fake_event):
+        await billing_service.handle_webhook(b"payload", "sig", db)
+
+    db.commit.assert_not_awaited()
+
+
+# ── subscription.updated — period_end via items fallback ──────────────────────
+
+
+@pytest.mark.asyncio
+async def test_handle_webhook_subscription_updated_period_end_from_items(
+    monkeypatch,
+) -> None:
+    """When current_period_end is None, the value comes from items.data[0]."""
+    monkeypatch.setattr("app.config.settings.STRIPE_WEBHOOK_SECRET", "whsec_test")
+
+    user = _make_user(stripe_customer_id="cus_upd2", subscription_status="past_due")
+
+    from tests.conftest import result as fake_result
+
+    db = _fake_db()
+    db.execute = AsyncMock(return_value=fake_result([user]))
+
+    future_ts = int((datetime.now(UTC) + timedelta(days=365)).timestamp())
+    fake_event = {
+        "type": "customer.subscription.updated",
+        "data": {
+            "object": SimpleNamespace(
+                customer="cus_upd2",
+                status="active",
+                cancel_at_period_end=False,
+                current_period_end=None,
+                items=SimpleNamespace(
+                    data=[SimpleNamespace(current_period_end=future_ts)]
+                ),
+            )
+        },
+    }
+
+    with patch("stripe.Webhook.construct_event", return_value=fake_event):
+        await billing_service.handle_webhook(b"payload", "sig", db)
+
+    assert user.subscription_status == "active"
+    assert user.subscription_ends_at is not None
+    db.commit.assert_awaited_once()
+
+
+# ── _get_stripe_client ────────────────────────────────────────────────────────
+
+
+def test_get_stripe_client_uses_secret_key(monkeypatch) -> None:
+    monkeypatch.setattr("app.config.settings.STRIPE_SECRET_KEY", "sk_test_xyz")
+    client = billing_service._get_stripe_client()
+    assert isinstance(client, stripe.StripeClient)
 
 
 # ── require_subscription (auth.py logic) ──────────────────────────────────────
