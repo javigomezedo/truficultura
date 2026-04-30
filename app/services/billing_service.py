@@ -10,6 +10,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.models.user import User
+from app.services.email_service import (
+    send_payment_failed_email,
+    send_subscription_activated_email,
+    send_subscription_canceled_email,
+    send_subscription_renewed_email,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -182,6 +188,8 @@ async def _handle_checkout_completed(data_object, db: AsyncSession) -> None:
     user.subscription_status = "active"
     await db.commit()
     logger.info("User %s activated subscription.", user.id)
+    ends_at_str = user.subscription_ends_at.strftime("%d/%m/%Y") if user.subscription_ends_at else None
+    await send_subscription_activated_email(user.email, ends_at_str)
 
 
 async def _handle_invoice_paid(data_object, db: AsyncSession) -> None:
@@ -208,6 +216,8 @@ async def _handle_invoice_paid(data_object, db: AsyncSession) -> None:
     user.subscription_status = "active"
     await db.commit()
     logger.info("User %s subscription renewed.", user.id)
+    ends_at_str = user.subscription_ends_at.strftime("%d/%m/%Y") if user.subscription_ends_at else None
+    await send_subscription_renewed_email(user.email, ends_at_str)
 
 
 async def _handle_invoice_payment_failed(data_object, db: AsyncSession) -> None:
@@ -222,6 +232,7 @@ async def _handle_invoice_payment_failed(data_object, db: AsyncSession) -> None:
     user.subscription_status = "past_due"
     await db.commit()
     logger.warning("User %s payment failed — status set to past_due.", user.id)
+    await send_payment_failed_email(user.email)
 
 
 async def _handle_subscription_updated(data_object, db: AsyncSession) -> None:
@@ -282,3 +293,5 @@ async def _handle_subscription_deleted(data_object, db: AsyncSession) -> None:
     user.subscription_status = "canceled"
     await db.commit()
     logger.info("User %s subscription canceled.", user.id)
+    ends_at_str = user.subscription_ends_at.strftime("%d/%m/%Y") if user.subscription_ends_at else None
+    await send_subscription_canceled_email(user.email, ends_at_str)

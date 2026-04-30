@@ -234,7 +234,13 @@ async def test_handle_webhook_invoice_paid_updates_status(monkeypatch) -> None:
         },
     }
 
-    with patch("stripe.Webhook.construct_event", return_value=fake_event):
+    with (
+        patch("stripe.Webhook.construct_event", return_value=fake_event),
+        patch(
+            "app.services.billing_service.send_subscription_renewed_email",
+            new=AsyncMock(),
+        ),
+    ):
         await billing_service.handle_webhook(b"payload", "sig", db)
 
     assert user.subscription_status == "active"
@@ -258,7 +264,13 @@ async def test_handle_webhook_subscription_deleted_cancels(monkeypatch) -> None:
         "data": {"object": SimpleNamespace(customer="cus_del")},
     }
 
-    with patch("stripe.Webhook.construct_event", return_value=fake_event):
+    with (
+        patch("stripe.Webhook.construct_event", return_value=fake_event),
+        patch(
+            "app.services.billing_service.send_subscription_canceled_email",
+            new=AsyncMock(),
+        ),
+    ):
         await billing_service.handle_webhook(b"payload", "sig", db)
 
     assert user.subscription_status == "canceled"
@@ -495,7 +507,12 @@ async def test_handle_webhook_invoice_payment_failed_updates_past_due(
         "data": {"object": SimpleNamespace(customer="cus_fail")},
     }
 
-    with patch("stripe.Webhook.construct_event", return_value=fake_event):
+    with (
+        patch("stripe.Webhook.construct_event", return_value=fake_event),
+        patch(
+            "app.services.billing_service.send_payment_failed_email", new=AsyncMock()
+        ),
+    ):
         await billing_service.handle_webhook(b"payload", "sig", db)
 
     assert user.subscription_status == "past_due"
