@@ -12,7 +12,11 @@ class Settings(BaseSettings):
     AEMET_BASE_URL: str = "https://opendata.aemet.es/opendata/api"
     AEMET_TIMEOUT_SECONDS: float = 30.0
 
-    # Email / SMTP
+    # Email — Postmark (proveedor principal)
+    POSTMARK_API_KEY: Optional[str] = None
+    POSTMARK_FROM: str = "noreply@trufiq.app"
+
+    # Email — SMTP (legado / fallback durante la transición)
     SMTP_HOST: Optional[str] = None
     SMTP_PORT: int = 587
     SMTP_USER: Optional[str] = None
@@ -20,7 +24,7 @@ class Settings(BaseSettings):
     SMTP_FROM: str = "noreply@trufiq.app"
     SMTP_TLS: bool = True   # STARTTLS (puerto 587)
     SMTP_SSL: bool = False  # SSL directo (puerto 465)
-    # Dirección de destino para notificaciones de leads. Si no se define, usa SMTP_FROM.
+    # Dirección de destino para notificaciones de leads. Si no se define, usa POSTMARK_FROM / SMTP_FROM.
     CONTACT_EMAIL: Optional[str] = None
 
     # App base URL (used to build confirmation/reset links)
@@ -47,8 +51,22 @@ class Settings(BaseSettings):
     METRICS_TOKEN: Optional[str] = None
 
     @property
+    def postmark_configured(self) -> bool:
+        return bool(self.POSTMARK_API_KEY)
+
+    @property
     def smtp_configured(self) -> bool:
         return bool(self.SMTP_HOST and self.SMTP_USER and self.SMTP_PASSWORD)
+
+    @property
+    def email_configured(self) -> bool:
+        """True when at least one email backend is ready to send."""
+        return self.postmark_configured or self.smtp_configured
+
+    @property
+    def effective_from(self) -> str:
+        """Sender address used by the active email backend."""
+        return self.POSTMARK_FROM if self.postmark_configured else self.SMTP_FROM
 
     @property
     def SQLALCHEMY_DATABASE_URL(self) -> str:
