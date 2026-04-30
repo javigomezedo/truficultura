@@ -172,13 +172,14 @@ def test_landing_contact_email_error_does_not_crash() -> None:
 
 
 @pytest.mark.asyncio
-async def test_send_lead_notification_skips_when_smtp_not_configured() -> None:
+async def test_send_lead_notification_skips_when_no_backend_configured() -> None:
     from app.services.email_service import send_lead_notification
 
     with patch("app.services.email_service.settings") as mock_settings:
-        mock_settings.smtp_configured = False
+        mock_settings.postmark_configured = False
+        mock_settings.email_configured = False
         mock_settings.CONTACT_EMAIL = None
-        mock_settings.SMTP_FROM = "noreply@example.com"
+        mock_settings.effective_from = "noreply@example.com"
 
         with patch(
             "app.services.email_service.send_email", new=AsyncMock()
@@ -188,12 +189,14 @@ async def test_send_lead_notification_skips_when_smtp_not_configured() -> None:
 
 
 @pytest.mark.asyncio
-async def test_send_lead_notification_sends_email_when_smtp_configured() -> None:
+async def test_send_lead_notification_sends_email_when_postmark_configured() -> None:
     from app.services.email_service import send_lead_notification
 
     with patch("app.services.email_service.settings") as mock_settings:
-        mock_settings.smtp_configured = True
+        mock_settings.postmark_configured = True
+        mock_settings.email_configured = True
         mock_settings.CONTACT_EMAIL = "admin@example.com"
+        mock_settings.effective_from = "noreply@example.com"
         mock_settings.APP_BASE_URL = "http://localhost:8000"
 
         with patch(
@@ -212,8 +215,10 @@ async def test_send_lead_notification_without_message() -> None:
     from app.services.email_service import send_lead_notification
 
     with patch("app.services.email_service.settings") as mock_settings:
-        mock_settings.smtp_configured = True
+        mock_settings.postmark_configured = True
+        mock_settings.email_configured = True
         mock_settings.CONTACT_EMAIL = "admin@example.com"
+        mock_settings.effective_from = "noreply@example.com"
         mock_settings.APP_BASE_URL = "http://localhost:8000"
 
         with patch(

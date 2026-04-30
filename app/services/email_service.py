@@ -1,30 +1,68 @@
-"""Async email sending via aiosmtplib.
+"""Async email sending.
 
-If SMTP is not configured (settings.smtp_configured is False) every send call
-is a no-op so the app works normally in development without any mail server.
+Backend selection (priority order):
+  1. Postmark HTTP API  — when POSTMARK_API_KEY is configured.
+  2. SMTP (aiosmtplib)  — legacy fallback while SMTP_* vars remain configured.
+
+If neither backend is configured, every send call is a no-op so the app
+works normally in development without a mail server.
 """
 
 from __future__ import annotations
 
+import html
 import logging
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 import aiosmtplib
+import httpx
 
 from app.config import settings
 
 logger = logging.getLogger(__name__)
 
+_POSTMARK_API_URL = "https://api.postmarkapp.com/email"
 
-async def send_email(to: str, subject: str, html_body: str) -> None:
-    """Send an HTML email to *to*.  Silently skips when SMTP is not configured."""
-    if not settings.smtp_configured:
-        logger.info(
-            "[email] SMTP not configured — skipping send to %s: %s", to, subject
-        )
-        return
 
+async def _send_via_postmark(to: str, subject: str, html_body: str, from_addr: str) -> None:
+    """Send a single email through the Postmark HTTP API."""
+    payload = {
+        "From": from_addr,
+        "To": to,
+        "Subject": subject,
+        "HtmlBody": html_body,
+        "MessageStream": "outbound",
+    }
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "X-Postmark-Server-Token": settings.POSTMARK_API_KEY,
+    }
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        response = await client.post(_POSTMARK_API_URL, json=payload, headers=headers)
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError:
+            logger.error(
+                "[email] Postmark rejected message to=%s from=%s status=%s body=%s",
+                to,
+                from_addr,
+                response.status_code,
+                response.text,
+            )
+            raise
+    data = response.json()
+    logger.info(
+        "[email] Postmark delivered to=%s subject=%r message_id=%s",
+        to,
+        subject,
+        data.get("MessageID", "?"),
+    )
+
+
+async def _send_via_smtp(to: str, subject: str, html_body: str) -> None:
+    """Send via legacy SMTP (aiosmtplib)."""
     message = MIMEMultipart("alternative")
     message["Subject"] = subject
     message["From"] = settings.SMTP_FROM
@@ -40,6 +78,35 @@ async def send_email(to: str, subject: str, html_body: str) -> None:
         use_tls=settings.SMTP_SSL,
         start_tls=settings.SMTP_TLS if not settings.SMTP_SSL else False,
     )
+
+
+async def send_email(to: str, subject: str, html_body: str) -> None:
+    """Send an HTML email to *to*.
+
+    Uses Postmark when configured; falls back to SMTP; silently skips when
+    neither backend is ready.
+    """
+    if settings.postmark_configured:
+        try:
+            await _send_via_postmark(to, subject, html_body, settings.effective_from)
+            return
+        except Exception as exc:
+            if settings.smtp_configured:
+                logger.warning(
+                    "[email] Postmark failed, falling back to SMTP for to=%s subject=%r: %s",
+                    to,
+                    subject,
+                    exc,
+                )
+                await _send_via_smtp(to, subject, html_body)
+                return
+            raise
+
+    if settings.smtp_configured:
+        await _send_via_smtp(to, subject, html_body)
+        return
+
+    logger.info("[email] No email backend configured — skipping send to %s: %s", to, subject)
 
 
 async def send_confirmation_email(to_email: str, token: str) -> None:
@@ -96,23 +163,28 @@ async def send_password_reset_email(to_email: str, token: str) -> None:
 
 async def send_lead_notification(name: str, email: str, message: str | None = None) -> None:
     """Notifica al propietario de la app cuando un nuevo lead se registra en la landing."""
-    contact_email = settings.CONTACT_EMAIL or settings.SMTP_FROM
-    if not settings.smtp_configured:
+    contact_email = settings.CONTACT_EMAIL or settings.effective_from
+    if not settings.email_configured:
         logger.warning(
-            "[lead] SMTP no configurado — lead '%s' <%s> guardado en BD pero no se envió email.",
+            "[lead] Sin backend de email configurado — lead '%s' <%s> guardado en BD pero no se envió email.",
             name,
             email,
         )
         return
+
+    # Escape user-supplied values to prevent HTML injection in the internal notification.
+    safe_name = html.escape(name)
+    safe_email = html.escape(email)
+    safe_message = html.escape(message) if message else None
 
     leads_url = f"{settings.APP_BASE_URL}/admin/leads"
     message_row = (
         f"""
     <tr>
       <td style="padding: 8px; font-weight: 600; border-bottom: 1px solid #e5e0d8; width: 100px; vertical-align: top;">Mensaje</td>
-      <td style="padding: 8px; border-bottom: 1px solid #e5e0d8; white-space: pre-wrap;">{message}</td>
+      <td style="padding: 8px; border-bottom: 1px solid #e5e0d8; white-space: pre-wrap;">{safe_message}</td>
     </tr>"""
-        if message
+        if safe_message
         else ""
     )
     html_body = f"""
@@ -123,11 +195,11 @@ async def send_lead_notification(name: str, email: str, message: str | None = No
   <table style="width:100%; border-collapse: collapse; margin-top: 1rem;">
     <tr>
       <td style="padding: 8px; font-weight: 600; border-bottom: 1px solid #e5e0d8; width: 100px;">Nombre</td>
-      <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;">{name}</td>
+      <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;">{safe_name}</td>
     </tr>
     <tr>
       <td style="padding: 8px; font-weight: 600; border-bottom: 1px solid #e5e0d8;">Email</td>
-      <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;"><a href="mailto:{email}">{email}</a></td>
+      <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;"><a href="mailto:{safe_email}">{safe_email}</a></td>
     </tr>    {message_row}  </table>
   <p style="margin-top: 1.5rem;">
     <a href="{leads_url}"
@@ -139,4 +211,4 @@ async def send_lead_notification(name: str, email: str, message: str | None = No
 </body>
 </html>
 """
-    await send_email(contact_email, f"[Trufiq] Nuevo interesado: {name}", html_body)
+    await send_email(contact_email, f"[Trufiq] Nuevo interesado: {safe_name}", html_body)
