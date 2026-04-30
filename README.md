@@ -976,6 +976,10 @@ LOG_LEVEL=INFO
 LOG_JSON=1
 METRICS_ENABLED=1
 METRICS_TOKEN=<token-largo-y-aleatorio>
+SENTRY_DSN=<dsn-de-sentry>
+SENTRY_ENVIRONMENT=production
+SENTRY_RELEASE=<git-sha-o-version>
+SENTRY_TRACES_SAMPLE_RATE=0
 ```
 
 Nota para stack externo (recomendado):
@@ -983,6 +987,7 @@ Nota para stack externo (recomendado):
 - Usa Grafana externo para reglas/alertas y conecta como datasource la Prometheus API de Fly.
 - Mantener `METRICS_ENABLED=1` permite que Fly recoja metricas custom y las publique en su API de Prometheus.
 - Si necesitas scrapear `/metrics` directamente desde fuera de Fly, protege el endpoint con `METRICS_TOKEN` y usa cabecera `x-metrics-token` en el scraper.
+- Usa Sentry para detalle de excepciones (stacktrace y agrupacion por issue) y Fly Logs como contexto operativo.
 
 ### Alertas recomendadas en Grafana
 
@@ -1011,6 +1016,14 @@ histogram_quantile(
   sum by (le) (rate(trufiq_http_request_duration_seconds_bucket[5m]))
 ) > 1.5
 ```
+
+### Enlaces de diagnostico en alertas (Grafana)
+
+En cada regla de alerta añade anotaciones para saltar directo al detalle:
+
+- `dashboard_url`: dashboard del entorno afectado.
+- `sentry_url`: filtro por `environment` + `service` en Sentry.
+- `logs_url`: vista de Fly Logs de la app afectada en ventana temporal del incidente.
 
 ### Alertas de infraestructura (Fly)
 

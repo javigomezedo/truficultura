@@ -6,7 +6,8 @@ Resumen de arquitectura recomendada:
 
 - Fly como runtime de aplicacion y fuente de metricas (Prometheus API).
 - Grafana externo (por ejemplo Grafana Cloud) para dashboards, reglas y notificaciones.
-- Opcional: Sentry para trazas de excepcion y contexto de errores.
+- Sentry como capa de diagnostico de excepciones (issue grouping + stacktrace).
+- Fly Logs como apoyo para contexto operativo y trazas no cubiertas por excepciones.
 
 Documento principal:
 
@@ -51,3 +52,23 @@ Comprobaciones base en Fly:
 - `fly status --app trufiq-dev`
 - `fly checks list --app trufiq-dev`
 - `curl -sS https://trufiq-dev.fly.dev/metrics | head`
+
+Direccion elegida (coste bajo):
+
+- Deteccion: alertas en Grafana con metricas de Prometheus.
+- Diagnostico: Sentry para ver stacktrace y agrupar errores.
+- Soporte: Fly Logs para contexto adicional (request/infra/scripts).
+
+Configuracion Sentry minima (DEV):
+
+- Definir `SENTRY_DSN`.
+- Definir `SENTRY_ENVIRONMENT=development`.
+- Mantener `SENTRY_TRACES_SAMPLE_RATE=0` para no incurrir en coste de tracing al inicio.
+- Opcional: definir `SENTRY_RELEASE` con commit SHA o version.
+
+Enlaces recomendados desde alertas de Grafana:
+
+- `runbook_url`: enlace al runbook interno.
+- `dashboard_url`: enlace al dashboard de entorno.
+- `sentry_url`: busqueda prefiltrada por `environment` y `service`.
+- `logs_url`: enlace a Fly Log Search de la app afectada.

@@ -302,15 +302,21 @@ Criterio de salida Fase 5:
 - runbook aprobado
 - responsables y escalado definidos
 
-## Fase 6 (opcional) - Errores de aplicacion con Sentry
+## Fase 6 - Errores de aplicacion con Sentry
+
+Estado:
+
+- Direccion elegida para coste/beneficio: activar Sentry junto con Grafana y Fly Logs.
 
 1. Integrar SDK en FastAPI y scripts de cron.
 2. Enviar excepciones no controladas y contexto de release.
 3. Crear enlace cruzado desde alertas Grafana a incidencias Sentry.
+4. Mantener `SENTRY_TRACES_SAMPLE_RATE=0` en DEV para minimizar coste inicial.
 
 Beneficio:
 - Grafana detecta el sintoma
 - Sentry acelera el diagnostico de causa raiz
+- Fly Logs aporta contexto operativo complementario
 
 ## Checklist rapido de ejecucion
 

@@ -9,6 +9,7 @@ from starlette.requests import Request
 from app.observability import (
     JsonFormatter,
     configure_logging,
+    configure_sentry,
     install_global_exception_hooks,
     metrics_middleware,
     normalize_path,
@@ -63,6 +64,38 @@ def test_configure_logging_works() -> None:
     assert root_logger.level == logging.WARNING
 
 
+def test_configure_sentry_without_dsn_returns_false() -> None:
+    assert (
+        configure_sentry(
+            dsn=None,
+            environment="development",
+            service_name="test-service",
+        )
+        is False
+    )
+
+
+def test_configure_sentry_when_sdk_missing_returns_false(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    logger = logging.getLogger("test.sentry")
+
+    def _raise_import_error(_: str):
+        raise ImportError("missing")
+
+    monkeypatch.setattr("importlib.import_module", _raise_import_error)
+
+    assert (
+        configure_sentry(
+            dsn="https://example@sentry.io/1",
+            environment="development",
+            service_name="test-service",
+            logger=logger,
+        )
+        is False
+    )
+
+
 def test_render_metrics_response() -> None:
     response = render_metrics()
     assert response.status_code == 200
@@ -93,7 +126,9 @@ async def test_metrics_middleware_exception() -> None:
         await metrics_middleware(request, call_next, logger)
 
 
-def test_install_global_exception_hooks_without_running_loop(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_install_global_exception_hooks_without_running_loop(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     logger = logging.getLogger("test.hooks")
 
     def _raise_runtime_error() -> asyncio.AbstractEventLoop:
