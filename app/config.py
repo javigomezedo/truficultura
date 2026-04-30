@@ -49,6 +49,10 @@ class Settings(BaseSettings):
     LOG_JSON: bool = False
     METRICS_ENABLED: bool = True
     METRICS_TOKEN: Optional[str] = None
+    SENTRY_DSN: Optional[str] = None
+    SENTRY_ENVIRONMENT: str = "development"
+    SENTRY_RELEASE: Optional[str] = None
+    SENTRY_TRACES_SAMPLE_RATE: float = 0.0
 
     @property
     def postmark_configured(self) -> bool:

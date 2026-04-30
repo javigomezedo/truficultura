@@ -25,6 +25,7 @@ import app.models  # noqa: F401 - ensure models are registered
 from app.models.user import User
 from app.observability import (
     configure_logging,
+    configure_sentry,
     install_global_exception_hooks,
     metrics_middleware,
     render_metrics,
@@ -58,6 +59,14 @@ from app.services.dashboard_service import build_dashboard_context
 
 configure_logging(level=settings.LOG_LEVEL, json_logs=settings.LOG_JSON)
 logger = logging.getLogger(__name__)
+configure_sentry(
+    dsn=settings.SENTRY_DSN,
+    environment=settings.SENTRY_ENVIRONMENT,
+    release=settings.SENTRY_RELEASE,
+    traces_sample_rate=settings.SENTRY_TRACES_SAMPLE_RATE,
+    service_name="trufiq-web",
+    logger=logger,
+)
 
 
 @asynccontextmanager

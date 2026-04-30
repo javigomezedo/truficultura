@@ -25,12 +25,21 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.services.recurring_expenses_service import process_recurring_expenses
 from app.observability import (
     configure_logging,
+    configure_sentry,
     install_global_exception_hooks,
     record_unhandled_exception,
 )
 
 configure_logging(level=os.environ.get("LOG_LEVEL", "INFO"), json_logs=False)
 log = logging.getLogger(__name__)
+configure_sentry(
+    dsn=os.environ.get("SENTRY_DSN"),
+    environment=os.environ.get("SENTRY_ENVIRONMENT", "development"),
+    release=os.environ.get("SENTRY_RELEASE"),
+    traces_sample_rate=float(os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0")),
+    service_name="trufiq-cron-recurring-expenses",
+    logger=log,
+)
 
 
 async def main(dry_run: bool = False) -> None:

@@ -1,4 +1,5 @@
 import asyncio
+import importlib
 import json
 import logging
 import logging.config
@@ -172,3 +173,50 @@ async def metrics_middleware(
 
 def render_metrics() -> Response:
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
+def configure_sentry(
+    *,
+    dsn: str | None,
+    environment: str,
+    service_name: str,
+    release: str | None = None,
+    traces_sample_rate: float = 0.0,
+    logger: logging.Logger | None = None,
+) -> bool:
+    """Initialize Sentry when DSN is configured.
+
+    Returns True when Sentry was initialized successfully, False otherwise.
+    """
+    if not dsn:
+        return False
+
+    active_logger = logger or logging.getLogger(__name__)
+
+    try:
+        sentry_sdk = importlib.import_module("sentry_sdk")
+        sentry_logging = importlib.import_module("sentry_sdk.integrations.logging")
+    except Exception:
+        active_logger.warning("Sentry DSN definido pero sentry-sdk no esta disponible.")
+        return False
+
+    logging_integration = sentry_logging.LoggingIntegration(
+        level=logging.INFO,
+        event_level=logging.ERROR,
+    )
+
+    sentry_sdk.init(
+        dsn=dsn,
+        environment=environment,
+        release=release,
+        integrations=[logging_integration],
+        traces_sample_rate=traces_sample_rate,
+        send_default_pii=False,
+    )
+    sentry_sdk.set_tag("service", service_name)
+    active_logger.info(
+        "Sentry inicializado para service=%s env=%s",
+        service_name,
+        environment,
+    )
+    return True

@@ -25,6 +25,7 @@ dependencies = [
     "httpx>=0.27.0",
     "stripe>=10.0.0",
     "prometheus-client>=0.20.0",
+    "sentry-sdk[fastapi]>=2.27.0",
 ]
 
 [build-system]
