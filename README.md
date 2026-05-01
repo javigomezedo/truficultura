@@ -154,7 +154,7 @@ Servicios principales:
 - `app/services/assistant_service.py`: preparación de contexto y orquestación del asistente.
 - `app/services/import_service.py`: importación de parcelas, gastos, ingresos, riego, pozos y producción desde CSV.
 - `app/services/export_service.py`: exportación de parcelas, gastos, ingresos, riego, pozos y producción a CSV/ZIP.
-- `app/services/email_service.py`: envío de emails (confirmación, notificaciones de leads) vía SMTP.
+- `app/services/email_service.py`: envío de emails transaccionales (confirmación de cuenta, recuperación de contraseña, notificaciones de leads, eventos de suscripción) vía Postmark con fallback SMTP.
 - `app/services/token_service.py`: generación y validación de tokens firmados (confirmación email, QR).
 - `app/services/admin_service.py`: gestión de usuarios desde el panel de admin.
 
@@ -440,6 +440,86 @@ Campos relevantes:
 - Los siguientes usuarios se crean como **user** con periodo de prueba de `TRIAL_DAYS` días
 - Solo un admin puede cambiar roles a otros usuarios
 - No se puede desactivar a uno mismo (protección de seguridad)
+
+---
+
+## Integraciones externas
+
+Trufiq depende de los siguientes servicios externos. Todos son opcionales en local (la app arranca sin ellos), pero son necesarios en entornos desplegados.
+
+### Stripe — Suscripciones y pagos
+
+| Concepto | Detalle |
+|---|---|
+| Propósito | Checkout anual, portal de gestión y webhooks de ciclo de vida |
+| Variables requeridas | `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID` |
+| Webhook URL | `POST /billing/stripe/webhook` |
+| Eventos gestionados | `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated`, `customer.subscription.deleted` |
+| Flujo de trial | `TRIAL_DAYS` días (defecto: 14) gestionados por la app; Stripe no toca el trial |
+| Estado en DEV | ✅ Validado E2E (7 flujos) |
+
+Dashboard: [dashboard.stripe.com](https://dashboard.stripe.com)
+
+---
+
+### Postmark — Email transaccional
+
+| Concepto | Detalle |
+|---|---|
+| Propósito | Envío de emails de producto (confirmación cuenta, reset password, eventos de suscripción, leads) |
+| Variables requeridas | `POSTMARK_API_KEY`, `POSTMARK_FROM` (`noreply@trufiq.app`) |
+| Fallback | Si Postmark falla, reintenta vía SMTP (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`) |
+| Dominio | `trufiq.app` — DKIM verificado en Postmark y Cloudflare |
+| Emails implementados | Confirmación de email, reset de contraseña, notificación de lead, activación suscripción, renovación, pago fallido, cancelación |
+| Estado en DEV | ✅ DKIM verificado, entrega real confirmada |
+
+Dashboard: [account.postmarkapp.com](https://account.postmarkapp.com)
+
+---
+
+### Sentry — Control de errores
+
+| Concepto | Detalle |
+|---|---|
+| Propósito | Captura de excepciones no controladas con stacktrace, agrupación por issue y alertas |
+| Variables requeridas | `SENTRY_DSN`, `SENTRY_ENVIRONMENT` |
+| Variables opcionales | `SENTRY_RELEASE` (git SHA), `SENTRY_TRACES_SAMPLE_RATE` (defecto `0.0`) |
+| Integración | `LoggingIntegration` — captura logs `ERROR` y superiores como eventos Sentry |
+| Proyecto DEV | `trufiq-dev` |
+| Estado en DEV | ✅ Configurado y desplegado |
+
+Nota: `SENTRY_TRACES_SAMPLE_RATE=0` es el valor recomendado para no incurrir en costes de tracing al inicio.
+
+Dashboard: [sentry.io](https://sentry.io)
+
+---
+
+### Grafana + Prometheus (vía Fly.io) — Métricas y alertas
+
+| Concepto | Detalle |
+|---|---|
+| Propósito | Dashboards, reglas de alerta y notificaciones por entorno |
+| Fuente de métricas | Fly.io Prometheus API (scrape automático desde `/metrics`) |
+| Métricas custom | `trufiq_http_requests_total`, `trufiq_http_request_duration_seconds`, `trufiq_unhandled_exceptions_total` |
+| Variables requeridas | `METRICS_ENABLED=1` (en Fly), `METRICS_TOKEN` (opcional, protege `/metrics`) |
+| Alertas configuradas | Instancia caída, ratio 5xx warning/critical, latencia p95, excepciones no controladas |
+| Estado en DEV | ✅ Dashboard importado, alertas activas y notificaciones por email verificadas |
+
+Dashboard base exportado en `monitoring/trufiq-overview-dashboard.json`.
+
+Dashboard: [grafana.com](https://grafana.com)
+
+---
+
+### AEMET / Ibericam — Meteorología y lluvia
+
+| Concepto | Detalle |
+|---|---|
+| Propósito | Importación automática de precipitaciones y visualización meteorológica en tiempo real |
+| Variables requeridas | `AEMET_API_KEY` |
+| Prioridad | AEMET sobre Ibericam (Ibericam como fallback sin clave API) |
+| Cron | `scripts/import_rainfall_cron.py` — se ejecuta diariamente para descargar datos por municipio |
+| Estado | Funcional; AEMET requiere alta en [opendata.aemet.es](https://opendata.aemet.es) |
 
 ---
 
