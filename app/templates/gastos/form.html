@@ -139,7 +139,8 @@
                                        min="2"
                                        max="50"
                                        value="2"
-                                       placeholder="2">
+                                       placeholder="2"
+                                       disabled>
                                 <div class="form-text">{{ _("Mínimo 2 años.") }}</div>
                             </div>
                             <div class="col-md-6">
@@ -152,7 +153,8 @@
                                        name="start_year"
                                        min="2000"
                                        max="2100"
-                                       placeholder="2025">
+                                       placeholder="2025"
+                                       disabled>
                                 <div class="form-text">{{ _("Por defecto, el año de la fecha del gasto.") }}</div>
                             </div>
                             <div class="col-12">
@@ -307,8 +309,8 @@
         toggle.addEventListener('change', function () {
             var show = this.checked;
             fields.style.display = show ? '' : 'none';
-            if (yearsInput) yearsInput.required = show;
-            if (startYearInput) startYearInput.required = show;
+            if (yearsInput) { yearsInput.required = show; yearsInput.disabled = !show; }
+            if (startYearInput) { startYearInput.required = show; startYearInput.disabled = !show; }
             if (show) syncStartYear();
         });
     }
