@@ -53,7 +53,7 @@ async def billing_checkout(
     try:
         url = await billing_service.create_checkout_session(current_user, db)
     except RuntimeError as exc:
-        logger.error("Checkout session creation failed: %s", exc)
+        logger.exception("Checkout session creation failed: %s", exc)
         raise HTTPException(status_code=503, detail=str(exc))
 
     return RedirectResponse(url, status_code=303)
@@ -94,7 +94,7 @@ async def billing_portal(
     try:
         url = await billing_service.create_portal_session(current_user)
     except RuntimeError as exc:
-        logger.error("Portal session creation failed: %s", exc)
+        logger.exception("Portal session creation failed: %s", exc)
         raise HTTPException(status_code=503, detail=str(exc))
 
     return RedirectResponse(url, status_code=303)
@@ -119,7 +119,7 @@ async def stripe_webhook(
         logger.warning("Stripe webhook: invalid signature")
         raise HTTPException(status_code=400, detail="Invalid Stripe signature")
     except RuntimeError as exc:
-        logger.error("Stripe webhook handler error: %s", exc)
+        logger.exception("Stripe webhook handler error: %s", exc)
         raise HTTPException(status_code=503, detail=str(exc))
 
     return {"ok": True}

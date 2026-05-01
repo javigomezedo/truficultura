@@ -1079,7 +1079,13 @@ Si usas Prometheus + Grafana, crea al menos estas alertas:
 sum(increase(trufiq_unhandled_exceptions_total[5m])) > 0
 ```
 
-2. Tasa alta de respuestas 5xx
+2. Fallos de backend de email (Postmark o SMTP)
+
+```promql
+sum(increase(trufiq_email_backend_failures_total[5m])) > 0
+```
+
+3. Tasa alta de respuestas 5xx
 
 ```promql
 sum(rate(trufiq_http_requests_total{status=~"5.."}[5m]))
