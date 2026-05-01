@@ -311,6 +311,7 @@ a:hover {
 
 .tf-panel {
     overflow: hidden;
+    backdrop-filter: none !important;
 }
 
 .tf-panel-overflow-visible {

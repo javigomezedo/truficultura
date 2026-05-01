@@ -443,6 +443,15 @@
             integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2XoQrxeTUQyRjrOnlCoYta87iKBWq3EsdM2"
             crossorigin="anonymous"></script>
     <script src="/static/js/app.js"></script>
+    <script>
+    // Inicializar dropdowns de acciones con strategy: fixed para que no queden
+    // recortados por contenedores con overflow o backdrop-filter.
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.tf-actions-dropdown').forEach(function (el) {
+            new bootstrap.Dropdown(el, { popperConfig: { strategy: 'fixed' } });
+        });
+    });
+    </script>
     <!-- marked (Markdown → HTML en el asistente) -->
     <script src="https://cdn.jsdelivr.net/npm/marked@13/marked.min.js" crossorigin="anonymous"></script>
     <!-- KaTeX -->
