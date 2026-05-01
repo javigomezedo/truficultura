@@ -10,6 +10,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.models.user import User
+from app.services.email_service import (
+    send_payment_failed_email,
+    send_subscription_activated_email,
+    send_subscription_canceled_email,
+    send_subscription_renewed_email,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -182,6 +188,17 @@ async def _handle_checkout_completed(data_object, db: AsyncSession) -> None:
     user.subscription_status = "active"
     await db.commit()
     logger.info("User %s activated subscription.", user.id)
+    ends_at_str = (
+        user.subscription_ends_at.strftime("%d/%m/%Y")
+        if user.subscription_ends_at
+        else None
+    )
+    try:
+        await send_subscription_activated_email(user.email, ends_at_str)
+    except Exception as exc:
+        logger.warning(
+            "[billing] Could not send activation email to %s: %s", user.email, exc
+        )
 
 
 async def _handle_invoice_paid(data_object, db: AsyncSession) -> None:
@@ -209,6 +226,22 @@ async def _handle_invoice_paid(data_object, db: AsyncSession) -> None:
     await db.commit()
     logger.info("User %s subscription renewed.", user.id)
 
+    # Only send renewal email for actual renewals, not the first invoice
+    # (which is already covered by the checkout.session.completed handler)
+    billing_reason = getattr(data_object, "billing_reason", None)
+    if billing_reason == "subscription_cycle":
+        ends_at_str = (
+            user.subscription_ends_at.strftime("%d/%m/%Y")
+            if user.subscription_ends_at
+            else None
+        )
+        try:
+            await send_subscription_renewed_email(user.email, ends_at_str)
+        except Exception as exc:
+            logger.warning(
+                "[billing] Could not send renewal email to %s: %s", user.email, exc
+            )
+
 
 async def _handle_invoice_payment_failed(data_object, db: AsyncSession) -> None:
     customer_id = data_object.customer
@@ -222,6 +255,12 @@ async def _handle_invoice_payment_failed(data_object, db: AsyncSession) -> None:
     user.subscription_status = "past_due"
     await db.commit()
     logger.warning("User %s payment failed — status set to past_due.", user.id)
+    try:
+        await send_payment_failed_email(user.email)
+    except Exception as exc:
+        logger.warning(
+            "[billing] Could not send payment-failed email to %s: %s", user.email, exc
+        )
 
 
 async def _handle_subscription_updated(data_object, db: AsyncSession) -> None:
@@ -260,6 +299,28 @@ async def _handle_subscription_updated(data_object, db: AsyncSession) -> None:
             user.id,
             user.subscription_ends_at,
         )
+
+        # Stripe marks user as active until the period ends. Notify here so
+        # users receive the cancellation confirmation at request time.
+        if stripe_status == "active":
+            ends_at_str = (
+                user.subscription_ends_at.strftime("%d/%m/%Y")
+                if user.subscription_ends_at
+                else None
+            )
+            logger.info(
+                "[billing] Sending scheduled-cancellation email to %s (ends_at=%s)",
+                user.email,
+                ends_at_str,
+            )
+            try:
+                await send_subscription_canceled_email(user.email, ends_at_str)
+            except Exception as exc:
+                logger.warning(
+                    "[billing] Could not send scheduled-cancellation email to %s: %s",
+                    user.email,
+                    exc,
+                )
     else:
         logger.info(
             "User %s subscription updated — status=%s.",
@@ -282,3 +343,19 @@ async def _handle_subscription_deleted(data_object, db: AsyncSession) -> None:
     user.subscription_status = "canceled"
     await db.commit()
     logger.info("User %s subscription canceled.", user.id)
+    ends_at_str = (
+        user.subscription_ends_at.strftime("%d/%m/%Y")
+        if user.subscription_ends_at
+        else None
+    )
+    logger.info(
+        "[billing] Sending cancellation email to %s (ends_at=%s)",
+        user.email,
+        ends_at_str,
+    )
+    try:
+        await send_subscription_canceled_email(user.email, ends_at_str)
+    except Exception as exc:
+        logger.warning(
+            "[billing] Could not send cancellation email to %s: %s", user.email, exc
+        )
