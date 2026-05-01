@@ -109,6 +109,9 @@ bajo/medio/alto), impacto de poda y labrado en producción, umbrales de riego ó
 comparativa multi-parcela y detalle por parcela y campaña.
 - Importar/Exportar: CSV con punto y coma como separador, formato numérico europeo (1.250,50) \
 y fechas dd/mm/aaaa.
+- Facturación (Stripe): suscripción anual con periodo de prueba inicial gestionado por la app. \
+Estados principales: active, trialing, past_due y canceled. En cancelaciones se envía email \
+de confirmación al usuario (tanto al solicitar cancelación a fin de periodo como al finalizarla).
 - Admin (solo administrador): gestión de usuarios (alta, baja, activar/desactivar, cambio de \
 contraseña, confirmación de email). El primer usuario registrado se convierte en administrador.
 

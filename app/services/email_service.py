@@ -106,6 +106,7 @@ async def send_email(to: str, subject: str, html_body: str) -> None:
 
     if settings.smtp_configured:
         await _send_via_smtp(to, subject, html_body)
+        logger.info("[email] SMTP delivered to=%s subject=%r", to, subject)
         return
 
     logger.info(

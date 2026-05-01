@@ -100,7 +100,7 @@ async def billing_portal(
     return RedirectResponse(url, status_code=303)
 
 
-@router.post("/stripe/webhook")
+@router.post("/billing/stripe/webhook")
 async def stripe_webhook(
     request: Request,
     db: AsyncSession = Depends(get_db),

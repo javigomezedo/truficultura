@@ -182,7 +182,7 @@ def test_stripe_webhook_ok(monkeypatch) -> None:
 
     try:
         response = TestClient(app).post(
-            "/stripe/webhook",
+            "/billing/stripe/webhook",
             content=b"{}",
             headers={"stripe-signature": "t=1,v1=abc"},
         )
@@ -205,7 +205,7 @@ def test_stripe_webhook_invalid_signature(monkeypatch) -> None:
 
     try:
         response = TestClient(app).post(
-            "/stripe/webhook",
+            "/billing/stripe/webhook",
             content=b"{}",
             headers={"stripe-signature": "bad"},
         )
@@ -225,7 +225,7 @@ def test_stripe_webhook_runtime_error(monkeypatch) -> None:
 
     try:
         response = TestClient(app).post(
-            "/stripe/webhook",
+            "/billing/stripe/webhook",
             content=b"{}",
             headers={"stripe-signature": "t=1,v1=abc"},
         )
