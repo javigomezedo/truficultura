@@ -19,6 +19,7 @@ import aiosmtplib
 import httpx
 
 from app.config import settings
+from app.observability import EMAIL_BACKEND_FAILURES_COUNTER
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,8 @@ async def _send_via_postmark(
         try:
             response.raise_for_status()
         except httpx.HTTPStatusError:
-            logger.error(
+            EMAIL_BACKEND_FAILURES_COUNTER.labels(backend="postmark").inc()
+            logger.exception(
                 "[email] Postmark rejected message to=%s from=%s status=%s body=%s",
                 to,
                 from_addr,
@@ -100,7 +102,11 @@ async def send_email(to: str, subject: str, html_body: str) -> None:
                     subject,
                     exc,
                 )
-                await _send_via_smtp(to, subject, html_body)
+                try:
+                    await _send_via_smtp(to, subject, html_body)
+                except Exception:
+                    EMAIL_BACKEND_FAILURES_COUNTER.labels(backend="smtp").inc()
+                    raise
                 return
             raise
 

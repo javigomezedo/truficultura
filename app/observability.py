@@ -27,6 +27,11 @@ UNHANDLED_EXCEPTIONS_COUNTER = Counter(
     "Total de excepciones no controladas",
     ["source"],
 )
+EMAIL_BACKEND_FAILURES_COUNTER = Counter(
+    "trufiq_email_backend_failures_total",
+    "Fallos de backend de email por proveedor",
+    ["backend"],
+)
 
 
 class JsonFormatter(logging.Formatter):
