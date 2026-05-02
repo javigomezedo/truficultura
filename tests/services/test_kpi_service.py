@@ -16,7 +16,7 @@ from tests.conftest import result
 def _plot(id, name, num_plants=10, area_ha=1.0, percentage=100.0):
     return Plot(
         id=id,
-        user_id=1,
+        tenant_id=1,
         name=name,
         planting_date=datetime.date(2020, 1, 1),
         num_plants=num_plants,
@@ -27,14 +27,14 @@ def _plot(id, name, num_plants=10, area_ha=1.0, percentage=100.0):
 
 def _expense(id, date, amount, plot_id):
     return Expense(
-        id=id, user_id=1, date=date, description="X", amount=amount, plot_id=plot_id
+        id=id, tenant_id=1, date=date, description="X", amount=amount, plot_id=plot_id
     )
 
 
 def _income(id, date, amount_kg, euros_per_kg, plot_id, total=None):
     return Income(
         id=id,
-        user_id=1,
+        tenant_id=1,
         date=date,
         amount_kg=amount_kg,
         euros_per_kg=euros_per_kg,
@@ -45,7 +45,7 @@ def _income(id, date, amount_kg, euros_per_kg, plot_id, total=None):
 
 def _irrigation(id, date, water_m3, plot_id):
     return IrrigationRecord(
-        id=id, user_id=1, date=date, water_m3=water_m3, plot_id=plot_id
+        id=id, tenant_id=1, date=date, water_m3=water_m3, plot_id=plot_id
     )
 
 
@@ -72,7 +72,7 @@ def make_db(plots, expenses, incomes, irrigation):
 @pytest.mark.asyncio
 async def test_build_kpi_context_empty() -> None:
     db = make_db([], [], [], [])
-    context = await build_kpi_context(db, user_id=1)
+    context = await build_kpi_context(db, tenant_id=1)
 
     assert context["all_campaigns"] == []
     assert context["plots"] == []
@@ -102,7 +102,7 @@ async def test_build_kpi_context_roi() -> None:
     incomes = [_income(1, datetime.date(2025, 6, 1), 5.0, 40.0, 1, total=200.0)]
     db = make_db(plots, expenses, incomes, [])
 
-    context = await build_kpi_context(db, user_id=1)
+    context = await build_kpi_context(db, tenant_id=1)
 
     assert context["kpi_summary"]["roi_pct"] == pytest.approx(
         100.0
@@ -119,7 +119,7 @@ async def test_build_kpi_context_roi() -> None:
 @pytest.mark.asyncio
 async def test_build_kpi_context_filters_by_user_id() -> None:
     db = make_db([], [], [], [])
-    await build_kpi_context(db, user_id=42)
+    await build_kpi_context(db, tenant_id=42)
 
     # Six queries should have been made (plots, expenses, incomes, irrigation, truffle_events, plot_harvests)
     assert db.execute.call_count == 6
@@ -146,7 +146,7 @@ async def test_build_kpi_context_with_campaign_filter() -> None:
     ]
     db = make_db(plots, expenses, incomes, [])
 
-    context = await build_kpi_context(db, user_id=1, selected_campaign=2024)
+    context = await build_kpi_context(db, tenant_id=1, selected_campaign=2024)
 
     assert context["selected_campaign"] == 2024
     assert context["kpi_summary"]["year"] == 2024
@@ -165,7 +165,7 @@ async def test_build_kpi_context_no_kg() -> None:
     expenses = [_expense(1, datetime.date(2025, 6, 1), 100.0, 1)]
     db = make_db(plots, expenses, [], [])
 
-    context = await build_kpi_context(db, user_id=1)
+    context = await build_kpi_context(db, tenant_id=1)
 
     assert context["kpi_summary"]["precio_medio"] is None
     assert context["kpi_summary"]["total_kg"] == pytest.approx(0.0)
@@ -184,7 +184,7 @@ async def test_build_kpi_context_no_expenses() -> None:
     incomes = [_income(1, datetime.date(2025, 6, 1), 3.0, 50.0, 1, total=150.0)]
     db = make_db(plots, [], incomes, [])
 
-    context = await build_kpi_context(db, user_id=1)
+    context = await build_kpi_context(db, tenant_id=1)
 
     assert context["kpi_summary"]["roi_pct"] is None
     assert context["kpi_summary"]["precio_medio"] == pytest.approx(50.0)
@@ -201,7 +201,7 @@ async def test_build_kpi_context_no_irrigation() -> None:
     incomes = [_income(1, datetime.date(2025, 6, 1), 3.0, 50.0, 1, total=150.0)]
     db = make_db(plots, [], incomes, [])
 
-    context = await build_kpi_context(db, user_id=1)
+    context = await build_kpi_context(db, tenant_id=1)
 
     row = context["plot_kpi_table"][0]
     assert row["m3_kg"] is None
@@ -227,7 +227,7 @@ async def test_build_kpi_context_unassigned_expense_distributed() -> None:
     ]
     db = make_db(plots, expenses, incomes, [])
 
-    context = await build_kpi_context(db, user_id=1)
+    context = await build_kpi_context(db, tenant_id=1)
 
     rows = {r["plot_name"]: r for r in context["plot_kpi_table"]}
     assert rows["P1"]["total_expenses"] == pytest.approx(60.0)
@@ -249,7 +249,7 @@ async def test_build_kpi_context_unassigned_income_counted_in_trend() -> None:
     ]
     db = make_db(plots, expenses, incomes, [])
 
-    context = await build_kpi_context(db, user_id=1)
+    context = await build_kpi_context(db, tenant_id=1)
 
     # Historical/global campaign totals must include unassigned incomes
     assert context["trend"][0]["total_incomes"] == pytest.approx(150.0)

@@ -14,6 +14,12 @@
 
 {% block content %}
 <div class="container-xl">
+    {% if joined %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-building-check-fill me-2"></i>{{ _("Te has unido a la organización correctamente. ¡Bienvenido!") }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
     <div class="tf-page-header">
         <div>
             <p class="tf-page-kicker">{{ _("Explotación trufícola") }}</p>

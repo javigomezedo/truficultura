@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.models.tenant import Tenant, TenantMembership
 from app.models.user import User
 
 _pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
@@ -75,17 +76,41 @@ async def get_current_user(
         request.session.clear()
         return None
 
-    # Refresh subscription data in session so base.html can read it without
-    # needing current_user in every router's template context.
+    # Load the tenant membership for this user
     if user is not None:
-        request.session["subscription_status"] = user.subscription_status
-        if user.trial_ends_at:
-            delta = user.trial_ends_at - datetime.now(UTC)
+        membership_result = await db.execute(
+            select(TenantMembership)
+            .where(TenantMembership.user_id == user.id)
+        )
+        membership = membership_result.scalar_one_or_none()
+
+        if membership is not None:
+            tenant_result = await db.execute(
+                select(Tenant).where(Tenant.id == membership.tenant_id)
+            )
+            tenant = tenant_result.scalar_one_or_none()
+        else:
+            tenant = None
+
+        # Attach tenant info as dynamic attributes on the user object
+        user.active_tenant_id = membership.tenant_id if membership else None  # type: ignore[attr-defined]
+        user.tenant_role = membership.role if membership else None  # type: ignore[attr-defined]
+        user.active_tenant = tenant  # type: ignore[attr-defined]
+
+        # Refresh subscription data in session so base.html can read it without
+        # needing current_user in every router's template context.
+        sub_status = tenant.subscription_status if tenant else "trialing"
+        trial_ends_at = tenant.trial_ends_at if tenant else None
+        subscription_ends_at = tenant.subscription_ends_at if tenant else None
+
+        request.session["subscription_status"] = sub_status
+        if trial_ends_at:
+            delta = trial_ends_at - datetime.now(UTC)
             request.session["trial_days_left"] = delta.days
         else:
             request.session["trial_days_left"] = None
-        if user.subscription_ends_at:
-            delta = user.subscription_ends_at - datetime.now(UTC)
+        if subscription_ends_at:
+            delta = subscription_ends_at - datetime.now(UTC)
             request.session["subscription_days_left"] = delta.days
         else:
             request.session["subscription_days_left"] = None
@@ -126,16 +151,20 @@ class SubscriptionRequiredException(Exception):
 
 
 def is_subscription_blocked(user: User) -> bool:
-    """Return True if the user should be blocked from accessing the app."""
+    """Return True if the user's tenant should be blocked from accessing the app."""
     if user.role == "admin":
         return False
+    tenant: Optional[Tenant] = getattr(user, "active_tenant", None)
+    if tenant is None:
+        # No tenant yet (rare during registration flow) — allow access
+        return False
     now = datetime.now(UTC)
-    status = user.subscription_status
+    status = tenant.subscription_status
     if status == "trialing":
-        return not (user.trial_ends_at and user.trial_ends_at > now)
+        return not (tenant.trial_ends_at and tenant.trial_ends_at > now)
     if status == "active":
         return (
-            user.subscription_ends_at is not None and user.subscription_ends_at <= now
+            tenant.subscription_ends_at is not None and tenant.subscription_ends_at <= now
         )
     return True
 

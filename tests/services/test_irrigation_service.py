@@ -26,7 +26,7 @@ from tests.conftest import result
 def _make_plot(id=1, has_irrigation=True):
     return Plot(
         id=id,
-        user_id=1,
+        tenant_id=1,
         name=f"Parcela {id}",
         planting_date=datetime.date(2020, 1, 1),
         has_irrigation=has_irrigation,
@@ -43,7 +43,7 @@ def _make_plot(id=1, has_irrigation=True):
 def _make_record(id=1, plot_id=1, water_m3=10.0, expense_id=None):
     r = IrrigationRecord(
         id=id,
-        user_id=1,
+        tenant_id=1,
         plot_id=plot_id,
         date=datetime.date(2025, 6, 15),
         water_m3=water_m3,
@@ -66,7 +66,7 @@ async def test_get_irrigation_record_found() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([record]))
 
-    found = await get_irrigation_record(db, record_id=1, user_id=1)
+    found = await get_irrigation_record(db, record_id=1, tenant_id=1)
     assert found is record
 
 
@@ -75,7 +75,7 @@ async def test_get_irrigation_record_not_found() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([]))
 
-    found = await get_irrigation_record(db, record_id=99, user_id=1)
+    found = await get_irrigation_record(db, record_id=99, tenant_id=1)
     assert found is None
 
 
@@ -90,12 +90,12 @@ async def test_list_irrigation_records_filters_by_user_id() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result(records))
 
-    found = await list_irrigation_records(db, user_id=1)
+    found = await list_irrigation_records(db, tenant_id=1)
     assert len(found) == 2
     # Verifica que la query ejecutada filtra correctamente
     call_args = db.execute.call_args[0][0]
     where_clauses = str(call_args)
-    assert "user_id" in where_clauses
+    assert "tenant_id" in where_clauses
 
 
 @pytest.mark.asyncio
@@ -111,7 +111,7 @@ async def test_list_irrigation_records_filter_by_year() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([r_2025, r_2024]))
 
-    found = await list_irrigation_records(db, user_id=1, year=2025)
+    found = await list_irrigation_records(db, tenant_id=1, year=2025)
     assert all(r.date.year >= 2025 for r in found)
     assert len(found) == 1
 
@@ -130,7 +130,7 @@ async def test_get_irrigation_list_context_totals() -> None:
     # execute se llama 3 veces: records, plots irrigables, años
     db.execute = AsyncMock(side_effect=[result(records), result([plot]), result([])])
 
-    ctx = await get_irrigation_list_context(db, user_id=1)
+    ctx = await get_irrigation_list_context(db, tenant_id=1)
     assert ctx["count"] == 2
     assert ctx["total_water_m3"] == 8.0
     assert ctx["total_water_liters"] == 8000.0
@@ -145,7 +145,7 @@ async def test_get_irrigation_list_context_totals() -> None:
 async def test_get_riego_expenses_filters_by_category() -> None:
     expense = Expense(
         id=1,
-        user_id=1,
+        tenant_id=1,
         plot_id=1,
         date=datetime.date(2025, 5, 1),
         description="Agua mayo",
@@ -155,7 +155,7 @@ async def test_get_riego_expenses_filters_by_category() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([expense]))
 
-    expenses = await get_riego_expenses_for_plot(db, user_id=1, plot_id=1)
+    expenses = await get_riego_expenses_for_plot(db, tenant_id=1, plot_id=1)
 
     assert len(expenses) == 1
     assert expenses[0].category == "Riego"
@@ -180,7 +180,7 @@ async def test_create_validates_plot_has_irrigation() -> None:
     data = IrrigationCreate(plot_id=1, date=datetime.date(2025, 6, 1), water_m3=5.0)
 
     with pytest.raises(HTTPException) as exc_info:
-        await create_irrigation_record(db, user_id=1, data=data)
+        await create_irrigation_record(db, tenant_id=1, data=data)
     assert exc_info.value.status_code == 400
 
 
@@ -195,7 +195,7 @@ async def test_create_validates_plot_not_found() -> None:
     data = IrrigationCreate(plot_id=999, date=datetime.date(2025, 6, 1), water_m3=5.0)
 
     with pytest.raises(HTTPException) as exc_info:
-        await create_irrigation_record(db, user_id=1, data=data)
+        await create_irrigation_record(db, tenant_id=1, data=data)
     assert exc_info.value.status_code == 404
 
 
@@ -217,7 +217,7 @@ async def test_create_validates_expense_category_riego() -> None:
     )
 
     with pytest.raises(HTTPException) as exc_info:
-        await create_irrigation_record(db, user_id=1, data=data)
+        await create_irrigation_record(db, tenant_id=1, data=data)
     assert exc_info.value.status_code == 400
 
 
@@ -235,13 +235,13 @@ async def test_create_success() -> None:
         "app.services.plot_events_service.sync_plot_event_from_irrigation",
         new=AsyncMock(),
     ) as sync_mock:
-        record = await create_irrigation_record(db, user_id=1, data=data)
+        record = await create_irrigation_record(db, tenant_id=1, data=data)
 
     db.add.assert_called_once()
     db.flush.assert_awaited()
     sync_mock.assert_awaited_once()
     assert record.water_m3 == 12.5
-    assert record.user_id == 1
+    assert record.tenant_id == 1
 
 
 # ---------------------------------------------------------------------------
@@ -281,7 +281,7 @@ async def test_delete_enforces_user_id() -> None:
     db.delete = AsyncMock()
     db.flush = AsyncMock()
 
-    await delete_irrigation_record(db, record_id=1, user_id=99)
+    await delete_irrigation_record(db, record_id=1, tenant_id=99)
     db.delete.assert_not_awaited()
 
 
@@ -297,7 +297,7 @@ async def test_delete_success() -> None:
         "app.services.plot_events_service.delete_plot_event_for_irrigation",
         new=AsyncMock(),
     ) as delete_event_mock:
-        await delete_irrigation_record(db, record_id=1, user_id=1)
+        await delete_irrigation_record(db, record_id=1, tenant_id=1)
 
     db.delete.assert_awaited_once_with(record)
 
@@ -325,7 +325,7 @@ async def test_create_bulk_creates_all_items() -> None:
         "app.services.plot_events_service.sync_plot_event_from_irrigation",
         new=AsyncMock(),
     ):
-        records = await create_irrigation_records_bulk(db, user_id=1, items=items)
+        records = await create_irrigation_records_bulk(db, tenant_id=1, items=items)
 
     assert len(records) == 2
     assert records[0].water_m3 == 10.0
@@ -337,7 +337,7 @@ async def test_create_bulk_empty_list_returns_empty() -> None:
     db = MagicMock()
     db.execute = AsyncMock()
 
-    records = await create_irrigation_records_bulk(db, user_id=1, items=[])
+    records = await create_irrigation_records_bulk(db, tenant_id=1, items=[])
 
     assert records == []
     db.execute.assert_not_awaited()
@@ -352,7 +352,7 @@ async def test_create_bulk_empty_list_returns_empty() -> None:
 async def test_get_riego_expenses_for_plots_groups_by_plot() -> None:
     e1 = Expense(
         id=1,
-        user_id=1,
+        tenant_id=1,
         plot_id=1,
         category="Riego",
         date=datetime.date(2025, 6, 1),
@@ -361,7 +361,7 @@ async def test_get_riego_expenses_for_plots_groups_by_plot() -> None:
     )
     e2 = Expense(
         id=2,
-        user_id=1,
+        tenant_id=1,
         plot_id=2,
         category="Riego",
         date=datetime.date(2025, 6, 1),
@@ -372,7 +372,7 @@ async def test_get_riego_expenses_for_plots_groups_by_plot() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([e1, e2]))
 
-    out = await get_riego_expenses_for_plots(db, user_id=1, plot_ids=[1, 2])
+    out = await get_riego_expenses_for_plots(db, tenant_id=1, plot_ids=[1, 2])
 
     assert 1 in out and 2 in out
     assert out[1] == [e1]
@@ -384,7 +384,7 @@ async def test_get_riego_expenses_for_plots_empty_returns_empty_dict() -> None:
     db = MagicMock()
     db.execute = AsyncMock()
 
-    out = await get_riego_expenses_for_plots(db, user_id=1, plot_ids=[])
+    out = await get_riego_expenses_for_plots(db, tenant_id=1, plot_ids=[])
 
     assert out == {}
     db.execute.assert_not_awaited()

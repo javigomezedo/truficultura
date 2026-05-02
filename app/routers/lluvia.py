@@ -48,7 +48,7 @@ async def list_view(
     )
     context = await get_rainfall_list_context(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         year=year_int,
         plot_id=plot_id_int,
         source=source_val,
@@ -70,7 +70,7 @@ async def new_form(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    plots = await _get_user_plots(db, current_user.id)
+    plots = await _get_user_plots(db, current_user.active_tenant_id)
     return templates.TemplateResponse(
         request,
         "lluvia/form.html",
@@ -106,7 +106,7 @@ async def create_view(
             notes=notes or None,
         )
     except Exception:
-        plots = await _get_user_plots(db, current_user.id)
+        plots = await _get_user_plots(db, current_user.active_tenant_id)
         return templates.TemplateResponse(
             request,
             "lluvia/form.html",
@@ -120,7 +120,7 @@ async def create_view(
             },
         )
 
-    await create_rainfall_record(db, current_user.id, data)
+    await create_rainfall_record(db, current_user.active_tenant_id, data)
     return RedirectResponse(
         url=f"/lluvia/?msg={quote_plus(_('Registro de lluvia guardado correctamente'))}",
         status_code=303,
@@ -134,18 +134,18 @@ async def edit_form(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    record = await get_rainfall_record(db, record_id, current_user.id)
+    record = await get_rainfall_record(db, record_id, current_user.active_tenant_id)
     if record is None:
         return RedirectResponse(
             url=f"/lluvia/?msg={quote_plus(_('Registro no encontrado'))}",
             status_code=303,
         )
-    if record.user_id is None:
+    if record.created_by_user_id is None:
         return RedirectResponse(
             url=f"/lluvia/?msg={quote_plus(_('Los registros AEMET/Ibericam no se pueden editar'))}",
             status_code=303,
         )
-    plots = await _get_user_plots(db, current_user.id)
+    plots = await _get_user_plots(db, current_user.active_tenant_id)
     return templates.TemplateResponse(
         request,
         "lluvia/form.html",
@@ -172,8 +172,8 @@ async def edit_view(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    record = await get_rainfall_record(db, record_id, current_user.id)
-    if record is not None and record.user_id is None:
+    record = await get_rainfall_record(db, record_id, current_user.active_tenant_id)
+    if record is not None and record.created_by_user_id is None:
         return RedirectResponse(
             url=f"/lluvia/?msg={quote_plus(_('Los registros AEMET/Ibericam no se pueden editar'))}",
             status_code=303,
@@ -186,7 +186,7 @@ async def edit_view(
         source=source,  # type: ignore[arg-type]
         notes=notes or None,
     )
-    await update_rainfall_record(db, record_id, current_user.id, data)
+    await update_rainfall_record(db, record_id, current_user.active_tenant_id, data)
     return RedirectResponse(
         url=f"/lluvia/?msg={quote_plus(_('Registro de lluvia actualizado correctamente'))}",
         status_code=303,
@@ -200,13 +200,13 @@ async def delete_view(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    record = await get_rainfall_record(db, record_id, current_user.id)
-    if record is not None and record.user_id is None:
+    record = await get_rainfall_record(db, record_id, current_user.active_tenant_id)
+    if record is not None and record.created_by_user_id is None:
         return RedirectResponse(
             url=f"/lluvia/?msg={quote_plus(_('Los registros AEMET/Ibericam no se pueden eliminar'))}",
             status_code=303,
         )
-    await delete_rainfall_record(db, record_id, current_user.id)
+    await delete_rainfall_record(db, record_id, current_user.active_tenant_id)
     return RedirectResponse(
         url=f"/lluvia/?msg={quote_plus(_('Registro de lluvia eliminado correctamente'))}",
         status_code=303,
@@ -239,7 +239,7 @@ async def calendar_view(
 
     context = await get_rainfall_calendar_context(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         year=year_int,
         plot_id=plot_id_int,
         municipio_cod=municipio_val,

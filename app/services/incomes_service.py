@@ -11,18 +11,18 @@ from app.models.plot import Plot
 from app.utils import campaign_year
 
 
-async def list_plots(db: AsyncSession, user_id: int) -> list[Plot]:
+async def list_plots(db: AsyncSession, tenant_id: int) -> list[Plot]:
     result = await db.execute(
-        select(Plot).where(Plot.user_id == user_id).order_by(Plot.name)
+        select(Plot).where(Plot.tenant_id == tenant_id).order_by(Plot.name)
     )
     return result.scalars().all()
 
 
 async def get_income(
-    db: AsyncSession, income_id: int, user_id: int
+    db: AsyncSession, income_id: int, tenant_id: int
 ) -> Optional[Income]:
     result = await db.execute(
-        select(Income).where(Income.id == income_id, Income.user_id == user_id)
+        select(Income).where(Income.id == income_id, Income.tenant_id == tenant_id)
     )
     return result.scalar_one_or_none()
 
@@ -30,13 +30,13 @@ async def get_income(
 async def get_incomes_list_context(
     db: AsyncSession,
     year: Optional[int],
-    user_id: int,
+    tenant_id: int,
     sort_by: str = "date",
     sort_order: str = "desc",
 ) -> dict:
     result = await db.execute(
         select(Income)
-        .where(Income.user_id == user_id)
+        .where(Income.tenant_id == tenant_id)
         .order_by(Income.date.desc(), Income.category)
     )
     all_incomes = result.scalars().all()
@@ -83,7 +83,8 @@ async def get_incomes_list_context(
 async def create_income(
     db: AsyncSession,
     *,
-    user_id: int,
+    tenant_id: int,
+    acting_user_id: Optional[int] = None,
     date: datetime.date,
     plot_id: Optional[int],
     amount_kg: float,
@@ -91,7 +92,8 @@ async def create_income(
     euros_per_kg: float,
 ) -> Income:
     new_income = Income(
-        user_id=user_id,
+        tenant_id=tenant_id,
+        created_by_user_id=acting_user_id,
         date=date,
         plot_id=plot_id if plot_id else None,
         amount_kg=amount_kg,
@@ -107,6 +109,7 @@ async def update_income(
     db: AsyncSession,
     income: Income,
     *,
+    acting_user_id: Optional[int] = None,
     date: datetime.date,
     plot_id: Optional[int],
     amount_kg: float,
@@ -118,6 +121,7 @@ async def update_income(
     income.amount_kg = amount_kg
     income.category = category
     income.euros_per_kg = euros_per_kg
+    income.updated_by_user_id = acting_user_id
     await db.flush()
     return income
 

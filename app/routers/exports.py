@@ -45,7 +45,7 @@ async def download_all_csv_zip(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    data = await export_all_csv_zip(db, current_user.id)
+    data = await export_all_csv_zip(db, current_user.active_tenant_id)
     return StreamingResponse(
         io.BytesIO(data),
         media_type="application/zip",
@@ -58,7 +58,7 @@ async def download_plots(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    data = await export_plots_csv(db, current_user.id)
+    data = await export_plots_csv(db, current_user.active_tenant_id)
     return StreamingResponse(
         io.BytesIO(data),
         media_type="text/csv; charset=utf-8",
@@ -71,7 +71,7 @@ async def download_expenses(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    data = await export_expenses_csv(db, current_user.id)
+    data = await export_expenses_csv(db, current_user.active_tenant_id)
     return StreamingResponse(
         io.BytesIO(data),
         media_type="text/csv; charset=utf-8",
@@ -84,7 +84,7 @@ async def download_incomes(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    data = await export_incomes_csv(db, current_user.id)
+    data = await export_incomes_csv(db, current_user.active_tenant_id)
     return StreamingResponse(
         io.BytesIO(data),
         media_type="text/csv; charset=utf-8",
@@ -97,7 +97,7 @@ async def download_irrigation(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    data = await export_irrigation_csv(db, current_user.id)
+    data = await export_irrigation_csv(db, current_user.active_tenant_id)
     return StreamingResponse(
         io.BytesIO(data),
         media_type="text/csv; charset=utf-8",
@@ -110,7 +110,7 @@ async def download_wells(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    data = await export_wells_csv(db, current_user.id)
+    data = await export_wells_csv(db, current_user.active_tenant_id)
     return StreamingResponse(
         io.BytesIO(data),
         media_type="text/csv; charset=utf-8",
@@ -123,7 +123,7 @@ async def download_truffles(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    data = await export_truffles_csv(db, current_user.id)
+    data = await export_truffles_csv(db, current_user.active_tenant_id)
     return StreamingResponse(
         io.BytesIO(data),
         media_type="text/csv; charset=utf-8",
@@ -136,7 +136,7 @@ async def download_plot_events(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    data = await export_plot_events_csv(db, current_user.id)
+    data = await export_plot_events_csv(db, current_user.active_tenant_id)
     return StreamingResponse(
         io.BytesIO(data),
         media_type="text/csv; charset=utf-8",
@@ -149,7 +149,7 @@ async def download_recurring_expenses(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    data = await export_recurring_expenses_csv(db, current_user.id)
+    data = await export_recurring_expenses_csv(db, current_user.active_tenant_id)
     return StreamingResponse(
         io.BytesIO(data),
         media_type="text/csv; charset=utf-8",
@@ -162,7 +162,7 @@ async def download_harvests(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    data = await export_harvests_csv(db, current_user.id)
+    data = await export_harvests_csv(db, current_user.active_tenant_id)
     return StreamingResponse(
         io.BytesIO(data),
         media_type="text/csv; charset=utf-8",
@@ -175,7 +175,7 @@ async def download_presences(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    data = await export_presences_csv(db, current_user.id)
+    data = await export_presences_csv(db, current_user.active_tenant_id)
     return StreamingResponse(
         io.BytesIO(data),
         media_type="text/csv; charset=utf-8",

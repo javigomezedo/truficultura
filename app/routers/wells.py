@@ -41,7 +41,7 @@ async def list_view(
     year_int = int(year) if year else None
     context = await get_wells_list_context(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         year=year_int,
         plot_id=plot_id,
         sort_by=sort or "date",
@@ -62,7 +62,7 @@ async def new_form(
 ):
     from app.services.wells_service import _get_all_plots
 
-    plots = await _get_all_plots(db, current_user.id)
+    plots = await _get_all_plots(db, current_user.active_tenant_id)
     return templates.TemplateResponse(
         request,
         "pozos/form.html",
@@ -88,7 +88,7 @@ async def create_view(
         expense_id=expense_id if expense_id else None,
         notes=notes or None,
     )
-    await create_service(db, current_user.id, data)
+    await create_service(db, current_user.active_tenant_id, data)
     return RedirectResponse(
         url=f"/wells/?msg={quote_plus(_('Pozo registrado correctamente'))}",
         status_code=303,
@@ -104,14 +104,14 @@ async def edit_form(
 ):
     from app.services.wells_service import _get_all_plots
 
-    record = await get_service(db, well_id, current_user.id)
+    record = await get_service(db, well_id, current_user.active_tenant_id)
     if record is None:
         return RedirectResponse(
             url=f"/wells/?msg={quote_plus(_('Registro no encontrado'))}",
             status_code=303,
         )
-    plots = await _get_all_plots(db, current_user.id)
-    expenses = await get_well_expenses_for_plot(db, current_user.id, record.plot_id)
+    plots = await _get_all_plots(db, current_user.active_tenant_id)
+    expenses = await get_well_expenses_for_plot(db, current_user.active_tenant_id, record.plot_id)
     return templates.TemplateResponse(
         request,
         "pozos/form.html",
@@ -137,7 +137,7 @@ async def update_view(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    record = await get_service(db, well_id, current_user.id)
+    record = await get_service(db, well_id, current_user.active_tenant_id)
     if record is None:
         return RedirectResponse(
             url=f"/wells/?msg={quote_plus(_('Registro no encontrado'))}",
@@ -164,7 +164,7 @@ async def delete_view(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    await delete_service(db, well_id, current_user.id)
+    await delete_service(db, well_id, current_user.active_tenant_id)
     return RedirectResponse(
         url=f"/wells/?msg={quote_plus(_('Pozo eliminado correctamente'))}",
         status_code=303,
@@ -177,7 +177,7 @@ async def expenses_for_plot(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    expenses = await get_well_expenses_for_plot(db, current_user.id, plot_id)
+    expenses = await get_well_expenses_for_plot(db, current_user.active_tenant_id, plot_id)
     return [
         {
             "id": e.id,

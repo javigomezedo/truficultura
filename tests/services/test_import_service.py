@@ -40,7 +40,7 @@ from tests.conftest import result
 def _make_plot(id=1, name="Bancal Sur", has_irrigation=True):
     return Plot(
         id=id,
-        user_id=1,
+        tenant_id=1,
         name=name,
         planting_date=datetime.date(2020, 3, 15),
         polygon="",
@@ -59,7 +59,7 @@ def _make_plot(id=1, name="Bancal Sur", has_irrigation=True):
 def _make_plant(id=1, plot_id=1, label="A1"):
     return Plant(
         id=id,
-        user_id=1,
+        tenant_id=1,
         plot_id=plot_id,
         label=label,
         row_label="A",
@@ -110,7 +110,7 @@ async def test_import_expenses_csv_success_with_plot():
     db.add_all = MagicMock()
 
     content = _expenses_csv(["15/11/2025;Poda;Javi;Bancal Sur;1.250,00;Poda"])
-    rows, warnings = await import_expenses_csv(db, content, user_id=1)
+    rows, warnings = await import_expenses_csv(db, content, tenant_id=1)
 
     assert warnings == []
     assert len(rows) == 1
@@ -128,7 +128,7 @@ async def test_import_expenses_csv_unknown_plot_warns_and_imports_general():
     db.add_all = MagicMock()
 
     content = _expenses_csv(["15/11/2025;Poda;Javi;No Existe;10,00;Poda"])
-    rows, warnings = await import_expenses_csv(db, content, user_id=1)
+    rows, warnings = await import_expenses_csv(db, content, tenant_id=1)
 
     assert len(rows) == 1
     assert rows[0].plot_id is None
@@ -143,7 +143,7 @@ async def test_import_expenses_csv_too_few_columns():
     db.add_all = MagicMock()
 
     rows, warnings = await import_expenses_csv(
-        db, _expenses_csv(["15/11/2025;Poda"]), user_id=1
+        db, _expenses_csv(["15/11/2025;Poda"]), tenant_id=1
     )
 
     assert rows == []
@@ -160,7 +160,7 @@ async def test_import_expenses_csv_parse_error_warns():
     rows, warnings = await import_expenses_csv(
         db,
         _expenses_csv(["fecha-mal;Poda;Javi;;10,00;Poda"]),
-        user_id=1,
+        tenant_id=1,
     )
 
     assert rows == []
@@ -177,7 +177,7 @@ async def test_import_expenses_csv_warning_is_translated_in_english():
     set_locale("en")
     try:
         rows, warnings = await import_expenses_csv(
-            db, _expenses_csv(["15/11/2025;Poda"]), user_id=1
+            db, _expenses_csv(["15/11/2025;Poda"]), tenant_id=1
         )
     finally:
         set_locale("es")
@@ -201,7 +201,7 @@ async def test_import_incomes_csv_success_with_plot():
     rows, warnings = await import_incomes_csv(
         db,
         _incomes_csv(["05/12/2025;Bancal Norte;2,500;Extra;120,00"]),
-        user_id=1,
+        tenant_id=1,
     )
 
     assert warnings == []
@@ -222,7 +222,7 @@ async def test_import_incomes_csv_unknown_plot_warns_and_imports_without_plot():
     rows, warnings = await import_incomes_csv(
         db,
         _incomes_csv(["05/12/2025;Desconocido;2,500;Extra;120,00"]),
-        user_id=1,
+        tenant_id=1,
     )
 
     assert len(rows) == 1
@@ -238,7 +238,7 @@ async def test_import_incomes_csv_too_few_columns():
     db.add_all = MagicMock()
 
     rows, warnings = await import_incomes_csv(
-        db, _incomes_csv(["05/12/2025;SoloDos"]), user_id=1
+        db, _incomes_csv(["05/12/2025;SoloDos"]), tenant_id=1
     )
 
     assert rows == []
@@ -255,7 +255,7 @@ async def test_import_incomes_csv_parse_error_warns():
     rows, warnings = await import_incomes_csv(
         db,
         _incomes_csv(["fecha-mal;;2,500;Extra;120,00"]),
-        user_id=1,
+        tenant_id=1,
     )
 
     assert rows == []
@@ -284,7 +284,7 @@ async def test_import_plots_csv_has_irrigation_true():
         "app.services.plots_service._recalculate_percentages",
         new=AM(return_value=None),
     ):
-        rows, warnings = await import_plots_csv(db, content, user_id=1)
+        rows, warnings = await import_plots_csv(db, content, tenant_id=1)
 
     assert len(rows) == 1
     assert rows[0].has_irrigation is True
@@ -306,7 +306,7 @@ async def test_import_plots_csv_has_irrigation_false():
         "app.services.plots_service._recalculate_percentages",
         new=AM(return_value=None),
     ):
-        rows, warnings = await import_plots_csv(db, content, user_id=1)
+        rows, warnings = await import_plots_csv(db, content, tenant_id=1)
 
     assert rows[0].has_irrigation is False
 
@@ -327,7 +327,7 @@ async def test_import_plots_csv_has_irrigation_missing():
         "app.services.plots_service._recalculate_percentages",
         new=AM(return_value=None),
     ):
-        rows, warnings = await import_plots_csv(db, content, user_id=1)
+        rows, warnings = await import_plots_csv(db, content, tenant_id=1)
 
     assert rows[0].has_irrigation is False
     assert warnings == []
@@ -347,7 +347,7 @@ async def test_import_plots_csv_too_few_columns_warns():
         new=AM(return_value=None),
     ):
         rows, warnings = await import_plots_csv(
-            db, _plots_csv(["SoloNombre"]), user_id=1
+            db, _plots_csv(["SoloNombre"]), tenant_id=1
         )
 
     assert rows == []
@@ -371,7 +371,7 @@ async def test_import_plots_csv_parse_error_warns():
         rows, warnings = await import_plots_csv(
             db,
             _plots_csv(["Bancal Sur;fecha-mal;;;;;;;;"]),
-            user_id=1,
+            tenant_id=1,
         )
 
     assert rows == []
@@ -404,7 +404,7 @@ async def test_import_plots_csv_with_map_config_calls_configure_map():
             _plots_csv(
                 ["Bancal Sur;01/01/2020;20;100;;;S1;50;;01/01/2023;1;A:1-2; B:3"]
             ),
-            user_id=1,
+            tenant_id=1,
         )
 
     assert len(rows) == 1
@@ -429,7 +429,7 @@ async def test_import_plots_csv_with_recinto_and_caudal_riego():
         "app.services.plots_service._recalculate_percentages",
         new=AM(return_value=None),
     ):
-        rows, warnings = await import_plots_csv(db, content, user_id=1)
+        rows, warnings = await import_plots_csv(db, content, tenant_id=1)
 
     assert len(rows) == 1
     assert rows[0].recinto == "3"
@@ -453,7 +453,7 @@ async def test_import_plots_csv_recinto_caudal_backwards_compat():
         "app.services.plots_service._recalculate_percentages",
         new=AM(return_value=None),
     ):
-        rows, warnings = await import_plots_csv(db, content, user_id=1)
+        rows, warnings = await import_plots_csv(db, content, tenant_id=1)
 
     assert len(rows) == 1
     assert rows[0].recinto == "1"  # default
@@ -480,7 +480,7 @@ async def test_import_plots_csv_with_provincia_municipio():
         "app.services.plots_service._recalculate_percentages",
         new=AM(return_value=None),
     ):
-        rows, warnings = await import_plots_csv(db, content, user_id=1)
+        rows, warnings = await import_plots_csv(db, content, tenant_id=1)
 
     assert len(rows) == 1
     assert rows[0].provincia_cod == "44"
@@ -504,7 +504,7 @@ async def test_import_plots_csv_provincia_municipio_backwards_compat():
         "app.services.plots_service._recalculate_percentages",
         new=AM(return_value=None),
     ):
-        rows, warnings = await import_plots_csv(db, content, user_id=1)
+        rows, warnings = await import_plots_csv(db, content, tenant_id=1)
 
     assert len(rows) == 1
     assert rows[0].provincia_cod is None
@@ -517,7 +517,7 @@ async def test_import_plots_csv_provincia_municipio_backwards_compat():
     db.flush = AsyncMock()
 
     content = _irrigation_csv(["15/06/2025;Bancal Sur;10,500;Primera pasada"])
-    rows, warnings = await import_irrigation_csv(db, content, user_id=1)
+    rows, warnings = await import_irrigation_csv(db, content, tenant_id=1)
 
     assert len(rows) == 1
     assert warnings == []
@@ -538,7 +538,7 @@ async def test_import_irrigation_csv_missing_notas():
     db.flush = AsyncMock()
 
     content = _irrigation_csv(["15/06/2025;Bancal Sur;5,000"])
-    rows, warnings = await import_irrigation_csv(db, content, user_id=1)
+    rows, warnings = await import_irrigation_csv(db, content, tenant_id=1)
 
     assert len(rows) == 1
     assert rows[0].notes is None
@@ -552,7 +552,7 @@ async def test_import_irrigation_csv_plot_not_found():
     db.add_all = MagicMock()
 
     content = _irrigation_csv(["15/06/2025;Parcela Inexistente;5,000"])
-    rows, warnings = await import_irrigation_csv(db, content, user_id=1)
+    rows, warnings = await import_irrigation_csv(db, content, tenant_id=1)
 
     assert rows == []
     assert len(warnings) == 1
@@ -568,7 +568,7 @@ async def test_import_irrigation_csv_plot_no_irrigation():
     db.add_all = MagicMock()
 
     content = _irrigation_csv(["15/06/2025;Bancal Seco;5,000"])
-    rows, warnings = await import_irrigation_csv(db, content, user_id=1)
+    rows, warnings = await import_irrigation_csv(db, content, tenant_id=1)
 
     assert rows == []
     assert len(warnings) == 1
@@ -582,7 +582,7 @@ async def test_import_irrigation_csv_empty_bancal_skipped():
     db.add_all = MagicMock()
 
     content = _irrigation_csv(["15/06/2025;;5,000"])
-    rows, warnings = await import_irrigation_csv(db, content, user_id=1)
+    rows, warnings = await import_irrigation_csv(db, content, tenant_id=1)
 
     assert rows == []
     assert len(warnings) == 1
@@ -596,7 +596,7 @@ async def test_import_irrigation_csv_too_few_columns():
     db.add_all = MagicMock()
 
     content = _irrigation_csv(["15/06/2025;Bancal Sur"])  # only 2 cols
-    rows, warnings = await import_irrigation_csv(db, content, user_id=1)
+    rows, warnings = await import_irrigation_csv(db, content, tenant_id=1)
 
     assert rows == []
     assert len(warnings) == 1
@@ -612,7 +612,7 @@ async def test_import_irrigation_csv_case_insensitive_bancal():
     db.flush = AsyncMock()
 
     content = _irrigation_csv(["15/06/2025;BANCAL SUR;3,000"])
-    rows, warnings = await import_irrigation_csv(db, content, user_id=1)
+    rows, warnings = await import_irrigation_csv(db, content, tenant_id=1)
 
     assert len(rows) == 1
     assert warnings == []
@@ -628,7 +628,7 @@ async def test_import_wells_csv_parse_error_warns():
     rows, warnings = await import_wells_csv(
         db,
         _wells_csv(["fecha-mal;Bancal Sur;3"]),
-        user_id=1,
+        tenant_id=1,
     )
 
     assert rows == []
@@ -654,7 +654,7 @@ async def test_import_truffles_csv_success():
     rows, warnings = await import_truffles_csv(
         db,
         _plots_csv(["10/12/2025 08:15:00;Bancal Sur;A3;45,5;manual"]),
-        user_id=1,
+        tenant_id=1,
     )
 
     assert warnings == []
@@ -676,7 +676,7 @@ async def test_import_truffles_csv_unknown_plot_warns():
     rows, warnings = await import_truffles_csv(
         db,
         _plots_csv(["10/12/2025 08:15:00;NoExiste;A3;45,5;manual"]),
-        user_id=1,
+        tenant_id=1,
     )
 
     assert rows == []
@@ -694,7 +694,7 @@ async def test_import_truffles_csv_unknown_plant_warns():
     rows, warnings = await import_truffles_csv(
         db,
         _plots_csv(["10/12/2025 08:15:00;Bancal Sur;A99;45,5;manual"]),
-        user_id=1,
+        tenant_id=1,
     )
 
     assert rows == []
@@ -719,7 +719,7 @@ async def test_import_plot_events_csv_success_and_defaults_recurring():
     rows, warnings = await import_plot_events_csv(
         db,
         _plots_csv(["15/03/2025;Bancal Sur;poda;Primera pasada"]),
-        user_id=1,
+        tenant_id=1,
     )
 
     assert warnings == []
@@ -741,7 +741,7 @@ async def test_import_plot_events_csv_unknown_plot_warns():
     rows, warnings = await import_plot_events_csv(
         db,
         _plots_csv(["15/03/2025;NoExiste;poda;Primera pasada;1"]),
-        user_id=1,
+        tenant_id=1,
     )
 
     assert rows == []
@@ -760,7 +760,7 @@ async def test_import_plot_events_csv_invalid_event_type_warns():
     rows, warnings = await import_plot_events_csv(
         db,
         _plots_csv(["15/03/2025;Bancal Sur;no_valido;Primera pasada;1"]),
-        user_id=1,
+        tenant_id=1,
     )
 
     assert rows == []
@@ -779,7 +779,7 @@ async def test_import_plot_events_csv_one_time_duplicate_warns():
     rows, warnings = await import_plot_events_csv(
         db,
         _plots_csv(["15/03/2025;Bancal Sur;vallado;Cerrado perimetral;0"]),
-        user_id=1,
+        tenant_id=1,
     )
 
     assert rows == []
@@ -794,16 +794,16 @@ async def test_import_plot_events_csv_one_time_duplicate_warns():
 
 @pytest.mark.asyncio
 async def test_import_all_csv_zip_imports_supported_files(monkeypatch):
-    async def fake_import_plots_csv(db, content: bytes, user_id: int):
+    async def fake_import_plots_csv(db, content: bytes, tenant_id: int):
         return [object(), object()], []
 
-    async def fake_import_expenses_csv(db, content: bytes, user_id: int):
+    async def fake_import_expenses_csv(db, content: bytes, tenant_id: int):
         return [object()], ["aviso gastos"]
 
-    async def fake_import_plot_events_csv(db, content: bytes, user_id: int):
+    async def fake_import_plot_events_csv(db, content: bytes, tenant_id: int):
         return [object(), object(), object()], []
 
-    async def fake_import_recurring_expenses_csv(db, content: bytes, user_id: int):
+    async def fake_import_recurring_expenses_csv(db, content: bytes, tenant_id: int):
         return [object()], []
 
     monkeypatch.setattr(
@@ -832,7 +832,7 @@ async def test_import_all_csv_zip_imports_supported_files(monkeypatch):
         }
     )
 
-    imported_by_file, warnings = await import_all_csv_zip(db, zip_content, user_id=1)
+    imported_by_file, warnings = await import_all_csv_zip(db, zip_content, tenant_id=1)
 
     assert imported_by_file == {
         "parcelas.csv": 2,
@@ -848,7 +848,7 @@ async def test_import_all_csv_zip_imports_supported_files(monkeypatch):
 async def test_import_all_csv_zip_invalid_zip_returns_warning():
     db = MagicMock()
 
-    imported_by_file, warnings = await import_all_csv_zip(db, b"not-a-zip", user_id=1)
+    imported_by_file, warnings = await import_all_csv_zip(db, b"not-a-zip", tenant_id=1)
 
     assert imported_by_file == {}
     assert len(warnings) == 1
@@ -860,7 +860,7 @@ async def test_import_all_csv_zip_without_supported_files_warns():
     db = MagicMock()
     zip_content = _zip_bytes({"foo.txt": b"bar"})
 
-    imported_by_file, warnings = await import_all_csv_zip(db, zip_content, user_id=1)
+    imported_by_file, warnings = await import_all_csv_zip(db, zip_content, tenant_id=1)
 
     assert imported_by_file == {}
     assert len(warnings) == 1
@@ -876,7 +876,7 @@ async def test_import_all_csv_zip_without_supported_files_warns():
 async def test_import_recurring_expenses_csv_success():
     plot = Plot(
         id=5,
-        user_id=1,
+        tenant_id=1,
         name="Bancal Sur",
         planting_date=datetime.date(2020, 1, 1),
         percentage=100.0,
@@ -886,7 +886,7 @@ async def test_import_recurring_expenses_csv_success():
     db.add_all = MagicMock()
 
     csv_content = b"Seguro finca;annual;Bancal Sur;Javi;Seguros;350,00;1\n"
-    rows, warnings = await import_recurring_expenses_csv(db, csv_content, user_id=1)
+    rows, warnings = await import_recurring_expenses_csv(db, csv_content, tenant_id=1)
 
     assert len(rows) == 1
     assert len(warnings) == 0
@@ -908,7 +908,7 @@ async def test_import_recurring_expenses_csv_no_plot():
     db.add_all = MagicMock()
 
     csv_content = b"Agua corriente;monthly;;;;25,50;0\n"
-    rows, warnings = await import_recurring_expenses_csv(db, csv_content, user_id=1)
+    rows, warnings = await import_recurring_expenses_csv(db, csv_content, tenant_id=1)
 
     assert len(rows) == 1
     assert rows[0].plot_id is None
@@ -923,7 +923,7 @@ async def test_import_recurring_expenses_csv_unknown_plot_warns():
     db.add_all = MagicMock()
 
     csv_content = b"Gasto;monthly;Parcela Inexistente;Javi;Cat;100,00;1\n"
-    rows, warnings = await import_recurring_expenses_csv(db, csv_content, user_id=1)
+    rows, warnings = await import_recurring_expenses_csv(db, csv_content, tenant_id=1)
 
     assert len(rows) == 1
     assert rows[0].plot_id is None
@@ -937,7 +937,7 @@ async def test_import_recurring_expenses_csv_invalid_frequency_warns_and_default
     db.add_all = MagicMock()
 
     csv_content = b"Gasto;trimestral;;;Cat;50,00;1\n"
-    rows, warnings = await import_recurring_expenses_csv(db, csv_content, user_id=1)
+    rows, warnings = await import_recurring_expenses_csv(db, csv_content, tenant_id=1)
 
     assert len(rows) == 1
     assert rows[0].frequency == "monthly"  # fallback
@@ -951,7 +951,7 @@ async def test_import_recurring_expenses_csv_empty_concepto_skips():
     db.add_all = MagicMock()
 
     csv_content = b";monthly;;;Cat;50,00;1\n"
-    rows, warnings = await import_recurring_expenses_csv(db, csv_content, user_id=1)
+    rows, warnings = await import_recurring_expenses_csv(db, csv_content, tenant_id=1)
 
     assert len(rows) == 0
     assert len(warnings) == 1
@@ -964,7 +964,7 @@ async def test_import_recurring_expenses_csv_too_few_columns_skips():
     db.add_all = MagicMock()
 
     csv_content = b"Gasto;monthly\n"
-    rows, warnings = await import_recurring_expenses_csv(db, csv_content, user_id=1)
+    rows, warnings = await import_recurring_expenses_csv(db, csv_content, tenant_id=1)
 
     assert len(rows) == 0
     assert len(warnings) == 1
@@ -976,7 +976,7 @@ async def test_import_recurring_expenses_csv_empty_file():
     db.execute = AsyncMock(return_value=result([]))
     db.add_all = MagicMock()
 
-    rows, warnings = await import_recurring_expenses_csv(db, b"", user_id=1)
+    rows, warnings = await import_recurring_expenses_csv(db, b"", tenant_id=1)
 
     assert rows == []
     assert warnings == []
@@ -1009,7 +1009,7 @@ async def test_import_presences_csv_success():
     rows, warnings = await import_presences_csv(
         db,
         _presences_csv(["10/12/2025;Bancal Sur;A3"]),
-        user_id=1,
+        tenant_id=1,
     )
 
     assert warnings == []
@@ -1037,7 +1037,7 @@ async def test_import_presences_csv_unknown_plot_warns():
     rows, warnings = await import_presences_csv(
         db,
         _presences_csv(["10/12/2025;Bancal Desconocido;A3"]),
-        user_id=1,
+        tenant_id=1,
     )
 
     assert rows == []
@@ -1061,7 +1061,7 @@ async def test_import_presences_csv_unknown_plant_warns():
     rows, warnings = await import_presences_csv(
         db,
         _presences_csv(["10/12/2025;Bancal Sur;Z99"]),
-        user_id=1,
+        tenant_id=1,
     )
 
     assert rows == []
@@ -1075,7 +1075,7 @@ async def test_import_presences_csv_duplicate_skips_with_warning():
     plant = _make_plant(id=20, plot_id=10, label="A3")
     existing = PlantPresence(
         id=1,
-        user_id=1,
+        tenant_id=1,
         plant_id=20,
         plot_id=10,
         presence_date=datetime.date(2025, 12, 10),
@@ -1095,7 +1095,7 @@ async def test_import_presences_csv_duplicate_skips_with_warning():
     rows, warnings = await import_presences_csv(
         db,
         _presences_csv(["10/12/2025;Bancal Sur;A3"]),
-        user_id=1,
+        tenant_id=1,
     )
 
     assert rows == []
@@ -1112,7 +1112,7 @@ async def test_import_presences_csv_too_few_columns_warns():
     rows, warnings = await import_presences_csv(
         db,
         _presences_csv(["10/12/2025;Bancal Sur"]),
-        user_id=1,
+        tenant_id=1,
     )
 
     assert rows == []
@@ -1125,7 +1125,7 @@ async def test_import_presences_csv_empty_file():
     db.execute = AsyncMock(side_effect=[result([]), result([]), result([])])
     db.add_all = MagicMock()
 
-    rows, warnings = await import_presences_csv(db, b"", user_id=1)
+    rows, warnings = await import_presences_csv(db, b"", tenant_id=1)
 
     assert rows == []
     assert warnings == []

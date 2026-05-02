@@ -32,8 +32,8 @@ async def list_plots(
     current_user: User = Depends(require_subscription),
     msg: Optional[str] = None,
 ):
-    plots = await list_plots_service(db, current_user.id)
-    plant_counts = await get_plant_counts_by_plot(db, current_user.id)
+    plots = await list_plots_service(db, current_user.active_tenant_id)
+    plant_counts = await get_plant_counts_by_plot(db, current_user.active_tenant_id)
     return templates.TemplateResponse(
         request,
         "parcelas/list.html",
@@ -118,7 +118,7 @@ async def create_plot(
 ):
     await create_plot_service(
         db,
-        user_id=current_user.id,
+        tenant_id=current_user.active_tenant_id,
         name=name,
         polygon=polygon,
         plot_num=plot_num,
@@ -148,7 +148,7 @@ async def edit_plot_form(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    obj = await get_plot(db, plot_id, current_user.id)
+    obj = await get_plot(db, plot_id, current_user.active_tenant_id)
     if obj is None:
         return RedirectResponse(
             url=f"/plots/?msg={quote_plus(_('Parcela no encontrada'))}",
@@ -189,7 +189,7 @@ async def update_plot(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    obj = await get_plot(db, plot_id, current_user.id)
+    obj = await get_plot(db, plot_id, current_user.active_tenant_id)
     if obj is None:
         return RedirectResponse(
             url=f"/plots/?msg={quote_plus(_('Parcela no encontrada'))}",
@@ -228,7 +228,7 @@ async def delete_plot(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    obj = await get_plot(db, plot_id, current_user.id)
+    obj = await get_plot(db, plot_id, current_user.active_tenant_id)
     if obj:
         await delete_plot_service(db, obj)
     return RedirectResponse(

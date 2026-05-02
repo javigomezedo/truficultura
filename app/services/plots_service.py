@@ -10,33 +10,33 @@ from app.models.plant import Plant
 from app.models.plot import Plot
 
 
-async def list_plots(db: AsyncSession, user_id: int) -> list[Plot]:
+async def list_plots(db: AsyncSession, tenant_id: int) -> list[Plot]:
     result = await db.execute(
-        select(Plot).where(Plot.user_id == user_id).order_by(Plot.name)
+        select(Plot).where(Plot.tenant_id == tenant_id).order_by(Plot.name)
     )
     return result.scalars().all()
 
 
-async def get_plant_counts_by_plot(db: AsyncSession, user_id: int) -> dict[int, int]:
+async def get_plant_counts_by_plot(db: AsyncSession, tenant_id: int) -> dict[int, int]:
     """Return a mapping of plot_id → number of Plant rows currently in the DB."""
     res = await db.execute(
         select(Plant.plot_id, func.count(Plant.id).label("cnt"))
-        .where(Plant.user_id == user_id)
+        .where(Plant.tenant_id == tenant_id)
         .group_by(Plant.plot_id)
     )
     return {row.plot_id: row.cnt for row in res.all()}
 
 
-async def get_plot(db: AsyncSession, plot_id: int, user_id: int) -> Optional[Plot]:
+async def get_plot(db: AsyncSession, plot_id: int, tenant_id: int) -> Optional[Plot]:
     result = await db.execute(
-        select(Plot).where(Plot.id == plot_id, Plot.user_id == user_id)
+        select(Plot).where(Plot.id == plot_id, Plot.tenant_id == tenant_id)
     )
     return result.scalar_one_or_none()
 
 
-async def _recalculate_percentages(db: AsyncSession, user_id: int) -> None:
-    """Recalculate percentages for all plots of a user based on their plant count."""
-    result = await db.execute(select(Plot).where(Plot.user_id == user_id))
+async def _recalculate_percentages(db: AsyncSession, tenant_id: int) -> None:
+    """Recalculate percentages for all plots of a tenant based on their plant count."""
+    result = await db.execute(select(Plot).where(Plot.tenant_id == tenant_id))
     plots = result.scalars().all()
 
     # Calculate total plants from all plots
@@ -60,7 +60,8 @@ async def _recalculate_percentages(db: AsyncSession, user_id: int) -> None:
 async def create_plot(
     db: AsyncSession,
     *,
-    user_id: int,
+    tenant_id: int,
+    acting_user_id: Optional[int] = None,
     name: str,
     polygon: str,
     plot_num: str,
@@ -78,7 +79,8 @@ async def create_plot(
     municipio_cod: Optional[str] = None,
 ) -> Plot:
     new_plot = Plot(
-        user_id=user_id,
+        tenant_id=tenant_id,
+        created_by_user_id=acting_user_id,
         name=name,
         polygon=polygon,
         plot_num=plot_num,
@@ -99,8 +101,8 @@ async def create_plot(
     db.add(new_plot)
     await db.flush()
 
-    # Recalculate all percentages for this user
-    await _recalculate_percentages(db, user_id)
+    # Recalculate all percentages for this tenant
+    await _recalculate_percentages(db, tenant_id)
 
     return new_plot
 
@@ -109,6 +111,7 @@ async def update_plot(
     db: AsyncSession,
     plot: Plot,
     *,
+    acting_user_id: Optional[int] = None,
     name: str,
     polygon: str,
     plot_num: str,
@@ -140,19 +143,20 @@ async def update_plot(
     plot.caudal_riego = caudal_riego
     plot.provincia_cod = provincia_cod or None
     plot.municipio_cod = municipio_cod or None
+    plot.updated_by_user_id = acting_user_id
     await db.flush()
 
-    # Recalculate all percentages for this user
-    await _recalculate_percentages(db, plot.user_id)
+    # Recalculate all percentages for this tenant
+    await _recalculate_percentages(db, plot.tenant_id)
 
     return plot
 
 
 async def delete_plot(db: AsyncSession, plot: Plot) -> None:
-    user_id = plot.user_id
+    tenant_id = plot.tenant_id
     await db.delete(plot)
     await db.flush()
 
     # Recalculate percentages for remaining plots
-    if user_id:
-        await _recalculate_percentages(db, user_id)
+    if tenant_id:
+        await _recalculate_percentages(db, tenant_id)

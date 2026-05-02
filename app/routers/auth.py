@@ -16,6 +16,7 @@ from app.jinja import templates
 from app.models.expense import Expense
 from app.models.income import Income
 from app.models.plot import Plot
+from app.models.tenant import Tenant, TenantMembership
 from app.models.user import User
 from app.services.email_service import (
     send_confirmation_email,
@@ -95,6 +96,7 @@ async def login_post(
                 {
                     "request": request,
                     "error": "Debes confirmar tu dirección de email antes de acceder. Revisa tu bandeja de entrada.",
+                    "next_url": next_url or "",
                 },
                 status_code=401,
             )
@@ -106,6 +108,7 @@ async def login_post(
                 {
                     "request": request,
                     "error": "Este usuario ha sido desactivado. Por favor, contacta con el administrador si necesitas reactivar tu cuenta.",
+                    "next_url": next_url or "",
                 },
                 status_code=401,
             )
@@ -116,13 +119,20 @@ async def login_post(
         request.session["first_name"] = user.first_name
         request.session["last_name"] = user.last_name
         request.session["email"] = user.email
-        request.session["subscription_status"] = user.subscription_status
-        if user.trial_ends_at:
-            from datetime import UTC, datetime
-            delta = user.trial_ends_at - datetime.now(UTC)
-            request.session["trial_days_left"] = delta.days
+
+        # Load tenant to check subscription status
+        membership_result = await db.execute(
+            select(TenantMembership).where(TenantMembership.user_id == user.id)
+        )
+        membership = membership_result.scalar_one_or_none()
+        if membership:
+            tenant_result = await db.execute(
+                select(Tenant).where(Tenant.id == membership.tenant_id)
+            )
+            tenant = tenant_result.scalar_one_or_none()
+            user.active_tenant = tenant  # type: ignore[attr-defined]
         else:
-            request.session["trial_days_left"] = None
+            user.active_tenant = None  # type: ignore[attr-defined]
 
         # If trial expired or subscription lapsed, send directly to billing
         from app.auth import is_subscription_blocked
@@ -143,17 +153,22 @@ async def login_post(
     return templates.TemplateResponse(
         request,
         "auth/login.html",
-        {"request": request, "error": "Usuario o contraseña incorrectos."},
+        {"request": request, "error": "Usuario o contraseña incorrectos.", "next_url": next_url or ""},
         status_code=401,
     )
 
 
 @router.get("/register", response_class=HTMLResponse)
-async def register_page(request: Request):
+async def register_page(
+    request: Request,
+    next: Optional[str] = Query(default=None),
+):
     if request.session.get("user_id"):
-        return RedirectResponse("/", status_code=303)
+        return RedirectResponse(_safe_next(next), status_code=303)
     return templates.TemplateResponse(
-        request, "auth/register.html", {"request": request, "error": None}
+        request,
+        "auth/register.html",
+        {"request": request, "error": None, "next_url": next or ""},
     )
 
 
@@ -167,20 +182,20 @@ async def register_post(
     password: str = Form(...),
     password_confirm: str = Form(...),
     comunidad_regantes: Optional[str] = Form(None),
+    next_url: Optional[str] = Form(default=None),
     db: AsyncSession = Depends(get_db),
 ):
     count = await _user_count(db)
 
     # Validate email format
     email = email.strip().lower()
+    _reg_error_ctx = {"request": request, "next_url": next_url or ""}
+
     if not is_valid_email(email):
         return templates.TemplateResponse(
             request,
             "auth/register.html",
-            {
-                "request": request,
-                "error": "El email no tiene un formato válido.",
-            },
+            {**_reg_error_ctx, "error": "El email no tiene un formato válido."},
             status_code=400,
         )
 
@@ -190,10 +205,7 @@ async def register_post(
         return templates.TemplateResponse(
             request,
             "auth/register.html",
-            {
-                "request": request,
-                "error": "Este email ya está registrado.",
-            },
+            {**_reg_error_ctx, "error": "Este email ya está registrado."},
             status_code=400,
         )
 
@@ -204,7 +216,7 @@ async def register_post(
         return templates.TemplateResponse(
             request,
             "auth/register.html",
-            {"request": request, "error": "Las contraseñas no coinciden."},
+            {**_reg_error_ctx, "error": "Las contraseñas no coinciden."},
             status_code=400,
         )
 
@@ -212,10 +224,7 @@ async def register_post(
         return templates.TemplateResponse(
             request,
             "auth/register.html",
-            {
-                "request": request,
-                "error": "La contraseña debe tener al menos 8 caracteres.",
-            },
+            {**_reg_error_ctx, "error": "La contraseña debe tener al menos 8 caracteres."},
             status_code=400,
         )
 
@@ -223,10 +232,7 @@ async def register_post(
         return templates.TemplateResponse(
             request,
             "auth/register.html",
-            {
-                "request": request,
-                "error": "La contraseña es demasiado larga (máximo 72 bytes).",
-            },
+            {**_reg_error_ctx, "error": "La contraseña es demasiado larga (máximo 72 bytes)."},
             status_code=400,
         )
 
@@ -245,8 +251,8 @@ async def register_post(
         is_active = False
         email_confirmed = False
 
-    # In dev mode (no SMTP) activate directly so the app is usable without a mail server
-    if not email_confirmed and not settings.smtp_configured:
+    # In dev mode (no email backend) activate directly so the app is usable without a mail server
+    if not email_confirmed and not settings.email_configured:
         is_active = True
         email_confirmed = True
 
@@ -264,35 +270,76 @@ async def register_post(
     db.add(new_user)
     await db.flush()
 
-    # Assign all existing unowned records to the first registered user
+    # Create a tenant for this user (1-person tenant for independent farmers)
+    full_name = f"{new_user.first_name} {new_user.last_name}".strip() or new_user.username
+    base_slug = re.sub(r"[^\w\s-]", "", full_name.lower()).strip()
+    base_slug = re.sub(r"[\s_]+", "-", base_slug) or f"user-{new_user.id}"
+
+    # Ensure slug uniqueness
+    slug = base_slug
+    counter = 1
+    while True:
+        exists = await db.execute(select(Tenant).where(Tenant.slug == slug))
+        if not exists.scalar_one_or_none():
+            break
+        slug = f"{base_slug}-{counter}"
+        counter += 1
+
+    new_tenant = Tenant(name=full_name, slug=slug)
+    db.add(new_tenant)
+    await db.flush()
+
+    membership = TenantMembership(
+        tenant_id=new_tenant.id,
+        user_id=new_user.id,
+        role="owner",
+    )
+    db.add(membership)
+    await db.flush()
+
+    # Assign all existing unowned records to the first registered user's tenant
     if is_admin_email or is_first_user:
         await db.execute(
-            update(Plot).where(Plot.user_id.is_(None)).values(user_id=new_user.id)
+            update(Plot).where(Plot.tenant_id.is_(None)).values(tenant_id=new_tenant.id)
         )
         await db.execute(
-            update(Expense).where(Expense.user_id.is_(None)).values(user_id=new_user.id)
+            update(Expense).where(Expense.tenant_id.is_(None)).values(tenant_id=new_tenant.id)
         )
         await db.execute(
-            update(Income).where(Income.user_id.is_(None)).values(user_id=new_user.id)
+            update(Income).where(Income.tenant_id.is_(None)).values(tenant_id=new_tenant.id)
         )
 
     await db.commit()
 
     # Start trial for immediately confirmed users (admins, first user, or dev mode)
     if new_user.email_confirmed:
-        await billing_service.start_trial(new_user, db)
+        await billing_service.start_trial(new_tenant, db)
 
     if not new_user.email_confirmed:
         # Send confirmation email (SMTP is configured at this point)
         token = generate_token(email, EMAIL_CONFIRMATION_SALT)
-        await send_confirmation_email(email, token)
-        return RedirectResponse("/login?pending_confirmation=1", status_code=303)
+        safe_next = _safe_next(next_url) if next_url else ""
+        await send_confirmation_email(
+            email, token, next_url=safe_next if safe_next and safe_next != "/" else None
+        )
+        pending_url = (
+            f"/login?pending_confirmation=1&next={safe_next}"
+            if safe_next and safe_next != "/"
+            else "/login?pending_confirmation=1"
+        )
+        return RedirectResponse(pending_url, status_code=303)
 
-    return RedirectResponse("/login?registered=1", status_code=303)
+    safe_next = _safe_next(next_url) if next_url else ""
+    redirect_target = f"/login?registered=1&next={safe_next}" if safe_next and safe_next != "/" else "/login?registered=1"
+    return RedirectResponse(redirect_target, status_code=303)
 
 
 @router.get("/register/confirm/{token}", response_class=HTMLResponse)
-async def register_confirm(token: str, db: AsyncSession = Depends(get_db)):
+async def register_confirm(
+    token: str,
+    next: Optional[str] = Query(default=None),
+    db: AsyncSession = Depends(get_db),
+):
     email = confirm_token(token, EMAIL_CONFIRMATION_SALT, max_age=86400)  # 24 h
     if not email:
         return RedirectResponse("/login?confirm_error=1", status_code=303)
@@ -307,8 +354,28 @@ async def register_confirm(token: str, db: AsyncSession = Depends(get_db)):
 
     user.email_confirmed = True
     user.is_active = True
-    await billing_service.start_trial(user, db)  # sets trial fields and commits
-    return RedirectResponse("/login?confirmed=1", status_code=303)
+    await db.commit()
+
+    # Load the tenant for this user to start the trial
+    membership_result = await db.execute(
+        select(TenantMembership).where(TenantMembership.user_id == user.id)
+    )
+    membership = membership_result.scalar_one_or_none()
+    if membership:
+        tenant_result = await db.execute(
+            select(Tenant).where(Tenant.id == membership.tenant_id)
+        )
+        tenant = tenant_result.scalar_one_or_none()
+        if tenant:
+            await billing_service.start_trial(tenant, db)
+
+    safe_next = _safe_next(next) if next else ""
+    redirect_target = (
+        f"/login?confirmed=1&next={safe_next}"
+        if safe_next and safe_next != "/"
+        else "/login?confirmed=1"
+    )
+    return RedirectResponse(redirect_target, status_code=303)
 
 
 @router.get("/forgot-password", response_class=HTMLResponse)
@@ -333,7 +400,7 @@ async def forgot_password_post(
     # Always redirect to the same destination to avoid email enumeration
     if user and user.email_confirmed and user.is_active:
         token = generate_token(email, PASSWORD_RESET_SALT)
-        if settings.smtp_configured:
+        if settings.email_configured:
             await send_password_reset_email(email, token)
         else:
             reset_url = f"{settings.APP_BASE_URL}/reset-password/{token}"

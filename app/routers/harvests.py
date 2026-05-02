@@ -52,13 +52,13 @@ async def production_total(
     camp_int = _parse_optional_int(camp)
     plot_id_int = _parse_optional_int(plot_id)
 
-    plots = await list_plots(db, current_user.id)
+    plots = await list_plots(db, current_user.active_tenant_id)
     plot_name_map = {p.id: p.name for p in plots}
 
     # Fetch TruffleEvents (plant-level) filtered by scope
     events = await truffle_events_service.list_events(
         db,
-        user_id=current_user.id,
+        tenant_id=current_user.active_tenant_id,
         campaign_year=camp_int,
         plot_id=plot_id_int,
         include_undone=False,
@@ -68,7 +68,7 @@ async def production_total(
     # Fetch PlotHarvests (bancal-level) filtered by scope
     harvests = await plot_harvest_service.list_harvests(
         db,
-        user_id=current_user.id,
+        tenant_id=current_user.active_tenant_id,
         campaign_year_filter=camp_int,
         plot_id=plot_id_int,
     )
@@ -80,13 +80,13 @@ async def production_total(
         if getattr(e, "created_at", None) is not None
     }
     harvest_campaign_years = await plot_harvest_service.get_campaign_years(
-        db, user_id=current_user.id
+        db, tenant_id=current_user.active_tenant_id
     )
     # We need all campaign years, not just those in the filtered result, so
     # also fetch event years without filters for the selector
     year_events = await truffle_events_service.list_events(
         db,
-        user_id=current_user.id,
+        tenant_id=current_user.active_tenant_id,
         campaign_year=None,
         plot_id=None,
         include_undone=False,
@@ -185,14 +185,14 @@ async def list_harvests(
     camp_int = _parse_optional_int(camp)
     plot_id_int = _parse_optional_int(plot_id)
 
-    plots = await list_plots(db, current_user.id)
+    plots = await list_plots(db, current_user.active_tenant_id)
     campaign_years_harvests = await plot_harvest_service.get_campaign_years(
-        db, user_id=current_user.id
+        db, tenant_id=current_user.active_tenant_id
     )
 
     harvests = await plot_harvest_service.list_harvests(
         db,
-        user_id=current_user.id,
+        tenant_id=current_user.active_tenant_id,
         campaign_year_filter=camp_int,
         plot_id=plot_id_int,
     )
@@ -200,7 +200,7 @@ async def list_harvests(
     # Summary by plot for the selected scope
     totals_by_plot = await plot_harvest_service.get_totals_by_plot(
         db,
-        user_id=current_user.id,
+        tenant_id=current_user.active_tenant_id,
         campaign_year_filter=camp_int,
     )
     # Build ordered summary rows aligned with plots
@@ -241,7 +241,7 @@ async def new_harvest_form(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    plots = await list_plots(db, current_user.id)
+    plots = await list_plots(db, current_user.active_tenant_id)
     today = datetime.date.today().isoformat()
     return templates.TemplateResponse(
         request,
@@ -272,7 +272,7 @@ async def create_harvest_batch(
     try:
         harvest_date = datetime.date.fromisoformat(str(harvest_date_str))
     except (ValueError, TypeError):
-        plots = await list_plots(db, current_user.id)
+        plots = await list_plots(db, current_user.active_tenant_id)
         return templates.TemplateResponse(
             request,
             "produccion/form_bancal.html",
@@ -317,7 +317,7 @@ async def create_harvest_batch(
 
     if entries:
         await plot_harvest_service.create_harvests_batch(
-            db, user_id=current_user.id, entries=entries
+            db, tenant_id=current_user.active_tenant_id, entries=entries
         )
         await db.commit()
 
@@ -340,14 +340,14 @@ async def edit_harvest_form(
     current_user: User = Depends(require_subscription),
 ):
     harvest = await plot_harvest_service.get_harvest(
-        db, harvest_id=harvest_id, user_id=current_user.id
+        db, harvest_id=harvest_id, tenant_id=current_user.active_tenant_id
     )
     if harvest is None:
         return RedirectResponse(
             f"/harvests/?msg={quote_plus(_('Cosecha no encontrada'))}",
             status_code=303,
         )
-    plots = await list_plots(db, current_user.id)
+    plots = await list_plots(db, current_user.active_tenant_id)
     return templates.TemplateResponse(
         request,
         "produccion/form_bancal_edit.html",
@@ -376,7 +376,7 @@ async def update_harvest(
     current_user: User = Depends(require_subscription),
 ):
     harvest = await plot_harvest_service.get_harvest(
-        db, harvest_id=harvest_id, user_id=current_user.id
+        db, harvest_id=harvest_id, tenant_id=current_user.active_tenant_id
     )
     if harvest is None:
         return RedirectResponse(
@@ -396,7 +396,7 @@ async def update_harvest(
     await plot_harvest_service.update_harvest(
         db,
         harvest_id=harvest_id,
-        user_id=current_user.id,
+        tenant_id=current_user.active_tenant_id,
         harvest_date=parsed_date,
         weight_grams=parsed_grams,
         notes=notes.strip() or None,
@@ -420,7 +420,7 @@ async def delete_harvest(
     current_user: User = Depends(require_subscription),
 ):
     await plot_harvest_service.delete_harvest(
-        db, harvest_id=harvest_id, user_id=current_user.id
+        db, harvest_id=harvest_id, tenant_id=current_user.active_tenant_id
     )
     await db.commit()
     return RedirectResponse(

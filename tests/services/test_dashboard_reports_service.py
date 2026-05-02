@@ -70,7 +70,7 @@ async def test_build_dashboard_context_returns_expected_totals() -> None:
     wells = [
         Well(
             id=1,
-            user_id=1,
+            tenant_id=1,
             plot_id=1,
             date=datetime.date(2025, 6, 10),
             wells_per_plant=3,
@@ -85,7 +85,7 @@ async def test_build_dashboard_context_returns_expected_totals() -> None:
         side_effect=[result(plots), result(expenses), result(incomes), result(wells)]
     )
 
-    context = await build_dashboard_context(db, user_id=1)
+    context = await build_dashboard_context(db, tenant_id=1)
 
     assert context["total_plots"] == 2
     assert context["grand_expenses"] == 150.0
@@ -132,7 +132,7 @@ async def test_build_profitability_context_returns_matrix() -> None:
         side_effect=[result(plots), result(incomes), result(expenses)]
     )
 
-    context = await build_profitability_context(db, user_id=1)
+    context = await build_profitability_context(db, tenant_id=1)
 
     assert context["all_years"] == [2025]
     assert context["grand_total_incomes"] == 10.0

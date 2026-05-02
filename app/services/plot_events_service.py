@@ -25,9 +25,9 @@ def _is_recurring_by_type(event_type: EventType) -> bool:
     return event_type not in ONE_TIME_EVENT_TYPES
 
 
-async def validate_plot_ownership(db: AsyncSession, plot_id: int, user_id: int) -> None:
+async def validate_plot_ownership(db: AsyncSession, plot_id: int, tenant_id: int) -> None:
     result = await db.execute(
-        select(Plot.id).where(Plot.id == plot_id, Plot.user_id == user_id)
+        select(Plot.id).where(Plot.id == plot_id, Plot.tenant_id == tenant_id)
     )
     if result.scalar_one_or_none() is None:
         raise HTTPException(
@@ -40,7 +40,7 @@ async def validate_one_time_event(
     db: AsyncSession,
     *,
     plot_id: int,
-    user_id: int,
+    tenant_id: int,
     event_type: EventType,
     exclude_event_id: Optional[int] = None,
 ) -> None:
@@ -48,7 +48,7 @@ async def validate_one_time_event(
         return
 
     stmt = select(PlotEvent).where(
-        PlotEvent.user_id == user_id,
+        PlotEvent.tenant_id == tenant_id,
         PlotEvent.plot_id == plot_id,
         PlotEvent.event_type == event_type.value,
     )
@@ -65,18 +65,19 @@ async def validate_one_time_event(
 
 
 async def create_plot_event(
-    db: AsyncSession, user_id: int, data: PlotEventCreate
+    db: AsyncSession, tenant_id: int, data: PlotEventCreate, acting_user_id: Optional[int] = None
 ) -> PlotEvent:
-    await validate_plot_ownership(db, data.plot_id, user_id)
+    await validate_plot_ownership(db, data.plot_id, tenant_id)
     await validate_one_time_event(
         db,
         plot_id=data.plot_id,
-        user_id=user_id,
+        tenant_id=tenant_id,
         event_type=data.event_type,
     )
 
     event = PlotEvent(
-        user_id=user_id,
+        tenant_id=tenant_id,
+        created_by_user_id=acting_user_id,
         plot_id=data.plot_id,
         event_type=data.event_type.value,
         date=data.date,
@@ -95,24 +96,24 @@ async def create_plot_event(
 
 
 async def get_plot_event(
-    db: AsyncSession, event_id: int, user_id: int
+    db: AsyncSession, event_id: int, tenant_id: int
 ) -> Optional[PlotEvent]:
     result = await db.execute(
-        select(PlotEvent).where(PlotEvent.id == event_id, PlotEvent.user_id == user_id)
+        select(PlotEvent).where(PlotEvent.id == event_id, PlotEvent.tenant_id == tenant_id)
     )
     return result.scalar_one_or_none()
 
 
 async def get_plot_events(
     db: AsyncSession,
-    user_id: int,
+    tenant_id: int,
     *,
     plot_id: Optional[int] = None,
     start_date: Optional[datetime.date] = None,
     end_date: Optional[datetime.date] = None,
     event_types: Optional[list[EventType]] = None,
 ) -> list[PlotEvent]:
-    stmt = select(PlotEvent).where(PlotEvent.user_id == user_id)
+    stmt = select(PlotEvent).where(PlotEvent.tenant_id == tenant_id)
 
     if plot_id is not None:
         stmt = stmt.where(PlotEvent.plot_id == plot_id)
@@ -130,7 +131,7 @@ async def get_plot_events(
 
 
 async def update_plot_event(
-    db: AsyncSession, event: PlotEvent, data: PlotEventUpdate
+    db: AsyncSession, event: PlotEvent, data: PlotEventUpdate, acting_user_id: Optional[int] = None
 ) -> PlotEvent:
     new_event_type = (
         data.event_type if data.event_type is not None else EventType(event.event_type)
@@ -140,7 +141,7 @@ async def update_plot_event(
     await validate_one_time_event(
         db,
         plot_id=target_plot_id,
-        user_id=event.user_id,
+        tenant_id=event.tenant_id,
         event_type=new_event_type,
         exclude_event_id=event.id,
     )
@@ -160,12 +161,13 @@ async def update_plot_event(
         event.is_recurring = _is_recurring_by_type(EventType(event.event_type))
 
     event.updated_at = _now_utc()
+    event.updated_by_user_id = acting_user_id
     await db.flush()
     return event
 
 
-async def delete_plot_event(db: AsyncSession, event_id: int, user_id: int) -> None:
-    event = await get_plot_event(db, event_id, user_id)
+async def delete_plot_event(db: AsyncSession, event_id: int, tenant_id: int) -> None:
+    event = await get_plot_event(db, event_id, tenant_id)
     if event is None:
         return
     await db.delete(event)
@@ -178,14 +180,15 @@ async def sync_plot_event_from_irrigation(
     result = await db.execute(
         select(PlotEvent).where(
             PlotEvent.related_irrigation_id == irrigation_record.id,
-            PlotEvent.user_id == irrigation_record.user_id,
+            PlotEvent.tenant_id == irrigation_record.tenant_id,
         )
     )
     event = result.scalar_one_or_none()
 
     if event is None:
         event = PlotEvent(
-            user_id=irrigation_record.user_id,
+            tenant_id=irrigation_record.tenant_id,
+            created_by_user_id=irrigation_record.created_by_user_id,
             plot_id=irrigation_record.plot_id,
             event_type=EventType.RIEGO.value,
             date=irrigation_record.date,
@@ -210,14 +213,15 @@ async def sync_plot_event_from_well(db: AsyncSession, well_record: Well) -> Plot
     result = await db.execute(
         select(PlotEvent).where(
             PlotEvent.related_well_id == well_record.id,
-            PlotEvent.user_id == well_record.user_id,
+            PlotEvent.tenant_id == well_record.tenant_id,
         )
     )
     event = result.scalar_one_or_none()
 
     if event is None:
         event = PlotEvent(
-            user_id=well_record.user_id,
+            tenant_id=well_record.tenant_id,
+            created_by_user_id=well_record.created_by_user_id,
             plot_id=well_record.plot_id,
             event_type=EventType.POZO.value,
             date=well_record.date,
@@ -239,12 +243,12 @@ async def sync_plot_event_from_well(db: AsyncSession, well_record: Well) -> Plot
 
 
 async def delete_plot_event_for_irrigation(
-    db: AsyncSession, irrigation_id: int, user_id: int
+    db: AsyncSession, irrigation_id: int, tenant_id: int
 ) -> None:
     result = await db.execute(
         select(PlotEvent).where(
             PlotEvent.related_irrigation_id == irrigation_id,
-            PlotEvent.user_id == user_id,
+            PlotEvent.tenant_id == tenant_id,
         )
     )
     event = result.scalar_one_or_none()
@@ -256,12 +260,12 @@ async def delete_plot_event_for_irrigation(
 
 
 async def delete_plot_event_for_well(
-    db: AsyncSession, well_id: int, user_id: int
+    db: AsyncSession, well_id: int, tenant_id: int
 ) -> None:
     result = await db.execute(
         select(PlotEvent).where(
             PlotEvent.related_well_id == well_id,
-            PlotEvent.user_id == user_id,
+            PlotEvent.tenant_id == tenant_id,
         )
     )
     event = result.scalar_one_or_none()

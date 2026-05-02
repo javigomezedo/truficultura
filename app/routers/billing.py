@@ -51,7 +51,9 @@ async def billing_checkout(
 ):
     """Start a Stripe Checkout session and redirect the user to Stripe."""
     try:
-        url = await billing_service.create_checkout_session(current_user, db)
+        url = await billing_service.create_checkout_session(
+            current_user.active_tenant, current_user, db  # type: ignore[attr-defined]
+        )
     except RuntimeError as exc:
         logger.exception("Checkout session creation failed: %s", exc)
         raise HTTPException(status_code=503, detail=str(exc))
@@ -92,7 +94,9 @@ async def billing_portal(
 ):
     """Redirect the user to the Stripe Customer Portal to manage their subscription."""
     try:
-        url = await billing_service.create_portal_session(current_user)
+        url = await billing_service.create_portal_session(
+            current_user.active_tenant  # type: ignore[attr-defined]
+        )
     except RuntimeError as exc:
         logger.exception("Portal session creation failed: %s", exc)
         raise HTTPException(status_code=503, detail=str(exc))

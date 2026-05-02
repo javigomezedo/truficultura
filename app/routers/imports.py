@@ -64,7 +64,7 @@ async def upload_all_zip(
     current_user: User = Depends(require_subscription),
 ):
     content = await file.read()
-    imported_by_file, warnings = await import_all_csv_zip(db, content, current_user.id)
+    imported_by_file, warnings = await import_all_csv_zip(db, content, current_user.active_tenant_id)
     await db.commit()
 
     total_imported = sum(imported_by_file.values())
@@ -95,7 +95,7 @@ async def upload_expenses(
     current_user: User = Depends(require_subscription),
 ):
     content = await file.read()
-    rows, warnings = await import_expenses_csv(db, content, current_user.id)
+    rows, warnings = await import_expenses_csv(db, content, current_user.active_tenant_id)
     await db.commit()
 
     return templates.TemplateResponse(
@@ -122,7 +122,7 @@ async def upload_incomes(
     current_user: User = Depends(require_subscription),
 ):
     content = await file.read()
-    rows, warnings = await import_incomes_csv(db, content, current_user.id)
+    rows, warnings = await import_incomes_csv(db, content, current_user.active_tenant_id)
     await db.commit()
 
     return templates.TemplateResponse(
@@ -149,7 +149,7 @@ async def upload_plots(
     current_user: User = Depends(require_subscription),
 ):
     content = await file.read()
-    rows, warnings = await import_plots_csv(db, content, current_user.id)
+    rows, warnings = await import_plots_csv(db, content, current_user.active_tenant_id)
     await db.commit()
 
     return templates.TemplateResponse(
@@ -176,7 +176,7 @@ async def upload_irrigation(
     current_user: User = Depends(require_subscription),
 ):
     content = await file.read()
-    rows, warnings = await import_irrigation_csv(db, content, current_user.id)
+    rows, warnings = await import_irrigation_csv(db, content, current_user.active_tenant_id)
     await db.commit()
 
     return templates.TemplateResponse(
@@ -203,7 +203,7 @@ async def upload_wells(
     current_user: User = Depends(require_subscription),
 ):
     content = await file.read()
-    rows, warnings = await import_wells_csv(db, content, current_user.id)
+    rows, warnings = await import_wells_csv(db, content, current_user.active_tenant_id)
     await db.commit()
 
     return templates.TemplateResponse(
@@ -230,7 +230,7 @@ async def upload_truffles(
     current_user: User = Depends(require_subscription),
 ):
     content = await file.read()
-    rows, warnings = await import_truffles_csv(db, content, current_user.id)
+    rows, warnings = await import_truffles_csv(db, content, current_user.active_tenant_id)
     await db.commit()
 
     return templates.TemplateResponse(
@@ -257,7 +257,7 @@ async def upload_plot_events(
     current_user: User = Depends(require_subscription),
 ):
     content = await file.read()
-    rows, warnings = await import_plot_events_csv(db, content, current_user.id)
+    rows, warnings = await import_plot_events_csv(db, content, current_user.active_tenant_id)
     await db.commit()
 
     return templates.TemplateResponse(
@@ -284,7 +284,7 @@ async def upload_recurring_expenses(
     current_user: User = Depends(require_subscription),
 ):
     content = await file.read()
-    rows, warnings = await import_recurring_expenses_csv(db, content, current_user.id)
+    rows, warnings = await import_recurring_expenses_csv(db, content, current_user.active_tenant_id)
     await db.commit()
     return templates.TemplateResponse(
         request,
@@ -310,7 +310,7 @@ async def upload_harvests(
     current_user: User = Depends(require_subscription),
 ):
     content = await file.read()
-    rows, warnings = await import_harvests_csv(db, content, current_user.id)
+    rows, warnings = await import_harvests_csv(db, content, current_user.active_tenant_id)
     await db.commit()
     return templates.TemplateResponse(
         request,
@@ -336,7 +336,7 @@ async def upload_presences(
     current_user: User = Depends(require_subscription),
 ):
     content = await file.read()
-    rows, warnings = await import_presences_csv(db, content, current_user.id)
+    rows, warnings = await import_presences_csv(db, content, current_user.active_tenant_id)
     await db.commit()
     return templates.TemplateResponse(
         request,

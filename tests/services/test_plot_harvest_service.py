@@ -33,14 +33,14 @@ async def test_create_harvest_stores_fields() -> None:
 
     h = await create_harvest(
         db,
-        user_id=1,
+        tenant_id=1,
         plot_id=5,
         harvest_date=datetime.date(2025, 11, 10),
         weight_grams=350.0,
         notes="good day",
     )
 
-    assert h.user_id == 1
+    assert h.tenant_id == 1
     assert h.plot_id == 5
     assert h.harvest_date == datetime.date(2025, 11, 10)
     assert h.weight_grams == 350.0
@@ -57,7 +57,7 @@ async def test_create_harvest_clamps_negative_weight() -> None:
 
     h = await create_harvest(
         db,
-        user_id=1,
+        tenant_id=1,
         plot_id=1,
         harvest_date=datetime.date(2025, 6, 1),
         weight_grams=-100.0,
@@ -85,7 +85,7 @@ async def test_create_harvests_batch_skips_zero_weight() -> None:
             "weight_grams": 500.0,
         },
     ]
-    harvests = await create_harvests_batch(db, user_id=1, entries=entries)
+    harvests = await create_harvests_batch(db, tenant_id=1, entries=entries)
 
     assert len(harvests) == 1
     assert harvests[0].weight_grams == 500.0
@@ -98,7 +98,7 @@ async def test_create_harvests_batch_empty_list_no_flush() -> None:
     db.add = MagicMock()
     db.flush = AsyncMock()
 
-    harvests = await create_harvests_batch(db, user_id=1, entries=[])
+    harvests = await create_harvests_batch(db, tenant_id=1, entries=[])
 
     assert harvests == []
     db.flush.assert_not_awaited()
@@ -116,7 +116,7 @@ async def test_list_harvests_returns_all() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([h1, h2]))
 
-    harvests = await list_harvests(db, user_id=1)
+    harvests = await list_harvests(db, tenant_id=1)
 
     assert harvests == [h1, h2]
 
@@ -131,7 +131,7 @@ async def test_get_harvest_returns_none_when_not_found() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([]))
 
-    h = await get_harvest(db, harvest_id=99, user_id=1)
+    h = await get_harvest(db, harvest_id=99, tenant_id=1)
 
     assert h is None
 
@@ -145,7 +145,7 @@ async def test_get_harvest_returns_none_when_not_found() -> None:
 async def test_update_harvest_modifies_fields() -> None:
     existing = PlotHarvest(
         id=1,
-        user_id=1,
+        tenant_id=1,
         plot_id=2,
         harvest_date=datetime.date(2025, 10, 1),
         weight_grams=100.0,
@@ -158,7 +158,7 @@ async def test_update_harvest_modifies_fields() -> None:
     updated = await update_harvest(
         db,
         harvest_id=1,
-        user_id=1,
+        tenant_id=1,
         harvest_date=datetime.date(2025, 11, 5),
         weight_grams=250.0,
         notes="updated",
@@ -177,7 +177,7 @@ async def test_update_harvest_returns_none_when_missing() -> None:
     db.execute = AsyncMock(return_value=result([]))
     db.flush = AsyncMock()
 
-    updated = await update_harvest(db, harvest_id=99, user_id=1, weight_grams=100.0)
+    updated = await update_harvest(db, harvest_id=99, tenant_id=1, weight_grams=100.0)
 
     assert updated is None
     db.flush.assert_not_awaited()
@@ -192,7 +192,7 @@ async def test_update_harvest_returns_none_when_missing() -> None:
 async def test_delete_harvest_returns_true_on_success() -> None:
     existing = PlotHarvest(
         id=1,
-        user_id=1,
+        tenant_id=1,
         plot_id=1,
         harvest_date=datetime.date(2025, 10, 1),
         weight_grams=200.0,
@@ -202,7 +202,7 @@ async def test_delete_harvest_returns_true_on_success() -> None:
     db.delete = AsyncMock()
     db.flush = AsyncMock()
 
-    deleted = await delete_harvest(db, harvest_id=1, user_id=1)
+    deleted = await delete_harvest(db, harvest_id=1, tenant_id=1)
 
     assert deleted is True
     db.delete.assert_awaited_once_with(existing)
@@ -215,7 +215,7 @@ async def test_delete_harvest_returns_false_when_not_found() -> None:
     db.delete = AsyncMock()
     db.flush = AsyncMock()
 
-    deleted = await delete_harvest(db, harvest_id=99, user_id=1)
+    deleted = await delete_harvest(db, harvest_id=99, tenant_id=1)
 
     assert deleted is False
     db.delete.assert_not_awaited()
@@ -237,7 +237,7 @@ async def test_get_totals_by_plot_aggregates_correctly() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=fake_result)
 
-    totals = await get_totals_by_plot(db, user_id=1)
+    totals = await get_totals_by_plot(db, tenant_id=1)
 
     assert totals[3] == pytest.approx(450.0)
     assert totals[5] == pytest.approx(200.0)
@@ -260,6 +260,6 @@ async def test_get_campaign_years_returns_sorted_desc() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=fake_result)
 
-    years = await get_campaign_years(db, user_id=1)
+    years = await get_campaign_years(db, tenant_id=1)
 
     assert years == [2025, 2024]

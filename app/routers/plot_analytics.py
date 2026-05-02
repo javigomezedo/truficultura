@@ -189,37 +189,37 @@ async def overview(
 
     dataset = await get_campaign_dataset(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
     irrigation_analysis = await get_irrigation_vs_production_analysis(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
     pruning_analysis = await get_pruning_vs_production_analysis(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
     management_analysis = await get_tilling_vs_production_analysis(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
     irrigation_thresholds = await detect_irrigation_thresholds(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
     all_plot_thresholds = await get_all_plot_thresholds(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
@@ -264,7 +264,7 @@ async def dataset_json(
 
     rows = await get_campaign_dataset(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
@@ -282,7 +282,7 @@ async def irrigation_impact_json(
     campaign_to_value = _parse_optional_int(campaign_to)
     return await get_irrigation_vs_production_analysis(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
@@ -299,7 +299,7 @@ async def pruning_impact_json(
     campaign_to_value = _parse_optional_int(campaign_to)
     return await get_pruning_vs_production_analysis(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
@@ -316,7 +316,7 @@ async def management_impact_json(
     campaign_to_value = _parse_optional_int(campaign_to)
     return await get_tilling_vs_production_analysis(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
@@ -333,7 +333,7 @@ async def irrigation_thresholds_json(
     campaign_to_value = _parse_optional_int(campaign_to)
     return await detect_irrigation_thresholds(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
@@ -350,7 +350,7 @@ async def comparison_json(
     campaign_to_value = _parse_optional_int(campaign_to)
     return await get_multi_plot_comparison(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
@@ -369,13 +369,13 @@ async def comparison_view(
 
     comparison = await get_multi_plot_comparison(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
     dataset = await get_campaign_dataset(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
@@ -408,21 +408,21 @@ async def plot_detail(
 
     context = await get_plot_detail_context(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         plot_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
     plot_thresholds = await detect_irrigation_thresholds(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
         plot_ids=[plot_id],
     )
     global_thresholds = await detect_irrigation_thresholds(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
@@ -473,7 +473,7 @@ async def plot_detail_json(
 
     context = await get_plot_detail_context(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         plot_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,

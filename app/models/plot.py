@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from app.models.plot_harvest import PlotHarvest
     from app.models.rainfall import RainfallRecord
     from app.models.recurring_expense import RecurringExpense
+    from app.models.tenant import Tenant
     from app.models.user import User
     from app.models.well import Well
 
@@ -26,8 +27,14 @@ class Plot(Base):
     __tablename__ = "plots"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    user_id: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True
+    tenant_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    created_by_user_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    updated_by_user_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     polygon: Mapped[str] = mapped_column(String(100), nullable=False, default="")
@@ -49,7 +56,13 @@ class Plot(Base):
     municipio_cod: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
 
     # Relationships
-    user: Mapped[Optional["User"]] = relationship("User", back_populates="plots")
+    tenant: Mapped[Optional["Tenant"]] = relationship("Tenant")
+    created_by: Mapped[Optional["User"]] = relationship(
+        "User", foreign_keys="[Plot.created_by_user_id]"
+    )
+    updated_by: Mapped[Optional["User"]] = relationship(
+        "User", foreign_keys="[Plot.updated_by_user_id]"
+    )
     expenses: Mapped[List["Expense"]] = relationship(
         "Expense", back_populates="plot", lazy="select"
     )
@@ -72,10 +85,16 @@ class Plot(Base):
         "RecurringExpense", back_populates="plot", lazy="select"
     )
     plot_harvests: Mapped[List["PlotHarvest"]] = relationship(
-        "PlotHarvest", back_populates="plot", lazy="select", cascade="all, delete-orphan"
+        "PlotHarvest",
+        back_populates="plot",
+        lazy="select",
+        cascade="all, delete-orphan",
     )
     plant_presences: Mapped[List["PlantPresence"]] = relationship(
-        "PlantPresence", back_populates="plot", lazy="select", cascade="all, delete-orphan"
+        "PlantPresence",
+        back_populates="plot",
+        lazy="select",
+        cascade="all, delete-orphan",
     )
     rainfall_records: Mapped[List["RainfallRecord"]] = relationship(
         "RainfallRecord", back_populates="plot", lazy="select"

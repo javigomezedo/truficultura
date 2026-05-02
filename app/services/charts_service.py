@@ -28,16 +28,16 @@ async def build_charts_context(
     db: AsyncSession,
     campaign: Optional[int],
     plot_id: Optional[int],
-    user_id: int,
+    tenant_id: int,
 ) -> dict:
     plots_result = await db.execute(
-        select(Plot).where(Plot.user_id == user_id).order_by(Plot.name)
+        select(Plot).where(Plot.tenant_id == tenant_id).order_by(Plot.name)
     )
     all_plots = plots_result.scalars().all()
 
     expenses_result = await db.execute(
         select(Expense.date, Expense.amount, Expense.plot_id, Expense.category).where(
-            Expense.user_id == user_id
+            Expense.tenant_id == tenant_id
         )
     )
     all_expenses = expenses_result.all()
@@ -49,7 +49,7 @@ async def build_charts_context(
             Income.euros_per_kg,
             Income.plot_id,
             Income.category,
-        ).where(Income.user_id == user_id)
+        ).where(Income.tenant_id == tenant_id)
     )
     all_incomes = incomes_result.all()
 

@@ -88,7 +88,7 @@ async def test_upsert_ibericam_rainfall_creates_new_records() -> None:
 
     # Verificar que los objetos creados son globales (user_id=None)
     added: RainfallRecord = db.add.call_args_list[0].args[0]
-    assert added.user_id is None
+    assert added.tenant_id is None
     assert added.municipio_cod == "44216"
     assert added.source == "ibericam"
     assert added.plot_id is None

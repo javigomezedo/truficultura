@@ -33,7 +33,7 @@ async def list_recurring_expenses_view(
     current_user: User = Depends(require_subscription),
     msg: Optional[str] = Query(default=None),
 ):
-    items = await list_recurring_expenses(db, current_user.id)
+    items = await list_recurring_expenses(db, current_user.active_tenant_id)
     return templates.TemplateResponse(
         request,
         "gastos/recurrentes/list.html",
@@ -51,7 +51,7 @@ async def new_recurring_expense_form(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    plots = await list_plots(db, current_user.id)
+    plots = await list_plots(db, current_user.active_tenant_id)
     return templates.TemplateResponse(
         request,
         "gastos/recurrentes/form.html",
@@ -81,7 +81,7 @@ async def create_recurring_expense(
 ):
     await create_recurring_expense_service(
         db,
-        user_id=current_user.id,
+        tenant_id=current_user.active_tenant_id,
         description=description,
         amount=amount,
         category=category,
@@ -102,13 +102,13 @@ async def edit_recurring_expense_form(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    obj = await get_recurring_expense(db, recurring_expense_id, current_user.id)
+    obj = await get_recurring_expense(db, recurring_expense_id, current_user.active_tenant_id)
     if obj is None:
         return RedirectResponse(
             url=f"/recurring-expenses/?msg={quote_plus(_('Gasto recurrente no encontrado'))}",
             status_code=303,
         )
-    plots = await list_plots(db, current_user.id)
+    plots = await list_plots(db, current_user.active_tenant_id)
     return templates.TemplateResponse(
         request,
         "gastos/recurrentes/form.html",
@@ -138,7 +138,7 @@ async def update_recurring_expense(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    obj = await get_recurring_expense(db, recurring_expense_id, current_user.id)
+    obj = await get_recurring_expense(db, recurring_expense_id, current_user.active_tenant_id)
     if obj is None:
         return RedirectResponse(
             url=f"/recurring-expenses/?msg={quote_plus(_('Gasto recurrente no encontrado'))}",
@@ -168,7 +168,7 @@ async def delete_recurring_expense(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    obj = await get_recurring_expense(db, recurring_expense_id, current_user.id)
+    obj = await get_recurring_expense(db, recurring_expense_id, current_user.active_tenant_id)
     if obj:
         await delete_recurring_expense_service(db, obj)
     return RedirectResponse(
@@ -184,7 +184,7 @@ async def toggle_recurring_expense(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    obj = await get_recurring_expense(db, recurring_expense_id, current_user.id)
+    obj = await get_recurring_expense(db, recurring_expense_id, current_user.active_tenant_id)
     if obj is None:
         return RedirectResponse(
             url=f"/recurring-expenses/?msg={quote_plus(_('Gasto recurrente no encontrado'))}",

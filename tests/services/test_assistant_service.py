@@ -180,7 +180,7 @@ async def test_chat_uso_skips_db_queries() -> None:
 
     result_data = await chat(
         db=db,
-        user_id=42,
+        tenant_id=42,
         message="¿Cómo doy de alta una parcela?",
         history=[],
         adapter=adapter,
@@ -195,27 +195,27 @@ async def test_chat_uso_skips_db_queries() -> None:
 
 @pytest.mark.asyncio
 async def test_chat_datos_queries_db_with_user_id() -> None:
-    plot = Plot(id=1, name="Norte", num_plants=100, user_id=1)
+    plot = Plot(id=1, name="Norte", num_plants=100, tenant_id=1)
     income = Income(
         id=1,
         date=datetime.date(2025, 6, 1),
         amount_kg=10.0,
         euros_per_kg=500.0,
-        user_id=1,
+        tenant_id=1,
     )
     expense = Expense(
         id=1,
         date=datetime.date(2025, 7, 1),
         amount=200.0,
         description="Labrado",
-        user_id=1,
+        tenant_id=1,
     )
     irrigation = IrrigationRecord(
         id=1,
         plot_id=1,
         date=datetime.date(2025, 8, 1),
         water_m3=120.0,
-        user_id=1,
+        tenant_id=1,
     )
     fence_event = SimpleNamespace(
         plot_id=1,
@@ -257,7 +257,7 @@ async def test_chat_datos_queries_db_with_user_id() -> None:
 
     result_data = await chat(
         db=db,
-        user_id=1,
+        tenant_id=1,
         message="¿Cuáles son mis parcelas?",
         history=[],
         adapter=adapter,
@@ -269,7 +269,7 @@ async def test_chat_datos_queries_db_with_user_id() -> None:
 
     for awaited in db.execute.await_args_list:
         statement = awaited.args[0]
-        assert "user_id" in str(statement)
+        assert "tenant_id" in str(statement)
 
     # User context (with plot name and campaign) must appear in the system message
     call_messages = adapter.complete.call_args[0][0]
@@ -309,7 +309,7 @@ async def test_chat_datos_no_records_returns_graceful_context() -> None:
 
     result_data = await chat(
         db=db,
-        user_id=99,
+        tenant_id=99,
         message="¿Cuál fue mi mejor campaña?",
         history=[],
         adapter=adapter,
@@ -335,7 +335,7 @@ async def test_chat_history_is_forwarded_to_adapter() -> None:
 
     await chat(
         db=db,
-        user_id=1,
+        tenant_id=1,
         message="¿Qué es un gasto general?",
         history=history,
         adapter=adapter,
@@ -355,7 +355,7 @@ async def test_prepare_chat_context_uso_does_not_query_db() -> None:
 
     data = await prepare_chat_context(
         db=db,
-        user_id=2,
+        tenant_id=2,
         message="¿Cómo funciona el riego?",
         history=[],
     )
@@ -388,7 +388,7 @@ async def test_prepare_chat_context_datos_queries_db() -> None:
 
     data = await prepare_chat_context(
         db=db,
-        user_id=2,
+        tenant_id=2,
         message="¿Cuáles son mis parcelas?",
         history=[],
     )

@@ -14,6 +14,19 @@ from app.main import app
 
 
 def _user(**kwargs):
+    tenant_kwargs = {
+        k: kwargs.pop(k)
+        for k in list(kwargs)
+        if k in ("subscription_status", "stripe_customer_id", "trial_ends_at", "subscription_ends_at")
+    }
+    tenant_defaults = dict(
+        subscription_status="trialing",
+        stripe_customer_id="cus_test",
+        trial_ends_at=None,
+        subscription_ends_at=None,
+    )
+    tenant_defaults.update(tenant_kwargs)
+    tenant = SimpleNamespace(**tenant_defaults)
     defaults = dict(
         id=1,
         role="user",
@@ -21,10 +34,8 @@ def _user(**kwargs):
         email="test@example.com",
         first_name="Test",
         last_name="User",
-        subscription_status="trialing",
-        stripe_customer_id="cus_test",
-        trial_ends_at=None,
-        subscription_ends_at=None,
+        active_tenant_id=1,
+        active_tenant=tenant,
     )
     defaults.update(kwargs)
     return SimpleNamespace(**defaults)

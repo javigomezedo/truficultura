@@ -22,7 +22,7 @@ async def kpis_index(
     current_user: User = Depends(require_subscription),
 ):
     context = await build_kpi_context(
-        db, user_id=current_user.id, selected_campaign=campaign
+        db, tenant_id=current_user.active_tenant_id, selected_campaign=campaign
     )
 
     return templates.TemplateResponse(

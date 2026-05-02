@@ -251,7 +251,7 @@ async def upsert_aemet_rainfall(
     existing_result = await db.execute(
         select(RainfallRecord).where(
             and_(
-                RainfallRecord.user_id.is_(None),
+                RainfallRecord.tenant_id.is_(None),
                 RainfallRecord.municipio_cod == municipio_cod,
                 RainfallRecord.source == "aemet",
                 RainfallRecord.date.in_(dates),
@@ -271,7 +271,7 @@ async def upsert_aemet_rainfall(
         if existing is None:
             db.add(
                 RainfallRecord(
-                    user_id=None,
+                    tenant_id=None,
                     plot_id=None,
                     municipio_cod=municipio_cod,
                     municipio_name=municipio_name,

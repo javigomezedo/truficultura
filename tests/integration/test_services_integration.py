@@ -48,7 +48,7 @@ async def test_services_crud_flow_with_real_db(tmp_path: Path) -> None:
         async with session_maker() as db:
             plot = await create_plot(
                 db,
-                user_id=1,
+                tenant_id=1,
                 name="Bancal Test",
                 polygon="1",
                 plot_num="10",
@@ -62,7 +62,7 @@ async def test_services_crud_flow_with_real_db(tmp_path: Path) -> None:
             )
             await db.commit()
 
-            fetched = await get_plot(db, plot.id, user_id=1)
+            fetched = await get_plot(db, plot.id, tenant_id=1)
             assert fetched is not None
             assert fetched.name == "Bancal Test"
 
@@ -73,7 +73,7 @@ async def test_services_crud_flow_with_real_db(tmp_path: Path) -> None:
                 person="Javi",
                 plot_id=plot.id,
                 amount=25.0,
-                user_id=1,
+                tenant_id=1,
             )
             await create_income(
                 db,
@@ -82,12 +82,12 @@ async def test_services_crud_flow_with_real_db(tmp_path: Path) -> None:
                 amount_kg=2.0,
                 category="A",
                 euros_per_kg=50.0,
-                user_id=1,
+                tenant_id=1,
             )
             await db.commit()
 
-            expenses_ctx = await get_expenses_list_context(db, 2025, user_id=1)
-            incomes_ctx = await get_incomes_list_context(db, 2025, user_id=1)
+            expenses_ctx = await get_expenses_list_context(db, 2025, tenant_id=1)
+            incomes_ctx = await get_incomes_list_context(db, 2025, tenant_id=1)
 
             assert len(expenses_ctx["expenses"]) == 1
             assert expenses_ctx["total"] == 25.0
@@ -97,7 +97,7 @@ async def test_services_crud_flow_with_real_db(tmp_path: Path) -> None:
             await delete_plot(db, plot)
             await db.commit()
 
-            assert await get_plot(db, plot.id, user_id=1) is None
+            assert await get_plot(db, plot.id, tenant_id=1) is None
     finally:
         await engine.dispose()
 
@@ -110,7 +110,7 @@ async def test_dashboard_and_reports_context_with_real_db(tmp_path: Path) -> Non
         async with session_maker() as db:
             p1 = await create_plot(
                 db,
-                user_id=1,
+                tenant_id=1,
                 name="P1",
                 polygon="1",
                 plot_num="1",
@@ -124,7 +124,7 @@ async def test_dashboard_and_reports_context_with_real_db(tmp_path: Path) -> Non
             )
             p2 = await create_plot(
                 db,
-                user_id=1,
+                tenant_id=1,
                 name="P2",
                 polygon="2",
                 plot_num="2",
@@ -144,7 +144,7 @@ async def test_dashboard_and_reports_context_with_real_db(tmp_path: Path) -> Non
                 person="A",
                 plot_id=p1.id,
                 amount=100.0,
-                user_id=1,
+                tenant_id=1,
             )
             await create_expense(
                 db,
@@ -153,7 +153,7 @@ async def test_dashboard_and_reports_context_with_real_db(tmp_path: Path) -> Non
                 person="A",
                 plot_id=None,
                 amount=50.0,
-                user_id=1,
+                tenant_id=1,
             )
 
             await create_income(
@@ -163,7 +163,7 @@ async def test_dashboard_and_reports_context_with_real_db(tmp_path: Path) -> Non
                 amount_kg=1.0,
                 category="A",
                 euros_per_kg=40.0,
-                user_id=1,
+                tenant_id=1,
             )
             await create_income(
                 db,
@@ -172,12 +172,12 @@ async def test_dashboard_and_reports_context_with_real_db(tmp_path: Path) -> Non
                 amount_kg=1.0,
                 category="A",
                 euros_per_kg=30.0,
-                user_id=1,
+                tenant_id=1,
             )
             await db.commit()
 
-            dashboard_ctx = await build_dashboard_context(db, user_id=1)
-            report_ctx = await build_profitability_context(db, user_id=1)
+            dashboard_ctx = await build_dashboard_context(db, tenant_id=1)
+            report_ctx = await build_profitability_context(db, tenant_id=1)
 
             assert dashboard_ctx["grand_expenses"] == 150.0
             assert dashboard_ctx["grand_incomes"] == 70.0
@@ -200,7 +200,7 @@ async def test_charts_context_with_real_db(tmp_path: Path) -> None:
         async with session_maker() as db:
             plot = await create_plot(
                 db,
-                user_id=1,
+                tenant_id=1,
                 name="PG",
                 polygon="1",
                 plot_num="1",
@@ -219,7 +219,7 @@ async def test_charts_context_with_real_db(tmp_path: Path) -> None:
                 person="X",
                 plot_id=plot.id,
                 amount=10.0,
-                user_id=1,
+                tenant_id=1,
             )
             await create_income(
                 db,
@@ -228,12 +228,12 @@ async def test_charts_context_with_real_db(tmp_path: Path) -> None:
                 amount_kg=4.0,
                 category="A",
                 euros_per_kg=20.0,
-                user_id=1,
+                tenant_id=1,
             )
             await db.commit()
 
             ctx = await build_charts_context(
-                db, campaign=2025, plot_id=plot.id, user_id=1
+                db, campaign=2025, plot_id=plot.id, tenant_id=1
             )
 
             assert ctx["selected_campaign"] == 2025
@@ -268,7 +268,7 @@ async def test_truffle_events_campaign_and_undo_filters_with_real_db(
 
             plot = await create_plot(
                 db,
-                user_id=user.id,
+                tenant_id=user.id,
                 name="Parcela Trufas",
                 polygon="1",
                 plot_num="10",
@@ -283,7 +283,7 @@ async def test_truffle_events_campaign_and_undo_filters_with_real_db(
 
             p1 = Plant(
                 plot_id=plot.id,
-                user_id=user.id,
+                tenant_id=user.id,
                 label="A1",
                 row_label="A",
                 row_order=0,
@@ -291,7 +291,7 @@ async def test_truffle_events_campaign_and_undo_filters_with_real_db(
             )
             p2 = Plant(
                 plot_id=plot.id,
-                user_id=user.id,
+                tenant_id=user.id,
                 label="A2",
                 row_label="A",
                 row_order=0,
@@ -306,7 +306,7 @@ async def test_truffle_events_campaign_and_undo_filters_with_real_db(
                 db,
                 plant_id=p1.id,
                 plot_id=plot.id,
-                user_id=user.id,
+                tenant_id=user.id,
                 source="manual",
                 dedupe_window_seconds=0,
             )
@@ -318,7 +318,7 @@ async def test_truffle_events_campaign_and_undo_filters_with_real_db(
                 db,
                 plant_id=p1.id,
                 plot_id=plot.id,
-                user_id=user.id,
+                tenant_id=user.id,
                 source="qr",
                 dedupe_window_seconds=0,
             )
@@ -331,7 +331,7 @@ async def test_truffle_events_campaign_and_undo_filters_with_real_db(
                 db,
                 plant_id=p2.id,
                 plot_id=plot.id,
-                user_id=user.id,
+                tenant_id=user.id,
                 source="manual",
                 dedupe_window_seconds=0,
             )
@@ -345,7 +345,7 @@ async def test_truffle_events_campaign_and_undo_filters_with_real_db(
             counts_2025 = await get_counts_by_plant(
                 db,
                 plot_id=plot.id,
-                user_id=user.id,
+                tenant_id=user.id,
                 campaign_year=2025,
             )
             # e1 counts, e2 does not (undone)
@@ -353,7 +353,7 @@ async def test_truffle_events_campaign_and_undo_filters_with_real_db(
 
             events_all = await list_events(
                 db,
-                user_id=user.id,
+                tenant_id=user.id,
                 campaign_year=2025,
                 include_undone=True,
             )
@@ -361,7 +361,7 @@ async def test_truffle_events_campaign_and_undo_filters_with_real_db(
 
             events_active = await list_events(
                 db,
-                user_id=user.id,
+                tenant_id=user.id,
                 campaign_year=2025,
                 include_undone=False,
             )
@@ -404,7 +404,7 @@ async def test_cross_tenant_plots_isolation(tmp_path: Path) -> None:
 
             plot_b = await create_plot(
                 db,
-                user_id=user_b.id,
+                tenant_id=user_b.id,
                 name="Parcela de B",
                 polygon="1",
                 plot_num="1",
@@ -419,14 +419,14 @@ async def test_cross_tenant_plots_isolation(tmp_path: Path) -> None:
             await db.commit()
 
             # A pide la parcela de B por su id → debe retornar None
-            result = await get_plot(db, plot_b.id, user_id=user_a.id)
+            result = await get_plot(db, plot_b.id, tenant_id=user_a.id)
             assert result is None
 
             # A pide sus propias parcelas → lista vacía (no incluye parcela de B)
             from app.services.plots_service import list_plots
 
-            plots_a = await list_plots(db, user_id=user_a.id)
-            assert all(p.user_id == user_a.id for p in plots_a)
+            plots_a = await list_plots(db, tenant_id=user_a.id)
+            assert all(p.tenant_id == user_a.id for p in plots_a)
             assert plot_b.id not in {p.id for p in plots_a}
     finally:
         await engine.dispose()
@@ -448,11 +448,11 @@ async def test_cross_tenant_expenses_isolation(tmp_path: Path) -> None:
                 person="B",
                 plot_id=None,
                 amount=999.0,
-                user_id=user_b.id,
+                tenant_id=user_b.id,
             )
             await db.commit()
 
-            ctx_a = await get_expenses_list_context(db, 2025, user_id=user_a.id)
+            ctx_a = await get_expenses_list_context(db, 2025, tenant_id=user_a.id)
             assert len(ctx_a["expenses"]) == 0
             assert ctx_a["total"] == 0.0
     finally:
@@ -475,11 +475,11 @@ async def test_cross_tenant_incomes_isolation(tmp_path: Path) -> None:
                 amount_kg=50.0,
                 category="A",
                 euros_per_kg=100.0,
-                user_id=user_b.id,
+                tenant_id=user_b.id,
             )
             await db.commit()
 
-            ctx_a = await get_incomes_list_context(db, 2025, user_id=user_a.id)
+            ctx_a = await get_incomes_list_context(db, 2025, tenant_id=user_a.id)
             assert len(ctx_a["incomes"]) == 0
             assert ctx_a["total_euros"] == 0.0
     finally:
@@ -497,7 +497,7 @@ async def test_cross_tenant_plants_isolation(tmp_path: Path) -> None:
 
             plot_a = await create_plot(
                 db,
-                user_id=user_a.id,
+                tenant_id=user_a.id,
                 name="P-A",
                 polygon="1",
                 plot_num="1",
@@ -511,7 +511,7 @@ async def test_cross_tenant_plants_isolation(tmp_path: Path) -> None:
             )
             plot_b = await create_plot(
                 db,
-                user_id=user_b.id,
+                tenant_id=user_b.id,
                 name="P-B",
                 polygon="2",
                 plot_num="2",
@@ -526,7 +526,7 @@ async def test_cross_tenant_plants_isolation(tmp_path: Path) -> None:
 
             plant_b = Plant(
                 plot_id=plot_b.id,
-                user_id=user_b.id,
+                tenant_id=user_b.id,
                 label="A1",
                 row_label="A",
                 row_order=0,
@@ -538,11 +538,11 @@ async def test_cross_tenant_plants_isolation(tmp_path: Path) -> None:
             await db.commit()
 
             # A no ve la planta de B
-            found = await get_plant(db, plant_b.id, user_id=user_a.id)
+            found = await get_plant(db, plant_b.id, tenant_id=user_a.id)
             assert found is None
 
             # A no ve plantas en la parcela de B aunque conozca el plot_id
-            plants = await list_plants(db, plot_id=plot_b.id, user_id=user_a.id)
+            plants = await list_plants(db, plot_id=plot_b.id, tenant_id=user_a.id)
             assert plants == []
     finally:
         await engine.dispose()
@@ -559,7 +559,7 @@ async def test_cross_tenant_truffle_events_isolation(tmp_path: Path) -> None:
 
             plot_b = await create_plot(
                 db,
-                user_id=user_b.id,
+                tenant_id=user_b.id,
                 name="P-B",
                 polygon="1",
                 plot_num="1",
@@ -573,7 +573,7 @@ async def test_cross_tenant_truffle_events_isolation(tmp_path: Path) -> None:
             )
             plant_b = Plant(
                 plot_id=plot_b.id,
-                user_id=user_b.id,
+                tenant_id=user_b.id,
                 label="A1",
                 row_label="A",
                 row_order=0,
@@ -587,13 +587,13 @@ async def test_cross_tenant_truffle_events_isolation(tmp_path: Path) -> None:
                 db,
                 plant_id=plant_b.id,
                 plot_id=plot_b.id,
-                user_id=user_b.id,
+                tenant_id=user_b.id,
                 source="manual",
                 dedupe_window_seconds=0,
             )
             await db.commit()
 
-            events_a = await list_events(db, user_id=user_a.id)
+            events_a = await list_events(db, tenant_id=user_a.id)
             assert events_a == []
     finally:
         await engine.dispose()
@@ -610,7 +610,7 @@ async def test_cross_tenant_wells_isolation(tmp_path: Path) -> None:
 
             plot_b = await create_plot(
                 db,
-                user_id=user_b.id,
+                tenant_id=user_b.id,
                 name="P-B",
                 polygon="1",
                 plot_num="1",
@@ -623,7 +623,7 @@ async def test_cross_tenant_wells_isolation(tmp_path: Path) -> None:
                 production_start=None,
             )
             well_b = Well(
-                user_id=user_b.id,
+                tenant_id=user_b.id,
                 plot_id=plot_b.id,
                 date=datetime.date(2025, 6, 15),
                 wells_per_plant=3,
@@ -633,11 +633,11 @@ async def test_cross_tenant_wells_isolation(tmp_path: Path) -> None:
             await db.commit()
 
             # A intenta leer el pozo de B por ID → None
-            found = await get_well(db, well_b.id, user_id=user_a.id)
+            found = await get_well(db, well_b.id, tenant_id=user_a.id)
             assert found is None
 
             # El listado de A no incluye pozos de B
-            wells_a = await list_wells(db, user_id=user_a.id)
+            wells_a = await list_wells(db, tenant_id=user_a.id)
             assert wells_a == []
     finally:
         await engine.dispose()
@@ -656,7 +656,7 @@ async def test_cross_tenant_irrigation_isolation(tmp_path: Path) -> None:
 
             plot_b = await create_plot(
                 db,
-                user_id=user_b.id,
+                tenant_id=user_b.id,
                 name="P-B",
                 polygon="1",
                 plot_num="1",
@@ -669,7 +669,7 @@ async def test_cross_tenant_irrigation_isolation(tmp_path: Path) -> None:
                 production_start=None,
             )
             irrigation_b = IrrigationRecord(
-                user_id=user_b.id,
+                tenant_id=user_b.id,
                 plot_id=plot_b.id,
                 date=datetime.date(2025, 7, 1),
                 water_m3=15.0,
@@ -679,11 +679,11 @@ async def test_cross_tenant_irrigation_isolation(tmp_path: Path) -> None:
             await db.commit()
 
             # A intenta leer el riego de B por ID → None
-            found = await get_irrigation_record(db, irrigation_b.id, user_id=user_a.id)
+            found = await get_irrigation_record(db, irrigation_b.id, tenant_id=user_a.id)
             assert found is None
 
             # El listado de A no incluye riegos de B
-            records_a = await list_irrigation_records(db, user_id=user_a.id)
+            records_a = await list_irrigation_records(db, tenant_id=user_a.id)
             assert records_a == []
     finally:
         await engine.dispose()

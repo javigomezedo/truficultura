@@ -32,15 +32,15 @@ def _format_num(val: float, decimals: int = 2) -> str:
     return format_eu(val, decimals)
 
 
-async def _load_plots_by_id(db: AsyncSession, user_id: int) -> dict[int, str]:
-    result = await db.execute(select(Plot).where(Plot.user_id == user_id))
+async def _load_plots_by_id(db: AsyncSession, tenant_id: int) -> dict[int, str]:
+    result = await db.execute(select(Plot).where(Plot.tenant_id == tenant_id))
     return {p.id: p.name for p in result.scalars().all()}
 
 
-async def _load_row_config_by_plot(db: AsyncSession, user_id: int) -> dict[int, str]:
+async def _load_row_config_by_plot(db: AsyncSession, tenant_id: int) -> dict[int, str]:
     result = await db.execute(
         select(Plant)
-        .where(Plant.user_id == user_id)
+        .where(Plant.tenant_id == tenant_id)
         .order_by(Plant.plot_id, Plant.row_order, Plant.visual_col)
     )
     plants = result.scalars().all()
@@ -58,12 +58,12 @@ async def _load_row_config_by_plot(db: AsyncSession, user_id: int) -> dict[int, 
     return row_config_by_plot
 
 
-async def export_plots_csv(db: AsyncSession, user_id: int) -> bytes:
+async def export_plots_csv(db: AsyncSession, tenant_id: int) -> bytes:
     result = await db.execute(
-        select(Plot).where(Plot.user_id == user_id).order_by(Plot.name)
+        select(Plot).where(Plot.tenant_id == tenant_id).order_by(Plot.name)
     )
     plots = result.scalars().all()
-    row_config_by_plot = await _load_row_config_by_plot(db, user_id)
+    row_config_by_plot = await _load_row_config_by_plot(db, tenant_id)
 
     buf = io.StringIO()
     writer = csv.writer(buf, delimiter=";", lineterminator="\n")
@@ -91,7 +91,7 @@ async def export_plots_csv(db: AsyncSession, user_id: int) -> bytes:
     return buf.getvalue().encode("utf-8")
 
 
-async def export_truffles_csv(db: AsyncSession, user_id: int) -> bytes:
+async def export_truffles_csv(db: AsyncSession, tenant_id: int) -> bytes:
     result = await db.execute(
         select(TruffleEvent)
         .options(
@@ -99,7 +99,7 @@ async def export_truffles_csv(db: AsyncSession, user_id: int) -> bytes:
             selectinload(TruffleEvent.plant),
         )
         .where(
-            TruffleEvent.user_id == user_id,
+            TruffleEvent.tenant_id == tenant_id,
             TruffleEvent.undone_at.is_(None),
         )
         .order_by(TruffleEvent.created_at)
@@ -124,10 +124,10 @@ async def export_truffles_csv(db: AsyncSession, user_id: int) -> bytes:
     return buf.getvalue().encode("utf-8")
 
 
-async def export_expenses_csv(db: AsyncSession, user_id: int) -> bytes:
-    plots_by_id = await _load_plots_by_id(db, user_id)
+async def export_expenses_csv(db: AsyncSession, tenant_id: int) -> bytes:
+    plots_by_id = await _load_plots_by_id(db, tenant_id)
     result = await db.execute(
-        select(Expense).where(Expense.user_id == user_id).order_by(Expense.date)
+        select(Expense).where(Expense.tenant_id == tenant_id).order_by(Expense.date)
     )
     expenses = result.scalars().all()
 
@@ -148,10 +148,10 @@ async def export_expenses_csv(db: AsyncSession, user_id: int) -> bytes:
     return buf.getvalue().encode("utf-8")
 
 
-async def export_incomes_csv(db: AsyncSession, user_id: int) -> bytes:
-    plots_by_id = await _load_plots_by_id(db, user_id)
+async def export_incomes_csv(db: AsyncSession, tenant_id: int) -> bytes:
+    plots_by_id = await _load_plots_by_id(db, tenant_id)
     result = await db.execute(
-        select(Income).where(Income.user_id == user_id).order_by(Income.date)
+        select(Income).where(Income.tenant_id == tenant_id).order_by(Income.date)
     )
     incomes = result.scalars().all()
 
@@ -170,11 +170,11 @@ async def export_incomes_csv(db: AsyncSession, user_id: int) -> bytes:
     return buf.getvalue().encode("utf-8")
 
 
-async def export_irrigation_csv(db: AsyncSession, user_id: int) -> bytes:
-    plots_by_id = await _load_plots_by_id(db, user_id)
+async def export_irrigation_csv(db: AsyncSession, tenant_id: int) -> bytes:
+    plots_by_id = await _load_plots_by_id(db, tenant_id)
     result = await db.execute(
         select(IrrigationRecord)
-        .where(IrrigationRecord.user_id == user_id)
+        .where(IrrigationRecord.tenant_id == tenant_id)
         .order_by(IrrigationRecord.date)
     )
     records = result.scalars().all()
@@ -193,10 +193,10 @@ async def export_irrigation_csv(db: AsyncSession, user_id: int) -> bytes:
     return buf.getvalue().encode("utf-8")
 
 
-async def export_wells_csv(db: AsyncSession, user_id: int) -> bytes:
-    plots_by_id = await _load_plots_by_id(db, user_id)
+async def export_wells_csv(db: AsyncSession, tenant_id: int) -> bytes:
+    plots_by_id = await _load_plots_by_id(db, tenant_id)
     result = await db.execute(
-        select(Well).where(Well.user_id == user_id).order_by(Well.date)
+        select(Well).where(Well.tenant_id == tenant_id).order_by(Well.date)
     )
     records = result.scalars().all()
 
@@ -214,12 +214,12 @@ async def export_wells_csv(db: AsyncSession, user_id: int) -> bytes:
     return buf.getvalue().encode("utf-8")
 
 
-async def export_plot_events_csv(db: AsyncSession, user_id: int) -> bytes:
-    plots_by_id = await _load_plots_by_id(db, user_id)
+async def export_plot_events_csv(db: AsyncSession, tenant_id: int) -> bytes:
+    plots_by_id = await _load_plots_by_id(db, tenant_id)
     result = await db.execute(
         select(PlotEvent)
         .where(
-            PlotEvent.user_id == user_id,
+            PlotEvent.tenant_id == tenant_id,
             PlotEvent.related_irrigation_id.is_(None),
             PlotEvent.related_well_id.is_(None),
         )
@@ -242,11 +242,11 @@ async def export_plot_events_csv(db: AsyncSession, user_id: int) -> bytes:
     return buf.getvalue().encode("utf-8")
 
 
-async def export_recurring_expenses_csv(db: AsyncSession, user_id: int) -> bytes:
-    plots_by_id = await _load_plots_by_id(db, user_id)
+async def export_recurring_expenses_csv(db: AsyncSession, tenant_id: int) -> bytes:
+    plots_by_id = await _load_plots_by_id(db, tenant_id)
     result = await db.execute(
         select(RecurringExpense)
-        .where(RecurringExpense.user_id == user_id)
+        .where(RecurringExpense.tenant_id == tenant_id)
         .order_by(RecurringExpense.description)
     )
     items = result.scalars().all()
@@ -268,11 +268,11 @@ async def export_recurring_expenses_csv(db: AsyncSession, user_id: int) -> bytes
     return buf.getvalue().encode("utf-8")
 
 
-async def export_harvests_csv(db: AsyncSession, user_id: int) -> bytes:
-    plots_by_id = await _load_plots_by_id(db, user_id)
+async def export_harvests_csv(db: AsyncSession, tenant_id: int) -> bytes:
+    plots_by_id = await _load_plots_by_id(db, tenant_id)
     result = await db.execute(
         select(PlotHarvest)
-        .where(PlotHarvest.user_id == user_id)
+        .where(PlotHarvest.tenant_id == tenant_id)
         .order_by(PlotHarvest.harvest_date)
     )
     harvests = result.scalars().all()
@@ -291,7 +291,7 @@ async def export_harvests_csv(db: AsyncSession, user_id: int) -> bytes:
     return buf.getvalue().encode("utf-8")
 
 
-async def export_presences_csv(db: AsyncSession, user_id: int) -> bytes:
+async def export_presences_csv(db: AsyncSession, tenant_id: int) -> bytes:
     result = await db.execute(
         select(PlantPresence)
         .options(
@@ -299,7 +299,7 @@ async def export_presences_csv(db: AsyncSession, user_id: int) -> bytes:
             selectinload(PlantPresence.plant),
         )
         .where(
-            PlantPresence.user_id == user_id,
+            PlantPresence.tenant_id == tenant_id,
             PlantPresence.has_truffle.is_(True),
         )
         .order_by(PlantPresence.presence_date, PlantPresence.plot_id, PlantPresence.plant_id)
@@ -319,18 +319,18 @@ async def export_presences_csv(db: AsyncSession, user_id: int) -> bytes:
     return buf.getvalue().encode("utf-8")
 
 
-async def export_all_csv_zip(db: AsyncSession, user_id: int) -> bytes:
+async def export_all_csv_zip(db: AsyncSession, tenant_id: int) -> bytes:
     files = [
-        ("parcelas.csv", await export_plots_csv(db, user_id)),
-        ("gastos.csv", await export_expenses_csv(db, user_id)),
-        ("ingresos.csv", await export_incomes_csv(db, user_id)),
-        ("riego.csv", await export_irrigation_csv(db, user_id)),
-        ("pozos.csv", await export_wells_csv(db, user_id)),
-        ("produccion.csv", await export_truffles_csv(db, user_id)),
-        ("labores.csv", await export_plot_events_csv(db, user_id)),
-        ("gastos_recurrentes.csv", await export_recurring_expenses_csv(db, user_id)),
-        ("cosechas.csv", await export_harvests_csv(db, user_id)),
-        ("presencias.csv", await export_presences_csv(db, user_id)),
+        ("parcelas.csv", await export_plots_csv(db, tenant_id)),
+        ("gastos.csv", await export_expenses_csv(db, tenant_id)),
+        ("ingresos.csv", await export_incomes_csv(db, tenant_id)),
+        ("riego.csv", await export_irrigation_csv(db, tenant_id)),
+        ("pozos.csv", await export_wells_csv(db, tenant_id)),
+        ("produccion.csv", await export_truffles_csv(db, tenant_id)),
+        ("labores.csv", await export_plot_events_csv(db, tenant_id)),
+        ("gastos_recurrentes.csv", await export_recurring_expenses_csv(db, tenant_id)),
+        ("cosechas.csv", await export_harvests_csv(db, tenant_id)),
+        ("presencias.csv", await export_presences_csv(db, tenant_id)),
     ]
 
     zip_buffer = io.BytesIO()

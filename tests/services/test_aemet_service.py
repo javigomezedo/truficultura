@@ -142,7 +142,7 @@ async def test_upsert_aemet_rainfall_creates_new_rainfall_records() -> None:
     db.flush.assert_awaited_once()
     # Los registros creados son globales (user_id=None)
     added: RainfallRecord = db.add.call_args_list[0].args[0]
-    assert added.user_id is None
+    assert added.tenant_id is None
 
 
 @pytest.mark.asyncio

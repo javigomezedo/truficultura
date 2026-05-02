@@ -29,7 +29,7 @@ def precipitation_mm_to_m3(
 
 async def get_rainfall_for_plot(
     db: AsyncSession,
-    user_id: int,
+    tenant_id: int,
     plot: Plot,
     target_date: datetime.date,
 ) -> tuple[Optional[float], str]:
@@ -48,7 +48,7 @@ async def get_rainfall_for_plot(
 
     if municipio_cod:
         stmt = select(RainfallRecord).where(
-            RainfallRecord.user_id == user_id,
+            RainfallRecord.tenant_id == tenant_id,
             RainfallRecord.date == target_date,
             or_(
                 RainfallRecord.plot_id == plot.id,
@@ -60,7 +60,7 @@ async def get_rainfall_for_plot(
         )
     else:
         stmt = select(RainfallRecord).where(
-            RainfallRecord.user_id == user_id,
+            RainfallRecord.tenant_id == tenant_id,
             RainfallRecord.date == target_date,
             RainfallRecord.plot_id == plot.id,
         )
@@ -77,14 +77,14 @@ async def get_rainfall_for_plot(
 
 async def get_plot_daily_water_balance(
     db: AsyncSession,
-    user_id: int,
+    tenant_id: int,
     plot_id: int,
     target_date: datetime.date,
     *,
     is_forecast: bool = False,
 ) -> Optional[dict]:
     plot_result = await db.execute(
-        select(Plot).where(Plot.id == plot_id, Plot.user_id == user_id)
+        select(Plot).where(Plot.id == plot_id, Plot.tenant_id == tenant_id)
     )
     plot = plot_result.scalar_one_or_none()
     if plot is None:
@@ -92,7 +92,7 @@ async def get_plot_daily_water_balance(
 
     irrigation_result = await db.execute(
         select(IrrigationRecord).where(
-            IrrigationRecord.user_id == user_id,
+            IrrigationRecord.tenant_id == tenant_id,
             IrrigationRecord.plot_id == plot_id,
             IrrigationRecord.date == target_date,
         )
@@ -102,7 +102,7 @@ async def get_plot_daily_water_balance(
 
     precipitation_mm, rainfall_source = await get_rainfall_for_plot(
         db,
-        user_id,
+        tenant_id,
         plot,
         target_date,
     )
@@ -128,7 +128,7 @@ async def get_plot_daily_water_balance(
 
 async def simulate_irrigation(
     db: AsyncSession,
-    user_id: int,
+    tenant_id: int,
     plot_id: int,
     sim_date: datetime.date,
 ) -> Optional[dict]:
@@ -144,7 +144,7 @@ async def simulate_irrigation(
 
     # 1. Cargar parcela
     plot_result = await db.execute(
-        select(Plot).where(Plot.id == plot_id, Plot.user_id == user_id)
+        select(Plot).where(Plot.id == plot_id, Plot.tenant_id == tenant_id)
     )
     plot = plot_result.scalar_one_or_none()
     if plot is None:
@@ -158,7 +158,7 @@ async def simulate_irrigation(
     # 3. Total riego acumulado en la campaña hasta sim_date
     irrig_result = await db.execute(
         select(IrrigationRecord).where(
-            IrrigationRecord.user_id == user_id,
+            IrrigationRecord.tenant_id == tenant_id,
             IrrigationRecord.plot_id == plot_id,
             IrrigationRecord.date >= campaign_start,
             IrrigationRecord.date <= campaign_end,
@@ -171,7 +171,7 @@ async def simulate_irrigation(
 
     if municipio_cod:
         rain_stmt = select(RainfallRecord).where(
-            RainfallRecord.user_id == user_id,
+            RainfallRecord.tenant_id == tenant_id,
             RainfallRecord.date >= campaign_start,
             RainfallRecord.date <= campaign_end,
             or_(
@@ -184,7 +184,7 @@ async def simulate_irrigation(
         )
     else:
         rain_stmt = select(RainfallRecord).where(
-            RainfallRecord.user_id == user_id,
+            RainfallRecord.tenant_id == tenant_id,
             RainfallRecord.date >= campaign_start,
             RainfallRecord.date <= campaign_end,
             RainfallRecord.plot_id == plot_id,
@@ -197,11 +197,11 @@ async def simulate_irrigation(
     rain_m3 = round(precipitation_mm_to_m3(total_rain_mm, plot.area_ha) or 0.0, 3)
 
     # 5. Meseta histórica — primero por parcela (≥_MIN_PLOT_SAMPLE campañas), fallback global
-    thresholds = await detect_irrigation_thresholds(db, user_id, plot_ids=[plot_id])
+    thresholds = await detect_irrigation_thresholds(db, tenant_id, plot_ids=[plot_id])
     if thresholds.get("status") == "ok" and thresholds.get("sample_size", 0) >= _MIN_PLOT_SAMPLE:
         threshold_scope: Optional[str] = "plot"
     else:
-        thresholds = await detect_irrigation_thresholds(db, user_id)
+        thresholds = await detect_irrigation_thresholds(db, tenant_id)
         threshold_scope = "global" if thresholds.get("status") == "ok" else None
     plateau_status = thresholds.get("status")
     plateau_m3 = thresholds.get("plateau_start_m3")

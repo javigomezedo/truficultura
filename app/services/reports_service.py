@@ -11,17 +11,17 @@ from app.models.plot import Plot
 from app.utils import campaign_year, distribute_unassigned_expenses
 
 
-async def build_profitability_context(db: AsyncSession, user_id: int) -> dict:
+async def build_profitability_context(db: AsyncSession, tenant_id: int) -> dict:
     plots_result = await db.execute(
-        select(Plot).where(Plot.user_id == user_id).order_by(Plot.name)
+        select(Plot).where(Plot.tenant_id == tenant_id).order_by(Plot.name)
     )
     plots = plots_result.scalars().all()
 
-    incomes_result = await db.execute(select(Income).where(Income.user_id == user_id))
+    incomes_result = await db.execute(select(Income).where(Income.tenant_id == tenant_id))
     incomes = incomes_result.scalars().all()
 
     expenses_result = await db.execute(
-        select(Expense).where(Expense.user_id == user_id)
+        select(Expense).where(Expense.tenant_id == tenant_id)
     )
     expenses = expenses_result.scalars().all()
 

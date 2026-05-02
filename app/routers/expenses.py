@@ -49,8 +49,7 @@ async def list_expenses(
     plot_id_int = int(plot_id) if plot_id else None
     context = await get_expenses_list_context(
         db,
-        year_int,
-        current_user.id,
+        year_int, current_user.active_tenant_id,
         category=category,
         person=person,
         plot_id=plot_id_int,
@@ -75,7 +74,7 @@ async def new_expense_form(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    plots = await list_plots(db, current_user.id)
+    plots = await list_plots(db, current_user.active_tenant_id)
     return templates.TemplateResponse(
         request,
         "gastos/form.html",
@@ -108,7 +107,7 @@ async def create_expense(
         effective_start_year = start_year if start_year else date.year
         await create_prorated_expense_service(
             db,
-            user_id=current_user.id,
+            tenant_id=current_user.active_tenant_id,
             date=date,
             description=description,
             person=person,
@@ -122,7 +121,7 @@ async def create_expense(
     else:
         await create_expense_service(
             db,
-            user_id=current_user.id,
+            tenant_id=current_user.active_tenant_id,
             date=date,
             description=description,
             person=person,
@@ -144,14 +143,14 @@ async def edit_expense_form(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    expense = await get_expense(db, expense_id, current_user.id)
+    expense = await get_expense(db, expense_id, current_user.active_tenant_id)
     if expense is None:
         return RedirectResponse(
             url=f"/expenses/?msg={quote_plus(_('Gasto no encontrado'))}",
             status_code=303,
         )
 
-    plots = await list_plots(db, current_user.id)
+    plots = await list_plots(db, current_user.active_tenant_id)
 
     return templates.TemplateResponse(
         request,
@@ -180,7 +179,7 @@ async def update_expense(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    obj = await get_expense(db, expense_id, current_user.id)
+    obj = await get_expense(db, expense_id, current_user.active_tenant_id)
     if obj is None:
         return RedirectResponse(
             url=f"/expenses/?msg={quote_plus(_('Gasto no encontrado'))}",
@@ -210,7 +209,7 @@ async def delete_proration_group(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    group = await get_proration_group(db, group_id, current_user.id)
+    group = await get_proration_group(db, group_id, current_user.active_tenant_id)
     if group:
         await delete_proration_group_service(db, group)
     return RedirectResponse(
@@ -226,7 +225,7 @@ async def delete_expense(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    obj = await get_expense(db, expense_id, current_user.id)
+    obj = await get_expense(db, expense_id, current_user.active_tenant_id)
     if obj:
         await delete_expense_service(db, obj)
     return RedirectResponse(
@@ -244,7 +243,7 @@ async def upload_receipt(
     current_user: User = Depends(require_subscription),
 ):
     """Upload a receipt file to an expense."""
-    obj = await get_expense(db, expense_id, current_user.id)
+    obj = await get_expense(db, expense_id, current_user.active_tenant_id)
     if obj is None:
         return RedirectResponse(
             url=f"/expenses/?msg={quote_plus(_('Gasto no encontrado'))}",
@@ -283,7 +282,7 @@ async def download_receipt(
     current_user: User = Depends(require_subscription),
 ):
     """Download a receipt file from an expense."""
-    receipt_data = await get_receipt(db, expense_id, current_user.id)
+    receipt_data = await get_receipt(db, expense_id, current_user.active_tenant_id)
     if receipt_data is None:
         return RedirectResponse(
             url=f"/expenses/?msg={quote_plus(_('Recibo no encontrado'))}",
@@ -306,7 +305,7 @@ async def delete_expense_receipt(
     current_user: User = Depends(require_subscription),
 ):
     """Delete a receipt from an expense."""
-    obj = await get_expense(db, expense_id, current_user.id)
+    obj = await get_expense(db, expense_id, current_user.active_tenant_id)
     if obj is None:
         return RedirectResponse(
             url=f"/expenses/?msg={quote_plus(_('Gasto no encontrado'))}",

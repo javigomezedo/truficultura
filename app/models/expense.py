@@ -11,6 +11,7 @@ from app.database import Base
 if TYPE_CHECKING:
     from app.models.expense_proration_group import ExpenseProrationGroup
     from app.models.plot import Plot
+    from app.models.tenant import Tenant
     from app.models.user import User
 
 EXPENSE_CATEGORIES = [
@@ -30,8 +31,14 @@ class Expense(Base):
     __tablename__ = "expenses"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    user_id: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True
+    tenant_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    created_by_user_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    updated_by_user_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     date: Mapped[datetime.date] = mapped_column(Date, nullable=False, index=True)
     description: Mapped[str] = mapped_column(String(500), nullable=False)
@@ -55,7 +62,13 @@ class Expense(Base):
     )
 
     # Relationships
-    user: Mapped[Optional["User"]] = relationship("User", back_populates="expenses")
+    tenant: Mapped[Optional["Tenant"]] = relationship("Tenant")
+    created_by: Mapped[Optional["User"]] = relationship(
+        "User", foreign_keys="[Expense.created_by_user_id]"
+    )
+    updated_by: Mapped[Optional["User"]] = relationship(
+        "User", foreign_keys="[Expense.updated_by_user_id]"
+    )
     plot: Mapped[Optional["Plot"]] = relationship(
         "Plot", back_populates="expenses", lazy="joined"
     )

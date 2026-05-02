@@ -25,7 +25,7 @@ async def weather_page(
     current_user: User = Depends(require_subscription),
 ) -> HTMLResponse:
     """Página completa de tiempo meteorológico en tiempo real."""
-    weather_list = await get_weather_contexts(db, current_user.id)
+    weather_list = await get_weather_contexts(db, current_user.active_tenant_id)
     return templates.TemplateResponse(
         request,
         "tiempo/index.html",
@@ -39,7 +39,7 @@ async def weather_widget(
     current_user: User = Depends(require_subscription),
 ) -> JSONResponse:
     """Endpoint JSON para el widget asíncrono del dashboard (todos los municipios)."""
-    weather_list = await get_weather_contexts(db, current_user.id)
+    weather_list = await get_weather_contexts(db, current_user.active_tenant_id)
 
     def _fmt_num(val: float | None, decimals: int = 1) -> str | None:
         if val is None:

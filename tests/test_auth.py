@@ -74,7 +74,9 @@ class TestRequireAdmin:
         # Mock the query result
         mock_result = MagicMock()
         mock_result.scalar_one_or_none = MagicMock(return_value=admin_user)
-        db.execute.return_value = mock_result
+        empty_membership = MagicMock()
+        empty_membership.scalar_one_or_none = MagicMock(return_value=None)
+        db.execute.side_effect = [mock_result, empty_membership]
 
         from app.auth import get_current_user
 
@@ -104,7 +106,15 @@ class TestRequireAdmin:
         db.execute = AsyncMock()
         mock_result = MagicMock()
         mock_result.scalar_one_or_none = MagicMock(return_value=user)
-        db.execute.return_value = mock_result
+        empty_membership = MagicMock()
+        empty_membership.scalar_one_or_none = MagicMock(return_value=None)
+        # get_current_user: 2 queries; require_admin calls get_current_user: 2 more
+        db.execute.side_effect = [
+            mock_result,
+            empty_membership,
+            mock_result,
+            empty_membership,
+        ]
 
         from app.auth import get_current_user
 
@@ -148,7 +158,9 @@ class TestRequireAdmin:
         db.execute = AsyncMock()
         mock_result = MagicMock()
         mock_result.scalar_one_or_none = MagicMock(return_value=inactive_user)
-        db.execute.return_value = mock_result
+        empty_membership = MagicMock()
+        empty_membership.scalar_one_or_none = MagicMock(return_value=None)
+        db.execute.side_effect = [mock_result, empty_membership]
 
         from app.auth import get_current_user
 
@@ -182,16 +194,20 @@ class TestGetCurrentUserResilience:
 
         mock_result = MagicMock()
         mock_result.scalar_one_or_none = MagicMock(return_value=user)
+        empty_membership = MagicMock()
+        empty_membership.scalar_one_or_none = MagicMock(return_value=None)
 
         transient_error = Exception("connection was closed in the middle of operation")
-        db.execute = AsyncMock(side_effect=[transient_error, mock_result])
+        db.execute = AsyncMock(
+            side_effect=[transient_error, mock_result, empty_membership]
+        )
 
         from app.auth import get_current_user
 
         result = await get_current_user(request, db)
 
         assert result is user
-        assert db.execute.await_count == 2
+        assert db.execute.await_count == 3
         db.rollback.assert_awaited_once()
 
     @pytest.mark.asyncio

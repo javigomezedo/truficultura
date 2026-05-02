@@ -55,8 +55,8 @@ def _parse_datetime(s: str) -> datetime.datetime:
     return dt.replace(tzinfo=datetime.timezone.utc)
 
 
-async def _load_plots(db: AsyncSession, user_id: int) -> dict[str, int]:
-    result = await db.execute(select(Plot).where(Plot.user_id == user_id))
+async def _load_plots(db: AsyncSession, tenant_id: int) -> dict[str, int]:
+    result = await db.execute(select(Plot).where(Plot.tenant_id == tenant_id))
     return {p.name.lower(): p.id for p in result.scalars().all()}
 
 
@@ -65,7 +65,7 @@ def _warning(message: str, **kwargs: object) -> str:
 
 
 async def import_expenses_csv(
-    db: AsyncSession, content: bytes, user_id: int
+    db: AsyncSession, content: bytes, tenant_id: int
 ) -> tuple[list[Expense], list[str]]:
     """Parse expenses CSV and persist rows.
 
@@ -82,7 +82,7 @@ async def import_expenses_csv(
                        Rows sharing the same key are linked to a reconstructed
                        ExpenseProrationGroup.
     """
-    plots = await _load_plots(db, user_id)
+    plots = await _load_plots(db, tenant_id)
     rows: list[Expense] = []
     warnings: list[str] = []
 
@@ -145,7 +145,7 @@ async def import_expenses_csv(
         if gk and gk not in proration_groups:
             group_rows = [r for r in parsed if r["grupo_key"] == gk]
             group = ExpenseProrationGroup(
-                user_id=user_id,
+                tenant_id=tenant_id,
                 description=group_rows[0]["description"],
                 total_amount=sum(r["amount"] for r in group_rows),
                 years=len(group_rows),
@@ -163,7 +163,7 @@ async def import_expenses_csv(
         gk = pl["grupo_key"]
         group = proration_groups.get(gk) if gk else None
         row = Expense(
-            user_id=user_id,
+            tenant_id=tenant_id,
             date=pl["date"],
             description=pl["description"],
             person=pl["person"],
@@ -179,7 +179,7 @@ async def import_expenses_csv(
 
 
 async def import_incomes_csv(
-    db: AsyncSession, content: bytes, user_id: int
+    db: AsyncSession, content: bytes, tenant_id: int
 ) -> tuple[list[Income], list[str]]:
     """Parse incomes CSV and persist rows.
 
@@ -192,7 +192,7 @@ async def import_incomes_csv(
     - categoria: category label (optional)
     - euros_kg: price per kg in European format (e.g. 120,00)
     """
-    plots = await _load_plots(db, user_id)
+    plots = await _load_plots(db, tenant_id)
     rows: list[Income] = []
     warnings: list[str] = []
 
@@ -227,7 +227,7 @@ async def import_incomes_csv(
             kg = _parse_num(kg_s)
             euros_per_kg = _parse_num(euros_kg_s)
             row = Income(
-                user_id=user_id,
+                tenant_id=tenant_id,
                 date=_parse_date(fecha_s),
                 plot_id=plot_id,
                 amount_kg=kg,
@@ -245,7 +245,7 @@ async def import_incomes_csv(
 
 
 async def import_plots_csv(
-    db: AsyncSession, content: bytes, user_id: int
+    db: AsyncSession, content: bytes, tenant_id: int
 ) -> tuple[list[Plot], list[str]]:
     """Parse plots CSV and persist rows.
 
@@ -294,7 +294,7 @@ async def import_plots_csv(
 
         try:
             row = Plot(
-                user_id=user_id,
+                tenant_id=tenant_id,
                 name=col(0),
                 planting_date=_parse_date(col(1)),
                 polygon=col(2),
@@ -333,7 +333,7 @@ async def import_plots_csv(
                 await plants_service.configure_plot_map(
                     db,
                     row,
-                    user_id=user_id,
+                    tenant_id=tenant_id,
                     row_columns=row_columns,
                 )
             except ValueError:
@@ -347,12 +347,12 @@ async def import_plots_csv(
     # Recalculate percentages after import
     from app.services.plots_service import _recalculate_percentages
 
-    await _recalculate_percentages(db, user_id)
+    await _recalculate_percentages(db, tenant_id)
     return rows, warnings
 
 
 async def import_wells_csv(
-    db: AsyncSession, content: bytes, user_id: int
+    db: AsyncSession, content: bytes, tenant_id: int
 ) -> tuple[list[Well], list[str]]:
     """Parse wells CSV and persist rows.
 
@@ -366,7 +366,7 @@ async def import_wells_csv(
 
     Rows are skipped with a warning if the plot is not found for the current user.
     """
-    result = await db.execute(select(Plot).where(Plot.user_id == user_id))
+    result = await db.execute(select(Plot).where(Plot.tenant_id == tenant_id))
     plots_obj: dict[str, Plot] = {p.name.lower(): p for p in result.scalars().all()}
 
     rows: list[Well] = []
@@ -411,7 +411,7 @@ async def import_wells_csv(
 
         try:
             row = Well(
-                user_id=user_id,
+                tenant_id=tenant_id,
                 plot_id=plot.id,
                 date=_parse_date(fecha_s),
                 wells_per_plant=int(_parse_int(wells_s)),
@@ -432,7 +432,7 @@ async def import_wells_csv(
 
 
 async def import_irrigation_csv(
-    db: AsyncSession, content: bytes, user_id: int
+    db: AsyncSession, content: bytes, tenant_id: int
 ) -> tuple[list[IrrigationRecord], list[str]]:
     """Parse irrigation records CSV and persist rows.
 
@@ -449,7 +449,7 @@ async def import_irrigation_csv(
     - the plot exists but has_irrigation=False
     """
     # We also need has_irrigation per plot — load full plot objects
-    result = await db.execute(select(Plot).where(Plot.user_id == user_id))
+    result = await db.execute(select(Plot).where(Plot.tenant_id == tenant_id))
     plots_obj: dict[str, Plot] = {p.name.lower(): p for p in result.scalars().all()}
 
     rows: list[IrrigationRecord] = []
@@ -504,7 +504,7 @@ async def import_irrigation_csv(
 
         try:
             row = IrrigationRecord(
-                user_id=user_id,
+                tenant_id=tenant_id,
                 plot_id=plot.id,
                 date=_parse_date(fecha_s),
                 water_m3=_parse_num(agua_m3_s),
@@ -526,17 +526,17 @@ async def import_irrigation_csv(
 
 
 async def import_truffles_csv(
-    db: AsyncSession, content: bytes, user_id: int
+    db: AsyncSession, content: bytes, tenant_id: int
 ) -> tuple[list[TruffleEvent], list[str]]:
     """Parse truffle production CSV and persist rows.
 
     Expected format (semicolon-delimited, no header):
         fecha_hora;bancal;planta;peso_g[;origen]
     """
-    plots_result = await db.execute(select(Plot).where(Plot.user_id == user_id))
+    plots_result = await db.execute(select(Plot).where(Plot.tenant_id == tenant_id))
     plots: dict[str, Plot] = {p.name.lower(): p for p in plots_result.scalars().all()}
 
-    plants_result = await db.execute(select(Plant).where(Plant.user_id == user_id))
+    plants_result = await db.execute(select(Plant).where(Plant.tenant_id == tenant_id))
     plants_by_plot_label: dict[tuple[int, str], Plant] = {
         (p.plot_id, p.label.lower()): p for p in plants_result.scalars().all()
     }
@@ -600,7 +600,7 @@ async def import_truffles_csv(
             row = TruffleEvent(
                 plant_id=plant.id,
                 plot_id=plot.id,
-                user_id=user_id,
+                tenant_id=tenant_id,
                 source=origen,
                 estimated_weight_grams=max(float(estimated_weight_grams), 0.0),
                 created_at=created_at,
@@ -622,7 +622,7 @@ async def import_truffles_csv(
 
 
 async def import_plot_events_csv(
-    db: AsyncSession, content: bytes, user_id: int
+    db: AsyncSession, content: bytes, tenant_id: int
 ) -> tuple[list[PlotEvent], list[str]]:
     """Parse plot events (labores) CSV and persist rows.
 
@@ -646,14 +646,14 @@ async def import_plot_events_csv(
         _is_recurring_by_type,
     )
 
-    plots_result = await db.execute(select(Plot).where(Plot.user_id == user_id))
+    plots_result = await db.execute(select(Plot).where(Plot.tenant_id == tenant_id))
     plots: dict[str, Plot] = {p.name.lower(): p for p in plots_result.scalars().all()}
 
     # Pre-load existing one-time events to avoid duplicates
     one_time_values = {et.value for et in ONE_TIME_EVENT_TYPES}
     existing_one_time_result = await db.execute(
         select(PlotEvent.plot_id, PlotEvent.event_type).where(
-            PlotEvent.user_id == user_id,
+            PlotEvent.tenant_id == tenant_id,
             PlotEvent.event_type.in_(one_time_values),
         )
     )
@@ -734,7 +734,7 @@ async def import_plot_events_csv(
 
         try:
             row = PlotEvent(
-                user_id=user_id,
+                tenant_id=tenant_id,
                 plot_id=plot.id,
                 event_type=event_type.value,
                 date=_parse_date(fecha_s),
@@ -761,7 +761,7 @@ async def import_plot_events_csv(
 
 
 async def import_recurring_expenses_csv(
-    db: AsyncSession, content: bytes, user_id: int
+    db: AsyncSession, content: bytes, tenant_id: int
 ) -> tuple[list[RecurringExpense], list[str]]:
     """Parse recurring expenses CSV and persist rows.
 
@@ -776,7 +776,7 @@ async def import_recurring_expenses_csv(
     - cantidad:   amount in European format (e.g. 125,00)
     - activo:     1 or 0 (optional, defaults to 1)
     """
-    plots = await _load_plots(db, user_id)
+    plots = await _load_plots(db, tenant_id)
     rows: list[RecurringExpense] = []
     warnings: list[str] = []
 
@@ -848,7 +848,7 @@ async def import_recurring_expenses_csv(
         is_active = activo_s != "0"
 
         obj = RecurringExpense(
-            user_id=user_id,
+            tenant_id=tenant_id,
             description=concepto_s,
             frequency=frecuencia_s,
             plot_id=plot_id,
@@ -865,7 +865,7 @@ async def import_recurring_expenses_csv(
 
 
 async def import_harvests_csv(
-    db: AsyncSession, content: bytes, user_id: int
+    db: AsyncSession, content: bytes, tenant_id: int
 ) -> tuple[list[PlotHarvest], list[str]]:
     """Parse harvests CSV and persist rows (insert-always).
 
@@ -877,7 +877,7 @@ async def import_harvests_csv(
     - gramos:  weight in European format (e.g. 1.250,50)
     - notas:   optional free text
     """
-    plots = await _load_plots(db, user_id)
+    plots = await _load_plots(db, tenant_id)
     rows: list[PlotHarvest] = []
     warnings: list[str] = []
 
@@ -913,7 +913,7 @@ async def import_harvests_csv(
         try:
             grams = _parse_num(gramos_s)
             row = PlotHarvest(
-                user_id=user_id,
+                tenant_id=tenant_id,
                 plot_id=plot_id,
                 harvest_date=_parse_date(fecha_s),
                 weight_grams=max(0.0, grams),
@@ -930,24 +930,24 @@ async def import_harvests_csv(
 
 
 async def import_presences_csv(
-    db: AsyncSession, content: bytes, user_id: int
+    db: AsyncSession, content: bytes, tenant_id: int
 ) -> tuple[list[PlantPresence], list[str]]:
     """Parse plant presence CSV and persist rows.
 
     Expected format (semicolon-delimited, no header):
         fecha;bancal;planta
     """
-    plots_result = await db.execute(select(Plot).where(Plot.user_id == user_id))
+    plots_result = await db.execute(select(Plot).where(Plot.tenant_id == tenant_id))
     plots: dict[str, Plot] = {p.name.lower(): p for p in plots_result.scalars().all()}
 
-    plants_result = await db.execute(select(Plant).where(Plant.user_id == user_id))
+    plants_result = await db.execute(select(Plant).where(Plant.tenant_id == tenant_id))
     plants_by_plot_label: dict[tuple[int, str], Plant] = {
         (p.plot_id, p.label.lower()): p for p in plants_result.scalars().all()
     }
 
     existing_result = await db.execute(
         select(PlantPresence.plant_id, PlantPresence.presence_date).where(
-            PlantPresence.user_id == user_id
+            PlantPresence.tenant_id == tenant_id
         )
     )
     existing: set[tuple[int, datetime.date]] = {
@@ -1020,7 +1020,7 @@ async def import_presences_csv(
                 continue
             existing.add(key)
             row = PlantPresence(
-                user_id=user_id,
+                tenant_id=tenant_id,
                 plot_id=plot.id,
                 plant_id=plant.id,
                 presence_date=presence_date,
@@ -1037,7 +1037,7 @@ async def import_presences_csv(
 
 
 async def import_all_csv_zip(
-    db: AsyncSession, content: bytes, user_id: int
+    db: AsyncSession, content: bytes, tenant_id: int
 ) -> tuple[dict[str, int], list[str]]:
     """Import all supported CSV files found in a ZIP payload.
 
@@ -1087,7 +1087,7 @@ async def import_all_csv_zip(
 
             try:
                 file_content = zf.read(member_name)
-                rows, file_warnings = await importer(db, file_content, user_id)
+                rows, file_warnings = await importer(db, file_content, tenant_id)
                 imported_by_file[filename] = len(rows)
                 warnings.extend([f"{filename}: {w}" for w in file_warnings])
             except (UnicodeDecodeError, ValueError) as exc:

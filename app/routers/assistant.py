@@ -122,7 +122,7 @@ async def assistant_chat(
     try:
         result = await chat(
             db=db,
-            user_id=current_user.id,
+            tenant_id=current_user.active_tenant_id,
             message=body.message,
             history=[m.model_dump() for m in body.history],
             adapter=adapter,
@@ -158,7 +158,7 @@ async def assistant_stream(
     adapter = _get_adapter()
     context = await prepare_chat_context(
         db=db,
-        user_id=current_user.id,
+        tenant_id=current_user.active_tenant_id,
         message=body.message,
         history=[m.model_dump() for m in body.history],
     )

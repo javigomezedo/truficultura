@@ -28,7 +28,10 @@ def _make_user(**kwargs) -> SimpleNamespace:
         subscription_ends_at=None,
     )
     defaults.update(kwargs)
-    return SimpleNamespace(**defaults)
+    obj = SimpleNamespace(**defaults)
+    # Tests use the same object as both user and tenant so is_subscription_blocked works.
+    obj.active_tenant = obj
+    return obj
 
 
 def _fake_db() -> MagicMock:
@@ -95,7 +98,7 @@ async def test_get_or_create_returns_existing_customer_id(monkeypatch) -> None:
     user = _make_user(stripe_customer_id="cus_existing")
     db = _fake_db()
 
-    cid = await billing_service.get_or_create_stripe_customer(user, db)
+    cid = await billing_service.get_or_create_stripe_customer(user, user, db)
 
     assert cid == "cus_existing"
     db.commit.assert_not_awaited()
@@ -108,7 +111,7 @@ async def test_get_or_create_raises_when_stripe_not_configured(monkeypatch) -> N
     db = _fake_db()
 
     with pytest.raises(RuntimeError, match="STRIPE_SECRET_KEY"):
-        await billing_service.get_or_create_stripe_customer(user, db)
+        await billing_service.get_or_create_stripe_customer(user, user, db)
 
 
 @pytest.mark.asyncio
@@ -123,7 +126,7 @@ async def test_get_or_create_creates_new_customer(monkeypatch) -> None:
     user = _make_user()
     db = _fake_db()
 
-    cid = await billing_service.get_or_create_stripe_customer(user, db)
+    cid = await billing_service.get_or_create_stripe_customer(user, user, db)
 
     assert cid == "cus_new123"
     assert user.stripe_customer_id == "cus_new123"
@@ -140,7 +143,7 @@ async def test_create_checkout_raises_when_stripe_not_configured(monkeypatch) ->
     db = _fake_db()
 
     with pytest.raises(RuntimeError, match="Stripe is not configured"):
-        await billing_service.create_checkout_session(user, db)
+        await billing_service.create_checkout_session(user, user, db)
 
 
 @pytest.mark.asyncio
@@ -151,7 +154,7 @@ async def test_create_checkout_raises_when_price_id_missing(monkeypatch) -> None
     db = _fake_db()
 
     with pytest.raises(RuntimeError, match="STRIPE_PRICE_ID"):
-        await billing_service.create_checkout_session(user, db)
+        await billing_service.create_checkout_session(user, user, db)
 
 
 @pytest.mark.asyncio
@@ -166,7 +169,7 @@ async def test_create_checkout_session_returns_url(monkeypatch) -> None:
     monkeypatch.setattr(billing_service, "_get_stripe_client", lambda: mock_client)
 
     # Patch get_or_create to avoid another Stripe call
-    async def _fake_get_or_create(user, db):
+    async def _fake_get_or_create(tenant, user, db):
         return "cus_existing"
 
     monkeypatch.setattr(
@@ -176,7 +179,7 @@ async def test_create_checkout_session_returns_url(monkeypatch) -> None:
     user = _make_user()
     db = _fake_db()
 
-    url = await billing_service.create_checkout_session(user, db)
+    url = await billing_service.create_checkout_session(user, user, db)
 
     assert url == "https://checkout.stripe.com/pay/xyz"
 

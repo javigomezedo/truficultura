@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-9">
+
+      <h1 class="h3 mb-4 fw-bold">
+        <i class="bi bi-building me-2"></i>{{ _("Ajustes de la organización") }}
+      </h1>
+
+      {% if request.query_params.get("saved") %}
+      <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>{{ _("Cambios guardados correctamente.") }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% endif %}
+      {% if request.query_params.get("invited") %}
+      <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-envelope-check-fill me-2"></i>{{ _("Invitación enviada correctamente.") }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% endif %}
+      {% if request.query_params.get("error") == "forbidden" %}
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-shield-x me-2"></i>{{ _("No tienes permisos para realizar esta acción.") }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% elif request.query_params.get("error") == "invalid_email" %}
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ _("El email introducido no es válido.") }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% elif request.query_params.get("error") == "already_member" %}
+      <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <i class="bi bi-person-check-fill me-2"></i>{{ _("Ese email ya es miembro de esta organización.") }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% endif %}
+
+      {# ── Nombre de la organización ── #}
+      {% if membership and membership.role in ("owner", "admin") %}
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white fw-semibold py-3">
+          <i class="bi bi-pencil-square me-2"></i>{{ _("Nombre de la organización") }}
+        </div>
+        <div class="card-body">
+          <form method="post" action="/tenant/settings">
+            <div class="mb-3">
+              <label class="form-label" for="name">{{ _("Nombre") }}</label>
+              <input type="text" class="form-control" id="name" name="name"
+                     value="{{ tenant.name }}" required maxlength="200">
+            </div>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-save me-1"></i>{{ _("Guardar") }}
+            </button>
+          </form>
+        </div>
+      </div>
+      {% endif %}
+
+      {# ── Miembros ── #}
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white fw-semibold py-3">
+          <i class="bi bi-people-fill me-2"></i>{{ _("Miembros") }}
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>{{ _("Usuario") }}</th>
+                  <th>{{ _("Email") }}</th>
+                  <th>{{ _("Rol") }}</th>
+                  <th>{{ _("Desde") }}</th>
+                  {% if membership and membership.role in ("owner", "admin") %}
+                  <th></th>
+                  {% endif %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for m in members %}
+                <tr>
+                  <td>{{ m.user.first_name }} {{ m.user.last_name }}</td>
+                  <td class="text-muted small">{{ m.user.email }}</td>
+                  <td>
+                    {% if m.role == "owner" %}
+                    <span class="badge bg-warning text-dark">{{ _("Propietario") }}</span>
+                    {% elif m.role == "admin" %}
+                    <span class="badge bg-primary">{{ _("Administrador") }}</span>
+                    {% else %}
+                    <span class="badge bg-secondary">{{ _("Miembro") }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-muted small">{{ m.joined_at.strftime("%d/%m/%Y") }}</td>
+                  {% if membership and membership.role in ("owner", "admin") and m.role != "owner" %}
+                  <td class="text-end">
+                    <div class="d-flex gap-2 justify-content-end">
+                      <form method="post" action="/tenant/members/{{ m.user_id }}/role" class="d-inline">
+                        <select name="role" class="form-select form-select-sm d-inline-block w-auto"
+                                onchange="this.form.submit()">
+                          <option value="admin" {% if m.role == "admin" %}selected{% endif %}>{{ _("Admin") }}</option>
+                          <option value="member" {% if m.role == "member" %}selected{% endif %}>{{ _("Miembro") }}</option>
+                        </select>
+                      </form>
+                      <form method="post" action="/tenant/members/{{ m.user_id }}/remove"
+                            onsubmit="return confirm('{{ _('¿Eliminar a este miembro?') }}')">
+                        <button class="btn btn-sm btn-outline-danger">
+                          <i class="bi bi-person-dash"></i>
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                  {% elif membership and membership.role in ("owner", "admin") %}
+                  <td></td>
+                  {% endif %}
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {# ── Invitaciones pendientes ── #}
+      {% if membership and membership.role in ("owner", "admin") %}
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white fw-semibold py-3">
+          <i class="bi bi-envelope-plus me-2"></i>{{ _("Invitar nuevo miembro") }}
+        </div>
+        <div class="card-body">
+          <form method="post" action="/tenant/invitations/send" class="row g-2 align-items-end">
+            <div class="col-sm-6">
+              <label class="form-label" for="invite_email">{{ _("Email") }}</label>
+              <input type="email" class="form-control" id="invite_email" name="email"
+                     placeholder="{{ _('correo@ejemplo.com') }}" required>
+            </div>
+            <div class="col-sm-3">
+              <label class="form-label" for="invite_role">{{ _("Rol") }}</label>
+              <select class="form-select" id="invite_role" name="role">
+                <option value="member">{{ _("Miembro") }}</option>
+                <option value="admin">{{ _("Administrador") }}</option>
+              </select>
+            </div>
+            <div class="col-sm-3">
+              <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-send me-1"></i>{{ _("Enviar invitación") }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {% if invitations %}
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white fw-semibold py-3">
+          <i class="bi bi-hourglass-split me-2"></i>{{ _("Invitaciones pendientes") }}
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>{{ _("Email") }}</th>
+                  <th>{{ _("Rol") }}</th>
+                  <th>{{ _("Caduca el") }}</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for inv in invitations %}
+                <tr>
+                  <td>{{ inv.email }}</td>
+                  <td>
+                    {% if inv.role == "admin" %}
+                    <span class="badge bg-primary">{{ _("Administrador") }}</span>
+                    {% else %}
+                    <span class="badge bg-secondary">{{ _("Miembro") }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-muted small">{{ inv.expires_at.strftime("%d/%m/%Y") }}</td>
+                  <td class="text-end">
+                    <form method="post" action="/tenant/invitations/{{ inv.id }}/revoke"
+                          onsubmit="return confirm('{{ _('¿Revocar esta invitación?') }}')">
+                      <button class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-x-circle"></i> {{ _("Revocar") }}
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+{% endblock %}

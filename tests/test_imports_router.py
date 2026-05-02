@@ -11,7 +11,7 @@ from app.main import app
 
 
 def _override_user() -> SimpleNamespace:
-    return SimpleNamespace(id=1, role="user", is_active=True)
+    return SimpleNamespace(id=1, role="user", is_active=True, active_tenant_id=1)
 
 
 def _build_fake_db() -> SimpleNamespace:

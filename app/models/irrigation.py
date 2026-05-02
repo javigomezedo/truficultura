@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from app.models.expense import Expense
     from app.models.plot import Plot
     from app.models.plot_event import PlotEvent
+    from app.models.tenant import Tenant
     from app.models.user import User
 
 
@@ -19,8 +20,14 @@ class IrrigationRecord(Base):
     __tablename__ = "irrigation_records"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    user_id: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True
+    tenant_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    created_by_user_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    updated_by_user_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     plot_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("plots.id", ondelete="CASCADE"), nullable=False, index=True
@@ -36,8 +43,12 @@ class IrrigationRecord(Base):
     notes: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
 
     # Relationships
-    user: Mapped[Optional["User"]] = relationship(
-        "User", back_populates="irrigation_records"
+    tenant: Mapped[Optional["Tenant"]] = relationship("Tenant")
+    created_by: Mapped[Optional["User"]] = relationship(
+        "User", foreign_keys="[IrrigationRecord.created_by_user_id]"
+    )
+    updated_by: Mapped[Optional["User"]] = relationship(
+        "User", foreign_keys="[IrrigationRecord.updated_by_user_id]"
     )
     plot: Mapped["Plot"] = relationship(
         "Plot", back_populates="irrigation_records", lazy="joined"

@@ -110,9 +110,9 @@ def _event_labels_map() -> dict[str, str]:
     return {item.value: _event_type_label(item.value) for item in EventType}
 
 
-async def _get_all_plots(db: AsyncSession, user_id: int) -> list[Plot]:
+async def _get_all_plots(db: AsyncSession, tenant_id: int) -> list[Plot]:
     result = await db.execute(
-        select(Plot).where(Plot.user_id == user_id).order_by(Plot.name)
+        select(Plot).where(Plot.tenant_id == tenant_id).order_by(Plot.name)
     )
     return result.scalars().all()
 
@@ -140,7 +140,7 @@ async def list_view(
 
     # Build campaign selector options from user events (optionally filtered by plot).
     # Only fetch the date column to avoid loading all event data just for the dropdown.
-    dates_stmt = select(PlotEvent.date).where(PlotEvent.user_id == current_user.id)
+    dates_stmt = select(PlotEvent.date).where(PlotEvent.tenant_id == current_user.active_tenant_id)
     if selected_plot is not None:
         dates_stmt = dates_stmt.where(PlotEvent.plot_id == selected_plot)
     dates_result = await db.execute(dates_stmt)
@@ -165,14 +165,14 @@ async def list_view(
     ):
         records = await get_plot_events(
             db,
-            current_user.id,
+            current_user.active_tenant_id,
             plot_id=selected_plot,
             start_date=effective_date_from,
             end_date=effective_date_to,
             event_types=event_types,
         )
 
-    plots = await _get_all_plots(db, current_user.id)
+    plots = await _get_all_plots(db, current_user.active_tenant_id)
     event_labels = _event_labels_map()
 
     return templates.TemplateResponse(
@@ -206,7 +206,7 @@ async def list_json(
     event_types = _parse_event_types(event_type)
     records = await get_plot_events(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         plot_id=plot_id,
         start_date=date_from,
         end_date=date_to,
@@ -241,7 +241,7 @@ async def calendar_json(
 
     records = await get_plot_events(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         plot_id=selected_plot,
         event_types=event_types,
     )
@@ -303,12 +303,12 @@ async def calendar_view(
 
     records = await get_plot_events(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         plot_id=plot_id,
         event_types=event_types,
     )
     event_labels = _event_labels_map()
-    plots = await _get_all_plots(db, current_user.id)
+    plots = await _get_all_plots(db, current_user.active_tenant_id)
 
     selected_event_types = [item.value for item in event_types or []]
     base_nav_params = {
@@ -444,7 +444,7 @@ async def new_form(
         f"/plot-events/calendar-view?{urlencode(back_params, doseq=True)}"
     )
 
-    plots = await _get_all_plots(db, current_user.id)
+    plots = await _get_all_plots(db, current_user.active_tenant_id)
     event_labels = _event_labels_map()
     return templates.TemplateResponse(
         request,
@@ -483,7 +483,7 @@ async def create_view(
         notes=notes or None,
     )
     try:
-        await create_plot_event(db, current_user.id, data)
+        await create_plot_event(db, current_user.active_tenant_id, data)
     except HTTPException as e:
         # Capture validation errors and redirect with error message
         if view_mode == "month":
@@ -514,7 +514,7 @@ async def edit_form(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    record = await get_plot_event(db, event_id, current_user.id)
+    record = await get_plot_event(db, event_id, current_user.active_tenant_id)
     if record is None:
         return RedirectResponse(
             url=f"/plot-events/list?msg={quote_plus(_('Evento no encontrado'))}",
@@ -526,7 +526,7 @@ async def edit_form(
             status_code=303,
         )
 
-    plots = await _get_all_plots(db, current_user.id)
+    plots = await _get_all_plots(db, current_user.active_tenant_id)
     event_labels = _event_labels_map()
     return templates.TemplateResponse(
         request,
@@ -552,7 +552,7 @@ async def update_view(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    record = await get_plot_event(db, event_id, current_user.id)
+    record = await get_plot_event(db, event_id, current_user.active_tenant_id)
     if record is None:
         return RedirectResponse(
             url=f"/plot-events/list?msg={quote_plus(_('Evento no encontrado'))}&msg_type=error",
@@ -591,14 +591,14 @@ async def delete_view(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    record = await get_plot_event(db, event_id, current_user.id)
+    record = await get_plot_event(db, event_id, current_user.active_tenant_id)
     if record is not None and _is_linked_event(record):
         return RedirectResponse(
             url=f"/plot-events/list?msg={quote_plus(_('Este evento está enlazado y no se puede eliminar desde aquí'))}&msg_type=error",
             status_code=303,
         )
 
-    await delete_plot_event(db, event_id, current_user.id)
+    await delete_plot_event(db, event_id, current_user.active_tenant_id)
     return RedirectResponse(
         url=f"/plot-events/list?msg={quote_plus(_('Evento eliminado correctamente'))}&msg_type=success",
         status_code=303,

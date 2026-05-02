@@ -15,7 +15,7 @@ from app.services.weather_service import (
     _fetch_ibericam_monthly_rain,
     _get_all_aemet_stations,
     _find_aemet_station,
-    _get_user_municipios,
+    _get_tenant_municipios,
     _hour_es,
     _hourly_value,
     get_weather_contexts,
@@ -166,12 +166,12 @@ def test_sum_monthly_rain_skips_invalid_dates() -> None:
 
 
 # ---------------------------------------------------------------------------
-# _get_user_municipios — construcción código INE completo
+# _get_tenant_municipios — construcción código INE completo
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_get_user_municipios_builds_full_ine_code() -> None:
+async def test_get_tenant_municipios_builds_full_ine_code() -> None:
     """Combina provincia_cod + municipio_cod local → código INE completo de 5 dígitos."""
     db = MagicMock()
     db.execute = AsyncMock(
@@ -179,12 +179,12 @@ async def test_get_user_municipios_builds_full_ine_code() -> None:
             all=MagicMock(return_value=[("44", "210"), ("44", "216")])
         )
     )
-    result = await _get_user_municipios(db, user_id=1)
+    result = await _get_tenant_municipios(db, tenant_id=1)
     assert result == ["44210", "44216"]
 
 
 @pytest.mark.asyncio
-async def test_get_user_municipios_deduplicates() -> None:
+async def test_get_tenant_municipios_deduplicates() -> None:
     """Dos parcelas del mismo municipio → un único código en la lista."""
     db = MagicMock()
     db.execute = AsyncMock(
@@ -192,29 +192,29 @@ async def test_get_user_municipios_deduplicates() -> None:
             all=MagicMock(return_value=[("44", "210"), ("44", "210")])
         )
     )
-    result = await _get_user_municipios(db, user_id=1)
+    result = await _get_tenant_municipios(db, tenant_id=1)
     assert result == ["44210"]
 
 
 @pytest.mark.asyncio
-async def test_get_user_municipios_passthrough_full_code() -> None:
+async def test_get_tenant_municipios_passthrough_full_code() -> None:
     """Si ya es un código de 5 dígitos lo devuelve sin modificar."""
     db = MagicMock()
     db.execute = AsyncMock(
         return_value=MagicMock(all=MagicMock(return_value=[("44", "44210")]))
     )
-    result = await _get_user_municipios(db, user_id=1)
+    result = await _get_tenant_municipios(db, tenant_id=1)
     assert result == ["44210"]
 
 
 @pytest.mark.asyncio
-async def test_get_user_municipios_no_prov_cod() -> None:
+async def test_get_tenant_municipios_no_prov_cod() -> None:
     """Sin provincia_cod usa el municipio_cod tal cual."""
     db = MagicMock()
     db.execute = AsyncMock(
         return_value=MagicMock(all=MagicMock(return_value=[(None, "210")]))
     )
-    result = await _get_user_municipios(db, user_id=1)
+    result = await _get_tenant_municipios(db, tenant_id=1)
     assert result == ["210"]
 
 
@@ -227,8 +227,8 @@ async def test_get_user_municipios_no_prov_cod() -> None:
 async def test_get_weather_context_no_municipio() -> None:
     import app.services.weather_service as ws
 
-    with patch.object(ws, "_get_user_municipios", AsyncMock(return_value=[])):
-        ctx_list = await get_weather_contexts(MagicMock(), user_id=1)
+    with patch.object(ws, "_get_tenant_municipios", AsyncMock(return_value=[])):
+        ctx_list = await get_weather_contexts(MagicMock(), tenant_id=1)
 
     assert len(ctx_list) == 1
     assert ctx_list[0]["available"] is False
@@ -248,12 +248,12 @@ async def test_get_weather_context_no_api_key() -> None:
     ws._station_cache.clear()
 
     with (
-        patch.object(ws, "_get_user_municipios", AsyncMock(return_value=["44210"])),
+        patch.object(ws, "_get_tenant_municipios", AsyncMock(return_value=["44210"])),
         patch("app.services.weather_service.settings") as mock_settings,
     ):
         mock_settings.AEMET_API_KEY = None
 
-        ctx_list = await get_weather_contexts(MagicMock(), user_id=1)
+        ctx_list = await get_weather_contexts(MagicMock(), tenant_id=1)
 
     assert len(ctx_list) == 1
     assert ctx_list[0]["available"] is False
@@ -306,11 +306,11 @@ async def test_get_weather_context_aemet_full() -> None:
     ):
         mock_settings.AEMET_API_KEY = "test-key"
 
-        # _get_user_municipios returns ["44210"]
+        # _get_tenant_municipios returns ["44210"]
         with patch.object(
-            ws, "_get_user_municipios", AsyncMock(return_value=["44210"])
+            ws, "_get_tenant_municipios", AsyncMock(return_value=["44210"])
         ):
-            ctx_list = await get_weather_contexts(MagicMock(), user_id=1)
+            ctx_list = await get_weather_contexts(MagicMock(), tenant_id=1)
 
     assert len(ctx_list) == 1
     ctx = ctx_list[0]
@@ -358,13 +358,13 @@ async def test_get_weather_contexts_multi_municipio() -> None:
 
     with (
         patch.object(
-            ws, "_get_user_municipios", AsyncMock(return_value=["44210", "44100"])
+            ws, "_get_tenant_municipios", AsyncMock(return_value=["44210", "44100"])
         ),
         patch.object(ws, "_build_weather_data_for_municipio", side_effect=fake_build),
         patch("app.services.weather_service.settings") as mock_settings,
     ):
         mock_settings.AEMET_API_KEY = "test-key"
-        ctx_list = await get_weather_contexts(MagicMock(), user_id=1)
+        ctx_list = await get_weather_contexts(MagicMock(), tenant_id=1)
 
     assert len(ctx_list) == 2
     assert ctx_list[0]["temperature"] == pytest.approx(10.0)
@@ -399,12 +399,12 @@ async def test_get_weather_context_ibericam_fallback() -> None:
         patch.object(ws, "_find_aemet_station", AsyncMock(return_value=None)),
         patch.object(ws, "_fetch_ibericam_monthly_rain", AsyncMock(return_value=22.5)),
         patch.object(ws, "_fetch_hourly_forecast_obs", AsyncMock(return_value=None)),
-        patch.object(ws, "_get_user_municipios", AsyncMock(return_value=["44210"])),
+        patch.object(ws, "_get_tenant_municipios", AsyncMock(return_value=["44210"])),
         patch("app.services.weather_service.settings") as mock_settings,
     ):
         mock_settings.AEMET_API_KEY = "test-key"
 
-        ctx_list = await get_weather_contexts(MagicMock(), user_id=1)
+        ctx_list = await get_weather_contexts(MagicMock(), tenant_id=1)
 
     assert len(ctx_list) == 1
     ctx = ctx_list[0]
@@ -527,11 +527,11 @@ async def test_weather_context_uses_forecast_fallback_when_obs_missing() -> None
         patch.object(
             ws, "_fetch_hourly_forecast_obs", AsyncMock(return_value=hourly_fallback)
         ),
-        patch.object(ws, "_get_user_municipios", AsyncMock(return_value=["44216"])),
+        patch.object(ws, "_get_tenant_municipios", AsyncMock(return_value=["44216"])),
         patch("app.services.weather_service.settings") as mock_settings,
     ):
         mock_settings.AEMET_API_KEY = "test-key"
-        ctx_list = await get_weather_contexts(MagicMock(), user_id=1)
+        ctx_list = await get_weather_contexts(MagicMock(), tenant_id=1)
 
     assert len(ctx_list) == 1
     ctx = ctx_list[0]
@@ -561,14 +561,14 @@ async def test_get_weather_context_returns_cached_data() -> None:
     }
 
     with (
-        patch.object(ws, "_get_user_municipios", AsyncMock(return_value=["44210"])),
+        patch.object(ws, "_get_tenant_municipios", AsyncMock(return_value=["44210"])),
         patch.object(
             ws, "_build_weather_data_for_municipio", AsyncMock()
         ) as mock_build,
         patch("app.services.weather_service.settings") as mock_settings,
     ):
         mock_settings.AEMET_API_KEY = "test-key"
-        ctx_list = await get_weather_contexts(MagicMock(), user_id=1)
+        ctx_list = await get_weather_contexts(MagicMock(), tenant_id=1)
         mock_build.assert_not_called()
 
     assert ctx_list[0]["temperature"] == pytest.approx(15.0)

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-6">
+      <div class="card shadow-sm border-0">
+        <div class="card-body p-4 p-lg-5 text-center">
+          <i class="bi bi-building-check display-4 text-success mb-3"></i>
+          <h2 class="h4 fw-bold mb-2">{{ _("Invitación para unirte a %(name)s", name=tenant.name) }}</h2>
+          <p class="text-muted mb-4">
+            {{ _("Has sido invitado a unirte a esta organización en Trufiq con el rol de") }}
+            {% if invitation.role == "admin" %}
+            <strong>{{ _("Administrador") }}</strong>.
+            {% else %}
+            <strong>{{ _("Miembro") }}</strong>.
+            {% endif %}
+          </p>
+          <p class="text-muted small mb-4">
+            {{ _("La invitación caduca el %(date)s.", date=invitation.expires_at.strftime("%d/%m/%Y")) }}
+          </p>
+          {% if current_user.email.lower() != invitation.email.lower() %}
+          <div class="alert alert-danger small text-start mb-4" role="alert">
+            <i class="bi bi-exclamation-octagon-fill me-1"></i>
+            {{ _("Esta invitación fue enviada a %(email)s. Estás conectado como %(current)s. Cierra sesión y accede con la cuenta correcta para aceptarla.", email=invitation.email, current=current_user.email) }}
+          </div>
+          <a href="/" class="btn btn-secondary w-100">{{ _("Volver al inicio") }}</a>
+          {% else %}
+          {% if current_user.active_tenant and current_user.active_tenant.id != tenant.id %}
+          <div class="alert alert-warning small text-start mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+            {{ _("Al aceptar, abandonarás tu organización actual (%(name)s) y pasarás a pertenecer a %(new_name)s.", name=current_user.active_tenant.name, new_name=tenant.name) }}
+          </div>
+          {% endif %}
+          <form method="post" action="/tenant/join/{{ token }}">
+            <button type="submit" class="btn btn-primary btn-lg w-100">
+              <i class="bi bi-person-check-fill me-2"></i>{{ _("Aceptar invitación") }}
+            </button>
+          </form>
+          <a href="/" class="btn btn-link mt-2 text-muted">{{ _("Rechazar") }}</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
