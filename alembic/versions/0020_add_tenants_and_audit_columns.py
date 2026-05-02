@@ -1,7 +1,7 @@
 """add tenants, tenant_memberships, tenant_invitations; add tenant_id and audit columns
 
-Revision ID: 0017
-Revises: 0016
+Revision ID: 0020
+Revises: 0019
 Create Date: 2026-04-28
 
 """
@@ -11,8 +11,8 @@ from typing import Sequence, Union
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0017"
-down_revision: Union[str, Sequence[str], None] = "0016"
+revision: str = "0020"
+down_revision: Union[str, Sequence[str], None] = "0019"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

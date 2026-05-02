@@ -1,7 +1,7 @@
 """make tenant_id NOT NULL, drop user_id from data tables, drop billing from users
 
-Revision ID: 0019
-Revises: 0018
+Revision ID: 0022
+Revises: 0021
 Create Date: 2026-04-28
 
 """
@@ -11,8 +11,8 @@ from typing import Sequence, Union
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0019"
-down_revision: Union[str, Sequence[str], None] = "0018"
+revision: str = "0022"
+down_revision: Union[str, Sequence[str], None] = "0021"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

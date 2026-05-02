@@ -1,7 +1,7 @@
 """data migration: create tenant per user, assign tenant_id to all data tables
 
-Revision ID: 0018
-Revises: 0017
+Revision ID: 0021
+Revises: 0020
 Create Date: 2026-04-28
 
 """
@@ -13,8 +13,8 @@ import re
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0018"
-down_revision: Union[str, Sequence[str], None] = "0017"
+revision: str = "0021"
+down_revision: Union[str, Sequence[str], None] = "0020"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
