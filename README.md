@@ -29,6 +29,7 @@ Trufiq permite registrar y analizar la actividad económica de una explotación 
 - Asistente conversacional vía API para consultas sobre uso y datos, con métricas y rate limiting.
 - Distribución proporcional de gastos generales según número de plantas por parcela.
 - **Sistema de suscripción de pago** vía Stripe: periodo de prueba, checkout anual, portal de gestión y webhooks.
+- **Multi-tenant y organizaciones**: agrupación de usuarios en organizaciones compartidas con roles diferenciados (owner / admin / member), invitaciones por email y aislamiento completo de datos por tenant.
 - Página de landing pública con formulario de contacto/captura de leads.
 - Internacionalización (i18n) de la interfaz en español, inglés y francés.
 
@@ -58,6 +59,15 @@ Trufiq permite registrar y analizar la actividad económica de una explotación 
   - `cadastral_ref`: referencia catastral oficial (ej: 44223A021001200000FP)
 - **Totales de ingresos**:
   - `total = cantidad_kg * euros_kg`.
+- **Multi-tenant (organizaciones)**:
+  - Cada usuario pertenece exactamente a un tenant en todo momento.
+  - Al registrarse se crea automáticamente un tenant personal (solo-tenant).
+  - Un owner puede invitar a otros usuarios por email con rol `member` o `admin`.
+  - Al aceptar una invitación, el solo-tenant personal del usuario se elimina (si no tiene Stripe activo).
+  - Al ser expulsado de un tenant compartido, se crea automáticamente un nuevo solo-tenant para el usuario.
+  - Todos los datos (parcelas, gastos, ingresos, riego, etc.) se aíslan por `tenant_id`. Los miembros del mismo tenant ven todos los datos de la organización.
+  - La suscripción (Stripe) vive en el tenant, no en el usuario.
+  - El campo `active_tenant_id` se resuelve en cada request desde BD (nunca stale en sesión).
 
 ---
 
@@ -151,6 +161,8 @@ Servicios principales:
 - `app/services/charts_service.py`: datasets para gráficas y tablas de producción.
 - `app/services/kpi_service.py`: cálculo de KPIs globales y por parcela.
 - `app/services/billing_service.py`: integración Stripe (trial, checkout, portal, webhooks).
+- `app/services/tenant_service.py`: CRUD de tenants y memberships; cambio de rol, expulsión de miembros y recreación de solo-tenant.
+- `app/services/invitation_service.py`: creación, listado, aceptación y revocación de invitaciones a tenants.
 - `app/services/assistant_service.py`: preparación de contexto y orquestación del asistente.
 - `app/services/import_service.py`: importación de parcelas, gastos, ingresos, riego, pozos y producción desde CSV.
 - `app/services/export_service.py`: exportación de parcelas, gastos, ingresos, riego, pozos y producción a CSV/ZIP.
@@ -166,6 +178,49 @@ Beneficios directos del refactor:
 
 ## Modelos de datos
 
+### Organización / Tenant (Tenant)
+
+Unidad de aislamiento de datos. Cada usuario pertenece a exactamente un tenant.
+
+Campos relevantes:
+
+- `name`: nombre de la organización
+- `slug`: identificador único legible (generado automáticamente)
+- `stripe_customer_id`: ID de cliente en Stripe (migrado desde User)
+- `subscription_status`: `trialing` | `active` | `past_due` | `canceled`
+- `trial_ends_at` / `subscription_ends_at`: fechas de expiración del trial o suscripción
+- `created_at`: fecha de creación
+
+Relaciones:
+
+- 1:N con `TenantMembership`
+- 1:N con `TenantInvitation`
+- 1:N con todas las tablas de datos (Plot, Expense, Income, etc.) vía `tenant_id`
+
+### Membresía de tenant (TenantMembership)
+
+Vincula un usuario a un tenant con un rol.
+
+Campos relevantes:
+
+- `tenant_id`: tenant al que pertenece
+- `user_id`: usuario miembro
+- `role`: `owner` | `admin` | `member`
+- `invited_by_user_id`: usuario que envió la invitación (nullable)
+- `joined_at`: fecha de alta en el tenant
+
+### Invitación (TenantInvitation)
+
+Campos relevantes:
+
+- `tenant_id`: tenant que invita
+- `email`: email del destinatario
+- `token`: token único de 32 bytes (URL-safe)
+- `role`: rol que se asignará al aceptar
+- `invited_by_user_id`: usuario que creó la invitación
+- `expires_at`: expiración (7 días desde la creación)
+- `accepted_at`: fecha de aceptación (NULL si aún pendiente)
+
 ### Usuario (User)
 
 Campos relevantes:
@@ -174,20 +229,21 @@ Campos relevantes:
 - `email`: email único del usuario
 - `first_name` / `last_name`: nombre y apellido
 - `hashed_password`: contraseña hasheada (Argon2)
-- `role`: `admin` o `user`
+- `role`: `admin` o `user` (rol de aplicación, independiente del rol en el tenant)
 - `is_active`: estado (activo/inactivo)
 - `email_confirmed`: indica si el email fue verificado (boolean)
 - `comunidad_regantes`: pertenece a comunidad de regantes (boolean)
-- `stripe_customer_id`: ID de cliente en Stripe
-- `subscription_status`: `trialing` | `active` | `past_due` | `canceled`
-- `trial_ends_at` / `subscription_ends_at`: fechas de expiración del trial o suscripción
 - `created_at`: fecha de creación
+
+Atributos dinámicos (resueltos en cada request desde BD, no columnas):
+
+- `active_tenant_id`: ID del tenant activo del usuario
+- `tenant_role`: rol del usuario en su tenant activo (`owner` | `admin` | `member`)
+- `active_tenant`: objeto `Tenant` completo
 
 Relaciones:
 
-- 1:N con `Plot`
-- 1:N con `Expense`
-- 1:N con `Income`
+- 1:1 con `TenantMembership` (en todo momento)
 
 ### Parcela (Plot)
 
@@ -224,7 +280,8 @@ Campos relevantes:
 - `row_order`: orden interno de fila (0-index)
 - `col_order`: orden interno de columna (0-index)
 - `visual_col`: columna visual en el mapa (1-index, soporta filas no uniformes)
-- `user_id`: usuario propietario del dato
+- `tenant_id`: tenant al que pertenece el dato
+- `created_by_user_id`: usuario que creó el registro
 
 Relaciones:
 
@@ -242,7 +299,8 @@ Campos relevantes:
 - `created_at`: fecha/hora del registro
 - `undo_window_expires_at`: límite temporal para deshacer
 - `undone_at`: marca de deshecho (si aplica)
-- `user_id`: usuario propietario del dato
+- `tenant_id`: tenant al que pertenece el dato
+- `created_by_user_id`: usuario que creó el registro
 
 ### Pozos (Well)
 
@@ -253,7 +311,8 @@ Campos relevantes:
 - `wells_per_plant`: número de pozos realizados por planta en esa sesión
 - `expense_id`: gasto asociado (opcional)
 - `notes`: notas opcionales
-- `user_id`: usuario propietario del dato
+- `tenant_id`: tenant al que pertenece el dato
+- `created_by_user_id`: usuario que creó el registro
 
 ### Gasto recurrente (RecurringExpense)
 
@@ -267,7 +326,7 @@ Campos relevantes:
 - `frequency`: `weekly` | `monthly` | `annual`
 - `is_active`: si sigue activo para futuras generaciones
 - `last_run_date`: última fecha en que se generó un gasto real
-- `user_id`: usuario propietario
+- `tenant_id`: tenant al que pertenece el dato
 
 ### Prorrateo de gasto (ExpenseProrationGroup)
 
@@ -277,7 +336,7 @@ Agrupa N gastos generados al distribuir una inversión en varias campañas:
 - `total_amount`: importe total sin prorratear
 - `years`: número de años del prorrateo
 - `start_year`: campaña inicial
-- `user_id`: usuario propietario
+- `tenant_id`: tenant al que pertenece el dato
 
 ### Evento de parcela (PlotEvent)
 
@@ -289,7 +348,8 @@ Campos relevantes:
 - `notes`: notas opcionales
 - `is_recurring`: si es recurrente
 - `related_irrigation_id` / `related_well_id`: referencias opcionales a riego o pozo asociado
-- `user_id`: usuario propietario
+- `tenant_id`: tenant al que pertenece el dato
+- `created_by_user_id`: usuario que creó el registro
 
 ### Cosecha de parcela (PlotHarvest)
 
@@ -299,7 +359,8 @@ Campos relevantes:
 - `harvest_date`: fecha de recogida
 - `weight_grams`: peso recogido en gramos
 - `notes`: notas opcionales
-- `user_id`: usuario propietario
+- `tenant_id`: tenant al que pertenece el dato
+- `created_by_user_id`: usuario que creó el registro
 
 ### Presencia de trufa por planta (PlantPresence)
 
@@ -308,13 +369,15 @@ Campos relevantes:
 - `plot_id` / `plant_id`: parcela y planta
 - `presence_date`: fecha del registro
 - `has_truffle`: indica si la planta tenía trufa ese día
-- `user_id`: usuario propietario
+- `tenant_id`: tenant al que pertenece el dato
+- `created_by_user_id`: usuario que creó el registro
 
 ### Registro de lluvia (RainfallRecord)
 
 Campos relevantes:
 
-- `user_id`: usuario propietario (NULL para registros compartidos AEMET/Ibericam)
+- `tenant_id`: tenant al que pertenece (NULL para registros compartidos AEMET/Ibericam)
+- `user_id`: usuario propietario original (NULL para registros AEMET/Ibericam; se mantiene para trazabilidad)
 - `plot_id`: parcela asociada (NULL para registros a nivel de municipio)
 - `municipio_cod` / `municipio_name`: código INE y nombre del municipio
 - `date`: fecha del registro
@@ -342,7 +405,8 @@ Campos relevantes:
 - `plot_id`: parcela asignada (opcional, `None` para gastos generales)
 - `amount`: cantidad en euros
 - `category`: categoría opcional (Riego, Mantenimiento, etc.)
-- `user_id`: usuario propietario del dato
+- `tenant_id`: tenant al que pertenece el dato
+- `created_by_user_id`: usuario que creó el registro
 
 ### Ingreso (Income)
 
@@ -354,7 +418,8 @@ Campos relevantes:
 - `category`: categoría de trufa (Extra, A, B, etc.)
 - `euros_per_kg`: precio por kilogramo
 - `total`: propiedad calculada (`amount_kg * euros_per_kg`) no persistida en BD
-- `user_id`: usuario propietario del dato
+- `tenant_id`: tenant al que pertenece el dato
+- `created_by_user_id`: usuario que creó el registro
 
 ### Riego (IrrigationRecord)
 
@@ -365,7 +430,8 @@ Campos relevantes:
 - `water_m3`: volumen de agua en m³
 - `notes`: notas opcionales
 - `expense_id`: gasto de riego asociado (opcional, uso interno)
-- `user_id`: usuario propietario del dato
+- `tenant_id`: tenant al que pertenece el dato
+- `created_by_user_id`: usuario que creó el registro
 
 ## Endpoints y vistas principales
 
@@ -390,6 +456,8 @@ Campos relevantes:
 - `/kpis/` panel de indicadores con ROI, precio medio, kg/ha, kg/planta y métricas de agua.
 - `/import/` importación masiva desde CSV (parcelas, gastos, ingresos, riego, pozos, producción).
 - `/export/` exportación de datos a CSV/ZIP (parcelas, gastos, ingresos, riego, pozos, producción).
+- `/tenant/settings` Configuración de la organización: nombre, miembros, roles e invitaciones pendientes.
+- `/tenant/join/<token>` Aceptar una invitación a unirse a una organización.
 - `/api/assistant/chat` y `/api/assistant/stream` API del asistente para consultas guiadas.
 - `/billing/subscribe` página de suscripción con estado actual (trial, activo, caducado).
 - `/billing/checkout` inicia sesión de Stripe Checkout (redirige al pago).
@@ -408,23 +476,53 @@ Campos relevantes:
 
 ## Sistema de roles, permisos y suscripción
 
-### Roles disponibles
+### Roles de aplicación (campo `User.role`)
+
+Controlan el acceso al panel de administración de la aplicación, independientemente del tenant.
 
 **Admin**
 - Acceso a todo el dashboard de administración (`/admin/users`)
 - Gestión completa de usuarios (crear, editar, activar/desactivar)
 - Puede asignar roles (admin o user) a otros usuarios
 - **Nunca bloqueado por expiración de suscripción**
-- Acceso a todos los datos de todas las parcelas/gastos/ingresos como usuario normal
 
 **User** (usuario regular)
-- Acceso completo a su propia explotación (parcelas, gastos, ingresos, reportes, gráficas, lluvia, météo…)
-- CRUD completo de sus datos
-- No puede acceder al dashboard de admin u otros usuarios
-- Datos completamente aislados por `user_id`
+- Acceso completo a los datos de su tenant activo
+- No puede acceder al dashboard de admin
 - **Requiere suscripción activa** (o trial vigente) para acceder a la aplicación
 
+### Roles en el tenant (`TenantMembership.role`)
+
+Controlan qué puede hacer el usuario dentro de su organización.
+
+| Rol | Renombrar org | Invitar | Cambiar roles | Expulsar | Ver datos |
+|---|---|---|---|---|---|
+| `owner` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `admin` | ✅ | ✅ | ✅ (no al owner) | ✅ (no al owner) | ✅ |
+| `member` | ❌ | ❌ | ❌ | ❌ | ✅ |
+
+- Solo puede haber un `owner` por tenant.
+- El owner no puede ser expulsado ni se le puede cambiar el rol.
+- Todos los miembros de un tenant ven y pueden editar todos los datos de la organización.
+
+### Flujo de invitaciones
+
+1. Owner o admin van a `/tenant/settings` e introducen el email del destinatario con el rol deseado.
+2. Se crea una `TenantInvitation` con token único válido 7 días.
+3. El destinatario recibe el link `/tenant/join/<token>` por email.
+4. Si el destinatario está logueado con el email correcto, acepta la invitación → su solo-tenant se elimina y pasa a ser miembro del tenant invitante.
+5. Si el email no coincide, se muestra un aviso y el botón de aceptar queda oculto.
+6. Token expirado o ya aceptado → muestra página de error `join_invalid.html`.
+
+### Ciclo de vida del solo-tenant
+
+- **Al registrarse**: se crea automáticamente un tenant personal (`owner`).
+- **Al aceptar invitación**: el solo-tenant se elimina si no tiene `stripe_customer_id`.
+- **Al ser expulsado**: se recrea automáticamente un nuevo solo-tenant vacío para el usuario.
+
 ### Estados de suscripción
+
+La suscripción vive en el `Tenant`, no en el `User`.
 
 | Estado | Descripción | Acceso |
 |---|---|---|
@@ -436,10 +534,10 @@ Campos relevantes:
 
 ### Primeras acciones
 
-- El primer usuario registrado se crea automáticamente como **admin**
-- Los siguientes usuarios se crean como **user** con periodo de prueba de `TRIAL_DAYS` días
-- Solo un admin puede cambiar roles a otros usuarios
-- No se puede desactivar a uno mismo (protección de seguridad)
+- El primer usuario registrado se crea automáticamente como **admin** de la app y **owner** de su tenant personal.
+- Los siguientes usuarios se crean como **user** con periodo de prueba de `TRIAL_DAYS` días.
+- Solo un admin puede cambiar roles de aplicación a otros usuarios.
+- No se puede desactivar a uno mismo (protección de seguridad).
 
 ---
 
@@ -928,6 +1026,10 @@ Historial de migraciones activas (en `alembic/versions/`):
 | 0016 | `email_confirmed` en usuarios |
 | 0017 | Corrección de cascada en `wells.user_id` |
 | 0018 | Tabla de captura de leads |
+| 0019 | Campos de suscripción en usuarios (previo a multi-tenant) |
+| 0020 | Tablas `tenants`, `tenant_memberships`, `tenant_invitations`; columnas `tenant_id` y `created_by_user_id` en todas las tablas de datos |
+| 0021 | Migración de datos: tenant personal por usuario, asignación de `tenant_id` a todos los registros existentes, migración de campos Stripe a `Tenant` |
+| 0022 | `tenant_id` NOT NULL en tablas de datos, eliminación de `user_id` en tablas de datos, eliminación de campos de billing en `User` |
 
 Nota: Las migraciones históricas previas al reset se conservaron en `alembic/versions_archive_YYYYMMDD_HHMMSS/` solo como referencia.
 
@@ -1000,7 +1102,8 @@ Cobertura por módulo:
 - Cálculo de KPIs en `kpi_service`.
 - Integración Stripe en `billing_service` (trial, checkout, portal, webhooks).
 - Autenticación, roles y gating de suscripción en `auth.py`.
-- Routers: auth, billing, expenses, plots, incomes, irrigation, plants, wells, scan, assistant, exports, imports, plot events, plot analytics, recurring expenses.
+- Routers: auth, billing, expenses, plots, incomes, irrigation, plants, wells, scan, assistant, exports, imports, plot events, plot analytics, recurring expenses, tenants.
+- Servicios multi-tenant: `tenant_service` (CRUD, cambio de rol, expulsión, solo-tenant) e `invitation_service` (crear, aceptar, revocar).
 - Utilidades de campaña agrícola.
 
 Ejecutar pruebas:
@@ -1011,7 +1114,7 @@ uv run pytest -v tests/
 
 Resultado actual de referencia:
 
-- **751 tests pasando** (unitarios, integración y routers)
+- **844 tests pasando** (unitarios, integración y routers)
 
 ## 3.2 Operativa Fly.io (Semana 1)
 
@@ -1139,6 +1242,8 @@ Escenarios cubiertos:
 - **CRUD completo**: crea parcela, gasto e ingreso; verifica que aparecen en los contextos de listado; elimina la parcela y comprueba que `get_plot` devuelve `None`.
 - **Dashboard y rentabilidad**: dos parcelas con reparto automático por plantas, gastos asignados y sin asignar, ingresos. Valida totales y rentabilidad.
 - **Gráficas**: crea un registro de cada tipo y valida que `build_charts_context` devuelve valores y etiquetas correctos.
+- **Multi-tenant — migración** (`test_migration_like_flow`): simula la migración 0021 creando usuarios, tenants y memberships en BD; verifica slugs únicos, integridad de datos y aislamiento entre tenants.
+- **Multi-tenant — ciclo completo** (`test_full_tenant_lifecycle`): invitar → aceptar (solo-tenant de B eliminado) → cambiar rol → intentar tocar el owner (error 400) → expulsar (nuevo solo-tenant recreado) → revocar invitación pendiente.
 
 Ejecutar pruebas de integración:
 
@@ -1162,14 +1267,16 @@ Suite completa (unitarios + integración):
 - Las plantillas comparten layout base (`base.html`) y usan Bootstrap para UI consistente.
 - El dashboard y reportes agregan datos en Python tras consulta a BD.
 - Los KPIs también se calculan en la capa de servicios a partir de ingresos, gastos y riego, sin columnas redundantes en BD.
-- **Autenticación por sesiones**: Sistema de login/logout con sesiones HTTP. Los datos están aislados por usuario_id.
+- **Autenticación por sesiones**: Sistema de login/logout con sesiones HTTP.
   - Las contraseñas se hashean usando Argon2 (no se almacenan en texto plano)
   - Las sesiones se validan contra la BD en cada request protegido
+  - `active_tenant_id` se resuelve desde BD en cada request — nunca queda stale aunque el usuario cambie de tenant
   - Si un usuario se desactiva, su sesión sigue siendo válida hasta que expire o cierre sesión
+- **Aislamiento multi-tenant**: Todos los datos (parcelas, gastos, ingresos, riego, etc.) se filtran por `tenant_id`, no por `user_id`. Todos los miembros de un tenant ven y pueden editar los datos de la organización. Los datos de distintos tenants son completamente invisibles entre sí.
 - **Sistema de roles**:
-  - `admin`: Acceso completo a gestión de usuarios + datos como usuario regular
-  - `user`: Acceso solo a sus propios datos
-  - Protección: Los usuarios solo ven/modifican sus propios datos (filtrados por user_id)
+  - Rol de app (`admin` / `user`): controla acceso al panel de administración
+  - Rol de tenant (`owner` / `admin` / `member`): controla permisos dentro de la organización
+  - Protección: los usuarios solo ven/modifican datos de su `active_tenant_id`
 - **Gestión de datos**: Limpieza de histórico de repositorio usando `git-filter-repo` para remover datos confidenciales.
 - **Asistente**: expone endpoints API con rate limiting por sesión y métricas básicas solo visibles para admin.
 
