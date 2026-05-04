@@ -3,6 +3,7 @@
 {% block title %}{{ _("Listado de trufas") }}{% endblock %}
 
 {% block content %}
+{% set read_only = session_plan_mode(request.session) == 'read_only' %}
 <div class="container-xl">
     <div class="tf-page-header">
         <div>
@@ -104,9 +105,11 @@
                                 {% endif %}
                             </td>
                             <td class="text-end text-nowrap">
+                                {% if not read_only %}
                                 <a href="/plots/{{ s.plot_id }}/map" class="btn btn-sm btn-outline-success" title="{{ _('Añadir producción por planta') }}">
                                     <i class="bi bi-plus-circle me-1"></i>{{ _("Añadir por planta") }}
                                 </a>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
@@ -137,6 +140,7 @@
                         <td>{{ e.estimated_weight_grams if e.estimated_weight_grams is defined and e.estimated_weight_grams is not none else 0.0|format_eu(1) }}</td>
                         <td><span class="badge text-bg-secondary">{{ e.source }}</span></td>
                         <td class="text-center">
+                            {% if not read_only %}
                             <form method="post"
                                   action="/truffles/{{ e.id }}/delete"
                                   class="d-inline"
@@ -148,6 +152,7 @@
                                     <i class="bi bi-trash-fill"></i>
                                 </button>
                             </form>
+                            {% endif %}
                         </td>
                     </tr>
                     {% else %}

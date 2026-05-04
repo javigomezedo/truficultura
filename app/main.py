@@ -16,6 +16,7 @@ from app.auth import (
     SubscriptionRequiredException,
     require_subscription,
 )
+from app.plan_access import WriteAccessDeniedException, PlanUpgradeRequiredException, PlantLimitExceededException
 from app.config import settings
 from app.database import engine, get_db
 from fastapi import Form
@@ -249,6 +250,32 @@ async def subscription_required_handler(
     request: Request, exc: SubscriptionRequiredException
 ):
     return RedirectResponse(url="/billing/subscribe", status_code=303)
+
+
+@app.exception_handler(WriteAccessDeniedException)
+async def write_access_denied_handler(request: Request, exc: WriteAccessDeniedException):
+    from urllib.parse import quote_plus
+    from app.i18n import _
+    msg = quote_plus(_("Solo lectura: suscríbete para poder editar"))
+    return RedirectResponse(url=f"/billing/subscribe?msg={msg}&msg_type=warning", status_code=303)
+
+
+@app.exception_handler(PlanUpgradeRequiredException)
+async def plan_upgrade_required_handler(request: Request, exc: PlanUpgradeRequiredException):
+    from urllib.parse import quote_plus
+    from app.i18n import _
+    msg = quote_plus(_("Esta función requiere un plan superior"))
+    return RedirectResponse(url=f"/billing/subscribe?msg={msg}&msg_type=warning", status_code=303)
+
+
+@app.exception_handler(PlantLimitExceededException)
+async def plant_limit_exceeded_handler(request: Request, exc: PlantLimitExceededException):
+    from urllib.parse import quote_plus
+    from app.i18n import _
+    msg = quote_plus(
+        _("Has alcanzado el límite de {limit} plantas del plan Básico. Actualiza a Premium para plantas ilimitadas.").format(limit=exc.limit)
+    )
+    return RedirectResponse(url=f"/billing/subscribe?msg={msg}&msg_type=warning", status_code=303)
 
 
 @app.middleware("http")

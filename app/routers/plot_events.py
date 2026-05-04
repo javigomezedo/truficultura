@@ -17,6 +17,7 @@ from app.i18n import _
 from app.models.plot import Plot
 from app.models.plot_event import PlotEvent
 from app.models.user import User
+from app.plan_access import require_write_access
 from app.schemas.plot_event import EventType, PlotEventCreate, PlotEventUpdate
 from app.services.plot_events_service import (
     create_plot_event,
@@ -474,7 +475,7 @@ async def create_view(
     notes: Optional[str] = Form(None),
     view_mode: str = Form(default="list"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     data = PlotEventCreate(
         plot_id=plot_id,
@@ -550,7 +551,7 @@ async def update_view(
     date: datetime.date = Form(...),
     notes: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     record = await get_plot_event(db, event_id, current_user.active_tenant_id)
     if record is None:
@@ -589,7 +590,7 @@ async def delete_view(
     request: Request,
     event_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     record = await get_plot_event(db, event_id, current_user.active_tenant_id)
     if record is not None and _is_linked_event(record):

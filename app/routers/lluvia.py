@@ -11,6 +11,7 @@ from app.auth import require_subscription
 from app.database import get_db
 from app.i18n import _
 from app.models.user import User
+from app.plan_access import require_write_access
 from app.schemas.rainfall import RainfallCreate, RainfallUpdate
 from app.services.rainfall_service import (
     create_rainfall_record,
@@ -94,7 +95,7 @@ async def create_view(
     source: str = Form("manual"),
     notes: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     try:
         data = RainfallCreate(
@@ -170,7 +171,7 @@ async def edit_view(
     source: str = Form("manual"),
     notes: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     record = await get_rainfall_record(db, record_id, current_user.active_tenant_id)
     if record is not None and record.created_by_user_id is None:
@@ -198,7 +199,7 @@ async def delete_view(
     request: Request,
     record_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     record = await get_rainfall_record(db, record_id, current_user.active_tenant_id)
     if record is not None and record.created_by_user_id is None:

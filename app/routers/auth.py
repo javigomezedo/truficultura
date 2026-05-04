@@ -319,9 +319,12 @@ async def register_post(
         # Send confirmation email (SMTP is configured at this point)
         token = generate_token(email, EMAIL_CONFIRMATION_SALT)
         safe_next = _safe_next(next_url) if next_url else ""
-        await send_confirmation_email(
-            email, token, next_url=safe_next if safe_next and safe_next != "/" else None
-        )
+        try:
+            await send_confirmation_email(
+                email, token, next_url=safe_next if safe_next and safe_next != "/" else None
+            )
+        except Exception as exc:
+            logger.warning("[auth] Could not send confirmation email to %s: %s", email, exc)
         pending_url = (
             f"/login?pending_confirmation=1&next={safe_next}"
             if safe_next and safe_next != "/"
@@ -401,7 +404,10 @@ async def forgot_password_post(
     if user and user.email_confirmed and user.is_active:
         token = generate_token(email, PASSWORD_RESET_SALT)
         if settings.email_configured:
-            await send_password_reset_email(email, token)
+            try:
+                await send_password_reset_email(email, token)
+            except Exception as exc:
+                logger.warning("[auth] Could not send password reset email to %s: %s", email, exc)
         else:
             reset_url = f"{settings.APP_BASE_URL}/reset-password/{token}"
             logger.info("[dev] Password reset link for %s: %s", email, reset_url)

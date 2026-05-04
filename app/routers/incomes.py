@@ -11,6 +11,7 @@ from app.auth import require_subscription
 from app.database import get_db
 from app.i18n import _
 from app.models.user import User
+from app.plan_access import require_write_access
 from app.services.incomes_service import (
     create_income as create_income_service,
     delete_income as delete_income_service,
@@ -82,7 +83,7 @@ async def create_income(
     category: str = Form(""),
     euros_per_kg: float = Form(0.0),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     await create_income_service(
         db,
@@ -138,7 +139,7 @@ async def update_income(
     category: str = Form(""),
     euros_per_kg: float = Form(0.0),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     obj = await get_income(db, income_id, current_user.active_tenant_id)
     if obj is None:
@@ -167,7 +168,7 @@ async def delete_income(
     request: Request,
     income_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     obj = await get_income(db, income_id, current_user.active_tenant_id)
     if obj:

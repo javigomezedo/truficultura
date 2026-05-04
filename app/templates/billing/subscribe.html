@@ -1,12 +1,13 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-5">
+<div class="container {{ 'mt-5 pt-3' if msg else 'mt-4' }} mb-5">
     <div class="row justify-content-center">
-        <div class="col-lg-7">
+        <div class="col-lg-10">
 
-            {% if current_user.subscription_status == "trialing" %}
-            {% set days_left = ((current_user.trial_ends_at - now_utc()) / timedelta_one_day) | int if current_user.trial_ends_at else 0 %}
+            {# ── Status banner ─────────────────────────────────────────────── #}
+            {% if plan_mode == "trial" %}
+            {% set days_left = ((current_user.active_tenant.trial_ends_at - now_utc()) / timedelta_one_day) | int if current_user.active_tenant and current_user.active_tenant.trial_ends_at else 0 %}
             <div class="alert alert-info mb-4" role="alert">
                 <i class="bi bi-hourglass-split me-2"></i>
                 {% if days_left > 0 %}
@@ -15,83 +16,203 @@
                     {{ _("Tu periodo de prueba gratuita ha finalizado.") }}
                 {% endif %}
             </div>
-            {% elif current_user.subscription_status == "past_due" %}
+            {% elif plan_mode == "read_only" %}
             <div class="alert alert-warning mb-4" role="alert">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                {{ _("Hay un problema con tu método de pago. Actualízalo para mantener el acceso.") }}
+                <i class="bi bi-lock-fill me-2"></i>
+                {% if current_user.active_tenant and current_user.active_tenant.subscription_status == "past_due" %}
+                    {{ _("Hay un problema con tu método de pago. Actualiza tu suscripción para recuperar el acceso completo.") }}
+                    {% if stripe_configured %}
+                    <form method="post" action="/billing/portal" class="d-inline ms-2">
+                        <button type="submit" class="btn btn-sm btn-warning">
+                            <i class="bi bi-credit-card-fill me-1"></i>{{ _("Actualizar método de pago") }}
+                        </button>
+                    </form>
+                    {% endif %}
+                {% elif current_user.active_tenant and current_user.active_tenant.subscription_status == "canceled" %}
+                    {{ _("Tu suscripción ha sido cancelada. Renuévala para seguir usando Trufiq.") }}
+                {% else %}
+                    {{ _("Tu periodo de prueba ha finalizado. Elige un plan para seguir gestionando tu finca.") }}
+                {% endif %}
             </div>
-            {% elif current_user.subscription_status == "canceled" %}
-            <div class="alert alert-danger mb-4" role="alert">
-                <i class="bi bi-x-circle-fill me-2"></i>
-                {{ _("Tu suscripción ha sido cancelada. Renuévala para seguir usando Trufiq.") }}
-            </div>
-            {% elif current_user.subscription_status == "active" and subscription_is_blocked %}
-            <div class="alert alert-danger mb-4" role="alert">
-                <i class="bi bi-x-circle-fill me-2"></i>
-                {{ _("Tu suscripción ha caducado. Renuévala para seguir usando Trufiq.") }}
-            </div>
-            {% elif current_user.subscription_status == "active" %}
+            {% elif plan_mode in ("basic", "premium", "enterprise") %}
             <div class="alert alert-success mb-4" role="alert">
                 <i class="bi bi-check-circle-fill me-2"></i>
                 {{ _("Tu suscripción está activa.") }}
-                {% if current_user.subscription_ends_at %}
-                    {{ _("Se renueva el %(date)s.", date=current_user.subscription_ends_at.strftime("%d/%m/%Y")) }}
+                {% if current_user.active_tenant and current_user.active_tenant.subscription_ends_at %}
+                    {{ _("Se renueva el %(date)s.", date=current_user.active_tenant.subscription_ends_at.strftime("%d/%m/%Y")) }}
+                {% endif %}
+                — {{ _("Plan actual:") }} <strong>{{ plan_mode | capitalize }}</strong>
+                {% if current_user.active_tenant and current_user.active_tenant.pending_plan %}
+                <br><i class="bi bi-arrow-down-circle me-1 text-warning"></i>
+                {{ _("Bajará a %(plan)s al próximo ciclo de facturación.", plan=current_user.active_tenant.pending_plan | capitalize) }}
                 {% endif %}
             </div>
             {% endif %}
 
-            <div class="card shadow-sm border-0">
-                <div class="card-body p-4 p-lg-5">
-                    <h1 class="h3 mb-1 fw-bold">
-                        <i class="bi bi-star-fill text-warning me-2"></i>{{ _("Suscripción anual") }}
-                    </h1>
-                    <p class="text-muted mb-4">
-                        {{ _("Acceso completo a Trufiq durante un año: parcelas, producción, riego, finanzas, gráficas y asistente IA.") }}
-                    </p>
+            <h1 class="h3 fw-bold mb-1 text-center">{{ _("Elige tu plan") }}</h1>
+            <p class="text-muted text-center mb-4">{{ _("Todos los planes incluyen el núcleo de Trufiq. Escala según tus necesidades.") }}</p>
 
-                    <ul class="list-unstyled mb-4">
-                        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>{{ _("Parcelas y plantas ilimitadas") }}</li>
-                        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>{{ _("Control de gastos e ingresos por campaña") }}</li>
-                        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>{{ _("Gestión de riego, pozos y lluvia") }}</li>
-                        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>{{ _("Gráficas y KPIs de rendimiento") }}</li>
-                        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>{{ _("Importación y exportación de datos") }}</li>
-                        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>{{ _("Asistente IA con tus datos") }}</li>
-                    </ul>
+            <div class="row g-4">
 
-                    {% if stripe_configured %}
-                        {% if current_user.subscription_status == "active" and not subscription_is_blocked %}
-                        <form method="post" action="/billing/portal">
-                            <button type="submit" class="btn btn-outline-primary btn-lg w-100">
-                                <i class="bi bi-gear-fill me-2"></i>{{ _("Gestionar suscripción") }}
-                            </button>
-                        </form>
-                        {% else %}
-                        <form method="post" action="/billing/checkout">
-                            <button type="submit" class="btn btn-primary btn-lg w-100">
-                                <i class="bi bi-credit-card-fill me-2"></i>{{ _("Suscribirse ahora") }}
-                            </button>
-                        </form>
-                        {% if current_user.subscription_status == "past_due" %}
-                        <form method="post" action="/billing/portal" class="mt-2">
-                            <button type="submit" class="btn btn-outline-warning w-100">
-                                <i class="bi bi-arrow-clockwise me-2"></i>{{ _("Actualizar método de pago") }}
-                            </button>
-                        </form>
+                {# ── Basic ─────────────────────────────────────────────────── #}
+                <div class="col-md-4">
+                    <div class="card h-100 shadow-sm {% if plan_mode == 'basic' %}border-success{% endif %}">
+                        {% if plan_mode == 'basic' %}
+                        <div class="card-header text-center bg-success text-white small fw-semibold">{{ _("Tu plan actual") }}</div>
                         {% endif %}
-                        {% endif %}
-                    {% else %}
-                    <div class="alert alert-secondary">
-                        <i class="bi bi-info-circle me-2"></i>
-                        {{ _("El sistema de pago no está configurado todavía. Por favor, contacta con el administrador.") }}
+                        <div class="card-body d-flex flex-column p-4">
+                            <h2 class="h5 fw-bold mb-0">{{ _("Básico") }}</h2>
+                            <p class="text-muted small mb-3">{{ _("Para pequeñas explotaciones") }}</p>
+                            <ul class="list-unstyled mb-4 flex-grow-1">
+                                <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>{{ _("Parcelas, gastos e ingresos") }}</li>
+                                <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>{{ _("Riego y pozos") }}</li>
+                                <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>{{ _("Registro de lluvia") }}</li>
+                                <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>{{ _("Hasta 500 plantas") }}</li>
+                                <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>{{ _("Importación y exportación") }}</li>
+                                <li class="mb-2 text-muted"><i class="bi bi-x-circle me-2"></i>{{ _("Tiempo meteorológico") }}</li>
+                                <li class="mb-2 text-muted"><i class="bi bi-x-circle me-2"></i>{{ _("Analítica de parcelas") }}</li>
+                                <li class="mb-2 text-muted"><i class="bi bi-x-circle me-2"></i>{{ _("Asistente IA") }}</li>
+                            </ul>
+                            {% if stripe_configured and basic_configured %}
+                                {% if plan_mode == 'basic' %}
+                                <form method="post" action="/billing/portal">
+                                    <button type="submit" class="btn btn-outline-success w-100">
+                                        <i class="bi bi-gear-fill me-2"></i>{{ _("Gestionar suscripción") }}
+                                    </button>
+                                </form>
+                                {% elif plan_mode in ('premium', 'enterprise') %}
+                                <form method="post" action="/billing/upgrade">
+                                    <input type="hidden" name="plan" value="basic">
+                                    <button type="submit" class="btn btn-outline-secondary w-100">
+                                        <i class="bi bi-arrow-down-circle me-2"></i>{{ _("Cambiar a Básico") }}
+                                    </button>
+                                </form>
+                                {% else %}
+                                <form method="post" action="/billing/checkout">
+                                    <input type="hidden" name="plan" value="basic">
+                                    <button type="submit" class="btn btn-outline-primary w-100">
+                                        <i class="bi bi-credit-card-fill me-2"></i>{{ _("Elegir Básico") }}
+                                    </button>
+                                </form>
+                                {% endif %}
+                            {% endif %}
+                        </div>
                     </div>
-                    {% endif %}
-
-                    <p class="text-muted small text-center mt-3 mb-0">
-                        <i class="bi bi-shield-lock-fill me-1"></i>
-                        {{ _("Pago seguro con Stripe. Cancela en cualquier momento.") }}
-                    </p>
                 </div>
-            </div>
+
+                {# ── Premium ───────────────────────────────────────────────── #}
+                <div class="col-md-4">
+                    <div class="card h-100 shadow {% if plan_mode == 'premium' %}border-primary{% else %}border-primary border-2{% endif %}">
+                        {% if plan_mode == 'premium' %}
+                        <div class="card-header text-center bg-primary text-white small fw-semibold">{{ _("Tu plan actual") }}</div>
+                        {% elif plan_mode not in ('enterprise',) %}
+                        <div class="card-header text-center bg-primary text-white small fw-semibold">{{ _("Recomendado") }}</div>
+                        {% endif %}
+                        <div class="card-body d-flex flex-column p-4">
+                            <h2 class="h5 fw-bold mb-0">{{ _("Premium") }}</h2>
+                            <p class="text-muted small mb-3">{{ _("Para gestión avanzada") }}</p>
+                            <ul class="list-unstyled mb-4 flex-grow-1">
+                                <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>{{ _("Todo lo de Básico") }}</li>
+                                <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>{{ _("Hasta 2.000 plantas") }}</li>
+                                <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>{{ _("Tiempo meteorológico") }}</li>
+                                <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>{{ _("Analítica de parcelas") }}</li>
+                                <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>{{ _("Simulador de riego") }}</li>
+                                <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>{{ _("Asistente IA") }}</li>
+                                <li class="mb-2 text-muted"><i class="bi bi-x-circle me-2"></i>{{ _("Multi-usuario") }}</li>
+                            </ul>
+                            {% if stripe_configured and premium_configured %}
+                                {% if plan_mode == 'premium' %}
+                                <form method="post" action="/billing/portal">
+                                    <button type="submit" class="btn btn-outline-primary w-100">
+                                        <i class="bi bi-gear-fill me-2"></i>{{ _("Gestionar suscripción") }}
+                                    </button>
+                                </form>
+                                {% elif plan_mode == 'basic' %}
+                                <form method="post" action="/billing/upgrade">
+                                    <input type="hidden" name="plan" value="premium">
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="bi bi-arrow-up-circle me-2"></i>{{ _("Actualizar a Premium") }}
+                                    </button>
+                                </form>
+                                {% elif plan_mode == 'enterprise' %}
+                                <form method="post" action="/billing/upgrade">
+                                    <input type="hidden" name="plan" value="premium">
+                                    <button type="submit" class="btn btn-outline-secondary w-100">
+                                        <i class="bi bi-arrow-down-circle me-2"></i>{{ _("Cambiar a Premium") }}
+                                    </button>
+                                </form>
+                                {% else %}
+                                <form method="post" action="/billing/checkout">
+                                    <input type="hidden" name="plan" value="premium">
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="bi bi-credit-card-fill me-2"></i>{{ _("Elegir Premium") }}
+                                    </button>
+                                </form>
+                                {% endif %}
+                            {% else %}
+                            <div class="alert alert-secondary small py-2">
+                                <i class="bi bi-info-circle me-1"></i>{{ _("Próximamente") }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                {# ── Enterprise ────────────────────────────────────────────── #}
+                <div class="col-md-4">
+                    <div class="card h-100 shadow-sm {% if plan_mode == 'enterprise' %}border-warning{% endif %}">
+                        {% if plan_mode == 'enterprise' %}
+                        <div class="card-header text-center bg-warning text-dark small fw-semibold">{{ _("Tu plan actual") }}</div>
+                        {% endif %}
+                        <div class="card-body d-flex flex-column p-4">
+                            <h2 class="h5 fw-bold mb-0">{{ _("Enterprise") }}</h2>
+                            <p class="text-muted small mb-3">{{ _("Para empresas y cooperativas") }}</p>
+                            <ul class="list-unstyled mb-4 flex-grow-1">
+                                <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>{{ _("Todo lo de Premium") }}</li>
+                                <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>{{ _("Plantas ilimitadas") }}</li>
+                                <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>{{ _("Multi-usuario y roles") }}</li>
+                                <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>{{ _("Gestión de invitaciones") }}</li>
+                                <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i>{{ _("Soporte prioritario") }}</li>
+                            </ul>
+                            {% if stripe_configured and enterprise_configured %}
+                                {% if plan_mode == 'enterprise' %}
+                                <form method="post" action="/billing/portal">
+                                    <button type="submit" class="btn btn-outline-warning w-100">
+                                        <i class="bi bi-gear-fill me-2"></i>{{ _("Gestionar suscripción") }}
+                                    </button>
+                                </form>
+                                {% elif plan_mode in ('basic', 'premium') %}
+                                <form method="post" action="/billing/upgrade">
+                                    <input type="hidden" name="plan" value="enterprise">
+                                    <button type="submit" class="btn btn-outline-warning w-100">
+                                        <i class="bi bi-arrow-up-circle me-2"></i>{{ _("Actualizar a Enterprise") }}
+                                    </button>
+                                </form>
+                                {% else %}
+                                <form method="post" action="/billing/checkout">
+                                    <input type="hidden" name="plan" value="enterprise">
+                                    <button type="submit" class="btn btn-outline-warning w-100">
+                                        <i class="bi bi-credit-card-fill me-2"></i>{{ _("Elegir Enterprise") }}
+                                    </button>
+                                </form>
+                                {% endif %}
+                            {% else %}
+                            <a href="mailto:hola@trufiq.app" class="btn btn-outline-secondary w-100">
+                                <i class="bi bi-envelope me-2"></i>{{ _("Contactar") }}
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+            </div>{# /row #}
+
+            {% if stripe_configured %}
+            <p class="text-muted small text-center mt-4 mb-0">
+                <i class="bi bi-shield-lock-fill me-1"></i>
+                {{ _("Pago seguro con Stripe. Cancela o cambia de plan en cualquier momento.") }}
+            </p>
+            {% endif %}
 
         </div>
     </div>

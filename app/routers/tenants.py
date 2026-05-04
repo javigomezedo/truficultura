@@ -11,6 +11,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import require_user
+from app.plan_access import require_feature
 from app.database import get_db
 from app.models.user import User
 from app.services import invitation_service, tenant_service
@@ -31,7 +32,7 @@ _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 @router.get("/settings", response_class=HTMLResponse)
 async def tenant_settings(
     request: Request,
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_feature("tenants")),
     db: AsyncSession = Depends(get_db),
 ):
     tenant = await tenant_service.get_tenant(db, current_user.active_tenant_id)
@@ -87,7 +88,7 @@ async def change_member_role(
     user_id: int,
     request: Request,
     role: str = Form(...),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_feature("tenants")),
     db: AsyncSession = Depends(get_db),
 ):
     membership = await tenant_service.get_membership(
@@ -114,7 +115,7 @@ async def change_member_role(
 async def remove_member(
     user_id: int,
     request: Request,
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_feature("tenants")),
     db: AsyncSession = Depends(get_db),
 ):
     membership = await tenant_service.get_membership(
@@ -144,7 +145,7 @@ async def send_invitation(
     request: Request,
     email: str = Form(...),
     role: str = Form("member"),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_feature("tenants")),
     db: AsyncSession = Depends(get_db),
 ):
     membership = await tenant_service.get_membership(
@@ -210,7 +211,7 @@ async def send_invitation(
 @router.post("/invitations/{invitation_id}/revoke", response_class=RedirectResponse)
 async def revoke_invitation(
     invitation_id: int,
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_feature("tenants")),
     db: AsyncSession = Depends(get_db),
 ):
     membership = await tenant_service.get_membership(

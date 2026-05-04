@@ -162,6 +162,7 @@
         </div>
 
         <!-- Widget de tiempo -->
+        {% if session_has_feature(request.session, 'tiempo') %}
         <div class="col-12 col-lg-4">
             <h6 class="text-uppercase text-muted fw-semibold mb-2 small">
                 <i class="bi bi-thermometer-sun text-warning me-1"></i>{{ _("Tiempo en directo") }}
@@ -187,6 +188,7 @@
                 </div>
             </div>
         </div>
+        {% endif %}
 
     </div>
 

@@ -221,10 +221,25 @@
                 {% if request.session.get("username") %}
                     {% set first_name = request.session.get("first_name") or request.session.get("username") %}
                     {% set last_name = request.session.get("last_name") or "" %}
+                    {% set _plan_mode = session_plan_mode(request.session) %}
                     <span class="navbar-text text-light small tf-navbar-user"
                           title="{{ first_name }} {{ last_name }}">
                         <i class="bi bi-person-circle me-1"></i>{{ first_name }}{% if last_name %} {{ last_name }}{% endif %}
                     </span>
+                    {% if request.session.get("role") != "admin" %}
+                    <a href="/billing/subscribe"
+                       class="badge text-decoration-none
+                              {% if _plan_mode == 'trial' %}bg-info text-dark
+                              {% elif _plan_mode == 'read_only' %}bg-danger
+                              {% elif _plan_mode == 'basic' %}bg-secondary
+                              {% elif _plan_mode == 'premium' %}bg-warning text-dark
+                              {% else %}bg-success{% endif %}"
+                       title="{{ _('Ver plan') }}">
+                        {% if _plan_mode == 'trial' %}{{ _("Prueba") }}
+                        {% elif _plan_mode == 'read_only' %}{{ _("Caducado") }}
+                        {% else %}{{ _plan_mode | capitalize }}{% endif %}
+                    </a>
+                    {% endif %}
                 {% endif %}
                     <div class="dropdown tf-navbar-language-dropdown">
                         <button class="btn btn-outline-light btn-sm dropdown-toggle"
@@ -289,9 +304,11 @@
                         <i class="bi bi-credit-card me-1"></i>{{ _("Suscripción") }}
                     </a>
                     {% endif %}
+                    {% if session_has_feature(request.session, 'tenants') %}
                     <a href="/tenant/settings" class="btn btn-outline-light btn-sm" title="{{ _('Ajustes de la organización') }}">
                         <i class="bi bi-building-gear"></i>
                     </a>
+                    {% endif %}
                     <form action="/logout" method="post" class="d-inline m-0">
                         <button type="submit" class="btn btn-outline-light btn-sm">
                             <i class="bi bi-box-arrow-right me-1"></i>{{ _("Salir") }}
@@ -304,7 +321,13 @@
     </nav>
 
     <!-- Flash message -->
-    {% if msg and (msg_type|default('success')) != 'error' %}
+    {% if msg and (msg_type|default('success')) == 'warning' %}
+    <div class="alert alert-warning alert-dismissible fade show alert-flash" role="alert" id="flashMsg">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ msg | replace('+', ' ') }}
+        <a href="/billing/subscribe" class="alert-link ms-2">{{ _("Ver planes") }}</a>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ _('Cerrar') }}"></button>
+    </div>
+    {% elif msg and (msg_type|default('success')) != 'error' %}
     <div class="alert alert-success alert-dismissible fade show alert-flash" role="alert" id="flashMsg">
         <i class="bi bi-check-circle-fill me-2"></i>{{ msg | replace('+', ' ') }}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ _('Cerrar') }}"></button>
@@ -328,6 +351,13 @@
                     {{ _("Te quedan %(days)s días de prueba gratuita.", days=trial_days_left) }}
                 {% endif %}
                 <a href="/billing/subscribe" class="alert-link ms-2">{{ _("Suscribirse ahora") }}</a>
+                <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert" aria-label="{{ _('Cerrar') }}"></button>
+            </div>
+            {% else %}
+            <div class="alert alert-danger alert-dismissible fade show mb-0 rounded-0 border-0 border-bottom text-center py-2 small" role="alert">
+                <i class="bi bi-exclamation-circle-fill me-1"></i>
+                {{ _("Tu periodo de prueba ha finalizado. Suscríbete para seguir usando Trufiq.") }}
+                <a href="/billing/subscribe" class="alert-link ms-2">{{ _("Ver planes") }}</a>
                 <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert" aria-label="{{ _('Cerrar') }}"></button>
             </div>
             {% endif %}
@@ -363,7 +393,7 @@
         <span>Trufiq &mdash; {{ _("Gestión de explotación trufícola") }}</span>
     </footer>
 
-    {% if request.session.get("username") %}
+    {% if request.session.get("username") and session_has_feature(request.session, 'asistente_ia') %}
     <button type="button"
             class="btn btn-primary tf-assistant-launch"
             data-bs-toggle="offcanvas"

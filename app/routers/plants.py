@@ -13,6 +13,7 @@ from app.auth import require_subscription
 from app.database import get_db
 from app.i18n import _
 from app.models.user import User
+from app.plan_access import require_plant_limit, require_write_access, get_plan_mode, PLANT_LIMIT_BASIC
 from app.services import (
     plant_presence_service,
     plants_service,
@@ -188,7 +189,7 @@ async def toggle_plant_presence(
     presence_date: str = Form(...),
     campaign: Optional[str] = Form(default=None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     # Validate the plot belongs to the user
     from app.services.plots_service import get_plot as _get_plot
@@ -274,7 +275,7 @@ async def configure_map_submit(
     plot_id: int,
     row_config: str = Form(...),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     """row_config supports only sparse row format (e.g. A:2-5,8; B:1,3,4)."""
     plot = await get_plot(db, plot_id, current_user.active_tenant_id)
@@ -293,8 +294,10 @@ async def configure_map_submit(
         )
 
     try:
+        plant_limit = PLANT_LIMIT_BASIC if get_plan_mode(current_user) == "basic" else None
         await plants_service.configure_plot_map(
-            db, plot, tenant_id=current_user.active_tenant_id, row_columns=row_columns
+            db, plot, tenant_id=current_user.active_tenant_id, row_columns=row_columns,
+            plant_limit=plant_limit,
         )
     except ValueError as exc:
         return RedirectResponse(
@@ -321,7 +324,7 @@ async def add_truffle_event(
     campaign: Optional[str] = Form(default=None),
     estimated_weight_grams: float = Form(default=1.0),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_plant_limit),
 ):
     plant = await plants_service.get_plant(db, plant_id, current_user.active_tenant_id)
     if plant is None or plant.plot_id != plot_id:
@@ -361,7 +364,7 @@ async def undo_truffle_event(
     plant_id: int,
     campaign: Optional[str] = Form(default=None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     plant = await plants_service.get_plant(db, plant_id, current_user.active_tenant_id)
     if plant is None or plant.plot_id != plot_id:
@@ -394,7 +397,7 @@ async def delete_truffle_event_from_list(
     plot_id: Optional[str] = Form(default=None),
     plant_id: Optional[str] = Form(default=None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     deleted = await truffle_events_service.delete_event(
         db,

@@ -3,6 +3,7 @@
 {% block title %}{{ _("Ingresos") }} &mdash; Trufiq{% endblock %}
 
 {% block content %}
+{% set read_only = session_plan_mode(request.session) == 'read_only' %}
 <div class="container-xl">
     <div class="tf-page-header">
         <div>
@@ -12,9 +13,11 @@
             </h1>
             <p class="tf-page-subtitle">{{ incomes|length }} {{ _("ingreso(s) registrado(s)") }}{% if selected_year %} {{ _("en campaña") }} {{ selected_year|campaign_label }} <small class="text-nowrap">({{ selected_year|campaign_months }})</small>{% endif %}</p>
         </div>
+        {% if not read_only %}
         <a href="/incomes/new" class="btn btn-success">
             <i class="bi bi-plus-circle me-1"></i> {{ _("Nuevo Ingreso") }}
         </a>
+        {% endif %}
     </div>
 
     <!-- Filter bar -->
@@ -96,6 +99,7 @@
                                         <i class="bi bi-three-dots-vertical"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                        {% if not read_only %}
                                         <li>
                                             <a href="/incomes/{{ i.id }}/edit" class="dropdown-item">
                                                 <i class="bi bi-pencil-fill me-2 text-primary"></i>{{ _('Editar') }}
@@ -111,6 +115,7 @@
                                                 </button>
                                             </form>
                                         </li>
+                                        {% endif %}
                                     </ul>
                                 </div>
                             </td>
@@ -129,9 +134,11 @@
                     {{ _("No hay ingresos registrados todavía.") }}
                     {% endif %}
                 </p>
+                {% if not read_only %}
                 <a href="/incomes/new" class="btn btn-success">
                     <i class="bi bi-plus-circle me-1"></i> {{ _("Registrar primer ingreso") }}
                 </a>
+                {% endif %}
             </div>
             {% endif %}
         </div>

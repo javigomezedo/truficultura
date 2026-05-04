@@ -10,6 +10,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import require_admin, require_user
+from app.plan_access import require_feature
 from app.config import settings
 from app.database import get_db
 from app.i18n import _
@@ -112,7 +113,7 @@ async def assistant_chat(
     body: AssistantRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_feature("asistente_ia")),
 ) -> AssistantResponse:
     _enforce_rate_limit(request)
     started = perf_counter()
@@ -150,7 +151,7 @@ async def assistant_stream(
     body: AssistantRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_feature("asistente_ia")),
 ) -> StreamingResponse:
     _enforce_rate_limit(request)
     started = perf_counter()
@@ -224,7 +225,7 @@ async def assistant_stream(
 async def assistant_transcribe(
     request: Request,
     file: UploadFile = File(...),
-    current_user: User = Depends(require_user),
+    current_user: User = Depends(require_feature("asistente_ia")),
 ) -> dict:
     adapter = _get_adapter()
     audio_bytes = await file.read()

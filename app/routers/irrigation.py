@@ -11,6 +11,7 @@ from app.auth import require_subscription
 from app.database import get_db
 from app.i18n import _
 from app.models.user import User
+from app.plan_access import require_feature, require_write_access
 from app.schemas.irrigation import IrrigationCreate, IrrigationUpdate
 from app.services.irrigation_service import (
     create_irrigation_record as create_service,
@@ -32,7 +33,7 @@ templates = Jinja2Templates(directory="app/templates")
 async def simulate_view(
     plot_id: int = Query(...),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_feature("simulador_riego")),
 ):
     sim = await simulate_irrigation(db, current_user.active_tenant_id, plot_id, datetime.date.today())
     if sim is None:
@@ -96,7 +97,7 @@ async def create_view(
     expense_id: Optional[int] = Form(None),
     notes: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     data = IrrigationCreate(
         plot_id=plot_id,
@@ -140,7 +141,7 @@ async def bulk_new_form(
 async def bulk_create_view(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     form = await request.form()
     plot_ids = form.getlist("plot_id")
@@ -233,7 +234,7 @@ async def update_view(
     expense_id: Optional[int] = Form(None),
     notes: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     record = await get_irrigation_record(db, record_id, current_user.active_tenant_id)
     if record is None:
@@ -260,7 +261,7 @@ async def delete_view(
     request: Request,
     record_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     await delete_service(db, record_id, current_user.active_tenant_id)
     return RedirectResponse(

@@ -39,6 +39,9 @@ class Tenant(Base):
     stripe_customer_id: Mapped[Optional[str]] = mapped_column(
         String(100), nullable=True, unique=True, index=True
     )
+    stripe_subscription_id: Mapped[Optional[str]] = mapped_column(
+        String(100), nullable=True, unique=True, index=True
+    )
     subscription_status: Mapped[str] = mapped_column(
         String(30), default="trialing", server_default="trialing", nullable=False
     )
@@ -47,6 +50,12 @@ class Tenant(Base):
     )
     subscription_ends_at: Mapped[Optional[datetime.datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
+    )
+    plan: Mapped[Optional[str]] = mapped_column(
+        String(20), nullable=True
+    )
+    pending_plan: Mapped[Optional[str]] = mapped_column(
+        String(20), nullable=True
     )
 
     # Relationships

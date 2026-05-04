@@ -13,6 +13,7 @@ from app.database import get_db
 from app.i18n import _
 from app.models.expense import EXPENSE_CATEGORIES
 from app.models.user import User
+from app.plan_access import require_write_access
 from app.services.expenses_service import (
     create_expense as create_expense_service,
     create_prorated_expense as create_prorated_expense_service,
@@ -101,7 +102,7 @@ async def create_expense(
     prorate_years: Optional[int] = Form(None),
     start_year: Optional[int] = Form(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     if prorate_years and prorate_years >= 2:
         effective_start_year = start_year if start_year else date.year
@@ -177,7 +178,7 @@ async def update_expense(
     amount: float = Form(0.0),
     category: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     obj = await get_expense(db, expense_id, current_user.active_tenant_id)
     if obj is None:
@@ -207,7 +208,7 @@ async def delete_proration_group(
     request: Request,
     group_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     group = await get_proration_group(db, group_id, current_user.active_tenant_id)
     if group:
@@ -223,7 +224,7 @@ async def delete_expense(
     request: Request,
     expense_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     obj = await get_expense(db, expense_id, current_user.active_tenant_id)
     if obj:
@@ -240,7 +241,7 @@ async def upload_receipt(
     expense_id: int,
     receipt: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     """Upload a receipt file to an expense."""
     obj = await get_expense(db, expense_id, current_user.active_tenant_id)
@@ -302,7 +303,7 @@ async def delete_expense_receipt(
     request: Request,
     expense_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     """Delete a receipt from an expense."""
     obj = await get_expense(db, expense_id, current_user.active_tenant_id)

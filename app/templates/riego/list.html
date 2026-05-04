@@ -3,6 +3,7 @@
 {% block title %}{{ _("Riego") }} &mdash; Trufiq{% endblock %}
 
 {% block content %}
+{% set read_only = session_plan_mode(request.session) == 'read_only' %}
 <div class="container-xl">
     <div class="tf-page-header">
         <div>
@@ -15,12 +16,14 @@
                 {% if selected_year %} {{ _("en campaña") }} {{ selected_year|campaign_label }}{% endif %}
             </p>
         </div>
+        {% if not read_only %}
         <a href="/irrigation/new" class="btn btn-outline-primary">
             <i class="bi bi-plus-circle me-1"></i> {{ _("Nuevo registro") }}
         </a>
         <a href="/irrigation/bulk-new" class="btn btn-primary">
             <i class="bi bi-table me-1"></i> {{ _("Registrar factura (todos los bancales)") }}
         </a>
+        {% endif %}
     </div>
 
     {% if msg %}
@@ -66,6 +69,7 @@
         </div>
 
         {# ── Simulador de riego inline ── #}
+        {% if not read_only %}
         <div class="col-md-8">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header py-2 px-3 d-flex align-items-center justify-content-between"
@@ -91,6 +95,7 @@
                 </div>
             </div>
         </div>
+        {% endif %}
     </div>
 
     <!-- Filtros -->
@@ -187,6 +192,7 @@
                                         <i class="bi bi-three-dots-vertical"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                        {% if not read_only %}
                                         <li>
                                             <a href="/irrigation/{{ r.id }}/edit" class="dropdown-item">
                                                 <i class="bi bi-pencil-fill me-2 text-primary"></i>{{ _('Editar') }}
@@ -202,6 +208,7 @@
                                                 </button>
                                             </form>
                                         </li>
+                                        {% endif %}
                                     </ul>
                                 </div>
                             </td>
@@ -223,7 +230,7 @@
                 <i class="bi bi-droplet fs-1 d-block mb-2 opacity-25"></i>
                 <p>{{ _("No hay registros de riego") }}
                    {% if selected_year or selected_plot %}{{ _("para los filtros seleccionados") }}{% endif %}.</p>
-                {% if not selected_year and not selected_plot %}
+                {% if not selected_year and not selected_plot and not read_only %}
                 <a href="/irrigation/new" class="btn btn-primary">
                     <i class="bi bi-plus-circle me-1"></i> {{ _("Registrar primer riego") }}
                 </a>

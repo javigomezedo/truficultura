@@ -3,6 +3,7 @@
 {% block title %}{{ _("Importar datos") }} — Trufiq{% endblock %}
 
 {% block content %}
+{% set read_only = session_plan_mode(request.session) == 'read_only' %}
 <div class="container-xl">
     <div class="tf-page-header">
         <div>
@@ -44,6 +45,15 @@
 {% endif %}
 
 <!-- Tabs -->
+{% if read_only %}
+<div class="alert alert-warning d-flex align-items-center gap-2" role="alert">
+    <i class="bi bi-lock-fill fs-5"></i>
+    <div>
+        {{ _("Tu suscripción ha expirado. La importación de datos está desactivada.") }}
+        <a href="/billing/subscribe" class="alert-link ms-1">{{ _("Renueva tu plan") }}</a>
+    </div>
+</div>
+{% else %}
 <ul class="nav nav-tabs mb-4" id="importTabs" role="tablist" data-manual-tabs data-tabs-target="#importTabContent">
     <li class="nav-item" role="presentation">
         <button class="nav-link {% if active_tab == 'all_zip' %}active{% endif %}"
@@ -871,6 +881,7 @@
 
 
 </div>
+{% endif %}{# end read_only check #}
 </div>
 {% endblock %}
 

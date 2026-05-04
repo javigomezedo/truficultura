@@ -17,13 +17,21 @@ def _user(**kwargs):
     tenant_kwargs = {
         k: kwargs.pop(k)
         for k in list(kwargs)
-        if k in ("subscription_status", "stripe_customer_id", "trial_ends_at", "subscription_ends_at")
+        if k
+        in (
+            "subscription_status",
+            "stripe_customer_id",
+            "trial_ends_at",
+            "subscription_ends_at",
+        )
     }
     tenant_defaults = dict(
         subscription_status="trialing",
         stripe_customer_id="cus_test",
         trial_ends_at=None,
         subscription_ends_at=None,
+        plan="basic",
+        pending_plan=None,
     )
     tenant_defaults.update(tenant_kwargs)
     tenant = SimpleNamespace(**tenant_defaults)
@@ -65,7 +73,7 @@ def test_billing_subscribe_renders(monkeypatch) -> None:
         app.dependency_overrides.clear()
 
     assert response.status_code == 200
-    assert "Suscripción" in response.text
+    assert "Elige tu plan" in response.text
 
 
 # ── /billing/checkout ─────────────────────────────────────────────────────────
@@ -106,6 +114,79 @@ def test_billing_checkout_returns_503_on_error(monkeypatch) -> None:
         app.dependency_overrides.clear()
 
     assert response.status_code == 503
+
+
+def test_billing_checkout_with_plan_premium(monkeypatch) -> None:
+    user = _user()
+    app.dependency_overrides[require_user] = lambda: user
+    app.dependency_overrides[get_db] = lambda: _db()
+
+    monkeypatch.setattr(
+        "app.routers.billing.billing_service.create_checkout_session",
+        AsyncMock(return_value="https://checkout.stripe.com/pay/prem"),
+    )
+
+    try:
+        response = TestClient(app).post(
+            "/billing/checkout",
+            data={"plan": "premium"},
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "https://checkout.stripe.com/pay/prem"
+
+
+def test_billing_checkout_with_plan_enterprise(monkeypatch) -> None:
+    user = _user()
+    app.dependency_overrides[require_user] = lambda: user
+    app.dependency_overrides[get_db] = lambda: _db()
+
+    monkeypatch.setattr(
+        "app.routers.billing.billing_service.create_checkout_session",
+        AsyncMock(return_value="https://checkout.stripe.com/pay/ent"),
+    )
+
+    try:
+        response = TestClient(app).post(
+            "/billing/checkout",
+            data={"plan": "enterprise"},
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "https://checkout.stripe.com/pay/ent"
+
+
+def test_billing_checkout_invalid_plan_falls_back_to_basic(monkeypatch) -> None:
+    """An unrecognised plan value is normalised to 'basic' by the router."""
+    user = _user()
+    app.dependency_overrides[require_user] = lambda: user
+    app.dependency_overrides[get_db] = lambda: _db()
+
+    mock_checkout = AsyncMock(return_value="https://checkout.stripe.com/pay/basic")
+    monkeypatch.setattr(
+        "app.routers.billing.billing_service.create_checkout_session",
+        mock_checkout,
+    )
+
+    try:
+        response = TestClient(app).post(
+            "/billing/checkout",
+            data={"plan": "hacker_plan"},
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    # The service must have been called with plan="basic"
+    called_kwargs = mock_checkout.call_args[1]
+    assert called_kwargs.get("plan") == "basic"
 
 
 # ── /billing/success ──────────────────────────────────────────────────────────
@@ -244,3 +325,78 @@ def test_stripe_webhook_runtime_error(monkeypatch) -> None:
         app.dependency_overrides.clear()
 
     assert response.status_code == 503
+
+
+# ── /billing/upgrade ────────────────────────────────────────────────────────────────
+
+
+def test_billing_upgrade_redirects_to_stripe_on_success(monkeypatch) -> None:
+    user = _user(subscription_status="active")
+    app.dependency_overrides[require_user] = lambda: user
+    app.dependency_overrides[get_db] = lambda: _db()
+
+    monkeypatch.setattr(
+        "app.routers.billing.billing_service.create_upgrade_checkout_session",
+        AsyncMock(return_value="https://checkout.stripe.com/pay/cs_test_upgrade"),
+    )
+
+    try:
+        response = TestClient(app).post(
+            "/billing/upgrade",
+            data={"plan": "premium"},
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert "checkout.stripe.com" in response.headers["location"]
+
+
+def test_billing_upgrade_redirects_with_error_on_failure(monkeypatch) -> None:
+    user = _user(subscription_status="active")
+    app.dependency_overrides[require_user] = lambda: user
+    app.dependency_overrides[get_db] = lambda: _db()
+
+    monkeypatch.setattr(
+        "app.routers.billing.billing_service.create_upgrade_checkout_session",
+        AsyncMock(side_effect=RuntimeError("No active subscription found")),
+    )
+
+    try:
+        response = TestClient(app).post(
+            "/billing/upgrade",
+            data={"plan": "premium"},
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert "/billing/subscribe" in response.headers["location"]
+    assert "msg_type=danger" in response.headers["location"]
+
+
+def test_billing_upgrade_invalid_plan_falls_back_to_premium(monkeypatch) -> None:
+    user = _user(subscription_status="active")
+    app.dependency_overrides[require_user] = lambda: user
+    app.dependency_overrides[get_db] = lambda: _db()
+
+    mock_upgrade = AsyncMock(return_value="https://checkout.stripe.com/pay/cs_test")
+    monkeypatch.setattr(
+        "app.routers.billing.billing_service.create_upgrade_checkout_session",
+        mock_upgrade,
+    )
+
+    try:
+        response = TestClient(app).post(
+            "/billing/upgrade",
+            data={"plan": "hacker_plan"},
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    called_plan = mock_upgrade.call_args[0][2]
+    assert called_plan == "premium"

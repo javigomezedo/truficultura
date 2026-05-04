@@ -22,6 +22,7 @@
 {% endblock %}
 
 {% block content %}
+{% set read_only = session_plan_mode(request.session) == 'read_only' %}
 <div class="container-xl">
     <div class="tf-page-header">
         <div>
@@ -42,9 +43,11 @@
                     <i class="bi bi-list-ul me-1"></i>{{ _("Lista") }}
                 </a>
             </div>
+            {% if not read_only %}
             <a href="/plot-events/new?view_mode=list" class="btn btn-sm btn-primary">
                 <i class="bi bi-plus-circle me-1"></i>{{ _("Nuevo evento") }}
             </a>
+            {% endif %}
         </div>
     </div>
 
@@ -166,6 +169,7 @@
                                         <i class="bi bi-three-dots-vertical"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                        {% if not read_only %}
                                         <li>
                                             <a href="/plot-events/{{ r.id }}/edit" class="dropdown-item">
                                                 <i class="bi bi-pencil-fill me-2 text-primary"></i>{{ _('Editar') }}
@@ -179,6 +183,7 @@
                                                 </button>
                                             </form>
                                         </li>
+                                        {% endif %}
                                     </ul>
                                 </div>
                                 {% endif %}

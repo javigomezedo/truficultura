@@ -3,6 +3,7 @@
 {% block title %}{% if income %}{{ _("Editar Ingreso") }}{% else %}{{ _("Nuevo Ingreso") }}{% endif %} &mdash; Trufiq{% endblock %}
 
 {% block content %}
+{% set read_only = session_plan_mode(request.session) == 'read_only' %}
 <div class="container-xl">
     <div class="tf-page-header">
         <div>
@@ -132,10 +133,12 @@
                     <a href="/incomes/" class="btn btn-outline-secondary">
                         <i class="bi bi-x-circle me-1"></i> {{ _("Cancelar") }}
                     </a>
+                    {% if not read_only %}
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-check-circle me-1"></i>
                         {% if income %}{{ _("Guardar cambios") }}{% else %}{{ _("Registrar ingreso") }}{% endif %}
                     </button>
+                    {% endif %}
                 </div>
             </form>
         </div>

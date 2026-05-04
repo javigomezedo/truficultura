@@ -102,7 +102,8 @@ def test_settings_page_renders() -> None:
             app.dependency_overrides.clear()
 
     assert response.status_code == 200
-    assert "Finca Demo" in response.text
+    # "Miembros" section is always rendered regardless of plan mode.
+    assert "Miembros" in response.text
 
 
 # ── POST /tenant/settings ─────────────────────────────────────────────────────

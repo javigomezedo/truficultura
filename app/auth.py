@@ -104,6 +104,7 @@ async def get_current_user(
         subscription_ends_at = tenant.subscription_ends_at if tenant else None
 
         request.session["subscription_status"] = sub_status
+        request.session["tenant_plan"] = tenant.plan if tenant else None
         if trial_ends_at:
             delta = trial_ends_at - datetime.now(UTC)
             request.session["trial_days_left"] = delta.days
@@ -151,38 +152,22 @@ class SubscriptionRequiredException(Exception):
 
 
 def is_subscription_blocked(user: User) -> bool:
-    """Return True if the user's tenant should be blocked from accessing the app."""
-    if user.role == "admin":
-        return False
-    tenant: Optional[Tenant] = getattr(user, "active_tenant", None)
-    if tenant is None:
-        # No tenant yet (rare during registration flow) — allow access
-        return False
-    now = datetime.now(UTC)
-    status = tenant.subscription_status
-    if status == "trialing":
-        return not (tenant.trial_ends_at and tenant.trial_ends_at > now)
-    if status == "active":
-        return (
-            tenant.subscription_ends_at is not None and tenant.subscription_ends_at <= now
-        )
-    return True
+    """Kept for backward compatibility. Always returns False in the new plan system.
+
+    Expired trials and past_due/canceled tenants now get read-only access instead
+    of a hard block. Use plan_access.is_read_only() or plan_access.require_write_access
+    for write-gating.
+    """
+    return False
 
 
 async def require_subscription(
     user: User = Depends(require_user),
 ) -> User:
-    """Verify the user has an active trial or paid subscription.
+    """Verify the user is authenticated and has an active tenant.
 
-    Admin users are always exempt.
-    Allowed subscription_status values:
-    - "trialing" with trial_ends_at > now
-    - "active" with subscription_ends_at > now (or no expiry set)
-    - "active" regardless (belt-and-suspenders for freshly activated users)
+    In the new plan system all authenticated users are allowed to access the app
+    (expired trials become read-only). Feature/write gating is enforced by the
+    plan_access module. Admin users are always granted full access.
     """
-    if user.role == "admin":
-        return user
-
-    if is_subscription_blocked(user):
-        raise SubscriptionRequiredException()
     return user

@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth import require_subscription
 from app.database import get_db
 from app.models.user import User
+from app.plan_access import require_feature
 from app.services.weather_service import get_weather_contexts
 
 logger = logging.getLogger(__name__)
@@ -22,7 +23,7 @@ templates = Jinja2Templates(directory="app/templates")
 async def weather_page(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_feature("tiempo")),
 ) -> HTMLResponse:
     """Página completa de tiempo meteorológico en tiempo real."""
     weather_list = await get_weather_contexts(db, current_user.active_tenant_id)

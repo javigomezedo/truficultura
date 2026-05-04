@@ -162,7 +162,7 @@ def test_upload_incomes_renders_result(monkeypatch) -> None:
 def test_upload_plots_renders_result(monkeypatch) -> None:
     fake_db = _build_fake_db()
 
-    async def fake_import_plots_csv(db, content: bytes, user_id: int):
+    async def fake_import_plots_csv(db, content: bytes, tenant_id: int, plant_limit=None):
         return [object()], []
 
     monkeypatch.setattr(

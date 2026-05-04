@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 
 {% block content %}
+{% set read_only = session_plan_mode(request.session) == 'read_only' %}
+{% set has_tenants = session_has_feature(request.session, 'tenants') %}
 <div class="container mt-4">
   <div class="row justify-content-center">
     <div class="col-lg-9">
@@ -39,7 +41,7 @@
       {% endif %}
 
       {# ── Nombre de la organización ── #}
-      {% if membership and membership.role in ("owner", "admin") %}
+      {% if membership and membership.role in ("owner", "admin") and not read_only %}
       <div class="card shadow-sm border-0 mb-4">
         <div class="card-header bg-white fw-semibold py-3">
           <i class="bi bi-pencil-square me-2"></i>{{ _("Nombre de la organización") }}
@@ -73,7 +75,7 @@
                   <th>{{ _("Email") }}</th>
                   <th>{{ _("Rol") }}</th>
                   <th>{{ _("Desde") }}</th>
-                  {% if membership and membership.role in ("owner", "admin") %}
+                  {% if membership and membership.role in ("owner", "admin") and not read_only and has_tenants %}
                   <th></th>
                   {% endif %}
                 </tr>
@@ -93,7 +95,7 @@
                     {% endif %}
                   </td>
                   <td class="text-muted small">{{ m.joined_at.strftime("%d/%m/%Y") }}</td>
-                  {% if membership and membership.role in ("owner", "admin") and m.role != "owner" %}
+                  {% if membership and membership.role in ("owner", "admin") and m.role != "owner" and not read_only and has_tenants %}
                   <td class="text-end">
                     <div class="d-flex gap-2 justify-content-end">
                       <form method="post" action="/tenant/members/{{ m.user_id }}/role" class="d-inline">
@@ -111,7 +113,7 @@
                       </form>
                     </div>
                   </td>
-                  {% elif membership and membership.role in ("owner", "admin") %}
+                  {% elif membership and membership.role in ("owner", "admin") and not read_only and has_tenants %}
                   <td></td>
                   {% endif %}
                 </tr>
@@ -123,7 +125,7 @@
       </div>
 
       {# ── Invitaciones pendientes ── #}
-      {% if membership and membership.role in ("owner", "admin") %}
+      {% if membership and membership.role in ("owner", "admin") and not read_only and has_tenants %}
       <div class="card shadow-sm border-0 mb-4">
         <div class="card-header bg-white fw-semibold py-3">
           <i class="bi bi-envelope-plus me-2"></i>{{ _("Invitar nuevo miembro") }}

@@ -245,7 +245,7 @@ async def import_incomes_csv(
 
 
 async def import_plots_csv(
-    db: AsyncSession, content: bytes, tenant_id: int
+    db: AsyncSession, content: bytes, tenant_id: int, plant_limit: Optional[int] = None
 ) -> tuple[list[Plot], list[str]]:
     """Parse plots CSV and persist rows.
 
@@ -320,6 +320,15 @@ async def import_plots_csv(
             warnings.append(
                 _warning("Línea {line}: error al parsear los datos — omitida", line=i)
             )
+
+    if plant_limit is not None:
+        from app.services.plots_service import _get_effective_plant_total
+        from app.plan_access import PlantLimitExceededException
+
+        current_total = await _get_effective_plant_total(db, tenant_id)
+        new_plants = sum(r.num_plants or 0 for r in rows)
+        if current_total + new_plants > plant_limit:
+            raise PlantLimitExceededException(plant_limit)
 
     db.add_all(rows)
     await db.flush()

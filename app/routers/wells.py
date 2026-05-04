@@ -13,6 +13,7 @@ from app.auth import require_subscription
 from app.database import get_db
 from app.i18n import _
 from app.models.user import User
+from app.plan_access import require_write_access
 from app.schemas.well import WellCreate, WellUpdate
 from app.services.wells_service import (
     create_well as create_service,
@@ -79,7 +80,7 @@ async def create_view(
     expense_id: Optional[int] = Form(None),
     notes: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     data = WellCreate(
         plot_id=plot_id,
@@ -135,7 +136,7 @@ async def update_view(
     expense_id: Optional[int] = Form(None),
     notes: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     record = await get_service(db, well_id, current_user.active_tenant_id)
     if record is None:
@@ -162,7 +163,7 @@ async def delete_view(
     request: Request,
     well_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     await delete_service(db, well_id, current_user.active_tenant_id)
     return RedirectResponse(

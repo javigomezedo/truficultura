@@ -27,6 +27,36 @@ async def get_plant_counts_by_plot(db: AsyncSession, tenant_id: int) -> dict[int
     return {row.plot_id: row.cnt for row in res.all()}
 
 
+async def _get_effective_plant_total(
+    db: AsyncSession,
+    tenant_id: int,
+    *,
+    exclude_plot_id: Optional[int] = None,
+) -> int:
+    """Effective plant total across all tenant plots.
+
+    Uses Plant row count for plots with a configured map; falls back to
+    plot.num_plants for plots without a map. An optional plot can be
+    excluded so callers can compute the delta for create/update scenarios.
+    """
+    plant_counts_res = await db.execute(
+        select(Plant.plot_id, func.count(Plant.id).label("cnt"))
+        .where(Plant.tenant_id == tenant_id)
+        .group_by(Plant.plot_id)
+    )
+    plant_counts: dict[int, int] = {row.plot_id: row.cnt for row in plant_counts_res.all()}
+
+    plots_q = select(Plot.id, Plot.num_plants).where(Plot.tenant_id == tenant_id)
+    if exclude_plot_id is not None:
+        plots_q = plots_q.where(Plot.id != exclude_plot_id)
+    plots_res = await db.execute(plots_q)
+
+    return sum(
+        plant_counts[plot_id] if plot_id in plant_counts else (num_plants or 0)
+        for plot_id, num_plants in plots_res.all()
+    )
+
+
 async def get_plot(db: AsyncSession, plot_id: int, tenant_id: int) -> Optional[Plot]:
     result = await db.execute(
         select(Plot).where(Plot.id == plot_id, Plot.tenant_id == tenant_id)
@@ -77,7 +107,14 @@ async def create_plot(
     caudal_riego: Optional[float] = None,
     provincia_cod: Optional[str] = None,
     municipio_cod: Optional[str] = None,
+    plant_limit: Optional[int] = None,
 ) -> Plot:
+    if plant_limit is not None and num_plants > 0:
+        current = await _get_effective_plant_total(db, tenant_id)
+        if current + num_plants > plant_limit:
+            from app.plan_access import PlantLimitExceededException
+            raise PlantLimitExceededException(plant_limit)
+
     new_plot = Plot(
         tenant_id=tenant_id,
         created_by_user_id=acting_user_id,
@@ -127,7 +164,21 @@ async def update_plot(
     caudal_riego: Optional[float] = None,
     provincia_cod: Optional[str] = None,
     municipio_cod: Optional[str] = None,
+    plant_limit: Optional[int] = None,
 ) -> Plot:
+    # Enforce the limit when num_plants increases.
+    # We always check against _get_effective_plant_total which uses Plant rows for
+    # mapped plots and num_plants for unmapped ones. This also prevents storing a
+    # num_plants value larger than the limit on mapped plots (which would become the
+    # effective count if the map were later deleted).
+    if plant_limit is not None and num_plants > (plot.num_plants or 0):
+        other_total = await _get_effective_plant_total(
+            db, plot.tenant_id, exclude_plot_id=plot.id
+        )
+        if other_total + num_plants > plant_limit:
+            from app.plan_access import PlantLimitExceededException
+            raise PlantLimitExceededException(plant_limit)
+
     plot.name = name
     plot.polygon = polygon
     plot.plot_num = plot_num

@@ -69,16 +69,30 @@ async def configure_plot_map(
     tenant_id: int,
     acting_user_id: Optional[int] = None,
     row_columns: list[list[int]],
+    plant_limit: Optional[int] = None,
 ) -> list[Plant]:
     """Replace the plant layout of a plot.
 
     Raises ValueError if active truffle events already exist (data protection).
+    Raises PlantLimitExceededException if the new map would exceed the plan limit.
     Does NOT modify plot.num_plants — that field is managed via the plot form only.
     """
     if await has_active_truffle_events(db, plot.id, tenant_id):
         raise ValueError(
             _("No se puede regenerar el mapa: existen registros de trufas activos.")
         )
+
+    # Check plant limit: count plants from the new config and compare against
+    # effective total of OTHER plots (current plot's old plants will be deleted).
+    if plant_limit is not None:
+        new_plant_count = sum(len(set(cols)) for cols in row_columns)
+        from app.services.plots_service import _get_effective_plant_total
+        other_total = await _get_effective_plant_total(
+            db, tenant_id, exclude_plot_id=plot.id
+        )
+        if other_total + new_plant_count > plant_limit:
+            from app.plan_access import PlantLimitExceededException
+            raise PlantLimitExceededException(plant_limit)
 
     # Remove all current plants (cascade deletes any orphan truffle_events)
     await db.execute(

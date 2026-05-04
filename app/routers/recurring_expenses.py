@@ -12,6 +12,7 @@ from app.i18n import _
 from app.models.expense import EXPENSE_CATEGORIES
 from app.models.recurring_expense import FREQUENCIES
 from app.models.user import User
+from app.plan_access import require_write_access
 from app.services.recurring_expenses_service import (
     create_recurring_expense as create_recurring_expense_service,
     delete_recurring_expense as delete_recurring_expense_service,
@@ -77,7 +78,7 @@ async def create_recurring_expense(
     person: str = Form(""),
     frequency: str = Form("monthly"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     await create_recurring_expense_service(
         db,
@@ -136,7 +137,7 @@ async def update_recurring_expense(
     frequency: str = Form("monthly"),
     is_active: bool = Form(False),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     obj = await get_recurring_expense(db, recurring_expense_id, current_user.active_tenant_id)
     if obj is None:
@@ -166,7 +167,7 @@ async def delete_recurring_expense(
     request: Request,
     recurring_expense_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     obj = await get_recurring_expense(db, recurring_expense_id, current_user.active_tenant_id)
     if obj:
@@ -182,7 +183,7 @@ async def toggle_recurring_expense(
     request: Request,
     recurring_expense_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     obj = await get_recurring_expense(db, recurring_expense_id, current_user.active_tenant_id)
     if obj is None:
