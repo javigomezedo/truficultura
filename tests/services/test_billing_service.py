@@ -152,7 +152,6 @@ async def test_create_checkout_raises_when_stripe_not_configured(monkeypatch) ->
 @pytest.mark.asyncio
 async def test_create_checkout_raises_when_price_id_missing(monkeypatch) -> None:
     monkeypatch.setattr("app.config.settings.STRIPE_SECRET_KEY", "sk_test_abc")
-    monkeypatch.setattr("app.config.settings.STRIPE_PRICE_ID", None)
     monkeypatch.setattr("app.config.settings.STRIPE_PRICE_ID_BASIC", None)
     monkeypatch.setattr("app.config.settings.STRIPE_PRICE_ID_PREMIUM", None)
     monkeypatch.setattr("app.config.settings.STRIPE_PRICE_ID_ENTERPRISE", None)
@@ -166,7 +165,7 @@ async def test_create_checkout_raises_when_price_id_missing(monkeypatch) -> None
 @pytest.mark.asyncio
 async def test_create_checkout_session_returns_url(monkeypatch) -> None:
     monkeypatch.setattr("app.config.settings.STRIPE_SECRET_KEY", "sk_test_abc")
-    monkeypatch.setattr("app.config.settings.STRIPE_PRICE_ID", "price_123")
+    monkeypatch.setattr("app.config.settings.STRIPE_PRICE_ID_BASIC", "price_123")
     monkeypatch.setattr("app.config.settings.APP_BASE_URL", "https://example.com")
 
     fake_session = SimpleNamespace(url="https://checkout.stripe.com/pay/xyz")
@@ -210,17 +209,10 @@ def test_resolve_price_id_enterprise(monkeypatch) -> None:
     assert billing_service._resolve_price_id("enterprise") == "price_ent_333"
 
 
-def test_resolve_price_id_falls_back_to_legacy(monkeypatch) -> None:
-    monkeypatch.setattr("app.config.settings.STRIPE_PRICE_ID_BASIC", None)
-    monkeypatch.setattr("app.config.settings.STRIPE_PRICE_ID", "price_legacy_000")
-    assert billing_service._resolve_price_id("basic") == "price_legacy_000"
-
-
 def test_resolve_price_id_raises_when_nothing_configured(monkeypatch) -> None:
     monkeypatch.setattr("app.config.settings.STRIPE_PRICE_ID_BASIC", None)
     monkeypatch.setattr("app.config.settings.STRIPE_PRICE_ID_PREMIUM", None)
     monkeypatch.setattr("app.config.settings.STRIPE_PRICE_ID_ENTERPRISE", None)
-    monkeypatch.setattr("app.config.settings.STRIPE_PRICE_ID", None)
     with pytest.raises(RuntimeError, match="No Stripe Price ID configured"):
         billing_service._resolve_price_id("basic")
 

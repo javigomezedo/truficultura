@@ -95,15 +95,12 @@ _PLAN_PRICE_MAP = {
 
 
 def _resolve_price_id(plan: str) -> str:
-    """Return the Stripe Price ID for *plan*, falling back to legacy STRIPE_PRICE_ID."""
+    """Return the Stripe Price ID for *plan*."""
     attr = _PLAN_PRICE_MAP.get(plan)
     if attr:
         price_id: str | None = getattr(settings, attr, None)
         if price_id:
             return price_id
-    # Fallback to the legacy single price ID
-    if settings.STRIPE_PRICE_ID:
-        return settings.STRIPE_PRICE_ID
     raise RuntimeError(
         f"No Stripe Price ID configured for plan '{plan}'. "
         "Set STRIPE_PRICE_ID_BASIC / _PREMIUM / _ENTERPRISE in .env."
@@ -122,9 +119,6 @@ def _infer_plan_from_price_id(price_id: str | None) -> str | None:
         configured = getattr(settings, settings_attr, None)
         if configured and configured == price_id:
             return plan_name
-    # Legacy single-price fallback → treat as basic
-    if settings.STRIPE_PRICE_ID and settings.STRIPE_PRICE_ID == price_id:
-        return "basic"
     return None
 
 

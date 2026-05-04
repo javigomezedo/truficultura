@@ -37,7 +37,6 @@ class Settings(BaseSettings):
     STRIPE_SECRET_KEY: Optional[str] = None
     STRIPE_PUBLISHABLE_KEY: Optional[str] = None
     STRIPE_WEBHOOK_SECRET: Optional[str] = None
-    STRIPE_PRICE_ID: Optional[str] = None  # Kept for backward compat (legacy single-plan)
     STRIPE_PRICE_ID_BASIC: Optional[str] = None
     STRIPE_PRICE_ID_PREMIUM: Optional[str] = None
     STRIPE_PRICE_ID_ENTERPRISE: Optional[str] = None

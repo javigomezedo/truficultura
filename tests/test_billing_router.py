@@ -64,7 +64,7 @@ def test_billing_subscribe_renders(monkeypatch) -> None:
     app.dependency_overrides[get_db] = lambda: _db()
 
     monkeypatch.setattr("app.config.settings.STRIPE_SECRET_KEY", "sk_test_x")
-    monkeypatch.setattr("app.config.settings.STRIPE_PRICE_ID", "price_x")
+    monkeypatch.setattr("app.config.settings.STRIPE_PRICE_ID_BASIC", "price_x")
     monkeypatch.setattr("app.config.settings.STRIPE_PUBLISHABLE_KEY", "pk_test_x")
 
     try:

@@ -39,7 +39,6 @@ async def billing_subscribe(
                 settings.STRIPE_PRICE_ID_BASIC,
                 settings.STRIPE_PRICE_ID_PREMIUM,
                 settings.STRIPE_PRICE_ID_ENTERPRISE,
-                settings.STRIPE_PRICE_ID,
             ]
         )
     )
@@ -52,9 +51,7 @@ async def billing_subscribe(
             "stripe_publishable_key": settings.STRIPE_PUBLISHABLE_KEY,
             "stripe_configured": stripe_any_configured,
             "plan_mode": plan_mode,
-            "basic_configured": bool(
-                settings.STRIPE_PRICE_ID_BASIC or settings.STRIPE_PRICE_ID
-            ),
+            "basic_configured": bool(settings.STRIPE_PRICE_ID_BASIC),
             "premium_configured": bool(settings.STRIPE_PRICE_ID_PREMIUM),
             "enterprise_configured": bool(settings.STRIPE_PRICE_ID_ENTERPRISE),
             "msg": msg,
