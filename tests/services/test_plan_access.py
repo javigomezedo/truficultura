@@ -194,7 +194,9 @@ def _user_with_mode(mode: str) -> SimpleNamespace:
         )
     elif mode == "enterprise":
         tenant = _make_tenant(
-            subscription_status="active", subscription_ends_at=_future(), plan="enterprise"
+            subscription_status="active",
+            subscription_ends_at=_future(),
+            plan="enterprise",
         )
     else:
         raise ValueError(mode)
@@ -202,14 +204,18 @@ def _user_with_mode(mode: str) -> SimpleNamespace:
 
 
 # Parcelas / gastos / ingresos are available to all (feature not in _FEATURE_PLANS)
-@pytest.mark.parametrize("mode", ["trial", "read_only", "basic", "premium", "enterprise"])
+@pytest.mark.parametrize(
+    "mode", ["trial", "read_only", "basic", "premium", "enterprise"]
+)
 def test_unrestricted_feature_always_available(mode: str) -> None:
     user = _user_with_mode(mode)
     assert has_feature(user, "parcelas") is True
 
 
 # lluvia not in _FEATURE_PLANS → available to all
-@pytest.mark.parametrize("mode", ["trial", "read_only", "basic", "premium", "enterprise"])
+@pytest.mark.parametrize(
+    "mode", ["trial", "read_only", "basic", "premium", "enterprise"]
+)
 def test_lluvia_available_to_all(mode: str) -> None:
     user = _user_with_mode(mode)
     assert has_feature(user, "lluvia") is True
@@ -303,3 +309,160 @@ def test_write_access_denied_exception_is_exception() -> None:
 
 def test_plant_limit_basic_constant() -> None:
     assert PLANT_LIMIT_BASIC == 500
+
+
+# ── require_write_access (FastAPI dep, called directly) ───────────────────────
+
+
+@pytest.mark.asyncio
+async def test_require_write_access_raises_for_read_only() -> None:
+    from app.plan_access import require_write_access
+
+    user = _make_user(tenant=_make_tenant(subscription_status="canceled"))
+    with pytest.raises(WriteAccessDeniedException):
+        await require_write_access(user=user)
+
+
+@pytest.mark.asyncio
+async def test_require_write_access_passes_for_active_basic() -> None:
+    from app.plan_access import require_write_access
+
+    tenant = _make_tenant(
+        subscription_status="active", subscription_ends_at=_future(), plan="basic"
+    )
+    user = _make_user(tenant=tenant)
+    returned = await require_write_access(user=user)
+    assert returned is user
+
+
+# ── require_feature inner _dep (FastAPI dep factory, called directly) ─────────
+
+
+@pytest.mark.asyncio
+async def test_require_feature_dep_raises_when_plan_insufficient() -> None:
+    from app.plan_access import require_feature
+
+    user = _user_with_mode("basic")
+    _dep = require_feature("tiempo")
+    with pytest.raises(PlanUpgradeRequiredException) as exc_info:
+        await _dep(user=user)
+    assert exc_info.value.feature == "tiempo"
+    assert exc_info.value.required_plan == "premium"
+
+
+@pytest.mark.asyncio
+async def test_require_feature_dep_passes_for_sufficient_plan() -> None:
+    from app.plan_access import require_feature
+
+    user = _user_with_mode("premium")
+    _dep = require_feature("tiempo")
+    returned = await _dep(user=user)
+    assert returned is user
+
+
+@pytest.mark.asyncio
+async def test_require_feature_dep_raises_for_enterprise_only_feature() -> None:
+    from app.plan_access import require_feature
+
+    user = _user_with_mode("premium")
+    _dep = require_feature("tenants")
+    with pytest.raises(PlanUpgradeRequiredException) as exc_info:
+        await _dep(user=user)
+    assert exc_info.value.required_plan == "enterprise"
+
+
+# ── require_plant_limit (DB-dependent dep, called directly) ───────────────────
+
+
+class _FakeDB:
+    """Minimal async session fake that returns pre-set results for execute()."""
+
+    def __init__(self, *results) -> None:
+        self._results = iter(results)
+
+    async def execute(self, *args, **kwargs):
+        return next(self._results)
+
+
+class _FakeRow:
+    def __init__(self, **kwargs) -> None:
+        self.__dict__.update(kwargs)
+
+
+class _FakeResult:
+    def __init__(self, rows) -> None:
+        self._rows = rows
+
+    def all(self):
+        return self._rows
+
+
+@pytest.mark.asyncio
+async def test_require_plant_limit_non_basic_skips_check() -> None:
+    """Premium users bypass the plant limit check without hitting the DB."""
+    from app.plan_access import require_plant_limit
+
+    user = _user_with_mode("premium")
+    db = _FakeDB()  # no execute calls should happen
+    returned = await require_plant_limit(user=user, db=db)  # type: ignore[arg-type]
+    assert returned is user
+
+
+@pytest.mark.asyncio
+async def test_require_plant_limit_basic_under_limit_passes() -> None:
+    from app.plan_access import require_plant_limit
+
+    tenant = _make_tenant(
+        subscription_status="active", subscription_ends_at=_future(), plan="basic"
+    )
+    tenant.id = 7  # type: ignore[attr-defined]
+    user = _make_user(tenant=tenant)
+
+    # First execute: plant counts per plot (none with a map yet)
+    plant_counts_result = _FakeResult([])
+    # Second execute: plots with num_plants — 100 plants, under 500 limit
+    plots_result = _FakeResult([(1, 100)])
+
+    db = _FakeDB(plant_counts_result, plots_result)
+    returned = await require_plant_limit(user=user, db=db)  # type: ignore[arg-type]
+    assert returned is user
+
+
+@pytest.mark.asyncio
+async def test_require_plant_limit_basic_at_limit_raises() -> None:
+    from app.plan_access import require_plant_limit
+
+    tenant = _make_tenant(
+        subscription_status="active", subscription_ends_at=_future(), plan="basic"
+    )
+    tenant.id = 7  # type: ignore[attr-defined]
+    user = _make_user(tenant=tenant)
+
+    # One plot mapped with 500 Plant rows → exactly at limit
+    plant_counts_result = _FakeResult([_FakeRow(plot_id=1, cnt=500)])
+    plots_result = _FakeResult([(1, 0)])  # num_plants ignored (map exists)
+
+    db = _FakeDB(plant_counts_result, plots_result)
+    with pytest.raises(PlantLimitExceededException) as exc_info:
+        await require_plant_limit(user=user, db=db)  # type: ignore[arg-type]
+    assert exc_info.value.limit == 500
+
+
+@pytest.mark.asyncio
+async def test_require_plant_limit_basic_mixed_mapped_and_manual() -> None:
+    """Plot with map uses Plant rows; plot without map uses num_plants."""
+    from app.plan_access import require_plant_limit
+
+    tenant = _make_tenant(
+        subscription_status="active", subscription_ends_at=_future(), plan="basic"
+    )
+    tenant.id = 7  # type: ignore[attr-defined]
+    user = _make_user(tenant=tenant)
+
+    # Plot 1 is mapped with 300 plants; plot 2 has no map and 150 num_plants → total 450
+    plant_counts_result = _FakeResult([_FakeRow(plot_id=1, cnt=300)])
+    plots_result = _FakeResult([(1, 0), (2, 150)])
+
+    db = _FakeDB(plant_counts_result, plots_result)
+    returned = await require_plant_limit(user=user, db=db)  # type: ignore[arg-type]
+    assert returned is user

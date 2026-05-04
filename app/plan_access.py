@@ -170,17 +170,19 @@ async def require_plant_limit(
     from app.models.plant import Plant
     from app.models.plot import Plot
 
-    # Count Plant rows per plot for this user (plots that have a map configured)
+    tenant_id: int = user.active_tenant.id  # type: ignore[union-attr]
+
+    # Count Plant rows per plot for this tenant (plots that have a map configured)
     plant_counts_res = await db.execute(
-        select(Plant.plot_id, func.count().label("cnt"))
-        .where(Plant.user_id == user.id)
+        select(Plant.plot_id, func.count(Plant.id).label("cnt"))
+        .where(Plant.tenant_id == tenant_id)
         .group_by(Plant.plot_id)
     )
     plant_counts: dict[int, int] = {row.plot_id: row.cnt for row in plant_counts_res.all()}
 
     # Fetch all plots with their num_plants estimate
     plots_res = await db.execute(
-        select(Plot.id, Plot.num_plants).where(Plot.user_id == user.id)
+        select(Plot.id, Plot.num_plants).where(Plot.tenant_id == tenant_id)
     )
     # For each plot: use real plant count if map exists, else the manual estimate
     total: int = sum(
