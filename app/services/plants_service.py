@@ -30,31 +30,31 @@ class MapRow:
     cells: list[PlantCell] = field(default_factory=list)
 
 
-async def list_plants(db: AsyncSession, plot_id: int, user_id: int) -> list[Plant]:
+async def list_plants(db: AsyncSession, plot_id: int, tenant_id: int) -> list[Plant]:
     res = await db.execute(
         select(Plant)
-        .where(Plant.plot_id == plot_id, Plant.user_id == user_id)
+        .where(Plant.plot_id == plot_id, Plant.tenant_id == tenant_id)
         .order_by(Plant.row_order, Plant.col_order)
     )
     return res.scalars().all()
 
 
-async def get_plant(db: AsyncSession, plant_id: int, user_id: int) -> Optional[Plant]:
+async def get_plant(db: AsyncSession, plant_id: int, tenant_id: int) -> Optional[Plant]:
     res = await db.execute(
-        select(Plant).where(Plant.id == plant_id, Plant.user_id == user_id)
+        select(Plant).where(Plant.id == plant_id, Plant.tenant_id == tenant_id)
     )
     return res.scalar_one_or_none()
 
 
 async def has_active_truffle_events(
-    db: AsyncSession, plot_id: int, user_id: int
+    db: AsyncSession, plot_id: int, tenant_id: int
 ) -> bool:
     """Return True if there is at least one active (non-undone) truffle event for a plot."""
     res = await db.execute(
         select(TruffleEvent.id)
         .where(
             TruffleEvent.plot_id == plot_id,
-            TruffleEvent.user_id == user_id,
+            TruffleEvent.tenant_id == tenant_id,
             TruffleEvent.undone_at.is_(None),
         )
         .limit(1)
@@ -66,22 +66,37 @@ async def configure_plot_map(
     db: AsyncSession,
     plot: Plot,
     *,
-    user_id: int,
+    tenant_id: int,
+    acting_user_id: Optional[int] = None,
     row_columns: list[list[int]],
+    plant_limit: Optional[int] = None,
 ) -> list[Plant]:
     """Replace the plant layout of a plot.
 
     Raises ValueError if active truffle events already exist (data protection).
+    Raises PlantLimitExceededException if the new map would exceed the plan limit.
     Does NOT modify plot.num_plants — that field is managed via the plot form only.
     """
-    if await has_active_truffle_events(db, plot.id, user_id):
+    if await has_active_truffle_events(db, plot.id, tenant_id):
         raise ValueError(
             _("No se puede regenerar el mapa: existen registros de trufas activos.")
         )
 
+    # Check plant limit: count plants from the new config and compare against
+    # effective total of OTHER plots (current plot's old plants will be deleted).
+    if plant_limit is not None:
+        new_plant_count = sum(len(set(cols)) for cols in row_columns)
+        from app.services.plots_service import _get_effective_plant_total
+        other_total = await _get_effective_plant_total(
+            db, tenant_id, exclude_plot_id=plot.id
+        )
+        if other_total + new_plant_count > plant_limit:
+            from app.plan_access import PlantLimitExceededException
+            raise PlantLimitExceededException(plant_limit)
+
     # Remove all current plants (cascade deletes any orphan truffle_events)
     await db.execute(
-        delete(Plant).where(Plant.plot_id == plot.id, Plant.user_id == user_id)
+        delete(Plant).where(Plant.plot_id == plot.id, Plant.tenant_id == tenant_id)
     )
     await db.flush()
 
@@ -91,7 +106,8 @@ async def configure_plot_map(
         for visual_col in sorted(set(columns)):
             p = Plant(
                 plot_id=plot.id,
-                user_id=user_id,
+                tenant_id=tenant_id,
+                created_by_user_id=acting_user_id,
                 label=f"{row_label}{visual_col}",
                 row_label=row_label,
                 row_order=row_idx,
@@ -118,7 +134,7 @@ async def get_plot_map_context(
     db: AsyncSession,
     plot: Plot,
     *,
-    user_id: int,
+    tenant_id: int,
     selected_campaign: Optional[int],
 ) -> dict:
     """Build the template context for the plant map view.
@@ -130,7 +146,7 @@ async def get_plot_map_context(
     """
     plants_res = await db.execute(
         select(Plant)
-        .where(Plant.plot_id == plot.id, Plant.user_id == user_id)
+        .where(Plant.plot_id == plot.id, Plant.tenant_id == tenant_id)
         .order_by(Plant.row_order, Plant.col_order)
     )
     all_plants: list[Plant] = plants_res.scalars().all()
@@ -140,7 +156,7 @@ async def get_plot_map_context(
 
     base_filters = [
         TruffleEvent.plot_id == plot.id,
-        TruffleEvent.user_id == user_id,
+        TruffleEvent.tenant_id == tenant_id,
         TruffleEvent.undone_at.is_(None),
     ]
 

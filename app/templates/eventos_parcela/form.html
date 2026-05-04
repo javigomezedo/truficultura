@@ -5,6 +5,7 @@
 {% endblock %}
 
 {% block content %}
+{% set read_only = session_plan_mode(request.session) == 'read_only' %}
 <div class="container-xl">
     <div class="tf-page-header">
         <div>
@@ -62,10 +63,12 @@
 
                         <div class="d-flex gap-2 justify-content-end">
                             <a class="btn btn-outline-secondary" href="/plot-events/">{{ _("Cancelar") }}</a>
+                            {% if not read_only %}
                             <button class="btn btn-primary" type="submit">
                                 <i class="bi bi-check-circle me-1"></i>
                                 {% if record %}{{ _("Guardar cambios") }}{% else %}{{ _("Registrar evento") }}{% endif %}
                             </button>
+                            {% endif %}
                         </div>
                     </form>
                 </div>

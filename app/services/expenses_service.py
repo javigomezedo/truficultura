@@ -23,18 +23,18 @@ ALLOWED_RECEIPT_TYPES = {
 MAX_RECEIPT_SIZE = 5 * 1024 * 1024  # 5MB in bytes
 
 
-async def list_plots(db: AsyncSession, user_id: int) -> list[Plot]:
+async def list_plots(db: AsyncSession, tenant_id: int) -> list[Plot]:
     result = await db.execute(
-        select(Plot).where(Plot.user_id == user_id).order_by(Plot.name)
+        select(Plot).where(Plot.tenant_id == tenant_id).order_by(Plot.name)
     )
     return result.scalars().all()
 
 
 async def get_expense(
-    db: AsyncSession, expense_id: int, user_id: int
+    db: AsyncSession, expense_id: int, tenant_id: int
 ) -> Optional[Expense]:
     result = await db.execute(
-        select(Expense).where(Expense.id == expense_id, Expense.user_id == user_id)
+        select(Expense).where(Expense.id == expense_id, Expense.tenant_id == tenant_id)
     )
     return result.scalar_one_or_none()
 
@@ -42,7 +42,7 @@ async def get_expense(
 async def get_expenses_list_context(
     db: AsyncSession,
     year: Optional[int],
-    user_id: int,
+    tenant_id: int,
     category: Optional[str] = None,
     person: Optional[str] = None,
     plot_id: Optional[int] = None,
@@ -53,21 +53,21 @@ async def get_expenses_list_context(
 
     # Lightweight query for dropdown options (avoid loading all expense data).
     meta_result = await db.execute(
-        select(Expense.date, Expense.person).where(Expense.user_id == user_id)
+        select(Expense.date, Expense.person).where(Expense.tenant_id == tenant_id)
     )
     meta_rows = meta_result.all()
     years = sorted({campaign_year(r.date) for r in meta_rows}, reverse=True)
     people = sorted({r.person for r in meta_rows if r.person})
 
     plots_result = await db.execute(
-        select(Plot).where(Plot.user_id == user_id).order_by(Plot.name)
+        select(Plot).where(Plot.tenant_id == tenant_id).order_by(Plot.name)
     )
     all_plots = plots_result.scalars().all()
 
     # Build the filtered expense query — filter by campaign year at DB level.
     stmt = (
         select(Expense)
-        .where(Expense.user_id == user_id)
+        .where(Expense.tenant_id == tenant_id)
         .options(sa_defer(Expense.receipt_data))
         .order_by(Expense.date.desc())
     )
@@ -143,7 +143,8 @@ async def get_expenses_list_context(
 async def create_expense(
     db: AsyncSession,
     *,
-    user_id: int,
+    tenant_id: int,
+    acting_user_id: Optional[int] = None,
     date: datetime.date,
     description: str,
     person: str,
@@ -152,7 +153,8 @@ async def create_expense(
     category: Optional[str] = None,
 ) -> Expense:
     new_expense = Expense(
-        user_id=user_id,
+        tenant_id=tenant_id,
+        created_by_user_id=acting_user_id,
         date=date,
         description=description,
         person=person,
@@ -169,6 +171,7 @@ async def update_expense(
     db: AsyncSession,
     expense: Expense,
     *,
+    acting_user_id: Optional[int] = None,
     date: datetime.date,
     description: str,
     person: str,
@@ -182,6 +185,7 @@ async def update_expense(
     expense.plot_id = plot_id if plot_id else None
     expense.amount = amount
     expense.category = category or None
+    expense.updated_by_user_id = acting_user_id
     await db.flush()
     return expense
 
@@ -194,7 +198,8 @@ async def delete_expense(db: AsyncSession, expense: Expense) -> None:
 async def create_prorated_expense(
     db: AsyncSession,
     *,
-    user_id: int,
+    tenant_id: int,
+    acting_user_id: Optional[int] = None,
     date: datetime.date,
     description: str,
     person: str,
@@ -211,7 +216,8 @@ async def create_prorated_expense(
     the last entry absorbs any rounding difference so the total is exact.
     """
     group = ExpenseProrationGroup(
-        user_id=user_id,
+        tenant_id=tenant_id,
+        created_by_user_id=acting_user_id,
         description=description,
         total_amount=amount,
         years=years,
@@ -229,7 +235,8 @@ async def create_prorated_expense(
             year_amount = round(amount - per_year * (years - 1), 2)
 
         expense = Expense(
-            user_id=user_id,
+            tenant_id=tenant_id,
+            created_by_user_id=acting_user_id,
             date=datetime.date(start_year + i, 1, 1),
             description=description,
             person=person,
@@ -245,13 +252,13 @@ async def create_prorated_expense(
 
 
 async def get_proration_group(
-    db: AsyncSession, group_id: int, user_id: int
+    db: AsyncSession, group_id: int, tenant_id: int
 ) -> Optional[ExpenseProrationGroup]:
-    """Fetch a proration group by id, filtered by user_id."""
+    """Fetch a proration group by id, filtered by tenant_id."""
     result = await db.execute(
         select(ExpenseProrationGroup).where(
             ExpenseProrationGroup.id == group_id,
-            ExpenseProrationGroup.user_id == user_id,
+            ExpenseProrationGroup.tenant_id == tenant_id,
         )
     )
     return result.scalar_one_or_none()
@@ -310,7 +317,7 @@ async def save_receipt(
 
 
 async def get_receipt(
-    db: AsyncSession, expense_id: int, user_id: int
+    db: AsyncSession, expense_id: int, tenant_id: int
 ) -> Optional[tuple[str, bytes, str]]:
     """
     Retrieve a receipt from an expense.
@@ -318,7 +325,7 @@ async def get_receipt(
     Returns:
         Tuple of (filename, file_data, content_type) if receipt exists, None otherwise
     """
-    expense = await get_expense(db, expense_id, user_id)
+    expense = await get_expense(db, expense_id, tenant_id)
     if expense is None or expense.receipt_data is None:
         return None
 

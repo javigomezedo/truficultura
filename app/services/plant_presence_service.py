@@ -13,7 +13,8 @@ from app.utils import campaign_year
 async def toggle_presence(
     db: AsyncSession,
     *,
-    user_id: int,
+    tenant_id: int,
+    acting_user_id: Optional[int] = None,
     plant_id: int,
     plot_id: int,
     presence_date: datetime.date,
@@ -26,7 +27,7 @@ async def toggle_presence(
     res = await db.execute(
         select(PlantPresence).where(
             PlantPresence.plant_id == plant_id,
-            PlantPresence.user_id == user_id,
+            PlantPresence.tenant_id == tenant_id,
             PlantPresence.presence_date == presence_date,
         )
     )
@@ -37,7 +38,8 @@ async def toggle_presence(
         return None
 
     presence = PlantPresence(
-        user_id=user_id,
+        tenant_id=tenant_id,
+        created_by_user_id=acting_user_id,
         plot_id=plot_id,
         plant_id=plant_id,
         presence_date=presence_date,
@@ -51,7 +53,7 @@ async def toggle_presence(
 async def get_presences_by_plot(
     db: AsyncSession,
     *,
-    user_id: int,
+    tenant_id: int,
     plot_id: int,
     campaign_year_filter: Optional[int] = None,
 ) -> dict[int, bool]:
@@ -61,7 +63,7 @@ async def get_presences_by_plot(
     If campaign_year_filter is None, returns all historical presences.
     """
     filters = [
-        PlantPresence.user_id == user_id,
+        PlantPresence.tenant_id == tenant_id,
         PlantPresence.plot_id == plot_id,
         PlantPresence.has_truffle.is_(True),
     ]
@@ -81,7 +83,7 @@ async def get_presences_by_plot(
 async def get_presence_dates_for_plant(
     db: AsyncSession,
     *,
-    user_id: int,
+    tenant_id: int,
     plant_id: int,
 ) -> list[datetime.date]:
     """Return all presence dates for a single plant, sorted descending."""
@@ -89,7 +91,7 @@ async def get_presence_dates_for_plant(
         select(PlantPresence.presence_date)
         .where(
             PlantPresence.plant_id == plant_id,
-            PlantPresence.user_id == user_id,
+            PlantPresence.tenant_id == tenant_id,
             PlantPresence.has_truffle.is_(True),
         )
         .order_by(PlantPresence.presence_date.desc())
@@ -100,13 +102,13 @@ async def get_presence_dates_for_plant(
 async def get_campaign_years(
     db: AsyncSession,
     *,
-    user_id: int,
+    tenant_id: int,
     plot_id: int,
 ) -> list[int]:
     """Return sorted list of distinct campaign years with presence data for a plot."""
     res = await db.execute(
         select(PlantPresence.presence_date).where(
-            PlantPresence.user_id == user_id,
+            PlantPresence.tenant_id == tenant_id,
             PlantPresence.plot_id == plot_id,
         )
     )

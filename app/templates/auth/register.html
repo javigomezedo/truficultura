@@ -88,6 +88,7 @@
             {% endif %}
 
             <form method="post" action="/register">
+                <input type="hidden" name="next_url" value="{{ next_url or '' }}">
                 <div class="mb-3">
                     <label for="first_name" class="form-label fw-semibold">{{ _("Nombre") }}</label>
                     <input type="text" class="form-control" id="first_name" name="first_name"

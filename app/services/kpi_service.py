@@ -18,38 +18,38 @@ from app.utils import campaign_year, distribute_unassigned_expenses
 
 async def build_kpi_context(
     db: AsyncSession,
-    user_id: int,
+    tenant_id: int,
     selected_campaign: Optional[int] = None,
 ) -> dict:
     plots_result = await db.execute(
-        select(Plot).where(Plot.user_id == user_id).order_by(Plot.name)
+        select(Plot).where(Plot.tenant_id == tenant_id).order_by(Plot.name)
     )
     all_plots = plots_result.scalars().all()
 
     expenses_result = await db.execute(
-        select(Expense).where(Expense.user_id == user_id)
+        select(Expense).where(Expense.tenant_id == tenant_id)
     )
     all_expenses = expenses_result.scalars().all()
 
-    incomes_result = await db.execute(select(Income).where(Income.user_id == user_id))
+    incomes_result = await db.execute(select(Income).where(Income.tenant_id == tenant_id))
     all_incomes = incomes_result.scalars().all()
 
     irrigation_result = await db.execute(
-        select(IrrigationRecord).where(IrrigationRecord.user_id == user_id)
+        select(IrrigationRecord).where(IrrigationRecord.tenant_id == tenant_id)
     )
     all_irrigation = irrigation_result.scalars().all()
 
     # Physical harvest data (TruffleEvents + PlotHarvests)
     truffle_result = await db.execute(
         select(TruffleEvent).where(
-            TruffleEvent.user_id == user_id,
+            TruffleEvent.tenant_id == tenant_id,
             TruffleEvent.undone_at.is_(None),
         )
     )
     all_truffle_events = truffle_result.scalars().all()
 
     harvest_result = await db.execute(
-        select(PlotHarvest).where(PlotHarvest.user_id == user_id)
+        select(PlotHarvest).where(PlotHarvest.tenant_id == tenant_id)
     )
     all_plot_harvests = harvest_result.scalars().all()
 

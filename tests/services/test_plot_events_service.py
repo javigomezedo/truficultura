@@ -26,7 +26,7 @@ from tests.conftest import result
 def _make_plot(plot_id: int = 1) -> Plot:
     return Plot(
         id=plot_id,
-        user_id=1,
+        tenant_id=1,
         name=f"Parcela {plot_id}",
         planting_date=datetime.date(2020, 1, 1),
         has_irrigation=True,
@@ -43,7 +43,7 @@ def _make_plot(plot_id: int = 1) -> Plot:
 def _make_event(event_id: int = 1, event_type: str = "labrado") -> PlotEvent:
     return PlotEvent(
         id=event_id,
-        user_id=1,
+        tenant_id=1,
         plot_id=1,
         event_type=event_type,
         date=datetime.date(2025, 6, 15),
@@ -62,7 +62,7 @@ async def test_get_plot_event_found() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([event]))
 
-    found = await get_plot_event(db, event_id=1, user_id=1)
+    found = await get_plot_event(db, event_id=1, tenant_id=1)
 
     assert found is event
 
@@ -72,7 +72,7 @@ async def test_get_plot_event_not_found() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([]))
 
-    found = await get_plot_event(db, event_id=1, user_id=1)
+    found = await get_plot_event(db, event_id=1, tenant_id=1)
 
     assert found is None
 
@@ -85,7 +85,7 @@ async def test_create_plot_event_success() -> None:
 
     created = await create_plot_event(
         db,
-        user_id=1,
+        tenant_id=1,
         data=PlotEventCreate(
             plot_id=1,
             event_type=EventType.LABRADO,
@@ -111,7 +111,7 @@ async def test_validate_one_time_event_duplicate() -> None:
         await validate_one_time_event(
             db,
             plot_id=1,
-            user_id=1,
+            tenant_id=1,
             event_type=EventType.VALLADO,
         )
 
@@ -144,11 +144,11 @@ async def test_get_plot_events_filters_by_user_id() -> None:
         return_value=result([_make_event(), _make_event(event_id=2)])
     )
 
-    events = await get_plot_events(db, user_id=1)
+    events = await get_plot_events(db, tenant_id=1)
 
     assert len(events) == 2
     where_sql = str(db.execute.call_args[0][0])
-    assert "user_id" in where_sql
+    assert "tenant_id" in where_sql
 
 
 @pytest.mark.asyncio
@@ -158,7 +158,7 @@ async def test_delete_plot_event_success() -> None:
     db.delete = AsyncMock()
     db.flush = AsyncMock()
 
-    await delete_plot_event(db, event_id=1, user_id=1)
+    await delete_plot_event(db, event_id=1, tenant_id=1)
 
     db.delete.assert_awaited_once()
     db.flush.assert_awaited_once()
@@ -168,7 +168,7 @@ async def test_delete_plot_event_success() -> None:
 async def test_sync_plot_event_from_irrigation_creates_when_missing() -> None:
     irrigation_record = MagicMock()
     irrigation_record.id = 10
-    irrigation_record.user_id = 1
+    irrigation_record.tenant_id = 1
     irrigation_record.plot_id = 2
     irrigation_record.date = datetime.date(2025, 6, 20)
     irrigation_record.notes = "riego"
@@ -192,7 +192,7 @@ async def test_sync_plot_event_from_well_updates_existing() -> None:
 
     well_record = MagicMock()
     well_record.id = 15
-    well_record.user_id = 1
+    well_record.tenant_id = 1
     well_record.plot_id = 3
     well_record.date = datetime.date(2025, 8, 1)
     well_record.notes = "pozo actualizado"
@@ -220,8 +220,8 @@ async def test_delete_plot_event_for_irrigation_and_well() -> None:
     db.delete = AsyncMock()
     db.flush = AsyncMock()
 
-    await delete_plot_event_for_irrigation(db, irrigation_id=10, user_id=1)
-    await delete_plot_event_for_well(db, well_id=20, user_id=1)
+    await delete_plot_event_for_irrigation(db, irrigation_id=10, tenant_id=1)
+    await delete_plot_event_for_well(db, well_id=20, tenant_id=1)
 
     assert db.delete.await_count == 2
     assert db.flush.await_count == 2

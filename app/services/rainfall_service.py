@@ -79,17 +79,17 @@ def select_best_rainfall_per_day(
 
 
 async def get_rainfall_record(
-    db: AsyncSession, record_id: int, user_id: int
+    db: AsyncSession, record_id: int, tenant_id: int
 ) -> Optional[RainfallRecord]:
-    """Devuelve el registro si pertenece al usuario O es compartido (user_id=NULL)."""
+    """Devuelve el registro si pertenece al tenant O es compartido (tenant_id=NULL)."""
     from sqlalchemy import or_
 
     result = await db.execute(
         select(RainfallRecord).where(
             RainfallRecord.id == record_id,
             or_(
-                RainfallRecord.user_id == user_id,
-                RainfallRecord.user_id.is_(None),
+                RainfallRecord.tenant_id == tenant_id,
+                RainfallRecord.tenant_id.is_(None),
             ),
         )
     )
@@ -98,46 +98,46 @@ async def get_rainfall_record(
 
 async def list_rainfall_records(
     db: AsyncSession,
-    user_id: int,
+    tenant_id: int,
     *,
     plot_id: Optional[int] = None,
     municipio_cod: Optional[str] = None,
     year: Optional[int] = None,
     source: Optional[str] = None,
 ) -> list[RainfallRecord]:
-    """Lista los registros de lluvia visibles para el usuario:
-    - Registros manuales del usuario (user_id == X)
-    - Registros compartidos AEMET/Ibericam (user_id IS NULL) de los municipios
-      de las parcelas del usuario.
+    """Lista los registros de lluvia visibles para el tenant:
+    - Registros manuales del tenant (tenant_id == X)
+    - Registros compartidos AEMET/Ibericam (tenant_id IS NULL) de los municipios
+      de las parcelas del tenant.
     """
     from sqlalchemy import and_, or_
 
-    # Obtener los municipio_cod de las parcelas del usuario para filtrar shared records.
+    # Obtener los municipio_cod de las parcelas del tenant para filtrar shared records.
     # Normalizar a código INE de 5 dígitos (misma lógica que resolve_municipio_cod).
     plots_result = await db.execute(
         select(Plot.provincia_cod, Plot.municipio_cod)
         .where(
-            Plot.user_id == user_id,
+            Plot.tenant_id == tenant_id,
             Plot.municipio_cod.isnot(None),
             Plot.municipio_cod != "",
         )
         .distinct()
     )
-    user_municipio_cods = list({
+    tenant_municipio_cods = list({
         full for row in plots_result.all()
         if (full := _full_municipio_cod(row.provincia_cod, row.municipio_cod))
     })
 
-    if user_municipio_cods:
+    if tenant_municipio_cods:
         visibility_clause = or_(
-            RainfallRecord.user_id == user_id,
+            RainfallRecord.tenant_id == tenant_id,
             and_(
-                RainfallRecord.user_id.is_(None),
-                RainfallRecord.municipio_cod.in_(user_municipio_cods),
+                RainfallRecord.tenant_id.is_(None),
+                RainfallRecord.municipio_cod.in_(tenant_municipio_cods),
             ),
         )
     else:
-        visibility_clause = RainfallRecord.user_id == user_id
+        visibility_clause = RainfallRecord.tenant_id == tenant_id
 
     stmt = select(RainfallRecord).where(visibility_clause)
 
@@ -157,54 +157,54 @@ async def list_rainfall_records(
     return records
 
 
-async def _get_all_years(db: AsyncSession, user_id: int) -> list[int]:
+async def _get_all_years(db: AsyncSession, tenant_id: int) -> list[int]:
     from sqlalchemy import and_, or_
 
     plots_result = await db.execute(
         select(Plot.provincia_cod, Plot.municipio_cod)
         .where(
-            Plot.user_id == user_id,
+            Plot.tenant_id == tenant_id,
             Plot.municipio_cod.isnot(None),
             Plot.municipio_cod != "",
         )
         .distinct()
     )
-    user_municipio_cods = list({
+    tenant_municipio_cods = list({
         full for row in plots_result.all()
         if (full := _full_municipio_cod(row.provincia_cod, row.municipio_cod))
     })
 
-    if user_municipio_cods:
+    if tenant_municipio_cods:
         clause = or_(
-            RainfallRecord.user_id == user_id,
+            RainfallRecord.tenant_id == tenant_id,
             and_(
-                RainfallRecord.user_id.is_(None),
-                RainfallRecord.municipio_cod.in_(user_municipio_cods),
+                RainfallRecord.tenant_id.is_(None),
+                RainfallRecord.municipio_cod.in_(tenant_municipio_cods),
             ),
         )
     else:
-        clause = RainfallRecord.user_id == user_id
+        clause = RainfallRecord.tenant_id == tenant_id
 
     result = await db.execute(select(RainfallRecord.date).where(clause))
     dates = result.scalars().all()
     return sorted({campaign_year(d) for d in dates}, reverse=True)
 
 
-async def _get_user_plots(db: AsyncSession, user_id: int) -> list[Plot]:
+async def _get_user_plots(db: AsyncSession, tenant_id: int) -> list[Plot]:
     result = await db.execute(
-        select(Plot).where(Plot.user_id == user_id).order_by(Plot.name)
+        select(Plot).where(Plot.tenant_id == tenant_id).order_by(Plot.name)
     )
     return result.scalars().all()
 
 
-async def _get_user_municipios(db: AsyncSession, user_id: int) -> list[dict]:
-    """Devuelve los municipios de las parcelas del usuario, enriquecidos con el
+async def _get_tenant_municipios(db: AsyncSession, tenant_id: int) -> list[dict]:
+    """Devuelve los municipios de las parcelas del tenant, enriquecidos con el
     nombre resuelto desde los registros de lluvia compartidos o el dict de ibericam."""
-    # 1. Municipio_cod de parcelas del usuario (normalizado a 5 dígitos).
+    # 1. Municipio_cod de parcelas del tenant (normalizado a 5 dígitos).
     plots_result = await db.execute(
         select(Plot.provincia_cod, Plot.municipio_cod)
         .where(
-            Plot.user_id == user_id,
+            Plot.tenant_id == tenant_id,
             Plot.municipio_cod.isnot(None),
             Plot.municipio_cod != "",
         )
@@ -222,7 +222,7 @@ async def _get_user_municipios(db: AsyncSession, user_id: int) -> list[dict]:
     names_result = await db.execute(
         select(RainfallRecord.municipio_cod, RainfallRecord.municipio_name)
         .where(
-            RainfallRecord.user_id.is_(None),
+            RainfallRecord.tenant_id.is_(None),
             RainfallRecord.municipio_cod.in_(plot_cods),
             RainfallRecord.municipio_name.isnot(None),
         )
@@ -241,7 +241,7 @@ async def _get_user_municipios(db: AsyncSession, user_id: int) -> list[dict]:
 
 async def get_rainfall_list_context(
     db: AsyncSession,
-    user_id: int,
+    tenant_id: int,
     *,
     year: Optional[int] = None,
     plot_id: Optional[int] = None,
@@ -253,7 +253,7 @@ async def get_rainfall_list_context(
 ) -> dict:
     records = await list_rainfall_records(
         db,
-        user_id,
+        tenant_id,
         plot_id=plot_id,
         year=year,
         source=source,
@@ -261,9 +261,9 @@ async def get_rainfall_list_context(
     )
     if only_with_rain:
         records = [r for r in records if r.precipitation_mm > 0]
-    plots = await _get_user_plots(db, user_id)
-    years = await _get_all_years(db, user_id)
-    municipios = await _get_user_municipios(db, user_id)
+    plots = await _get_user_plots(db, tenant_id)
+    years = await _get_all_years(db, tenant_id)
+    municipios = await _get_tenant_municipios(db, tenant_id)
 
     _SORT_KEYS = {
         "date": lambda x: x.date,
@@ -298,7 +298,7 @@ async def get_rainfall_for_plot_on_date(
     db: AsyncSession,
     plot: Plot,
     date: datetime.date,
-    user_id: int,
+    tenant_id: int,
 ) -> Optional[RainfallRecord]:
     """
     Devuelve el registro de lluvia para una parcela en una fecha concreta.
@@ -307,7 +307,7 @@ async def get_rainfall_for_plot_on_date(
     # 1. Buscar registro específico de la parcela
     result = await db.execute(
         select(RainfallRecord).where(
-            RainfallRecord.user_id == user_id,
+            RainfallRecord.tenant_id == tenant_id,
             RainfallRecord.plot_id == plot.id,
             RainfallRecord.date == date,
         )
@@ -316,15 +316,15 @@ async def get_rainfall_for_plot_on_date(
     if record is not None:
         return record
 
-    # 2. Fallback: registro a nivel de municipio (manual del usuario o compartido)
+    # 2. Fallback: registro a nivel de municipio (manual del tenant o compartido)
     if plot.municipio_cod:
         from sqlalchemy import or_
 
         result = await db.execute(
             select(RainfallRecord).where(
                 or_(
-                    RainfallRecord.user_id == user_id,
-                    RainfallRecord.user_id.is_(None),
+                    RainfallRecord.tenant_id == tenant_id,
+                    RainfallRecord.tenant_id.is_(None),
                 ),
                 RainfallRecord.plot_id.is_(None),
                 RainfallRecord.municipio_cod == plot.municipio_cod,
@@ -337,7 +337,7 @@ async def get_rainfall_for_plot_on_date(
 
 
 async def create_rainfall_record(
-    db: AsyncSession, user_id: int, data: RainfallCreate
+    db: AsyncSession, tenant_id: int, data: RainfallCreate, acting_user_id: Optional[int] = None
 ) -> RainfallRecord:
     # Solo se pueden crear registros manuales desde la UI de usuario
     if data.source != "manual":
@@ -345,10 +345,10 @@ async def create_rainfall_record(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=_("Solo se pueden crear registros de tipo manual"),
         )
-    # Si se especifica plot_id, verificar que pertenece al usuario
+    # Si se especifica plot_id, verificar que pertenece al tenant
     if data.plot_id is not None:
         plot_result = await db.execute(
-            select(Plot).where(Plot.id == data.plot_id, Plot.user_id == user_id)
+            select(Plot).where(Plot.id == data.plot_id, Plot.tenant_id == tenant_id)
         )
         if plot_result.scalar_one_or_none() is None:
             raise HTTPException(
@@ -357,7 +357,8 @@ async def create_rainfall_record(
             )
 
     record = RainfallRecord(
-        user_id=user_id,
+        tenant_id=tenant_id,
+        created_by_user_id=acting_user_id,
         plot_id=data.plot_id,
         municipio_cod=data.municipio_cod,
         date=data.date,
@@ -372,15 +373,15 @@ async def create_rainfall_record(
 
 
 async def update_rainfall_record(
-    db: AsyncSession, record_id: int, user_id: int, data: RainfallUpdate
+    db: AsyncSession, record_id: int, tenant_id: int, data: RainfallUpdate, acting_user_id: Optional[int] = None
 ) -> RainfallRecord:
-    record = await get_rainfall_record(db, record_id, user_id)
+    record = await get_rainfall_record(db, record_id, tenant_id)
     if record is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=_("Registro de lluvia no encontrado"),
         )
-    if record.user_id is None:
+    if record.tenant_id is None:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=_(
@@ -392,21 +393,22 @@ async def update_rainfall_record(
     for field, value in update_data.items():
         setattr(record, field, value)
 
+    record.updated_by_user_id = acting_user_id
     await db.flush()
     await db.refresh(record)
     return record
 
 
 async def delete_rainfall_record(
-    db: AsyncSession, record_id: int, user_id: int
+    db: AsyncSession, record_id: int, tenant_id: int
 ) -> None:
-    record = await get_rainfall_record(db, record_id, user_id)
+    record = await get_rainfall_record(db, record_id, tenant_id)
     if record is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=_("Registro de lluvia no encontrado"),
         )
-    if record.user_id is None:
+    if record.tenant_id is None:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=_(
@@ -527,7 +529,7 @@ def _build_calendar_months(
 
 async def get_rainfall_calendar_context(
     db: AsyncSession,
-    user_id: int,
+    tenant_id: int,
     *,
     year: int,
     plot_id: Optional[int] = None,
@@ -544,7 +546,7 @@ async def get_rainfall_calendar_context(
     """
     records = await list_rainfall_records(
         db,
-        user_id,
+        tenant_id,
         plot_id=plot_id,
         municipio_cod=municipio_cod,
         source=source,
@@ -561,7 +563,7 @@ async def get_rainfall_calendar_context(
     area_ha: Optional[float] = None
     if plot_id is not None:
         plot_result = await db.execute(
-            select(Plot).where(Plot.id == plot_id, Plot.user_id == user_id)
+            select(Plot).where(Plot.id == plot_id, Plot.tenant_id == tenant_id)
         )
         plot_obj = plot_result.scalar_one_or_none()
         if plot_obj is not None and plot_obj.area_ha:
@@ -576,9 +578,9 @@ async def get_rainfall_calendar_context(
     )
     rain_days = sum(m["rain_days"] for m in months)
 
-    plots = await _get_user_plots(db, user_id)
-    years = await _get_all_years(db, user_id)
-    municipios = await _get_user_municipios(db, user_id)
+    plots = await _get_user_plots(db, tenant_id)
+    years = await _get_all_years(db, tenant_id)
+    municipios = await _get_tenant_municipios(db, tenant_id)
 
     return {
         "months": months,

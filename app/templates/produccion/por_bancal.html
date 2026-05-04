@@ -3,15 +3,18 @@
 {% block title %}{{ _("Cosecha por bancal") }} &mdash; Trufiq{% endblock %}
 
 {% block content %}
+{% set read_only = session_plan_mode(request.session) == 'read_only' %}
 <div class="container-xl">
     <div class="tf-page-header">
         <div>
             <p class="tf-page-kicker">{{ _("Registro de producción") }}</p>
             <h1 class="tf-page-title"><i class="bi bi-basket2-fill text-success me-2"></i>{{ _("Cosecha por bancal") }}</h1>
         </div>
+        {% if not read_only %}
         <a href="/harvests/new" class="btn btn-success">
             <i class="bi bi-plus-circle me-1"></i> {{ _("Registrar cosecha") }}
         </a>
+        {% endif %}
     </div>
 
     {# Tab bar shared with /truffles/ and /production/ #}
@@ -128,6 +131,7 @@
                         <td class="text-end fw-semibold">{{ h.weight_grams|format_eu(1) }}</td>
                         <td class="text-muted small">{{ h.notes or "—" }}</td>
                         <td class="text-end text-nowrap">
+                            {% if not read_only %}
                             <a href="/harvests/{{ h.id }}/edit" class="btn btn-xs btn-outline-secondary me-1">
                                 <i class="bi bi-pencil"></i>
                             </a>
@@ -137,6 +141,7 @@
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </form>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -148,9 +153,11 @@
             <i class="bi bi-basket2 display-4 d-block mb-3 text-secondary opacity-50"></i>
             <p class="mb-1 fw-semibold">{{ _("Sin cosechas registradas") }}</p>
             <p class="mb-3 small">{{ _("Usa el botón 'Registrar cosecha' para añadir la primera.") }}</p>
+            {% if not read_only %}
             <a href="/harvests/new" class="btn btn-success">
                 <i class="bi bi-plus-circle me-1"></i>{{ _("Registrar cosecha") }}
             </a>
+            {% endif %}
         </div>
         {% endif %}
     </div>

@@ -3,6 +3,7 @@
 {% block title %}{% if recurring_expense %}{{ _("Editar Gasto Recurrente") }}{% else %}{{ _("Nuevo Gasto Recurrente") }}{% endif %} &mdash; Trufiq{% endblock %}
 
 {% block content %}
+{% set read_only = session_plan_mode(request.session) == 'read_only' %}
 <div class="container-xl">
     <div class="tf-page-header">
         <div>
@@ -146,10 +147,12 @@
                             <a href="/recurring-expenses/" class="btn btn-outline-secondary">
                                 <i class="bi bi-x-circle me-1"></i> {{ _("Cancelar") }}
                             </a>
+                            {% if not read_only %}
                             <button type="submit" class="btn btn-danger">
                                 <i class="bi bi-check-circle me-1"></i>
                                 {% if recurring_expense %}{{ _("Guardar cambios") }}{% else %}{{ _("Crear gasto recurrente") }}{% endif %}
                             </button>
+                            {% endif %}
                         </div>
                     </form>
                 </div>

@@ -14,6 +14,12 @@
 
 {% block content %}
 <div class="container-xl">
+    {% if joined %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-building-check-fill me-2"></i>{{ _("Te has unido a la organización correctamente. ¡Bienvenido!") }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
     <div class="tf-page-header">
         <div>
             <p class="tf-page-kicker">{{ _("Explotación trufícola") }}</p>
@@ -156,6 +162,7 @@
         </div>
 
         <!-- Widget de tiempo -->
+        {% if session_has_feature(request.session, 'tiempo') %}
         <div class="col-12 col-lg-4">
             <h6 class="text-uppercase text-muted fw-semibold mb-2 small">
                 <i class="bi bi-thermometer-sun text-warning me-1"></i>{{ _("Tiempo en directo") }}
@@ -181,6 +188,7 @@
                 </div>
             </div>
         </div>
+        {% endif %}
 
     </div>
 

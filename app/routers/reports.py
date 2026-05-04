@@ -18,7 +18,7 @@ async def profitability(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    context = await build_profitability_context(db, current_user.id)
+    context = await build_profitability_context(db, current_user.active_tenant_id)
 
     return templates.TemplateResponse(
         request,

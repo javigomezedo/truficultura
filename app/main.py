@@ -16,6 +16,7 @@ from app.auth import (
     SubscriptionRequiredException,
     require_subscription,
 )
+from app.plan_access import WriteAccessDeniedException, PlanUpgradeRequiredException, PlantLimitExceededException
 from app.config import settings
 from app.database import engine, get_db
 from fastapi import Form
@@ -52,6 +53,7 @@ from app.routers import (
     recurring_expenses,
     reports,
     scan,
+    tenants,
     weather,
     wells,
 )
@@ -113,6 +115,7 @@ recurring_expenses.templates = templates
 lluvia.templates = templates
 weather.templates = templates
 billing.templates = templates
+tenants.templates = templates
 
 # Include routers
 app.include_router(auth.router)
@@ -138,6 +141,7 @@ app.include_router(lluvia.router)
 app.include_router(weather.router)
 app.include_router(aemet_admin.router)
 app.include_router(billing.router)
+app.include_router(tenants.router)
 
 
 @app.get("/landing", response_class=HTMLResponse, include_in_schema=False)
@@ -228,7 +232,12 @@ async def metrics(request: Request):
 
 @app.exception_handler(NotAuthenticatedException)
 async def not_authenticated_handler(request: Request, exc: NotAuthenticatedException):
-    return RedirectResponse(url="/login", status_code=303)
+    # Preserve the original path so the login page can redirect back after auth.
+    # This is critical for invitation links (/tenant/join/{token}) sent to new users.
+    next_path = request.url.path
+    if request.url.query:
+        next_path = f"{next_path}?{request.url.query}"
+    return RedirectResponse(url=f"/login?next={next_path}", status_code=303)
 
 
 @app.exception_handler(NotAdminException)
@@ -241,6 +250,32 @@ async def subscription_required_handler(
     request: Request, exc: SubscriptionRequiredException
 ):
     return RedirectResponse(url="/billing/subscribe", status_code=303)
+
+
+@app.exception_handler(WriteAccessDeniedException)
+async def write_access_denied_handler(request: Request, exc: WriteAccessDeniedException):
+    from urllib.parse import quote_plus
+    from app.i18n import _
+    msg = quote_plus(_("Solo lectura: suscríbete para poder editar"))
+    return RedirectResponse(url=f"/billing/subscribe?msg={msg}&msg_type=warning", status_code=303)
+
+
+@app.exception_handler(PlanUpgradeRequiredException)
+async def plan_upgrade_required_handler(request: Request, exc: PlanUpgradeRequiredException):
+    from urllib.parse import quote_plus
+    from app.i18n import _
+    msg = quote_plus(_("Esta función requiere un plan superior"))
+    return RedirectResponse(url=f"/billing/subscribe?msg={msg}&msg_type=warning", status_code=303)
+
+
+@app.exception_handler(PlantLimitExceededException)
+async def plant_limit_exceeded_handler(request: Request, exc: PlantLimitExceededException):
+    from urllib.parse import quote_plus
+    from app.i18n import _
+    msg = quote_plus(
+        _("Has alcanzado el límite de {limit} plantas del plan Básico. Actualiza a Premium para plantas ilimitadas.").format(limit=exc.limit)
+    )
+    return RedirectResponse(url=f"/billing/subscribe?msg={msg}&msg_type=warning", status_code=303)
 
 
 @app.middleware("http")
@@ -332,13 +367,14 @@ async def dashboard(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    context = await build_dashboard_context(db, current_user.id)
+    context = await build_dashboard_context(db, current_user.active_tenant_id)
 
     return templates.TemplateResponse(
         request,
         "index.html",
         {
             "request": request,
+            "joined": request.query_params.get("joined") == "1",
             **context,
         },
     )

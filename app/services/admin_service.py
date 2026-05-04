@@ -73,7 +73,7 @@ async def get_admin_rainfall_overview(db: AsyncSession) -> list[dict]:
         )
         .where(
             RainfallRecord.source == "aemet",
-            RainfallRecord.user_id.is_(None),
+            RainfallRecord.tenant_id.is_(None),
             RainfallRecord.municipio_cod.in_(municipio_cods),
         )
         .group_by(RainfallRecord.municipio_cod)
@@ -91,7 +91,7 @@ async def get_admin_rainfall_overview(db: AsyncSession) -> list[dict]:
         )
         .where(
             RainfallRecord.source == "ibericam",
-            RainfallRecord.user_id.is_(None),
+            RainfallRecord.tenant_id.is_(None),
             RainfallRecord.municipio_cod.in_(municipio_cods),
         )
         .group_by(RainfallRecord.municipio_cod)
@@ -104,7 +104,7 @@ async def get_admin_rainfall_overview(db: AsyncSession) -> list[dict]:
     names_q = await db.execute(
         select(RainfallRecord.municipio_cod, RainfallRecord.municipio_name)
         .where(
-            RainfallRecord.user_id.is_(None),
+            RainfallRecord.tenant_id.is_(None),
             RainfallRecord.municipio_cod.in_(municipio_cods),
             RainfallRecord.municipio_name.isnot(None),
         )

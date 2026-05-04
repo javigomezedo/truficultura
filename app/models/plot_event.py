@@ -11,6 +11,7 @@ from app.database import Base
 if TYPE_CHECKING:
     from app.models.irrigation import IrrigationRecord
     from app.models.plot import Plot
+    from app.models.tenant import Tenant
     from app.models.user import User
     from app.models.well import Well
 
@@ -19,8 +20,14 @@ class PlotEvent(Base):
     __tablename__ = "plot_events"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    tenant_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    created_by_user_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    updated_by_user_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     plot_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("plots.id", ondelete="CASCADE"), nullable=False, index=True
@@ -53,11 +60,17 @@ class PlotEvent(Base):
     )
 
     __table_args__ = (
-        Index("ix_plot_event_user_plot_date", "user_id", "plot_id", "date"),
-        Index("ix_plot_event_user_plot_type", "user_id", "plot_id", "event_type"),
+        Index("ix_plot_event_tenant_plot_date", "tenant_id", "plot_id", "date"),
+        Index("ix_plot_event_tenant_plot_type", "tenant_id", "plot_id", "event_type"),
     )
 
-    user: Mapped["User"] = relationship("User", back_populates="plot_events")
+    tenant: Mapped[Optional["Tenant"]] = relationship("Tenant")
+    created_by: Mapped[Optional["User"]] = relationship(
+        "User", foreign_keys="[PlotEvent.created_by_user_id]"
+    )
+    updated_by: Mapped[Optional["User"]] = relationship(
+        "User", foreign_keys="[PlotEvent.updated_by_user_id]"
+    )
     plot: Mapped["Plot"] = relationship("Plot", back_populates="plot_events")
     related_irrigation: Mapped[Optional["IrrigationRecord"]] = relationship(
         "IrrigationRecord", back_populates="plot_events", lazy="joined"

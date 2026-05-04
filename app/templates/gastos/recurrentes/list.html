@@ -3,6 +3,7 @@
 {% block title %}{{ _("Gastos Recurrentes") }} &mdash; Trufiq{% endblock %}
 
 {% block content %}
+{% set read_only = session_plan_mode(request.session) == 'read_only' %}
 <div class="container-xl">
     <div class="tf-page-header">
         <div>
@@ -12,9 +13,11 @@
             </h1>
             <p class="tf-page-subtitle">{{ recurring_expenses|length }} {{ _("configuración(es) de gasto recurrente") }}</p>
         </div>
+        {% if not read_only %}
         <a href="/recurring-expenses/new" class="btn btn-danger">
             <i class="bi bi-plus-circle me-1"></i> {{ _("Nuevo Gasto Recurrente") }}
         </a>
+        {% endif %}
     </div>
 
     {% if msg %}
@@ -86,6 +89,7 @@
                             </td>
                             <td class="text-end">
                                 <div class="d-flex gap-1 justify-content-end">
+                                    {% if not read_only %}
                                     <a href="/recurring-expenses/{{ rec.id }}/edit"
                                        class="btn btn-sm btn-outline-secondary"
                                        title="{{ _('Editar') }}">
@@ -104,6 +108,7 @@
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </form>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
@@ -115,9 +120,11 @@
             <div class="text-center py-5 text-muted">
                 <i class="bi bi-arrow-repeat display-4 mb-3 d-block"></i>
                 <p class="mb-1">{{ _("No hay gastos recurrentes configurados.") }}</p>
+                {% if not read_only %}
                 <a href="/recurring-expenses/new" class="btn btn-danger mt-2">
                     <i class="bi bi-plus-circle me-1"></i> {{ _("Crear el primero") }}
                 </a>
+                {% endif %}
             </div>
             {% endif %}
         </div>

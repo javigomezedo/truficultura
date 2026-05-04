@@ -13,6 +13,7 @@ from app.auth import require_subscription
 from app.database import get_db
 from app.i18n import _
 from app.models.user import User
+from app.plan_access import require_plant_limit, require_write_access, get_plan_mode, PLANT_LIMIT_BASIC
 from app.services import (
     plant_presence_service,
     plants_service,
@@ -104,7 +105,7 @@ async def map_view(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    plot = await get_plot(db, plot_id, current_user.id)
+    plot = await get_plot(db, plot_id, current_user.active_tenant_id)
     if plot is None:
         return RedirectResponse(
             f"/plots/?msg={quote_plus(_('Parcela no encontrada'))}",
@@ -113,7 +114,7 @@ async def map_view(
 
     selected = _parse_optional_int(campaign)
     ctx = await plants_service.get_plot_map_context(
-        db, plot, user_id=current_user.id, selected_campaign=selected
+        db, plot, tenant_id=current_user.active_tenant_id, selected_campaign=selected
     )
 
     sort_by = sort or "display_weight_grams"
@@ -127,7 +128,7 @@ async def map_view(
 
     year_events = await truffle_events_service.list_events(
         db,
-        user_id=current_user.id,
+        tenant_id=current_user.active_tenant_id,
         campaign_year=None,
         plot_id=plot_id,
         include_undone=True,
@@ -143,7 +144,7 @@ async def map_view(
     )
 
     has_events = await plants_service.has_active_truffle_events(
-        db, plot_id, current_user.id
+        db, plot_id, current_user.active_tenant_id
     )
 
     # Presence view data
@@ -152,7 +153,7 @@ async def map_view(
     if map_view_mode == "presence":
         presence_by_plant = await plant_presence_service.get_presences_by_plot(
             db,
-            user_id=current_user.id,
+            tenant_id=current_user.active_tenant_id,
             plot_id=plot_id,
             campaign_year_filter=selected,
         )
@@ -188,12 +189,12 @@ async def toggle_plant_presence(
     presence_date: str = Form(...),
     campaign: Optional[str] = Form(default=None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     # Validate the plot belongs to the user
     from app.services.plots_service import get_plot as _get_plot
 
-    plot = await _get_plot(db, plot_id, current_user.id)
+    plot = await _get_plot(db, plot_id, current_user.active_tenant_id)
     if plot is None:
         return RedirectResponse(
             f"/plots/?msg={quote_plus(_('Parcela no encontrada'))}",
@@ -210,7 +211,7 @@ async def toggle_plant_presence(
 
     await plant_presence_service.toggle_presence(
         db,
-        user_id=current_user.id,
+        tenant_id=current_user.active_tenant_id,
         plant_id=plant_id,
         plot_id=plot_id,
         presence_date=parsed_date,
@@ -236,7 +237,7 @@ async def configure_map_form(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    plot = await get_plot(db, plot_id, current_user.id)
+    plot = await get_plot(db, plot_id, current_user.active_tenant_id)
     if plot is None:
         return RedirectResponse(
             f"/plots/?msg={quote_plus(_('Parcela no encontrada'))}",
@@ -244,11 +245,11 @@ async def configure_map_form(
         )
 
     has_events = await plants_service.has_active_truffle_events(
-        db, plot_id, current_user.id
+        db, plot_id, current_user.active_tenant_id
     )
 
     # Build current row configuration string from existing plants
-    all_plants = await plants_service.list_plants(db, plot_id, current_user.id)
+    all_plants = await plants_service.list_plants(db, plot_id, current_user.active_tenant_id)
     row_columns: list[list[int]] = []
     if all_plants:
         by_row: dict[int, list[int]] = {}
@@ -274,10 +275,10 @@ async def configure_map_submit(
     plot_id: int,
     row_config: str = Form(...),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     """row_config supports only sparse row format (e.g. A:2-5,8; B:1,3,4)."""
-    plot = await get_plot(db, plot_id, current_user.id)
+    plot = await get_plot(db, plot_id, current_user.active_tenant_id)
     if plot is None:
         return RedirectResponse(
             f"/plots/?msg={quote_plus(_('Parcela no encontrada'))}",
@@ -293,8 +294,10 @@ async def configure_map_submit(
         )
 
     try:
+        plant_limit = PLANT_LIMIT_BASIC if get_plan_mode(current_user) == "basic" else None
         await plants_service.configure_plot_map(
-            db, plot, user_id=current_user.id, row_columns=row_columns
+            db, plot, tenant_id=current_user.active_tenant_id, row_columns=row_columns,
+            plant_limit=plant_limit,
         )
     except ValueError as exc:
         return RedirectResponse(
@@ -321,9 +324,9 @@ async def add_truffle_event(
     campaign: Optional[str] = Form(default=None),
     estimated_weight_grams: float = Form(default=1.0),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_plant_limit),
 ):
-    plant = await plants_service.get_plant(db, plant_id, current_user.id)
+    plant = await plants_service.get_plant(db, plant_id, current_user.active_tenant_id)
     if plant is None or plant.plot_id != plot_id:
         return RedirectResponse(
             f"/plots/{plot_id}/map?msg={quote_plus(_('Planta no encontrada'))}",
@@ -336,7 +339,7 @@ async def add_truffle_event(
         db,
         plant_id=plant_id,
         plot_id=plot_id,
-        user_id=current_user.id,
+        tenant_id=current_user.active_tenant_id,
         estimated_weight_grams=weight,
         source="manual",
     )
@@ -361,9 +364,9 @@ async def undo_truffle_event(
     plant_id: int,
     campaign: Optional[str] = Form(default=None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
-    plant = await plants_service.get_plant(db, plant_id, current_user.id)
+    plant = await plants_service.get_plant(db, plant_id, current_user.active_tenant_id)
     if plant is None or plant.plot_id != plot_id:
         return RedirectResponse(
             f"/plots/{plot_id}/map?msg={quote_plus(_('Planta no encontrada'))}",
@@ -371,7 +374,7 @@ async def undo_truffle_event(
         )
 
     undone = await truffle_events_service.undo_last_event(
-        db, plant_id=plant_id, user_id=current_user.id
+        db, plant_id=plant_id, tenant_id=current_user.active_tenant_id
     )
 
     msg = (
@@ -394,12 +397,12 @@ async def delete_truffle_event_from_list(
     plot_id: Optional[str] = Form(default=None),
     plant_id: Optional[str] = Form(default=None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     deleted = await truffle_events_service.delete_event(
         db,
         event_id=event_id,
-        user_id=current_user.id,
+        tenant_id=current_user.active_tenant_id,
     )
 
     params: list[str] = []
@@ -438,16 +441,16 @@ async def list_truffle_events(
     camp_int = _parse_optional_int(camp)
     plot_id_int = _parse_optional_int(plot_id)
     plant_id_int = _parse_optional_int(plant_id)
-    plots = await list_plots(db, current_user.id)
+    plots = await list_plots(db, current_user.active_tenant_id)
     plants_for_filter = (
-        await plants_service.list_plants(db, plot_id_int, current_user.id)
+        await plants_service.list_plants(db, plot_id_int, current_user.active_tenant_id)
         if plot_id_int is not None
         else []
     )
 
     year_events = await truffle_events_service.list_events(
         db,
-        user_id=current_user.id,
+        tenant_id=current_user.active_tenant_id,
         campaign_year=None,
         plot_id=plot_id_int,
         plant_id=plant_id_int,
@@ -465,7 +468,7 @@ async def list_truffle_events(
 
     events = await truffle_events_service.list_events(
         db,
-        user_id=current_user.id,
+        tenant_id=current_user.active_tenant_id,
         campaign_year=camp_int,
         plot_id=plot_id_int,
         plant_id=plant_id_int,
@@ -475,7 +478,7 @@ async def list_truffle_events(
     if camp_int is not None:
         historical_active_events = await truffle_events_service.list_events(
             db,
-            user_id=current_user.id,
+            tenant_id=current_user.active_tenant_id,
             campaign_year=None,
             plot_id=plot_id_int,
             plant_id=plant_id_int,
@@ -543,14 +546,14 @@ async def download_plot_qr_pdf(
 
     from app.routers.scan import sign_plant_token
 
-    plot = await get_plot(db, plot_id, current_user.id)
+    plot = await get_plot(db, plot_id, current_user.active_tenant_id)
     if plot is None:
         return RedirectResponse(
             f"/plots/?msg={quote_plus(_('Parcela no encontrada'))}",
             status_code=303,
         )
 
-    plants = await plants_service.list_plants(db, plot_id, current_user.id)
+    plants = await plants_service.list_plants(db, plot_id, current_user.active_tenant_id)
     if not plants:
         return RedirectResponse(
             f"/plots/?msg={quote_plus(_('La parcela no tiene plantas configuradas'))}",

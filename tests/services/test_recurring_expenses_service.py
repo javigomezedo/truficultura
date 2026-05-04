@@ -37,7 +37,7 @@ def db():
 
 def _make_recurring(
     id=1,
-    user_id=1,
+    tenant_id=1,
     description="Regadío Social",
     amount=50.0,
     category="Regadío Social",
@@ -51,7 +51,7 @@ def _make_recurring(
 
     obj = RecurringExpense()
     obj.id = id
-    obj.user_id = user_id
+    obj.tenant_id = tenant_id
     obj.description = description
     obj.amount = amount
     obj.category = category
@@ -75,7 +75,7 @@ async def test_list_recurring_expenses_returns_user_items(db):
     rec = _make_recurring()
     db.execute = AsyncMock(return_value=result([rec]))
 
-    items = await list_recurring_expenses(db, user_id=1)
+    items = await list_recurring_expenses(db, tenant_id=1)
 
     assert items == [rec]
     db.execute.assert_awaited_once()
@@ -87,7 +87,7 @@ async def test_list_recurring_expenses_empty(db):
 
     db.execute = AsyncMock(return_value=result([]))
 
-    items = await list_recurring_expenses(db, user_id=1)
+    items = await list_recurring_expenses(db, tenant_id=1)
 
     assert items == []
 
@@ -104,7 +104,7 @@ async def test_get_recurring_expense_found(db):
     rec = _make_recurring(id=5)
     db.execute = AsyncMock(return_value=result([rec]))
 
-    found = await get_recurring_expense(db, recurring_expense_id=5, user_id=1)
+    found = await get_recurring_expense(db, recurring_expense_id=5, tenant_id=1)
 
     assert found is rec
 
@@ -115,7 +115,7 @@ async def test_get_recurring_expense_not_found(db):
 
     db.execute = AsyncMock(return_value=result([]))
 
-    found = await get_recurring_expense(db, recurring_expense_id=99, user_id=1)
+    found = await get_recurring_expense(db, recurring_expense_id=99, tenant_id=1)
 
     assert found is None
 
@@ -131,7 +131,7 @@ async def test_create_recurring_expense(db):
 
     obj = await create_recurring_expense(
         db,
-        user_id=1,
+        tenant_id=1,
         description="Regadío Social",
         amount=55.0,
         category="Regadío Social",
@@ -142,7 +142,7 @@ async def test_create_recurring_expense(db):
 
     db.add.assert_called_once_with(obj)
     db.flush.assert_awaited_once()
-    assert obj.user_id == 1
+    assert obj.tenant_id == 1
     assert obj.description == "Regadío Social"
     assert obj.amount == 55.0
     assert obj.frequency == "monthly"
@@ -156,7 +156,7 @@ async def test_create_recurring_expense_unknown_frequency_defaults_monthly(db):
 
     obj = await create_recurring_expense(
         db,
-        user_id=1,
+        tenant_id=1,
         description="Test",
         amount=10.0,
         frequency="fortnightly",  # unknown value

@@ -167,9 +167,9 @@ def _sum_monthly_rain(records: list[dict]) -> tuple[Optional[float], Optional[fl
 # ---------------------------------------------------------------------------
 
 
-async def _get_user_municipios(
+async def _get_tenant_municipios(
     db: AsyncSession,
-    user_id: int,
+    tenant_id: int,
 ) -> list[str]:
     """Devuelve la lista de códigos INE completos (5 dígitos) únicos del usuario.
 
@@ -180,7 +180,7 @@ async def _get_user_municipios(
     """
     res = await db.execute(
         select(Plot.provincia_cod, Plot.municipio_cod)
-        .where(Plot.user_id == user_id, Plot.municipio_cod.is_not(None))
+        .where(Plot.tenant_id == tenant_id, Plot.municipio_cod.is_not(None))
         .order_by(Plot.id)
     )
     seen: set[str] = set()
@@ -703,13 +703,13 @@ async def _get_weather_for_municipio(municipio_cod: str) -> dict:
     return data
 
 
-async def get_weather_contexts(db: AsyncSession, user_id: int) -> list[dict]:
+async def get_weather_contexts(db: AsyncSession, tenant_id: int) -> list[dict]:
     """Devuelve una lista de contextos de tiempo, uno por municipio del usuario.
 
     Usa caché en memoria de 20 min por municipio_cod, compartida entre
     todos los usuarios del mismo municipio.
     """
-    municipios = await _get_user_municipios(db, user_id)
+    municipios = await _get_tenant_municipios(db, tenant_id)
     if not municipios:
         return [{"available": False, "error": "no_municipio"}]
 

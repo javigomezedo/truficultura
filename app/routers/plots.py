@@ -11,6 +11,7 @@ from app.auth import require_subscription
 from app.database import get_db
 from app.i18n import _
 from app.models.user import User
+from app.plan_access import require_write_access, get_plan_mode, PLANT_LIMIT_BASIC
 from app.services.plots_service import (
     create_plot as create_plot_service,
     delete_plot as delete_plot_service,
@@ -32,8 +33,8 @@ async def list_plots(
     current_user: User = Depends(require_subscription),
     msg: Optional[str] = None,
 ):
-    plots = await list_plots_service(db, current_user.id)
-    plant_counts = await get_plant_counts_by_plot(db, current_user.id)
+    plots = await list_plots_service(db, current_user.active_tenant_id)
+    plant_counts = await get_plant_counts_by_plot(db, current_user.active_tenant_id)
     return templates.TemplateResponse(
         request,
         "parcelas/list.html",
@@ -114,11 +115,12 @@ async def create_plot(
     provincia_cod: Optional[str] = Form(None),
     municipio_cod: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
+    plant_limit = PLANT_LIMIT_BASIC if get_plan_mode(current_user) == "basic" else None
     await create_plot_service(
         db,
-        user_id=current_user.id,
+        tenant_id=current_user.active_tenant_id,
         name=name,
         polygon=polygon,
         plot_num=plot_num,
@@ -134,6 +136,7 @@ async def create_plot(
         caudal_riego=caudal_riego,
         provincia_cod=provincia_cod or None,
         municipio_cod=municipio_cod or None,
+        plant_limit=plant_limit,
     )
     return RedirectResponse(
         url=f"/plots/?msg={quote_plus(_('Parcela creada correctamente'))}",
@@ -148,7 +151,7 @@ async def edit_plot_form(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    obj = await get_plot(db, plot_id, current_user.id)
+    obj = await get_plot(db, plot_id, current_user.active_tenant_id)
     if obj is None:
         return RedirectResponse(
             url=f"/plots/?msg={quote_plus(_('Parcela no encontrada'))}",
@@ -187,15 +190,16 @@ async def update_plot(
     provincia_cod: Optional[str] = Form(None),
     municipio_cod: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
-    obj = await get_plot(db, plot_id, current_user.id)
+    obj = await get_plot(db, plot_id, current_user.active_tenant_id)
     if obj is None:
         return RedirectResponse(
             url=f"/plots/?msg={quote_plus(_('Parcela no encontrada'))}",
             status_code=303,
         )
 
+    plant_limit = PLANT_LIMIT_BASIC if get_plan_mode(current_user) == "basic" else None
     await update_plot_service(
         db,
         obj,
@@ -214,6 +218,7 @@ async def update_plot(
         caudal_riego=caudal_riego,
         provincia_cod=provincia_cod or None,
         municipio_cod=municipio_cod or None,
+        plant_limit=plant_limit,
     )
     return RedirectResponse(
         url=f"/plots/?msg={quote_plus(_('Parcela actualizada correctamente'))}",
@@ -226,9 +231,9 @@ async def delete_plot(
     request: Request,
     plot_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
-    obj = await get_plot(db, plot_id, current_user.id)
+    obj = await get_plot(db, plot_id, current_user.active_tenant_id)
     if obj:
         await delete_plot_service(db, obj)
     return RedirectResponse(

@@ -3,6 +3,7 @@
 {% block title %}{{ _("Pozos") }} &mdash; Trufiq{% endblock %}
 
 {% block content %}
+{% set read_only = session_plan_mode(request.session) == 'read_only' %}
 <div class="container-xl">
     <div class="tf-page-header">
         <div>
@@ -15,9 +16,11 @@
                 {% if selected_year %} {{ _("en campaña") }} {{ selected_year|campaign_label }}{% endif %}
             </p>
         </div>
+        {% if not read_only %}
         <a href="/wells/new" class="btn btn-primary">
             <i class="bi bi-plus-circle me-1"></i> {{ _("Nuevo registro de pozos") }}
         </a>
+        {% endif %}
     </div>
 
     {% if msg %}
@@ -161,6 +164,7 @@
                                         <i class="bi bi-three-dots-vertical"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                        {% if not read_only %}
                                         <li>
                                             <a href="/wells/{{ r.id }}/edit" class="dropdown-item">
                                                 <i class="bi bi-pencil-fill me-2 text-primary"></i>{{ _('Editar') }}
@@ -176,6 +180,7 @@
                                                 </button>
                                             </form>
                                         </li>
+                                        {% endif %}
                                     </ul>
                                 </div>
                             </td>
@@ -196,7 +201,7 @@
             <div class="tf-empty-state">
                 <i class="bi bi-droplet fs-1 d-block mb-2 opacity-25"></i>
                 <p>{{ _('No hay registros de pozos') }}{% if selected_year or selected_plot %} {{ _('para los filtros seleccionados') }}{% endif %}.</p>
-                {% if not selected_year and not selected_plot %}
+                {% if not selected_year and not selected_plot and not read_only %}
                 <a href="/wells/new" class="btn btn-primary">
                     <i class="bi bi-plus-circle me-1"></i> {{ _('Registrar primer pozo') }}
                 </a>

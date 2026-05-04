@@ -30,7 +30,7 @@ async def test_list_plants_returns_plants_for_plot() -> None:
         Plant(
             id=1,
             plot_id=10,
-            user_id=1,
+            tenant_id=1,
             label="A1",
             row_label="A",
             row_order=0,
@@ -39,7 +39,7 @@ async def test_list_plants_returns_plants_for_plot() -> None:
         Plant(
             id=2,
             plot_id=10,
-            user_id=1,
+            tenant_id=1,
             label="A2",
             row_label="A",
             row_order=0,
@@ -49,7 +49,7 @@ async def test_list_plants_returns_plants_for_plot() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result(plants))
 
-    found = await list_plants(db, plot_id=10, user_id=1)
+    found = await list_plants(db, plot_id=10, tenant_id=1)
 
     assert found == plants
 
@@ -59,7 +59,7 @@ async def test_list_plants_empty_when_no_plants() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([]))
 
-    found = await list_plants(db, plot_id=99, user_id=1)
+    found = await list_plants(db, plot_id=99, tenant_id=1)
 
     assert found == []
 
@@ -72,12 +72,12 @@ async def test_list_plants_empty_when_no_plants() -> None:
 @pytest.mark.asyncio
 async def test_get_plant_found() -> None:
     plant = Plant(
-        id=5, plot_id=10, user_id=1, label="B3", row_label="B", row_order=1, col_order=2
+        id=5, plot_id=10, tenant_id=1, label="B3", row_label="B", row_order=1, col_order=2
     )
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([plant]))
 
-    found = await get_plant(db, plant_id=5, user_id=1)
+    found = await get_plant(db, plant_id=5, tenant_id=1)
 
     assert found is plant
 
@@ -87,7 +87,7 @@ async def test_get_plant_not_found() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([]))
 
-    found = await get_plant(db, plant_id=999, user_id=1)
+    found = await get_plant(db, plant_id=999, tenant_id=1)
 
     assert found is None
 
@@ -102,7 +102,7 @@ async def test_has_active_truffle_events_true_when_event_exists() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([42]))  # event id present
 
-    has = await has_active_truffle_events(db, plot_id=10, user_id=1)
+    has = await has_active_truffle_events(db, plot_id=10, tenant_id=1)
 
     assert has is True
 
@@ -112,7 +112,7 @@ async def test_has_active_truffle_events_false_when_no_events() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([]))
 
-    has = await has_active_truffle_events(db, plot_id=10, user_id=1)
+    has = await has_active_truffle_events(db, plot_id=10, tenant_id=1)
 
     assert has is False
 
@@ -126,7 +126,7 @@ async def test_has_active_truffle_events_false_when_no_events() -> None:
 async def test_configure_plot_map_creates_correct_plants() -> None:
     plot = Plot(
         id=10,
-        user_id=1,
+        tenant_id=1,
         name="P1",
         num_plants=0,
         percentage=100.0,
@@ -144,7 +144,7 @@ async def test_configure_plot_map_creates_correct_plants() -> None:
     db.add = MagicMock()
 
     plants = await configure_plot_map(
-        db, plot, user_id=1, row_columns=[[1, 2], [1, 2, 3]]
+        db, plot, tenant_id=1, row_columns=[[1, 2], [1, 2, 3]]
     )
 
     assert len(plants) == 5
@@ -160,7 +160,7 @@ async def test_configure_plot_map_creates_correct_plants() -> None:
 async def test_configure_plot_map_raises_when_events_exist() -> None:
     plot = Plot(
         id=10,
-        user_id=1,
+        tenant_id=1,
         name="P1",
         num_plants=5,
         percentage=100.0,
@@ -171,14 +171,14 @@ async def test_configure_plot_map_raises_when_events_exist() -> None:
     db.execute = AsyncMock(return_value=result([99]))  # event id → blocked
 
     with pytest.raises(ValueError, match="existen registros de trufas activos"):
-        await configure_plot_map(db, plot, user_id=1, row_columns=[[1, 2, 3]])
+        await configure_plot_map(db, plot, tenant_id=1, row_columns=[[1, 2, 3]])
 
 
 @pytest.mark.asyncio
 async def test_configure_plot_map_generates_excel_labels_after_z() -> None:
     plot = Plot(
         id=10,
-        user_id=1,
+        tenant_id=1,
         name="P1",
         num_plants=0,
         percentage=100.0,
@@ -196,7 +196,7 @@ async def test_configure_plot_map_generates_excel_labels_after_z() -> None:
     db.add = MagicMock()
 
     plants = await configure_plot_map(
-        db, plot, user_id=1, row_columns=[[1] for _ in range(28)]
+        db, plot, tenant_id=1, row_columns=[[1] for _ in range(28)]
     )
 
     labels = [p.label for p in plants]
@@ -213,11 +213,11 @@ async def test_configure_plot_map_generates_excel_labels_after_z() -> None:
 
 @pytest.mark.asyncio
 async def test_get_plot_map_context_no_plants() -> None:
-    plot = Plot(id=10, user_id=1, name="P1", planting_date=datetime.date(2020, 1, 1))
+    plot = Plot(id=10, tenant_id=1, name="P1", planting_date=datetime.date(2020, 1, 1))
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([]))
 
-    ctx = await get_plot_map_context(db, plot, user_id=1, selected_campaign=2025)
+    ctx = await get_plot_map_context(db, plot, tenant_id=1, selected_campaign=2025)
 
     assert ctx["has_plants"] is False
     assert ctx["rows"] == []
@@ -229,7 +229,7 @@ async def test_get_plot_map_context_builds_rows_with_weights() -> None:
     plant_a1 = Plant(
         id=1,
         plot_id=10,
-        user_id=1,
+        tenant_id=1,
         label="A1",
         row_label="A",
         row_order=0,
@@ -239,7 +239,7 @@ async def test_get_plot_map_context_builds_rows_with_weights() -> None:
     plant_a3 = Plant(
         id=2,
         plot_id=10,
-        user_id=1,
+        tenant_id=1,
         label="A3",
         row_label="A",
         row_order=0,
@@ -249,7 +249,7 @@ async def test_get_plot_map_context_builds_rows_with_weights() -> None:
     plant_b1 = Plant(
         id=3,
         plot_id=10,
-        user_id=1,
+        tenant_id=1,
         label="B1",
         row_label="B",
         row_order=1,
@@ -276,8 +276,8 @@ async def test_get_plot_map_context_builds_rows_with_weights() -> None:
 
     ctx = await get_plot_map_context(
         db,
-        Plot(id=10, user_id=1, name="X", planting_date=datetime.date(2020, 1, 1)),
-        user_id=1,
+        Plot(id=10, tenant_id=1, name="X", planting_date=datetime.date(2020, 1, 1)),
+        tenant_id=1,
         selected_campaign=2025,
     )
 
@@ -299,7 +299,7 @@ async def test_get_plot_map_context_builds_rows_with_weights() -> None:
 async def test_get_plot_map_context_no_campaign_skips_campaign_query() -> None:
     """When selected_campaign is None only 2 DB queries run (plants + total counts)."""
     plant = Plant(
-        id=1, plot_id=10, user_id=1, label="A1", row_label="A", row_order=0, col_order=0
+        id=1, plot_id=10, tenant_id=1, label="A1", row_label="A", row_order=0, col_order=0
     )
 
     db = MagicMock()
@@ -312,8 +312,8 @@ async def test_get_plot_map_context_no_campaign_skips_campaign_query() -> None:
 
     ctx = await get_plot_map_context(
         db,
-        Plot(id=10, user_id=1, name="X", planting_date=datetime.date(2020, 1, 1)),
-        user_id=1,
+        Plot(id=10, tenant_id=1, name="X", planting_date=datetime.date(2020, 1, 1)),
+        tenant_id=1,
         selected_campaign=None,
     )
 

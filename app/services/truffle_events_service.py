@@ -100,7 +100,8 @@ async def create_event(
     *,
     plant_id: int,
     plot_id: int,
-    user_id: int,
+    tenant_id: int,
+    acting_user_id: Optional[int] = None,
     estimated_weight_grams: float = 1.0,
     source: str = "manual",
     dedupe_window_seconds: int = 2,
@@ -108,7 +109,7 @@ async def create_event(
     """Append a truffle event for a plant.
 
     To avoid rapid double taps/scans, if there is already an active event for the same
-    user/plot/plant within ``dedupe_window_seconds`` it is returned and no new row is created.
+    tenant/plot/plant within ``dedupe_window_seconds`` it is returned and no new row is created.
     The undo window for created events is fixed at 30 seconds.
     """
     now = datetime.datetime.now(tz=timezone.utc)
@@ -119,7 +120,7 @@ async def create_event(
         .where(
             TruffleEvent.plant_id == plant_id,
             TruffleEvent.plot_id == plot_id,
-            TruffleEvent.user_id == user_id,
+            TruffleEvent.tenant_id == tenant_id,
             TruffleEvent.undone_at.is_(None),
             TruffleEvent.created_at >= dedupe_since,
         )
@@ -133,7 +134,8 @@ async def create_event(
     event = TruffleEvent(
         plant_id=plant_id,
         plot_id=plot_id,
-        user_id=user_id,
+        tenant_id=tenant_id,
+        created_by_user_id=acting_user_id,
         source=source,
         estimated_weight_grams=max(float(estimated_weight_grams), 0.0),
         created_at=now,
@@ -148,7 +150,7 @@ async def get_last_undoable_event(
     db: AsyncSession,
     *,
     plant_id: int,
-    user_id: int,
+    tenant_id: int,
 ) -> Optional[TruffleEvent]:
     """Return the most recent active event still within its undo window, or None."""
     now = datetime.datetime.now(tz=timezone.utc)
@@ -156,7 +158,7 @@ async def get_last_undoable_event(
         select(TruffleEvent)
         .where(
             TruffleEvent.plant_id == plant_id,
-            TruffleEvent.user_id == user_id,
+            TruffleEvent.tenant_id == tenant_id,
             TruffleEvent.undone_at.is_(None),
             TruffleEvent.undo_window_expires_at > now,
         )
@@ -170,10 +172,10 @@ async def undo_last_event(
     db: AsyncSession,
     *,
     plant_id: int,
-    user_id: int,
+    tenant_id: int,
 ) -> Optional[TruffleEvent]:
     """Hard-delete the last undoable event. Returns the deleted event or None."""
-    event = await get_last_undoable_event(db, plant_id=plant_id, user_id=user_id)
+    event = await get_last_undoable_event(db, plant_id=plant_id, tenant_id=tenant_id)
     if event is None:
         return None
     await db.delete(event)
@@ -185,13 +187,13 @@ async def delete_event(
     db: AsyncSession,
     *,
     event_id: int,
-    user_id: int,
+    tenant_id: int,
 ) -> bool:
-    """Delete a truffle event by id for the given user. Returns True if deleted."""
+    """Delete a truffle event by id for the given tenant. Returns True if deleted."""
     res = await db.execute(
         select(TruffleEvent).where(
             TruffleEvent.id == event_id,
-            TruffleEvent.user_id == user_id,
+            TruffleEvent.tenant_id == tenant_id,
         )
     )
     event = res.scalar_one_or_none()
@@ -207,13 +209,13 @@ async def get_counts_by_plant(
     db: AsyncSession,
     *,
     plot_id: int,
-    user_id: int,
+    tenant_id: int,
     campaign_year: Optional[int] = None,
 ) -> dict[int, float]:
     """Return {plant_id: grams} of active truffle events, optionally filtered by campaign."""
     filters = [
         TruffleEvent.plot_id == plot_id,
-        TruffleEvent.user_id == user_id,
+        TruffleEvent.tenant_id == tenant_id,
         TruffleEvent.undone_at.is_(None),
     ]
     if campaign_year is not None:
@@ -240,7 +242,7 @@ async def get_counts_by_plant(
 async def list_events(
     db: AsyncSession,
     *,
-    user_id: int,
+    tenant_id: int,
     campaign_year: Optional[int] = None,
     plot_id: Optional[int] = None,
     plant_id: Optional[int] = None,
@@ -248,7 +250,7 @@ async def list_events(
     limit: int = 200,
 ) -> list[TruffleEvent]:
     """Return truffle events (most recent first) with optional filters."""
-    filters = [TruffleEvent.user_id == user_id]
+    filters = [TruffleEvent.tenant_id == tenant_id]
     if not include_undone:
         filters.append(TruffleEvent.undone_at.is_(None))
     if campaign_year is not None:
@@ -267,7 +269,6 @@ async def list_events(
         .options(
             selectinload(TruffleEvent.plant),
             selectinload(TruffleEvent.plot),
-            selectinload(TruffleEvent.user),
         )
         .where(*filters)
         .order_by(TruffleEvent.created_at.desc())

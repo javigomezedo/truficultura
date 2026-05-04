@@ -9,6 +9,7 @@ from app.database import Base
 
 if TYPE_CHECKING:
     from app.models.plot import Plot
+    from app.models.tenant import Tenant
     from app.models.truffle_event import TruffleEvent
     from app.models.user import User
 
@@ -20,8 +21,14 @@ class Plant(Base):
     plot_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("plots.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    tenant_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    created_by_user_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    updated_by_user_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     # Human-readable label, e.g. "A1", "B3", "AA12"
     label: Mapped[str] = mapped_column(String(20), nullable=False)
@@ -38,13 +45,19 @@ class Plant(Base):
         UniqueConstraint(
             "plot_id", "row_order", "col_order", name="uq_plant_position_per_plot"
         ),
-        Index("ix_plant_user_plot", "user_id", "plot_id"),
-        Index("ix_plant_user_plot_visual", "user_id", "plot_id", "visual_col"),
+        Index("ix_plant_tenant_plot", "tenant_id", "plot_id"),
+        Index("ix_plant_tenant_plot_visual", "tenant_id", "plot_id", "visual_col"),
     )
 
     # Relationships
     plot: Mapped["Plot"] = relationship("Plot", back_populates="plants")
-    user: Mapped["User"] = relationship("User")
+    tenant: Mapped[Optional["Tenant"]] = relationship("Tenant")
+    created_by: Mapped[Optional["User"]] = relationship(
+        "User", foreign_keys="[Plant.created_by_user_id]"
+    )
+    updated_by: Mapped[Optional["User"]] = relationship(
+        "User", foreign_keys="[Plant.updated_by_user_id]"
+    )
     truffle_events: Mapped[List["TruffleEvent"]] = relationship(
         "TruffleEvent",
         back_populates="plant",

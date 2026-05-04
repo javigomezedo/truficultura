@@ -27,7 +27,7 @@ async def test_list_plots_returns_ordered_items() -> None:
         )
     )
 
-    plots = await list_plots(db, user_id=1)
+    plots = await list_plots(db, tenant_id=1)
 
     assert len(plots) == 1
     assert plots[0].name == "A"
@@ -39,11 +39,11 @@ async def test_get_plot_found_and_not_found() -> None:
 
     db_found = MagicMock()
     db_found.execute = AsyncMock(return_value=result([plot]))
-    assert await get_plot(db_found, 7, user_id=1) is plot
+    assert await get_plot(db_found, 7, tenant_id=1) is plot
 
     db_missing = MagicMock()
     db_missing.execute = AsyncMock(return_value=result([]))
-    assert await get_plot(db_missing, 8, user_id=1) is None
+    assert await get_plot(db_missing, 8, tenant_id=1) is None
 
 
 @pytest.mark.asyncio
@@ -55,7 +55,7 @@ async def test_create_update_delete_plot() -> None:
 
     created = await create_plot(
         db,
-        user_id=1,
+        tenant_id=1,
         name="Bancal Sur",
         polygon="5",
         plot_num="42",
@@ -112,7 +112,7 @@ async def test_get_plant_counts_by_plot() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result(rows))
 
-    counts = await get_plant_counts_by_plot(db, user_id=1)
+    counts = await get_plant_counts_by_plot(db, tenant_id=1)
 
     assert counts == {1: 5, 2: 12}
 
@@ -122,6 +122,6 @@ async def test_get_plant_counts_by_plot_empty() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([]))
 
-    counts = await get_plant_counts_by_plot(db, user_id=99)
+    counts = await get_plant_counts_by_plot(db, tenant_id=99)
 
     assert counts == {}

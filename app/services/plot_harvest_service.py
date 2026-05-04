@@ -14,14 +14,16 @@ from app.utils import campaign_year
 async def create_harvest(
     db: AsyncSession,
     *,
-    user_id: int,
+    tenant_id: int,
+    acting_user_id: Optional[int] = None,
     plot_id: int,
     harvest_date: datetime.date,
     weight_grams: float,
     notes: Optional[str] = None,
 ) -> PlotHarvest:
     harvest = PlotHarvest(
-        user_id=user_id,
+        tenant_id=tenant_id,
+        created_by_user_id=acting_user_id,
         plot_id=plot_id,
         harvest_date=harvest_date,
         weight_grams=max(0.0, float(weight_grams)),
@@ -35,7 +37,8 @@ async def create_harvest(
 async def create_harvests_batch(
     db: AsyncSession,
     *,
-    user_id: int,
+    tenant_id: int,
+    acting_user_id: Optional[int] = None,
     entries: list[dict],
 ) -> list[PlotHarvest]:
     """Create multiple harvests in a single call.
@@ -50,7 +53,8 @@ async def create_harvests_batch(
         if weight <= 0:
             continue
         harvest = PlotHarvest(
-            user_id=user_id,
+            tenant_id=tenant_id,
+            created_by_user_id=acting_user_id,
             plot_id=int(entry["plot_id"]),
             harvest_date=entry["harvest_date"],
             weight_grams=weight,
@@ -66,12 +70,12 @@ async def create_harvests_batch(
 async def list_harvests(
     db: AsyncSession,
     *,
-    user_id: int,
+    tenant_id: int,
     campaign_year_filter: Optional[int] = None,
     plot_id: Optional[int] = None,
     limit: int = 500,
 ) -> list[PlotHarvest]:
-    filters = [PlotHarvest.user_id == user_id]
+    filters = [PlotHarvest.tenant_id == tenant_id]
     if plot_id is not None:
         filters.append(PlotHarvest.plot_id == plot_id)
     if campaign_year_filter is not None:
@@ -94,12 +98,12 @@ async def get_harvest(
     db: AsyncSession,
     *,
     harvest_id: int,
-    user_id: int,
+    tenant_id: int,
 ) -> Optional[PlotHarvest]:
     res = await db.execute(
         select(PlotHarvest)
         .options(selectinload(PlotHarvest.plot))
-        .where(PlotHarvest.id == harvest_id, PlotHarvest.user_id == user_id)
+        .where(PlotHarvest.id == harvest_id, PlotHarvest.tenant_id == tenant_id)
     )
     return res.scalar_one_or_none()
 
@@ -108,12 +112,13 @@ async def update_harvest(
     db: AsyncSession,
     *,
     harvest_id: int,
-    user_id: int,
+    tenant_id: int,
+    acting_user_id: Optional[int] = None,
     harvest_date: Optional[datetime.date] = None,
     weight_grams: Optional[float] = None,
     notes: Optional[str] = None,
 ) -> Optional[PlotHarvest]:
-    harvest = await get_harvest(db, harvest_id=harvest_id, user_id=user_id)
+    harvest = await get_harvest(db, harvest_id=harvest_id, tenant_id=tenant_id)
     if harvest is None:
         return None
     if harvest_date is not None:
@@ -122,6 +127,7 @@ async def update_harvest(
         harvest.weight_grams = max(0.0, float(weight_grams))
     if notes is not None:
         harvest.notes = notes or None
+    harvest.updated_by_user_id = acting_user_id
     await db.flush()
     return harvest
 
@@ -130,9 +136,9 @@ async def delete_harvest(
     db: AsyncSession,
     *,
     harvest_id: int,
-    user_id: int,
+    tenant_id: int,
 ) -> bool:
-    harvest = await get_harvest(db, harvest_id=harvest_id, user_id=user_id)
+    harvest = await get_harvest(db, harvest_id=harvest_id, tenant_id=tenant_id)
     if harvest is None:
         return False
     await db.delete(harvest)
@@ -143,14 +149,14 @@ async def delete_harvest(
 async def get_totals_by_plot(
     db: AsyncSession,
     *,
-    user_id: int,
+    tenant_id: int,
     campaign_year_filter: Optional[int] = None,
 ) -> dict[int, float]:
-    """Return {plot_id: total_weight_grams} for all plot harvests of the user.
+    """Return {plot_id: total_weight_grams} for all plot harvests of the tenant.
 
     Optionally filtered to a single campaign year (May–April).
     """
-    filters = [PlotHarvest.user_id == user_id]
+    filters = [PlotHarvest.tenant_id == tenant_id]
     if campaign_year_filter is not None:
         start = datetime.date(campaign_year_filter, 5, 1)
         end = datetime.date(campaign_year_filter + 1, 5, 1)
@@ -171,11 +177,11 @@ async def get_totals_by_plot(
 async def get_campaign_years(
     db: AsyncSession,
     *,
-    user_id: int,
+    tenant_id: int,
 ) -> list[int]:
     """Return sorted list of distinct campaign years with harvest data (most recent first)."""
     res = await db.execute(
-        select(PlotHarvest.harvest_date).where(PlotHarvest.user_id == user_id)
+        select(PlotHarvest.harvest_date).where(PlotHarvest.tenant_id == tenant_id)
     )
     years = sorted(
         {campaign_year(row.harvest_date) for row in res.all()},

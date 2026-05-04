@@ -16,12 +16,12 @@ from app.utils import campaign_year
 
 
 async def get_irrigation_record(
-    db: AsyncSession, record_id: int, user_id: int
+    db: AsyncSession, record_id: int, tenant_id: int
 ) -> Optional[IrrigationRecord]:
     result = await db.execute(
         select(IrrigationRecord).where(
             IrrigationRecord.id == record_id,
-            IrrigationRecord.user_id == user_id,
+            IrrigationRecord.tenant_id == tenant_id,
         )
     )
     return result.scalar_one_or_none()
@@ -29,12 +29,12 @@ async def get_irrigation_record(
 
 async def list_irrigation_records(
     db: AsyncSession,
-    user_id: int,
+    tenant_id: int,
     *,
     plot_id: Optional[int] = None,
     year: Optional[int] = None,
 ) -> list[IrrigationRecord]:
-    stmt = select(IrrigationRecord).where(IrrigationRecord.user_id == user_id)
+    stmt = select(IrrigationRecord).where(IrrigationRecord.tenant_id == tenant_id)
     if plot_id is not None:
         stmt = stmt.where(IrrigationRecord.plot_id == plot_id)
     records_result = await db.execute(stmt.order_by(IrrigationRecord.date.desc()))
@@ -46,19 +46,19 @@ async def list_irrigation_records(
     return records
 
 
-async def _get_all_years(db: AsyncSession, user_id: int) -> list[int]:
+async def _get_all_years(db: AsyncSession, tenant_id: int) -> list[int]:
     result = await db.execute(
-        select(IrrigationRecord.date).where(IrrigationRecord.user_id == user_id)
+        select(IrrigationRecord.date).where(IrrigationRecord.tenant_id == tenant_id)
     )
     dates = result.scalars().all()
     years = sorted({campaign_year(d) for d in dates}, reverse=True)
     return years
 
 
-async def _get_irrigable_plots(db: AsyncSession, user_id: int) -> list[Plot]:
+async def _get_irrigable_plots(db: AsyncSession, tenant_id: int) -> list[Plot]:
     result = await db.execute(
         select(Plot)
-        .where(Plot.user_id == user_id, Plot.has_irrigation.is_(True))
+        .where(Plot.tenant_id == tenant_id, Plot.has_irrigation.is_(True))
         .order_by(Plot.name)
     )
     return result.scalars().all()
@@ -66,16 +66,16 @@ async def _get_irrigable_plots(db: AsyncSession, user_id: int) -> list[Plot]:
 
 async def get_irrigation_list_context(
     db: AsyncSession,
-    user_id: int,
+    tenant_id: int,
     *,
     year: Optional[int] = None,
     plot_id: Optional[int] = None,
     sort_by: str = "date",
     sort_order: str = "desc",
 ) -> dict:
-    records = await list_irrigation_records(db, user_id, plot_id=plot_id, year=year)
-    plots = await _get_irrigable_plots(db, user_id)
-    years = await _get_all_years(db, user_id)
+    records = await list_irrigation_records(db, tenant_id, plot_id=plot_id, year=year)
+    plots = await _get_irrigable_plots(db, tenant_id)
+    years = await _get_all_years(db, tenant_id)
 
     _SORT_KEYS: dict = {
         "date": lambda x: x.date,
@@ -102,12 +102,12 @@ async def get_irrigation_list_context(
 
 
 async def get_riego_expenses_for_plot(
-    db: AsyncSession, user_id: int, plot_id: int
+    db: AsyncSession, tenant_id: int, plot_id: int
 ) -> list[Expense]:
     result = await db.execute(
         select(Expense)
         .where(
-            Expense.user_id == user_id,
+            Expense.tenant_id == tenant_id,
             Expense.plot_id == plot_id,
             Expense.category == "Riego",
         )
@@ -117,7 +117,7 @@ async def get_riego_expenses_for_plot(
 
 
 async def get_riego_expenses_for_plots(
-    db: AsyncSession, user_id: int, plot_ids: list[int]
+    db: AsyncSession, tenant_id: int, plot_ids: list[int]
 ) -> dict[int, list[Expense]]:
     """Devuelve un dict {plot_id: [gastos de riego]} para varios bancales a la vez."""
     if not plot_ids:
@@ -125,7 +125,7 @@ async def get_riego_expenses_for_plots(
     result = await db.execute(
         select(Expense)
         .where(
-            Expense.user_id == user_id,
+            Expense.tenant_id == tenant_id,
             Expense.plot_id.in_(plot_ids),
             Expense.category == "Riego",
         )
@@ -140,13 +140,13 @@ async def get_riego_expenses_for_plots(
 
 
 async def create_irrigation_record(
-    db: AsyncSession, user_id: int, data: IrrigationCreate
+    db: AsyncSession, tenant_id: int, data: IrrigationCreate, acting_user_id: Optional[int] = None
 ) -> IrrigationRecord:
     from app.services.plot_events_service import sync_plot_event_from_irrigation
 
-    # Validate plot belongs to user and has irrigation enabled
+    # Validate plot belongs to tenant and has irrigation enabled
     plot_result = await db.execute(
-        select(Plot).where(Plot.id == data.plot_id, Plot.user_id == user_id)
+        select(Plot).where(Plot.id == data.plot_id, Plot.tenant_id == tenant_id)
     )
     plot = plot_result.scalar_one_or_none()
     if plot is None:
@@ -165,7 +165,7 @@ async def create_irrigation_record(
         expense_result = await db.execute(
             select(Expense).where(
                 Expense.id == data.expense_id,
-                Expense.user_id == user_id,
+                Expense.tenant_id == tenant_id,
                 Expense.plot_id == data.plot_id,
                 Expense.category == "Riego",
             )
@@ -179,7 +179,8 @@ async def create_irrigation_record(
             )
 
     record = IrrigationRecord(
-        user_id=user_id,
+        tenant_id=tenant_id,
+        created_by_user_id=acting_user_id,
         plot_id=data.plot_id,
         date=data.date,
         water_m3=data.water_m3,
@@ -193,7 +194,7 @@ async def create_irrigation_record(
 
 
 async def update_irrigation_record(
-    db: AsyncSession, record: IrrigationRecord, data: IrrigationUpdate
+    db: AsyncSession, record: IrrigationRecord, data: IrrigationUpdate, acting_user_id: Optional[int] = None
 ) -> IrrigationRecord:
     from app.services.plot_events_service import sync_plot_event_from_irrigation
 
@@ -211,29 +212,30 @@ async def update_irrigation_record(
         record.notes = data.notes
     elif "notes" in data.model_fields_set:
         record.notes = None
+    record.updated_by_user_id = acting_user_id
     await db.flush()
     await sync_plot_event_from_irrigation(db, record)
     return record
 
 
 async def delete_irrigation_record(
-    db: AsyncSession, record_id: int, user_id: int
+    db: AsyncSession, record_id: int, tenant_id: int
 ) -> None:
     from app.services.plot_events_service import delete_plot_event_for_irrigation
 
-    record = await get_irrigation_record(db, record_id, user_id)
+    record = await get_irrigation_record(db, record_id, tenant_id)
     if record is not None:
-        await delete_plot_event_for_irrigation(db, record_id, user_id)
+        await delete_plot_event_for_irrigation(db, record_id, tenant_id)
         await db.delete(record)
         await db.flush()
 
 
 async def create_irrigation_records_bulk(
-    db: AsyncSession, user_id: int, items: list[IrrigationCreate]
+    db: AsyncSession, tenant_id: int, items: list[IrrigationCreate], acting_user_id: Optional[int] = None
 ) -> list[IrrigationRecord]:
     """Crea varios registros de riego a la vez (uno por parcela)."""
     created = []
     for data in items:
-        record = await create_irrigation_record(db, user_id, data)
+        record = await create_irrigation_record(db, tenant_id, data, acting_user_id)
         created.append(record)
     return created

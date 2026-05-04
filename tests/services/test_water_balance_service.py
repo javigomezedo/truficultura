@@ -80,7 +80,7 @@ def test_select_best_ignores_unrelated_municipio() -> None:
 async def test_get_plot_daily_water_balance_with_rainfall_record() -> None:
     plot = SimpleNamespace(
         id=1,
-        user_id=1,
+        tenant_id=1,
         name="Parcela A",
         area_ha=1.5,
         caudal_riego=7.2,
@@ -108,7 +108,7 @@ async def test_get_plot_daily_water_balance_with_rainfall_record() -> None:
 
     balance = await get_plot_daily_water_balance(
         db,
-        user_id=1,
+        tenant_id=1,
         plot_id=1,
         target_date=datetime.date(2026, 4, 18),
     )
@@ -126,7 +126,7 @@ async def test_get_plot_daily_water_balance_with_rainfall_record() -> None:
 async def test_get_plot_daily_water_balance_aemet_preferred_over_ibericam() -> None:
     plot = SimpleNamespace(
         id=1,
-        user_id=1,
+        tenant_id=1,
         name="P",
         area_ha=1.0,
         caudal_riego=None,
@@ -159,7 +159,7 @@ async def test_get_plot_daily_water_balance_aemet_preferred_over_ibericam() -> N
 
     balance = await get_plot_daily_water_balance(
         db,
-        user_id=1,
+        tenant_id=1,
         plot_id=1,
         target_date=datetime.date(2026, 4, 18),
     )
@@ -174,7 +174,7 @@ async def test_get_plot_daily_water_balance_no_rainfall_returns_none_precipitati
 ):
     plot = SimpleNamespace(
         id=1,
-        user_id=1,
+        tenant_id=1,
         name="Parcela A",
         area_ha=1.0,
         caudal_riego=None,
@@ -193,7 +193,7 @@ async def test_get_plot_daily_water_balance_no_rainfall_returns_none_precipitati
 
     balance = await get_plot_daily_water_balance(
         db,
-        user_id=1,
+        tenant_id=1,
         plot_id=1,
         target_date=datetime.date(2026, 4, 18),
     )
@@ -212,7 +212,7 @@ async def test_get_plot_daily_water_balance_returns_none_when_plot_missing() -> 
 
     balance = await get_plot_daily_water_balance(
         db,
-        user_id=1,
+        tenant_id=1,
         plot_id=999,
         target_date=datetime.date(2026, 4, 18),
     )
@@ -240,7 +240,7 @@ async def test_simulate_irrigation_plot_not_found() -> None:
     db.execute = AsyncMock(return_value=result([]))
 
     sim = await simulate_irrigation(
-        db, user_id=1, plot_id=99, sim_date=datetime.date(2026, 6, 1)
+        db, tenant_id=1, plot_id=99, sim_date=datetime.date(2026, 6, 1)
     )
     assert sim is None
 
@@ -249,7 +249,7 @@ async def test_simulate_irrigation_plot_not_found() -> None:
 async def test_simulate_irrigation_insufficient_data() -> None:
     plot = SimpleNamespace(
         id=1,
-        user_id=1,
+        tenant_id=1,
         name="P",
         area_ha=1.0,
         caudal_riego=2.0,
@@ -280,7 +280,7 @@ async def test_simulate_irrigation_insufficient_data() -> None:
     )
 
     sim = await simulate_irrigation(
-        db, user_id=1, plot_id=1, sim_date=datetime.date(2026, 6, 1)
+        db, tenant_id=1, plot_id=1, sim_date=datetime.date(2026, 6, 1)
     )
 
     assert sim is not None
@@ -293,7 +293,7 @@ async def test_simulate_irrigation_insufficient_data() -> None:
 async def test_simulate_irrigation_plateau_reached() -> None:
     plot = SimpleNamespace(
         id=1,
-        user_id=1,
+        tenant_id=1,
         name="P",
         area_ha=None,
         caudal_riego=None,
@@ -317,7 +317,7 @@ async def test_simulate_irrigation_plateau_reached() -> None:
         )
 
         sim = await simulate_irrigation(
-            db, user_id=1, plot_id=1, sim_date=datetime.date(2026, 6, 1)
+            db, tenant_id=1, plot_id=1, sim_date=datetime.date(2026, 6, 1)
         )
 
     assert sim["should_irrigate"] is False
@@ -329,7 +329,7 @@ async def test_simulate_irrigation_plateau_reached() -> None:
 async def test_simulate_irrigation_should_irrigate_with_flow() -> None:
     plot = SimpleNamespace(
         id=1,
-        user_id=1,
+        tenant_id=1,
         name="P",
         area_ha=None,
         caudal_riego=14.4,
@@ -351,7 +351,7 @@ async def test_simulate_irrigation_should_irrigate_with_flow() -> None:
         )
 
         sim = await simulate_irrigation(
-            db, user_id=1, plot_id=1, sim_date=datetime.date(2026, 6, 1)
+            db, tenant_id=1, plot_id=1, sim_date=datetime.date(2026, 6, 1)
         )
 
     assert sim["should_irrigate"] is True
@@ -365,7 +365,7 @@ async def test_simulate_irrigation_should_irrigate_with_flow() -> None:
 async def test_simulate_irrigation_should_irrigate_no_flow() -> None:
     plot = SimpleNamespace(
         id=1,
-        user_id=1,
+        tenant_id=1,
         name="P",
         area_ha=None,
         caudal_riego=None,
@@ -387,7 +387,7 @@ async def test_simulate_irrigation_should_irrigate_no_flow() -> None:
         )
 
         sim = await simulate_irrigation(
-            db, user_id=1, plot_id=1, sim_date=datetime.date(2026, 6, 1)
+            db, tenant_id=1, plot_id=1, sim_date=datetime.date(2026, 6, 1)
         )
 
     assert sim["should_irrigate"] is True
@@ -399,7 +399,7 @@ async def test_simulate_irrigation_includes_rainfall_in_total() -> None:
     """La lluvia acumulada de campaña debe sumarse al riego en total_water_m3."""
     plot = SimpleNamespace(
         id=1,
-        user_id=1,
+        tenant_id=1,
         name="P",
         area_ha=2.0,
         caudal_riego=None,
@@ -428,7 +428,7 @@ async def test_simulate_irrigation_includes_rainfall_in_total() -> None:
         )
 
         sim = await simulate_irrigation(
-            db, user_id=1, plot_id=1, sim_date=datetime.date(2026, 6, 10)
+            db, tenant_id=1, plot_id=1, sim_date=datetime.date(2026, 6, 10)
         )
 
     assert sim["rain_mm"] == pytest.approx(10.0)
@@ -441,7 +441,7 @@ async def test_simulate_irrigation_uses_plot_threshold_when_sufficient_data() ->
     """Con ≥5 campañas propias se usa el umbral de la parcela (threshold_scope='plot')."""
     plot = SimpleNamespace(
         id=1,
-        user_id=1,
+        tenant_id=1,
         name="P",
         area_ha=None,
         caudal_riego=None,
@@ -463,7 +463,7 @@ async def test_simulate_irrigation_uses_plot_threshold_when_sufficient_data() ->
         )
 
         sim = await simulate_irrigation(
-            db, user_id=1, plot_id=1, sim_date=datetime.date(2026, 6, 1)
+            db, tenant_id=1, plot_id=1, sim_date=datetime.date(2026, 6, 1)
         )
 
     assert sim is not None
@@ -476,7 +476,7 @@ async def test_simulate_irrigation_falls_back_to_global_threshold() -> None:
     """Con <5 campañas propias pero datos globales suficientes, usa umbral global."""
     plot = SimpleNamespace(
         id=1,
-        user_id=1,
+        tenant_id=1,
         name="P",
         area_ha=None,
         caudal_riego=None,
@@ -503,7 +503,7 @@ async def test_simulate_irrigation_falls_back_to_global_threshold() -> None:
         )
 
         sim = await simulate_irrigation(
-            db, user_id=1, plot_id=1, sim_date=datetime.date(2026, 6, 1)
+            db, tenant_id=1, plot_id=1, sim_date=datetime.date(2026, 6, 1)
         )
 
     assert sim is not None

@@ -33,12 +33,12 @@ async def test_create_event_sets_timestamps() -> None:
     db.flush = AsyncMock()
 
     before = datetime.datetime.now(tz=timezone.utc)
-    event = await create_event(db, plant_id=1, plot_id=10, user_id=1, source="manual")
+    event = await create_event(db, plant_id=1, plot_id=10, tenant_id=1, source="manual")
     after = datetime.datetime.now(tz=timezone.utc)
 
     assert event.plant_id == 1
     assert event.plot_id == 10
-    assert event.user_id == 1
+    assert event.tenant_id == 1
     assert event.source == "manual"
     assert event.estimated_weight_grams == 1.0
     assert before <= event.created_at <= after
@@ -56,7 +56,7 @@ async def test_create_event_default_source_is_manual() -> None:
     db.add = MagicMock()
     db.flush = AsyncMock()
 
-    event = await create_event(db, plant_id=2, plot_id=5, user_id=3)
+    event = await create_event(db, plant_id=2, plot_id=5, tenant_id=3)
 
     assert event.source == "manual"
 
@@ -72,7 +72,7 @@ async def test_create_event_persists_custom_estimated_weight() -> None:
         db,
         plant_id=2,
         plot_id=5,
-        user_id=3,
+        tenant_id=3,
         estimated_weight_grams=28.4,
     )
 
@@ -86,7 +86,7 @@ async def test_create_event_returns_duplicate_without_creating_new_row() -> None
         id=77,
         plant_id=1,
         plot_id=10,
-        user_id=1,
+        tenant_id=1,
         source="manual",
         estimated_weight_grams=1.0,
         created_at=now,
@@ -98,7 +98,7 @@ async def test_create_event_returns_duplicate_without_creating_new_row() -> None
     db.add = MagicMock()
     db.flush = AsyncMock()
 
-    returned = await create_event(db, plant_id=1, plot_id=10, user_id=1)
+    returned = await create_event(db, plant_id=1, plot_id=10, tenant_id=1)
 
     assert returned is existing
     db.add.assert_not_called()
@@ -117,7 +117,7 @@ async def test_get_last_undoable_event_found_within_window() -> None:
         id=1,
         plant_id=1,
         plot_id=10,
-        user_id=1,
+        tenant_id=1,
         source="manual",
         estimated_weight_grams=1.0,
         created_at=now,
@@ -126,7 +126,7 @@ async def test_get_last_undoable_event_found_within_window() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([event]))
 
-    found = await get_last_undoable_event(db, plant_id=1, user_id=1)
+    found = await get_last_undoable_event(db, plant_id=1, tenant_id=1)
 
     assert found is event
 
@@ -136,7 +136,7 @@ async def test_get_last_undoable_event_none_when_no_event() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([]))
 
-    found = await get_last_undoable_event(db, plant_id=99, user_id=1)
+    found = await get_last_undoable_event(db, plant_id=99, tenant_id=1)
 
     assert found is None
 
@@ -153,7 +153,7 @@ async def test_undo_last_event_deletes_record() -> None:
         id=1,
         plant_id=1,
         plot_id=10,
-        user_id=1,
+        tenant_id=1,
         source="qr",
         estimated_weight_grams=1.0,
         created_at=now,
@@ -164,7 +164,7 @@ async def test_undo_last_event_deletes_record() -> None:
     db.delete = AsyncMock()
     db.flush = AsyncMock()
 
-    undone = await undo_last_event(db, plant_id=1, user_id=1)
+    undone = await undo_last_event(db, plant_id=1, tenant_id=1)
 
     assert undone is event
     db.delete.assert_awaited_once_with(event)
@@ -176,7 +176,7 @@ async def test_undo_last_event_returns_none_when_no_undoable_event() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([]))
 
-    undone = await undo_last_event(db, plant_id=1, user_id=1)
+    undone = await undo_last_event(db, plant_id=1, tenant_id=1)
 
     assert undone is None
 
@@ -188,7 +188,7 @@ async def test_delete_event_deletes_matching_user_record() -> None:
         id=10,
         plant_id=1,
         plot_id=10,
-        user_id=1,
+        tenant_id=1,
         source="manual",
         estimated_weight_grams=1.0,
         created_at=now,
@@ -199,7 +199,7 @@ async def test_delete_event_deletes_matching_user_record() -> None:
     db.delete = AsyncMock()
     db.flush = AsyncMock()
 
-    deleted = await delete_event(db, event_id=10, user_id=1)
+    deleted = await delete_event(db, event_id=10, tenant_id=1)
 
     assert deleted is True
     db.delete.assert_awaited_once_with(event)
@@ -213,7 +213,7 @@ async def test_delete_event_returns_false_when_not_found() -> None:
     db.delete = AsyncMock()
     db.flush = AsyncMock()
 
-    deleted = await delete_event(db, event_id=999, user_id=1)
+    deleted = await delete_event(db, event_id=999, tenant_id=1)
 
     assert deleted is False
     db.delete.assert_not_called()
@@ -234,7 +234,7 @@ async def test_get_counts_by_plant_returns_dict() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result(rows))
 
-    counts = await get_counts_by_plant(db, plot_id=10, user_id=1)
+    counts = await get_counts_by_plant(db, plot_id=10, tenant_id=1)
 
     assert counts == {1: 7.0, 2: 3.5}
 
@@ -244,7 +244,7 @@ async def test_get_counts_by_plant_empty_when_no_events() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([]))
 
-    counts = await get_counts_by_plant(db, plot_id=10, user_id=1)
+    counts = await get_counts_by_plant(db, plot_id=10, tenant_id=1)
 
     assert counts == {}
 
@@ -255,7 +255,7 @@ async def test_get_counts_by_plant_passes_campaign_filter() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([]))
 
-    counts = await get_counts_by_plant(db, plot_id=10, user_id=1, campaign_year=2025)
+    counts = await get_counts_by_plant(db, plot_id=10, tenant_id=1, campaign_year=2025)
 
     assert counts == {}
     db.execute.assert_awaited_once()
@@ -274,7 +274,7 @@ async def test_list_events_returns_events() -> None:
             id=1,
             plant_id=1,
             plot_id=10,
-            user_id=1,
+            tenant_id=1,
             source="manual",
             estimated_weight_grams=1.0,
             created_at=now,
@@ -284,7 +284,7 @@ async def test_list_events_returns_events() -> None:
             id=2,
             plant_id=2,
             plot_id=10,
-            user_id=1,
+            tenant_id=1,
             source="qr",
             estimated_weight_grams=12.3,
             created_at=now,
@@ -294,7 +294,7 @@ async def test_list_events_returns_events() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result(events))
 
-    found = await list_events(db, user_id=1)
+    found = await list_events(db, tenant_id=1)
 
     assert found == events
 
@@ -304,7 +304,7 @@ async def test_list_events_empty_when_none() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([]))
 
-    found = await list_events(db, user_id=1, plot_id=10, campaign_year=2025)
+    found = await list_events(db, tenant_id=1, plot_id=10, campaign_year=2025)
 
     assert found == []
 
@@ -315,8 +315,8 @@ async def test_list_events_user_id_isolation() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([]))
 
-    await list_events(db, user_id=1)
-    await list_events(db, user_id=2)
+    await list_events(db, tenant_id=1)
+    await list_events(db, tenant_id=2)
 
     assert db.execute.call_count == 2
 
@@ -326,7 +326,7 @@ async def test_list_events_can_exclude_undone() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([]))
 
-    found = await list_events(db, user_id=1, include_undone=False)
+    found = await list_events(db, tenant_id=1, include_undone=False)
 
     assert found == []
     db.execute.assert_awaited_once()

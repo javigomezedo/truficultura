@@ -11,6 +11,7 @@ from app.database import Base
 if TYPE_CHECKING:
     from app.models.plant import Plant
     from app.models.plot import Plot
+    from app.models.tenant import Tenant
     from app.models.user import User
 
 
@@ -25,8 +26,11 @@ class TruffleEvent(Base):
     plot_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("plots.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    tenant_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    created_by_user_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
     # "manual" | "qr"
     source: Mapped[str] = mapped_column(String(10), nullable=False, default="manual")
@@ -47,11 +51,14 @@ class TruffleEvent(Base):
     )
 
     __table_args__ = (
-        Index("ix_truffle_event_user_plot_plant", "user_id", "plot_id", "plant_id"),
+        Index("ix_truffle_event_tenant_plot_plant", "tenant_id", "plot_id", "plant_id"),
         Index("ix_truffle_event_plant_created", "plant_id", "created_at"),
     )
 
     # Relationships
     plant: Mapped["Plant"] = relationship("Plant", back_populates="truffle_events")
     plot: Mapped["Plot"] = relationship("Plot")
-    user: Mapped["User"] = relationship("User")
+    tenant: Mapped[Optional["Tenant"]] = relationship("Tenant")
+    created_by: Mapped[Optional["User"]] = relationship(
+        "User", foreign_keys="[TruffleEvent.created_by_user_id]"
+    )

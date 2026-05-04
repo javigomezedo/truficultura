@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.models.tenant import Tenant, TenantMembership
 from app.models.user import User
 
 _pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
@@ -75,17 +76,42 @@ async def get_current_user(
         request.session.clear()
         return None
 
-    # Refresh subscription data in session so base.html can read it without
-    # needing current_user in every router's template context.
+    # Load the tenant membership for this user
     if user is not None:
-        request.session["subscription_status"] = user.subscription_status
-        if user.trial_ends_at:
-            delta = user.trial_ends_at - datetime.now(UTC)
+        membership_result = await db.execute(
+            select(TenantMembership)
+            .where(TenantMembership.user_id == user.id)
+        )
+        membership = membership_result.scalar_one_or_none()
+
+        if membership is not None:
+            tenant_result = await db.execute(
+                select(Tenant).where(Tenant.id == membership.tenant_id)
+            )
+            tenant = tenant_result.scalar_one_or_none()
+        else:
+            tenant = None
+
+        # Attach tenant info as dynamic attributes on the user object
+        user.active_tenant_id = membership.tenant_id if membership else None  # type: ignore[attr-defined]
+        user.tenant_role = membership.role if membership else None  # type: ignore[attr-defined]
+        user.active_tenant = tenant  # type: ignore[attr-defined]
+
+        # Refresh subscription data in session so base.html can read it without
+        # needing current_user in every router's template context.
+        sub_status = tenant.subscription_status if tenant else "trialing"
+        trial_ends_at = tenant.trial_ends_at if tenant else None
+        subscription_ends_at = tenant.subscription_ends_at if tenant else None
+
+        request.session["subscription_status"] = sub_status
+        request.session["tenant_plan"] = tenant.plan if tenant else None
+        if trial_ends_at:
+            delta = trial_ends_at - datetime.now(UTC)
             request.session["trial_days_left"] = delta.days
         else:
             request.session["trial_days_left"] = None
-        if user.subscription_ends_at:
-            delta = user.subscription_ends_at - datetime.now(UTC)
+        if subscription_ends_at:
+            delta = subscription_ends_at - datetime.now(UTC)
             request.session["subscription_days_left"] = delta.days
         else:
             request.session["subscription_days_left"] = None
@@ -126,34 +152,22 @@ class SubscriptionRequiredException(Exception):
 
 
 def is_subscription_blocked(user: User) -> bool:
-    """Return True if the user should be blocked from accessing the app."""
-    if user.role == "admin":
-        return False
-    now = datetime.now(UTC)
-    status = user.subscription_status
-    if status == "trialing":
-        return not (user.trial_ends_at and user.trial_ends_at > now)
-    if status == "active":
-        return (
-            user.subscription_ends_at is not None and user.subscription_ends_at <= now
-        )
-    return True
+    """Kept for backward compatibility. Always returns False in the new plan system.
+
+    Expired trials and past_due/canceled tenants now get read-only access instead
+    of a hard block. Use plan_access.is_read_only() or plan_access.require_write_access
+    for write-gating.
+    """
+    return False
 
 
 async def require_subscription(
     user: User = Depends(require_user),
 ) -> User:
-    """Verify the user has an active trial or paid subscription.
+    """Verify the user is authenticated and has an active tenant.
 
-    Admin users are always exempt.
-    Allowed subscription_status values:
-    - "trialing" with trial_ends_at > now
-    - "active" with subscription_ends_at > now (or no expiry set)
-    - "active" regardless (belt-and-suspenders for freshly activated users)
+    In the new plan system all authenticated users are allowed to access the app
+    (expired trials become read-only). Feature/write gating is enforced by the
+    plan_access module. Admin users are always granted full access.
     """
-    if user.role == "admin":
-        return user
-
-    if is_subscription_blocked(user):
-        raise SubscriptionRequiredException()
     return user

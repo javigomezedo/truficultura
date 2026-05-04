@@ -120,9 +120,13 @@ async def send_email(to: str, subject: str, html_body: str) -> None:
     )
 
 
-async def send_confirmation_email(to_email: str, token: str) -> None:
+async def send_confirmation_email(
+    to_email: str, token: str, next_url: str | None = None
+) -> None:
     """Send the account-confirmation email with the activation link."""
     confirm_url = f"{settings.APP_BASE_URL}/register/confirm/{token}"
+    if next_url:
+        confirm_url += f"?next={next_url}"
     html_body = f"""
 <!DOCTYPE html>
 <html lang="es">

@@ -23,7 +23,7 @@ from tests.conftest import result
 async def test_get_campaign_dataset_aggregates_metrics() -> None:
     plot = SimpleNamespace(
         id=1,
-        user_id=1,
+        tenant_id=1,
         name="Parcela A",
         num_plants=100,
         has_irrigation=True,
@@ -32,19 +32,19 @@ async def test_get_campaign_dataset_aggregates_metrics() -> None:
         provincia_cod=None,
     )
     income = SimpleNamespace(
-        user_id=1, plot_id=1, date=datetime.date(2025, 6, 1), amount_kg=50.0
+        tenant_id=1, plot_id=1, date=datetime.date(2025, 6, 1), amount_kg=50.0
     )
     irrigation = SimpleNamespace(
-        user_id=1, plot_id=1, date=datetime.date(2025, 6, 2), water_m3=10.0
+        tenant_id=1, plot_id=1, date=datetime.date(2025, 6, 2), water_m3=10.0
     )
     well = SimpleNamespace(
-        user_id=1, plot_id=1, date=datetime.date(2025, 6, 3), wells_per_plant=2
+        tenant_id=1, plot_id=1, date=datetime.date(2025, 6, 3), wells_per_plant=2
     )
     event_poda = SimpleNamespace(
-        user_id=1, plot_id=1, date=datetime.date(2025, 6, 4), event_type="poda"
+        tenant_id=1, plot_id=1, date=datetime.date(2025, 6, 4), event_type="poda"
     )
     event_labrado = SimpleNamespace(
-        user_id=1, plot_id=1, date=datetime.date(2025, 6, 5), event_type="labrado"
+        tenant_id=1, plot_id=1, date=datetime.date(2025, 6, 5), event_type="labrado"
     )
 
     db = MagicMock()
@@ -59,7 +59,7 @@ async def test_get_campaign_dataset_aggregates_metrics() -> None:
         ]
     )
 
-    rows = await get_campaign_dataset(db, user_id=1)
+    rows = await get_campaign_dataset(db, tenant_id=1)
 
     assert len(rows) == 1
     row = rows[0]
@@ -76,7 +76,7 @@ async def test_get_campaign_dataset_aggregates_metrics() -> None:
 async def test_get_campaign_dataset_filters_campaign_range() -> None:
     plot = SimpleNamespace(
         id=1,
-        user_id=1,
+        tenant_id=1,
         name="Parcela A",
         num_plants=100,
         has_irrigation=True,
@@ -85,10 +85,10 @@ async def test_get_campaign_dataset_filters_campaign_range() -> None:
         provincia_cod=None,
     )
     income_2025 = SimpleNamespace(
-        user_id=1, plot_id=1, date=datetime.date(2025, 6, 1), amount_kg=50.0
+        tenant_id=1, plot_id=1, date=datetime.date(2025, 6, 1), amount_kg=50.0
     )
     income_2024 = SimpleNamespace(
-        user_id=1, plot_id=1, date=datetime.date(2024, 6, 1), amount_kg=30.0
+        tenant_id=1, plot_id=1, date=datetime.date(2024, 6, 1), amount_kg=30.0
     )
 
     db = MagicMock()
@@ -103,7 +103,7 @@ async def test_get_campaign_dataset_filters_campaign_range() -> None:
         ]
     )
 
-    rows = await get_campaign_dataset(db, user_id=1, campaign_from=2025)
+    rows = await get_campaign_dataset(db, tenant_id=1, campaign_from=2025)
 
     assert len(rows) == 1
     assert rows[0]["campaign_year"] == 2025
@@ -116,7 +116,7 @@ async def test_get_irrigation_vs_production_analysis() -> None:
     # Reuse get_campaign_dataset via mocked DB calls (plots, incomes, irrigation, wells, events)
     plot = SimpleNamespace(
         id=1,
-        user_id=1,
+        tenant_id=1,
         name="Parcela A",
         num_plants=100,
         has_irrigation=True,
@@ -126,18 +126,18 @@ async def test_get_irrigation_vs_production_analysis() -> None:
     )
     incomes = [
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2025, 6, 1), amount_kg=50.0
+            tenant_id=1, plot_id=1, date=datetime.date(2025, 6, 1), amount_kg=50.0
         ),
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2026, 6, 1), amount_kg=60.0
+            tenant_id=1, plot_id=1, date=datetime.date(2026, 6, 1), amount_kg=60.0
         ),
     ]
     irrigation = [
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2025, 6, 2), water_m3=10.0
+            tenant_id=1, plot_id=1, date=datetime.date(2025, 6, 2), water_m3=10.0
         ),
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2026, 6, 2), water_m3=20.0
+            tenant_id=1, plot_id=1, date=datetime.date(2026, 6, 2), water_m3=20.0
         ),
     ]
 
@@ -152,7 +152,7 @@ async def test_get_irrigation_vs_production_analysis() -> None:
         ]
     )
 
-    analysis = await get_irrigation_vs_production_analysis(db, user_id=1)
+    analysis = await get_irrigation_vs_production_analysis(db, tenant_id=1)
 
     assert analysis["sample_size"] == 2
     assert analysis["avg_water_m3"] > 0
@@ -172,7 +172,7 @@ async def test_get_irrigation_vs_production_analysis() -> None:
 async def test_get_pruning_vs_production_analysis() -> None:
     plot = SimpleNamespace(
         id=1,
-        user_id=1,
+        tenant_id=1,
         name="Parcela A",
         num_plants=100,
         has_irrigation=True,
@@ -181,13 +181,13 @@ async def test_get_pruning_vs_production_analysis() -> None:
         provincia_cod=None,
     )
     income_a = SimpleNamespace(
-        user_id=1, plot_id=1, date=datetime.date(2025, 6, 1), amount_kg=80.0
+        tenant_id=1, plot_id=1, date=datetime.date(2025, 6, 1), amount_kg=80.0
     )
     income_b = SimpleNamespace(
-        user_id=1, plot_id=1, date=datetime.date(2026, 6, 1), amount_kg=40.0
+        tenant_id=1, plot_id=1, date=datetime.date(2026, 6, 1), amount_kg=40.0
     )
     event_pruning = SimpleNamespace(
-        user_id=1, plot_id=1, date=datetime.date(2025, 6, 2), event_type="poda"
+        tenant_id=1, plot_id=1, date=datetime.date(2025, 6, 2), event_type="poda"
     )
 
     db = MagicMock()
@@ -202,7 +202,7 @@ async def test_get_pruning_vs_production_analysis() -> None:
         ]
     )
 
-    analysis = await get_pruning_vs_production_analysis(db, user_id=1)
+    analysis = await get_pruning_vs_production_analysis(db, tenant_id=1)
 
     assert analysis["sample_size"] == 2
     assert analysis["with_pruning_count"] == 1
@@ -214,7 +214,7 @@ async def test_get_pruning_vs_production_analysis() -> None:
 async def test_get_tilling_vs_production_analysis() -> None:
     plot = SimpleNamespace(
         id=1,
-        user_id=1,
+        tenant_id=1,
         name="Parcela A",
         num_plants=100,
         has_irrigation=True,
@@ -224,15 +224,15 @@ async def test_get_tilling_vs_production_analysis() -> None:
     )
     incomes = [
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2025, 6, 1), amount_kg=10.0
+            tenant_id=1, plot_id=1, date=datetime.date(2025, 6, 1), amount_kg=10.0
         ),
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2026, 6, 1), amount_kg=20.0
+            tenant_id=1, plot_id=1, date=datetime.date(2026, 6, 1), amount_kg=20.0
         ),
     ]
     events = [
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2026, 6, 2), event_type="labrado"
+            tenant_id=1, plot_id=1, date=datetime.date(2026, 6, 2), event_type="labrado"
         ),
     ]
 
@@ -248,7 +248,7 @@ async def test_get_tilling_vs_production_analysis() -> None:
         ]
     )
 
-    analysis = await get_tilling_vs_production_analysis(db, user_id=1)
+    analysis = await get_tilling_vs_production_analysis(db, tenant_id=1)
 
     assert analysis["sample_size"] == 2
     assert len(analysis["groups"]) == 2
@@ -263,7 +263,7 @@ async def test_get_tilling_vs_production_analysis() -> None:
 async def test_detect_irrigation_thresholds() -> None:
     plot = SimpleNamespace(
         id=1,
-        user_id=1,
+        tenant_id=1,
         name="Parcela A",
         num_plants=100,
         has_irrigation=True,
@@ -273,24 +273,24 @@ async def test_detect_irrigation_thresholds() -> None:
     )
     incomes = [
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2025, 6, 1), amount_kg=20.0
+            tenant_id=1, plot_id=1, date=datetime.date(2025, 6, 1), amount_kg=20.0
         ),
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2026, 6, 1), amount_kg=21.0
+            tenant_id=1, plot_id=1, date=datetime.date(2026, 6, 1), amount_kg=21.0
         ),
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2027, 6, 1), amount_kg=21.1
+            tenant_id=1, plot_id=1, date=datetime.date(2027, 6, 1), amount_kg=21.1
         ),
     ]
     irrigation = [
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2025, 6, 2), water_m3=10.0
+            tenant_id=1, plot_id=1, date=datetime.date(2025, 6, 2), water_m3=10.0
         ),
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2026, 6, 2), water_m3=20.0
+            tenant_id=1, plot_id=1, date=datetime.date(2026, 6, 2), water_m3=20.0
         ),
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2027, 6, 2), water_m3=30.0
+            tenant_id=1, plot_id=1, date=datetime.date(2027, 6, 2), water_m3=30.0
         ),
     ]
 
@@ -306,7 +306,7 @@ async def test_detect_irrigation_thresholds() -> None:
         ]
     )
 
-    analysis = await detect_irrigation_thresholds(db, user_id=1)
+    analysis = await detect_irrigation_thresholds(db, tenant_id=1)
 
     assert analysis["sample_size"] == 3
     assert analysis["status"] == "ok"
@@ -318,7 +318,7 @@ async def test_detect_irrigation_thresholds_inconclusive_first_transition() -> N
     """Si el primer par ya dispara la meseta, el status es 'inconclusive'."""
     plot = SimpleNamespace(
         id=1,
-        user_id=1,
+        tenant_id=1,
         name="Parcela A",
         num_plants=100,
         has_irrigation=True,
@@ -330,24 +330,24 @@ async def test_detect_irrigation_thresholds_inconclusive_first_transition() -> N
     # Transition 0: 10→30: Δprod=-100, gain=-5.0 ≤ 0.02 → plateau at 30 (i=0) → inconclusive
     incomes = [
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2023, 6, 1), amount_kg=200.0
+            tenant_id=1, plot_id=1, date=datetime.date(2023, 6, 1), amount_kg=200.0
         ),
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2024, 6, 1), amount_kg=100.0
+            tenant_id=1, plot_id=1, date=datetime.date(2024, 6, 1), amount_kg=100.0
         ),
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2025, 6, 1), amount_kg=250.0
+            tenant_id=1, plot_id=1, date=datetime.date(2025, 6, 1), amount_kg=250.0
         ),
     ]
     irrigation = [
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2023, 6, 2), water_m3=10.0
+            tenant_id=1, plot_id=1, date=datetime.date(2023, 6, 2), water_m3=10.0
         ),
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2024, 6, 2), water_m3=30.0
+            tenant_id=1, plot_id=1, date=datetime.date(2024, 6, 2), water_m3=30.0
         ),
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2025, 6, 2), water_m3=50.0
+            tenant_id=1, plot_id=1, date=datetime.date(2025, 6, 2), water_m3=50.0
         ),
     ]
 
@@ -363,7 +363,7 @@ async def test_detect_irrigation_thresholds_inconclusive_first_transition() -> N
         ]
     )
 
-    analysis = await detect_irrigation_thresholds(db, user_id=1)
+    analysis = await detect_irrigation_thresholds(db, tenant_id=1)
 
     assert analysis["status"] == "inconclusive"
     assert analysis["plateau_start_m3"] is None
@@ -374,7 +374,7 @@ async def test_detect_irrigation_thresholds_inconclusive_noisy() -> None:
     """Si más del 60 % de las ganancias son negativas, el status es 'inconclusive'."""
     plot = SimpleNamespace(
         id=1,
-        user_id=1,
+        tenant_id=1,
         name="Parcela A",
         num_plants=100,
         has_irrigation=True,
@@ -390,36 +390,36 @@ async def test_detect_irrigation_thresholds_inconclusive_noisy() -> None:
     # negative_count=3, total=4, ratio=0.75 > 0.60 → noisy → inconclusive
     incomes = [
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2021, 6, 1), amount_kg=100.0
+            tenant_id=1, plot_id=1, date=datetime.date(2021, 6, 1), amount_kg=100.0
         ),
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2022, 6, 1), amount_kg=150.0
+            tenant_id=1, plot_id=1, date=datetime.date(2022, 6, 1), amount_kg=150.0
         ),
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2023, 6, 1), amount_kg=120.0
+            tenant_id=1, plot_id=1, date=datetime.date(2023, 6, 1), amount_kg=120.0
         ),
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2024, 6, 1), amount_kg=90.0
+            tenant_id=1, plot_id=1, date=datetime.date(2024, 6, 1), amount_kg=90.0
         ),
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2025, 6, 1), amount_kg=70.0
+            tenant_id=1, plot_id=1, date=datetime.date(2025, 6, 1), amount_kg=70.0
         ),
     ]
     irrigation = [
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2021, 6, 2), water_m3=10.0
+            tenant_id=1, plot_id=1, date=datetime.date(2021, 6, 2), water_m3=10.0
         ),
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2022, 6, 2), water_m3=20.0
+            tenant_id=1, plot_id=1, date=datetime.date(2022, 6, 2), water_m3=20.0
         ),
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2023, 6, 2), water_m3=30.0
+            tenant_id=1, plot_id=1, date=datetime.date(2023, 6, 2), water_m3=30.0
         ),
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2024, 6, 2), water_m3=40.0
+            tenant_id=1, plot_id=1, date=datetime.date(2024, 6, 2), water_m3=40.0
         ),
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2025, 6, 2), water_m3=50.0
+            tenant_id=1, plot_id=1, date=datetime.date(2025, 6, 2), water_m3=50.0
         ),
     ]
 
@@ -435,7 +435,7 @@ async def test_detect_irrigation_thresholds_inconclusive_noisy() -> None:
         ]
     )
 
-    analysis = await detect_irrigation_thresholds(db, user_id=1)
+    analysis = await detect_irrigation_thresholds(db, tenant_id=1)
 
     assert analysis["status"] == "inconclusive"
     assert analysis["plateau_start_m3"] is None
@@ -443,10 +443,98 @@ async def test_detect_irrigation_thresholds_inconclusive_noisy() -> None:
 
 
 @pytest.mark.asyncio
+async def test_detect_irrigation_thresholds_median_of_plots() -> None:
+    """Con ≥2 parcelas con umbral fiable, devuelve la mediana de sus mesetas."""
+    plot1 = SimpleNamespace(
+        id=1,
+        tenant_id=1,
+        name="Parcela A",
+        num_plants=100,
+        has_irrigation=True,
+        area_ha=None,
+        municipio_cod=None,
+        provincia_cod=None,
+    )
+    plot2 = SimpleNamespace(
+        id=2,
+        tenant_id=1,
+        name="Parcela B",
+        num_plants=100,
+        has_irrigation=True,
+        area_ha=None,
+        municipio_cod=None,
+        provincia_cod=None,
+    )
+    # Plot 1: water 10→20→30, prod 5→10→10.1 → plateau at 30 m³
+    # Plot 2: water 15→25→35, prod 8→15→15.1 → plateau at 35 m³
+    # Median of [30, 35] = 32.5
+    incomes = [
+        SimpleNamespace(
+            tenant_id=1, plot_id=1, date=datetime.date(2024, 6, 1), amount_kg=5.0
+        ),
+        SimpleNamespace(
+            tenant_id=1, plot_id=1, date=datetime.date(2025, 6, 1), amount_kg=10.0
+        ),
+        SimpleNamespace(
+            tenant_id=1, plot_id=1, date=datetime.date(2026, 6, 1), amount_kg=10.1
+        ),
+        SimpleNamespace(
+            tenant_id=1, plot_id=2, date=datetime.date(2024, 6, 1), amount_kg=8.0
+        ),
+        SimpleNamespace(
+            tenant_id=1, plot_id=2, date=datetime.date(2025, 6, 1), amount_kg=15.0
+        ),
+        SimpleNamespace(
+            tenant_id=1, plot_id=2, date=datetime.date(2026, 6, 1), amount_kg=15.1
+        ),
+    ]
+    irrigation = [
+        SimpleNamespace(
+            tenant_id=1, plot_id=1, date=datetime.date(2024, 6, 2), water_m3=10.0
+        ),
+        SimpleNamespace(
+            tenant_id=1, plot_id=1, date=datetime.date(2025, 6, 2), water_m3=20.0
+        ),
+        SimpleNamespace(
+            tenant_id=1, plot_id=1, date=datetime.date(2026, 6, 2), water_m3=30.0
+        ),
+        SimpleNamespace(
+            tenant_id=1, plot_id=2, date=datetime.date(2024, 6, 2), water_m3=15.0
+        ),
+        SimpleNamespace(
+            tenant_id=1, plot_id=2, date=datetime.date(2025, 6, 2), water_m3=25.0
+        ),
+        SimpleNamespace(
+            tenant_id=1, plot_id=2, date=datetime.date(2026, 6, 2), water_m3=35.0
+        ),
+    ]
+
+    db = MagicMock()
+    db.execute = AsyncMock(
+        side_effect=[
+            result([plot1, plot2]),
+            result(incomes),
+            result(irrigation),
+            result([]),  # wells
+            result([]),  # events
+            result([]),  # rainfall
+        ]
+    )
+
+    analysis = await detect_irrigation_thresholds(db, tenant_id=1)
+
+    assert analysis["method"] == "median_of_plots"
+    assert analysis["contributing_plots"] == 2
+    assert analysis["status"] == "ok"
+    assert analysis["plateau_start_m3"] == 32.5
+    assert analysis["sample_size"] == 6
+
+
+@pytest.mark.asyncio
 async def test_get_plot_detail_context_found() -> None:
     plot = SimpleNamespace(
         id=10,
-        user_id=1,
+        tenant_id=1,
         name="Parcela Z",
         num_plants=100,
         has_irrigation=True,
@@ -456,10 +544,10 @@ async def test_get_plot_detail_context_found() -> None:
         provincia_cod=None,
     )
     income = SimpleNamespace(
-        user_id=1, plot_id=10, date=datetime.date(2025, 6, 1), amount_kg=42.0
+        tenant_id=1, plot_id=10, date=datetime.date(2025, 6, 1), amount_kg=42.0
     )
     irrigation = SimpleNamespace(
-        user_id=1, plot_id=10, date=datetime.date(2025, 6, 2), water_m3=11.0
+        tenant_id=1, plot_id=10, date=datetime.date(2025, 6, 2), water_m3=11.0
     )
 
     db = MagicMock()
@@ -475,7 +563,7 @@ async def test_get_plot_detail_context_found() -> None:
         ]
     )
 
-    context = await get_plot_detail_context(db, user_id=1, plot_id=10)
+    context = await get_plot_detail_context(db, tenant_id=1, plot_id=10)
 
     assert context is not None
     assert context["plot"].name == "Parcela Z"
@@ -493,7 +581,7 @@ async def test_get_plot_detail_context_not_found() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([]))
 
-    context = await get_plot_detail_context(db, user_id=1, plot_id=999)
+    context = await get_plot_detail_context(db, tenant_id=1, plot_id=999)
 
     assert context is None
 
@@ -502,7 +590,7 @@ async def test_get_plot_detail_context_not_found() -> None:
 async def test_get_multi_plot_comparison() -> None:
     plot_a = SimpleNamespace(
         id=1,
-        user_id=1,
+        tenant_id=1,
         name="Parcela A",
         num_plants=100,
         has_irrigation=True,
@@ -512,7 +600,7 @@ async def test_get_multi_plot_comparison() -> None:
     )
     plot_b = SimpleNamespace(
         id=2,
-        user_id=1,
+        tenant_id=1,
         name="Parcela B",
         num_plants=100,
         has_irrigation=True,
@@ -522,18 +610,18 @@ async def test_get_multi_plot_comparison() -> None:
     )
     incomes = [
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2025, 6, 1), amount_kg=40.0
+            tenant_id=1, plot_id=1, date=datetime.date(2025, 6, 1), amount_kg=40.0
         ),
         SimpleNamespace(
-            user_id=1, plot_id=2, date=datetime.date(2025, 6, 1), amount_kg=30.0
+            tenant_id=1, plot_id=2, date=datetime.date(2025, 6, 1), amount_kg=30.0
         ),
     ]
     irrigation = [
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2025, 6, 2), water_m3=10.0
+            tenant_id=1, plot_id=1, date=datetime.date(2025, 6, 2), water_m3=10.0
         ),
         SimpleNamespace(
-            user_id=1, plot_id=2, date=datetime.date(2025, 6, 2), water_m3=20.0
+            tenant_id=1, plot_id=2, date=datetime.date(2025, 6, 2), water_m3=20.0
         ),
     ]
 
@@ -549,7 +637,7 @@ async def test_get_multi_plot_comparison() -> None:
         ]
     )
 
-    comparison = await get_multi_plot_comparison(db, user_id=1)
+    comparison = await get_multi_plot_comparison(db, tenant_id=1)
 
     assert comparison["sample_size"] == 2
     assert comparison["plots_included"] == 2
@@ -562,7 +650,7 @@ async def test_get_all_plot_thresholds_per_plot() -> None:
     """Dos parcelas con datos suficientes → se calcula umbral para cada una."""
     plot_a = SimpleNamespace(
         id=1,
-        user_id=1,
+        tenant_id=1,
         name="Parcela A",
         num_plants=100,
         has_irrigation=True,
@@ -572,7 +660,7 @@ async def test_get_all_plot_thresholds_per_plot() -> None:
     )
     plot_b = SimpleNamespace(
         id=2,
-        user_id=1,
+        tenant_id=1,
         name="Parcela B",
         num_plants=100,
         has_irrigation=True,
@@ -583,31 +671,31 @@ async def test_get_all_plot_thresholds_per_plot() -> None:
     # Parcela A: 3 campañas con agua y producción (suficientes)
     incomes = [
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2023, 6, 1), amount_kg=10.0
+            tenant_id=1, plot_id=1, date=datetime.date(2023, 6, 1), amount_kg=10.0
         ),
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2024, 6, 1), amount_kg=10.5
+            tenant_id=1, plot_id=1, date=datetime.date(2024, 6, 1), amount_kg=10.5
         ),
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2025, 6, 1), amount_kg=10.6
+            tenant_id=1, plot_id=1, date=datetime.date(2025, 6, 1), amount_kg=10.6
         ),
         # Parcela B: sólo 1 campaña
         SimpleNamespace(
-            user_id=1, plot_id=2, date=datetime.date(2025, 6, 1), amount_kg=20.0
+            tenant_id=1, plot_id=2, date=datetime.date(2025, 6, 1), amount_kg=20.0
         ),
     ]
     irrigation = [
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2023, 6, 2), water_m3=10.0
+            tenant_id=1, plot_id=1, date=datetime.date(2023, 6, 2), water_m3=10.0
         ),
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2024, 6, 2), water_m3=20.0
+            tenant_id=1, plot_id=1, date=datetime.date(2024, 6, 2), water_m3=20.0
         ),
         SimpleNamespace(
-            user_id=1, plot_id=1, date=datetime.date(2025, 6, 2), water_m3=30.0
+            tenant_id=1, plot_id=1, date=datetime.date(2025, 6, 2), water_m3=30.0
         ),
         SimpleNamespace(
-            user_id=1, plot_id=2, date=datetime.date(2025, 6, 2), water_m3=15.0
+            tenant_id=1, plot_id=2, date=datetime.date(2025, 6, 2), water_m3=15.0
         ),
     ]
 
@@ -623,7 +711,7 @@ async def test_get_all_plot_thresholds_per_plot() -> None:
         ]
     )
 
-    thresholds = await get_all_plot_thresholds(db, user_id=1)
+    thresholds = await get_all_plot_thresholds(db, tenant_id=1)
 
     assert len(thresholds) == 2
     by_name = {t["plot_name"]: t for t in thresholds}

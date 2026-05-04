@@ -31,7 +31,7 @@ async def test_toggle_presence_creates_when_absent() -> None:
 
     presence = await toggle_presence(
         db,
-        user_id=1,
+        tenant_id=1,
         plant_id=10,
         plot_id=2,
         presence_date=datetime.date(2025, 11, 5),
@@ -55,7 +55,7 @@ async def test_toggle_presence_creates_when_absent() -> None:
 async def test_toggle_presence_deletes_when_existing() -> None:
     existing = PlantPresence(
         id=1,
-        user_id=1,
+        tenant_id=1,
         plant_id=10,
         plot_id=2,
         presence_date=datetime.date(2025, 11, 5),
@@ -69,7 +69,7 @@ async def test_toggle_presence_deletes_when_existing() -> None:
 
     result_val = await toggle_presence(
         db,
-        user_id=1,
+        tenant_id=1,
         plant_id=10,
         plot_id=2,
         presence_date=datetime.date(2025, 11, 5),
@@ -94,7 +94,7 @@ async def test_get_presences_by_plot_returns_plant_ids() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=fake_result)
 
-    presences = await get_presences_by_plot(db, user_id=1, plot_id=2)
+    presences = await get_presences_by_plot(db, tenant_id=1, plot_id=2)
 
     assert presences == {10: True, 20: True}
 
@@ -106,7 +106,7 @@ async def test_get_presences_by_plot_empty() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=fake_result)
 
-    presences = await get_presences_by_plot(db, user_id=1, plot_id=2)
+    presences = await get_presences_by_plot(db, tenant_id=1, plot_id=2)
 
     assert presences == {}
 
@@ -127,7 +127,7 @@ async def test_get_presence_dates_sorted_desc() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=fake_result)
 
-    dates = await get_presence_dates_for_plant(db, user_id=1, plant_id=10)
+    dates = await get_presence_dates_for_plant(db, tenant_id=1, plant_id=10)
 
     assert dates == [d1, d2]
 
@@ -146,6 +146,6 @@ async def test_get_campaign_years_returns_sorted_desc() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=fake_result)
 
-    years = await get_campaign_years(db, user_id=1, plot_id=2)
+    years = await get_campaign_years(db, tenant_id=1, plot_id=2)
 
     assert years == [2025, 2024]

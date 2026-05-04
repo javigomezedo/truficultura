@@ -41,7 +41,7 @@ async def test_expenses_list_context_filters_by_campaign() -> None:
     # 3 queries: (1) meta (date+person), (2) plots, (3) filtered expenses
     db.execute = AsyncMock(side_effect=[result(expenses), result([]), result(expenses)])
 
-    context = await get_expenses_list_context(db, 2025, user_id=1)
+    context = await get_expenses_list_context(db, 2025, tenant_id=1)
 
     assert context["selected_year"] == 2025
     assert len(context["expenses"]) == 2
@@ -71,7 +71,7 @@ async def test_expenses_list_context_filters_by_plot() -> None:
     # 3 queries: (1) meta (date+person), (2) plots, (3) filtered expenses (DB applies WHERE plot_id=10)
     db.execute = AsyncMock(side_effect=[result(expenses), result([]), result([expenses[0]])])
 
-    context = await get_expenses_list_context(db, 2025, user_id=1, plot_id=10)
+    context = await get_expenses_list_context(db, 2025, tenant_id=1, plot_id=10)
 
     assert context["selected_plot"] == 10
     assert len(context["expenses"]) == 1
@@ -100,7 +100,7 @@ async def test_incomes_list_context_filters_by_campaign() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result(incomes))
 
-    context = await get_incomes_list_context(db, 2025, user_id=1)
+    context = await get_incomes_list_context(db, 2025, tenant_id=1)
 
     assert context["selected_year"] == 2025
     assert len(context["incomes"]) == 2
@@ -121,7 +121,7 @@ async def test_create_update_delete_expense() -> None:
         person="Javi",
         plot_id=1,
         amount=50.0,
-        user_id=1,
+        tenant_id=1,
     )
     assert expense.plot_id == 1
 
@@ -154,7 +154,7 @@ async def test_create_update_delete_income() -> None:
         amount_kg=3.0,
         category="A",
         euros_per_kg=100.0,
-        user_id=1,
+        tenant_id=1,
     )
     assert income.total == 300.0
 
@@ -189,11 +189,11 @@ async def test_get_expense_and_get_income() -> None:
 
     db_e = MagicMock()
     db_e.execute = AsyncMock(return_value=result([expense]))
-    assert await get_expense(db_e, 10, user_id=1) is expense
+    assert await get_expense(db_e, 10, tenant_id=1) is expense
 
     db_i = MagicMock()
     db_i.execute = AsyncMock(return_value=result([income]))
-    assert await get_income(db_i, 20, user_id=1) is income
+    assert await get_income(db_i, 20, tenant_id=1) is income
 
 
 @pytest.mark.asyncio
@@ -318,7 +318,7 @@ async def test_get_receipt_exists() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([expense]))
 
-    receipt_data = await get_receipt(db, 1, user_id=1)
+    receipt_data = await get_receipt(db, 1, tenant_id=1)
 
     assert receipt_data is not None
     filename, data, content_type = receipt_data
@@ -333,7 +333,7 @@ async def test_get_receipt_not_found() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([]))
 
-    receipt_data = await get_receipt(db, 999, user_id=1)
+    receipt_data = await get_receipt(db, 999, tenant_id=1)
 
     assert receipt_data is None
 
@@ -352,7 +352,7 @@ async def test_get_receipt_no_data() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([expense]))
 
-    receipt_data = await get_receipt(db, 1, user_id=1)
+    receipt_data = await get_receipt(db, 1, tenant_id=1)
 
     assert receipt_data is None
 
@@ -389,7 +389,7 @@ async def test_create_prorated_expense_creates_group_and_entries() -> None:
 
     group = await create_prorated_expense(
         db,
-        user_id=1,
+        tenant_id=1,
         date=datetime.date(2025, 6, 15),
         description="Instalación riego",
         person="",
@@ -421,7 +421,7 @@ async def test_create_prorated_expense_rounding_absorbed_by_last() -> None:
 
     await create_prorated_expense(
         db,
-        user_id=1,
+        tenant_id=1,
         date=datetime.date(2025, 1, 1),
         description="Test redondeo",
         person="",
@@ -446,12 +446,12 @@ async def test_get_proration_group_returns_group() -> None:
     from app.models.expense_proration_group import ExpenseProrationGroup
 
     group = ExpenseProrationGroup(
-        id=5, user_id=1, description="X", total_amount=200.0, years=2, start_year=2025
+        id=5, tenant_id=1, description="X", total_amount=200.0, years=2, start_year=2025
     )
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([group]))
 
-    fetched = await get_proration_group(db, group_id=5, user_id=1)
+    fetched = await get_proration_group(db, group_id=5, tenant_id=1)
     assert fetched is group
 
 
@@ -460,7 +460,7 @@ async def test_get_proration_group_returns_none_when_not_found() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([]))
 
-    fetched = await get_proration_group(db, group_id=999, user_id=1)
+    fetched = await get_proration_group(db, group_id=999, tenant_id=1)
     assert fetched is None
 
 
@@ -469,7 +469,7 @@ async def test_delete_proration_group_calls_db_delete() -> None:
     from app.models.expense_proration_group import ExpenseProrationGroup
 
     group = ExpenseProrationGroup(
-        id=3, user_id=1, description="Y", total_amount=100.0, years=2, start_year=2024
+        id=3, tenant_id=1, description="Y", total_amount=100.0, years=2, start_year=2024
     )
     db = MagicMock()
     db.delete = AsyncMock()

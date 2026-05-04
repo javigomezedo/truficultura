@@ -5,15 +5,16 @@ from __future__ import annotations
 import logging
 
 import stripe
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import require_user, is_subscription_blocked
+from app.auth import require_user
 from app.config import settings
 from app.database import get_db
 from app.models.user import User
+from app.plan_access import get_plan_mode
 from app.services import billing_service
 
 router = APIRouter(tags=["billing"])
@@ -25,9 +26,22 @@ logger = logging.getLogger(__name__)
 @router.get("/billing/subscribe", response_class=HTMLResponse)
 async def billing_subscribe(
     request: Request,
+    msg: str = "",
+    msg_type: str = "info",
     current_user: User = Depends(require_user),
 ):
     """Show the subscription / upgrade page."""
+    plan_mode = get_plan_mode(current_user)
+    stripe_any_configured = bool(
+        settings.STRIPE_SECRET_KEY
+        and any(
+            [
+                settings.STRIPE_PRICE_ID_BASIC,
+                settings.STRIPE_PRICE_ID_PREMIUM,
+                settings.STRIPE_PRICE_ID_ENTERPRISE,
+            ]
+        )
+    )
     return templates.TemplateResponse(
         request,
         "billing/subscribe.html",
@@ -35,10 +49,13 @@ async def billing_subscribe(
             "request": request,
             "current_user": current_user,
             "stripe_publishable_key": settings.STRIPE_PUBLISHABLE_KEY,
-            "stripe_configured": bool(
-                settings.STRIPE_SECRET_KEY and settings.STRIPE_PRICE_ID
-            ),
-            "subscription_is_blocked": is_subscription_blocked(current_user),
+            "stripe_configured": stripe_any_configured,
+            "plan_mode": plan_mode,
+            "basic_configured": bool(settings.STRIPE_PRICE_ID_BASIC),
+            "premium_configured": bool(settings.STRIPE_PRICE_ID_PREMIUM),
+            "enterprise_configured": bool(settings.STRIPE_PRICE_ID_ENTERPRISE),
+            "msg": msg,
+            "msg_type": msg_type,
         },
     )
 
@@ -46,12 +63,21 @@ async def billing_subscribe(
 @router.post("/billing/checkout")
 async def billing_checkout(
     request: Request,
+    plan: str = Form(default="basic"),
     current_user: User = Depends(require_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Start a Stripe Checkout session and redirect the user to Stripe."""
+    allowed_plans = ("basic", "premium", "enterprise")
+    if plan not in allowed_plans:
+        plan = "basic"
     try:
-        url = await billing_service.create_checkout_session(current_user, db)
+        url = await billing_service.create_checkout_session(
+            current_user.active_tenant,
+            current_user,
+            db,
+            plan=plan,  # type: ignore[attr-defined]
+        )
     except RuntimeError as exc:
         logger.exception("Checkout session creation failed: %s", exc)
         raise HTTPException(status_code=503, detail=str(exc))
@@ -59,12 +85,85 @@ async def billing_checkout(
     return RedirectResponse(url, status_code=303)
 
 
+@router.post("/billing/upgrade")
+async def billing_upgrade(
+    request: Request,
+    plan: str = Form(default="premium"),
+    current_user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Upgrade or downgrade to a new plan.
+
+    Upgrades → Stripe Checkout (prorated payment today).
+    Downgrades → schedule the price change for next renewal, no charge today.
+    """
+    allowed_plans = ("basic", "premium", "enterprise")
+    if plan not in allowed_plans:
+        plan = "premium"
+
+    tenant = current_user.active_tenant
+
+    if billing_service.is_downgrade(tenant.plan, plan):
+        try:
+            await billing_service.schedule_downgrade(tenant, plan, db)
+        except RuntimeError as exc:
+            logger.exception("Downgrade scheduling failed: %s", exc)
+            return RedirectResponse(
+                f"/billing/subscribe?msg={exc}&msg_type=danger", status_code=303
+            )
+        plan_label = plan.capitalize()
+        return RedirectResponse(
+            f"/billing/subscribe?msg=Tu plan bajará a {plan_label} al renovarse&msg_type=info",
+            status_code=303,
+        )
+
+    try:
+        url = await billing_service.create_upgrade_checkout_session(
+            tenant,
+            current_user,
+            plan,
+            db,
+        )
+    except RuntimeError as exc:
+        logger.exception("Upgrade checkout creation failed: %s", exc)
+        return RedirectResponse(
+            f"/billing/subscribe?msg={exc}&msg_type=danger", status_code=303
+        )
+
+    return RedirectResponse(url, status_code=303)
+
+
 @router.get("/billing/success", response_class=HTMLResponse)
 async def billing_success(
     request: Request,
+    session_id: str = "",
     current_user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db),
 ):
-    """Show a success page after a successful Stripe Checkout."""
+    """Show a success page after a successful Stripe Checkout.
+
+    Also acts as a safety net: if the webhook has not yet been delivered,
+    fulfill_checkout_session activates the subscription proactively.
+    """
+    if session_id:
+        try:
+            activated = await billing_service.fulfill_checkout_session(session_id, db)
+            if activated and current_user.active_tenant:
+                # Refresh the tenant in-memory so the session reflects the just-activated
+                # plan immediately (require_user ran before fulfill committed to DB).
+                from datetime import UTC, datetime
+                await db.refresh(current_user.active_tenant)
+                tenant = current_user.active_tenant
+                request.session["tenant_plan"] = tenant.plan
+                request.session["subscription_status"] = tenant.subscription_status
+                if tenant.subscription_ends_at:
+                    delta = tenant.subscription_ends_at - datetime.now(UTC)
+                    request.session["subscription_days_left"] = delta.days
+                else:
+                    request.session["subscription_days_left"] = None
+        except Exception as exc:
+            logger.exception("fulfill_checkout_session failed: %s", exc)
+
     return templates.TemplateResponse(
         request,
         "billing/success.html",
@@ -92,7 +191,9 @@ async def billing_portal(
 ):
     """Redirect the user to the Stripe Customer Portal to manage their subscription."""
     try:
-        url = await billing_service.create_portal_session(current_user)
+        url = await billing_service.create_portal_session(
+            current_user.active_tenant  # type: ignore[attr-defined]
+        )
     except RuntimeError as exc:
         logger.exception("Portal session creation failed: %s", exc)
         raise HTTPException(status_code=503, detail=str(exc))

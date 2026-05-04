@@ -3,6 +3,7 @@
 {% block title %}{{ _("Parcelas (Bancales)") }} &mdash; Trufiq{% endblock %}
 
 {% block content %}
+{% set read_only = session_plan_mode(request.session) == 'read_only' %}
 <div class="container-xl">
     <div class="tf-page-header">
         <div>
@@ -12,9 +13,11 @@
             </h1>
             <p class="tf-page-subtitle">{{ plots|length }} {{ _("parcela(s) registrada(s)") }}</p>
         </div>
+        {% if not read_only %}
         <a href="/plots/new" class="btn btn-success">
             <i class="bi bi-plus-circle me-1"></i> {{ _("Nueva Parcela") }}
         </a>
+        {% endif %}
     </div>
 
     <div class="card tf-panel tf-panel-overflow-visible shadow-sm border-0">
@@ -97,6 +100,7 @@
                                                 <i class="bi bi-pencil-fill me-2 text-primary"></i>{{ _("Editar") }}
                                             </a>
                                         </li>
+                                        {% if not read_only %}
                                         <li><hr class="dropdown-divider"></li>
                                         <li>
                                             <form action="/plots/{{ p.id }}/delete"
@@ -107,6 +111,7 @@
                                                 </button>
                                             </form>
                                         </li>
+                                        {% endif %}
                                     </ul>
                                 </div>
                             </td>
@@ -119,9 +124,11 @@
             <div class="tf-empty-state">
                 <i class="bi bi-map fs-1 d-block mb-3"></i>
                 <p class="mb-3">{{ _("No hay parcelas registradas todavía.") }}</p>
+                {% if not read_only %}
                 <a href="/plots/new" class="btn btn-success">
                     <i class="bi bi-plus-circle me-1"></i> {{ _("Crear primera parcela") }}
                 </a>
+                {% endif %}
             </div>
             {% endif %}
         </div>

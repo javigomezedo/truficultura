@@ -132,14 +132,14 @@ def _build_plot_insights(dataset: list[dict]) -> dict:
 
 async def get_plot_detail_context(
     db: AsyncSession,
-    user_id: int,
+    tenant_id: int,
     plot_id: int,
     *,
     campaign_from: Optional[int] = None,
     campaign_to: Optional[int] = None,
 ) -> Optional[dict]:
     plot_result = await db.execute(
-        select(Plot).where(Plot.id == plot_id, Plot.user_id == user_id)
+        select(Plot).where(Plot.id == plot_id, Plot.tenant_id == tenant_id)
     )
     plot = plot_result.scalar_one_or_none()
     if plot is None:
@@ -147,7 +147,7 @@ async def get_plot_detail_context(
 
     dataset = await get_campaign_dataset(
         db,
-        user_id,
+        tenant_id,
         campaign_from=campaign_from,
         campaign_to=campaign_to,
         plot_ids=[plot_id],
@@ -185,13 +185,13 @@ async def get_plot_detail_context(
 
 async def get_campaign_dataset(
     db: AsyncSession,
-    user_id: int,
+    tenant_id: int,
     *,
     campaign_from: Optional[int] = None,
     campaign_to: Optional[int] = None,
     plot_ids: Optional[list[int]] = None,
 ) -> list[dict]:
-    plots_stmt = select(Plot).where(Plot.user_id == user_id)
+    plots_stmt = select(Plot).where(Plot.tenant_id == tenant_id)
     if plot_ids:
         plots_stmt = plots_stmt.where(Plot.id.in_(plot_ids))
     plots_result = await db.execute(plots_stmt.order_by(Plot.name))
@@ -204,27 +204,27 @@ async def get_campaign_dataset(
 
     incomes_result = await db.execute(
         select(Income).where(
-            Income.user_id == user_id, Income.plot_id.in_(plot_map.keys())
+            Income.tenant_id == tenant_id, Income.plot_id.in_(plot_map.keys())
         )
     )
     incomes = incomes_result.scalars().all()
 
     irrigation_result = await db.execute(
         select(IrrigationRecord).where(
-            IrrigationRecord.user_id == user_id,
+            IrrigationRecord.tenant_id == tenant_id,
             IrrigationRecord.plot_id.in_(plot_map.keys()),
         )
     )
     irrigation_records = irrigation_result.scalars().all()
 
     wells_result = await db.execute(
-        select(Well).where(Well.user_id == user_id, Well.plot_id.in_(plot_map.keys()))
+        select(Well).where(Well.tenant_id == tenant_id, Well.plot_id.in_(plot_map.keys()))
     )
     wells = wells_result.scalars().all()
 
     events_result = await db.execute(
         select(PlotEvent).where(
-            PlotEvent.user_id == user_id,
+            PlotEvent.tenant_id == tenant_id,
             PlotEvent.plot_id.in_(plot_map.keys()),
         )
     )
@@ -237,7 +237,7 @@ async def get_campaign_dataset(
         if key not in agg:
             plot = plot_map[plot_id]
             agg[key] = {
-                "user_id": user_id,
+                "tenant_id": tenant_id,
                 "plot_id": plot_id,
                 "plot_name": plot.name,
                 "campaign_year": cy,
@@ -331,7 +331,7 @@ async def get_campaign_dataset(
 
     if all_municipios:
         rain_stmt = select(RainfallRecord).where(
-            RainfallRecord.user_id == user_id,
+            RainfallRecord.tenant_id == tenant_id,
             or_(
                 RainfallRecord.plot_id.in_(plot_ids_list),
                 and_(
@@ -342,7 +342,7 @@ async def get_campaign_dataset(
         )
     else:
         rain_stmt = select(RainfallRecord).where(
-            RainfallRecord.user_id == user_id,
+            RainfallRecord.tenant_id == tenant_id,
             RainfallRecord.plot_id.in_(plot_ids_list),
         )
 
@@ -368,7 +368,7 @@ async def get_campaign_dataset(
 
 async def get_irrigation_vs_production_analysis(
     db: AsyncSession,
-    user_id: int,
+    tenant_id: int,
     *,
     campaign_from: Optional[int] = None,
     campaign_to: Optional[int] = None,
@@ -376,7 +376,7 @@ async def get_irrigation_vs_production_analysis(
 ) -> dict:
     rows = await get_campaign_dataset(
         db,
-        user_id,
+        tenant_id,
         campaign_from=campaign_from,
         campaign_to=campaign_to,
         plot_ids=plot_ids,
@@ -411,7 +411,7 @@ async def get_irrigation_vs_production_analysis(
 
 async def get_pruning_vs_production_analysis(
     db: AsyncSession,
-    user_id: int,
+    tenant_id: int,
     *,
     campaign_from: Optional[int] = None,
     campaign_to: Optional[int] = None,
@@ -419,7 +419,7 @@ async def get_pruning_vs_production_analysis(
 ) -> dict:
     rows = await get_campaign_dataset(
         db,
-        user_id,
+        tenant_id,
         campaign_from=campaign_from,
         campaign_to=campaign_to,
         plot_ids=plot_ids,
@@ -456,7 +456,7 @@ async def get_pruning_vs_production_analysis(
 
 async def get_tilling_vs_production_analysis(
     db: AsyncSession,
-    user_id: int,
+    tenant_id: int,
     *,
     campaign_from: Optional[int] = None,
     campaign_to: Optional[int] = None,
@@ -464,7 +464,7 @@ async def get_tilling_vs_production_analysis(
 ) -> dict:
     rows = await get_campaign_dataset(
         db,
-        user_id,
+        tenant_id,
         campaign_from=campaign_from,
         campaign_to=campaign_to,
         plot_ids=plot_ids,
@@ -552,15 +552,24 @@ def _detect_plateau_from_pairs(pairs: list[dict]) -> dict:
 
 async def detect_irrigation_thresholds(
     db: AsyncSession,
-    user_id: int,
+    tenant_id: int,
     *,
     campaign_from: Optional[int] = None,
     campaign_to: Optional[int] = None,
     plot_ids: Optional[list[int]] = None,
 ) -> dict:
+    """Detecta el umbral de meseta de riego global.
+
+    Estrategia B (preferida): si ≥2 parcelas individuales tienen umbral fiable,
+    devuelve la mediana de sus mesetas (cada parcela se compara consigo misma
+    a lo largo de las campañas, evitando mezclar diferencias entre bancales).
+
+    Fallback A: si hay menos de 2 parcelas con umbral fiable, usa el dataset
+    combinado (comportamiento original).
+    """
     rows = await get_campaign_dataset(
         db,
-        user_id,
+        tenant_id,
         campaign_from=campaign_from,
         campaign_to=campaign_to,
         plot_ids=plot_ids,
@@ -576,15 +585,55 @@ async def detect_irrigation_thresholds(
             "status": "insufficient_data",
             "plateau_start_m3": None,
             "marginal_gains": [],
+            "water_bands": [],
+            "method": "insufficient_data",
+            "contributing_plots": 0,
         }
 
+    # --- Estrategia B: mediana de umbrales por parcela ---
+    by_plot: dict[int, list[dict]] = {}
+    for row in pairs:
+        by_plot.setdefault(row["plot_id"], []).append(row)
+
+    reliable_plateaus: list[float] = []
+    for plot_rows in by_plot.values():
+        if len(plot_rows) < 3:
+            continue
+        p = _detect_plateau_from_pairs(plot_rows)
+        if p["status"] == "ok" and p["plateau_start_m3"] is not None:
+            reliable_plateaus.append(p["plateau_start_m3"])
+
+    if len(reliable_plateaus) >= 2:
+        sorted_v = sorted(reliable_plateaus)
+        n = len(sorted_v)
+        median_val = (
+            (sorted_v[n // 2 - 1] + sorted_v[n // 2]) / 2
+            if n % 2 == 0
+            else sorted_v[n // 2]
+        )
+        return {
+            "sample_size": len(pairs),
+            "status": "ok",
+            "plateau_start_m3": round(median_val, 2),
+            "marginal_gains": [],
+            "water_bands": _water_band_summary(pairs),
+            "method": "median_of_plots",
+            "contributing_plots": len(reliable_plateaus),
+        }
+
+    # --- Fallback A: dataset combinado ---
     result = _detect_plateau_from_pairs(pairs)
-    return {"sample_size": len(pairs), **result}
+    return {
+        "sample_size": len(pairs),
+        "method": "combined",
+        "contributing_plots": 0,
+        **result,
+    }
 
 
 async def get_all_plot_thresholds(
     db: AsyncSession,
-    user_id: int,
+    tenant_id: int,
     *,
     campaign_from: Optional[int] = None,
     campaign_to: Optional[int] = None,
@@ -594,7 +643,7 @@ async def get_all_plot_thresholds(
     Incluye tanto parcelas con datos suficientes como sin ellos.
     """
     rows = await get_campaign_dataset(
-        db, user_id, campaign_from=campaign_from, campaign_to=campaign_to
+        db, tenant_id, campaign_from=campaign_from, campaign_to=campaign_to
     )
     by_plot: dict[int, list[dict]] = {}
     for row in rows:
@@ -637,7 +686,7 @@ async def get_all_plot_thresholds(
 
 async def get_multi_plot_comparison(
     db: AsyncSession,
-    user_id: int,
+    tenant_id: int,
     *,
     campaign_from: Optional[int] = None,
     campaign_to: Optional[int] = None,
@@ -645,7 +694,7 @@ async def get_multi_plot_comparison(
 ) -> dict:
     dataset = await get_campaign_dataset(
         db,
-        user_id,
+        tenant_id,
         campaign_from=campaign_from,
         campaign_to=campaign_to,
         plot_ids=plot_ids,
@@ -714,7 +763,7 @@ async def get_multi_plot_comparison(
 
 async def get_multi_plot_comparison(
     db: AsyncSession,
-    user_id: int,
+    tenant_id: int,
     *,
     campaign_from: Optional[int] = None,
     campaign_to: Optional[int] = None,
@@ -722,7 +771,7 @@ async def get_multi_plot_comparison(
 ) -> dict:
     dataset = await get_campaign_dataset(
         db,
-        user_id,
+        tenant_id,
         campaign_from=campaign_from,
         campaign_to=campaign_to,
         plot_ids=plot_ids,

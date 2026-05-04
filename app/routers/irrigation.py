@@ -11,6 +11,7 @@ from app.auth import require_subscription
 from app.database import get_db
 from app.i18n import _
 from app.models.user import User
+from app.plan_access import require_feature, require_write_access
 from app.schemas.irrigation import IrrigationCreate, IrrigationUpdate
 from app.services.irrigation_service import (
     create_irrigation_record as create_service,
@@ -32,9 +33,9 @@ templates = Jinja2Templates(directory="app/templates")
 async def simulate_view(
     plot_id: int = Query(...),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_feature("simulador_riego")),
 ):
-    sim = await simulate_irrigation(db, current_user.id, plot_id, datetime.date.today())
+    sim = await simulate_irrigation(db, current_user.active_tenant_id, plot_id, datetime.date.today())
     if sim is None:
         return JSONResponse(
             status_code=404,
@@ -58,7 +59,7 @@ async def list_view(
     plot_id_int = int(plot_id) if plot_id else None
     context = await get_irrigation_list_context(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         year=year_int,
         plot_id=plot_id_int,
         sort_by=sort or "date",
@@ -79,7 +80,7 @@ async def new_form(
 ):
     from app.services.irrigation_service import _get_irrigable_plots
 
-    plots = await _get_irrigable_plots(db, current_user.id)
+    plots = await _get_irrigable_plots(db, current_user.active_tenant_id)
     return templates.TemplateResponse(
         request,
         "riego/form.html",
@@ -96,7 +97,7 @@ async def create_view(
     expense_id: Optional[int] = Form(None),
     notes: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     data = IrrigationCreate(
         plot_id=plot_id,
@@ -105,7 +106,7 @@ async def create_view(
         expense_id=expense_id if expense_id else None,
         notes=notes or None,
     )
-    await create_service(db, current_user.id, data)
+    await create_service(db, current_user.active_tenant_id, data, acting_user_id=current_user.id)
     return RedirectResponse(
         url=f"/irrigation/?msg={quote_plus(_('Riego registrado correctamente'))}",
         status_code=303,
@@ -120,9 +121,9 @@ async def bulk_new_form(
 ):
     from app.services.irrigation_service import _get_irrigable_plots
 
-    plots = await _get_irrigable_plots(db, current_user.id)
+    plots = await _get_irrigable_plots(db, current_user.active_tenant_id)
     expenses_by_plot = await get_riego_expenses_for_plots(
-        db, current_user.id, [p.id for p in plots]
+        db, current_user.active_tenant_id, [p.id for p in plots]
     )
     return templates.TemplateResponse(
         request,
@@ -140,7 +141,7 @@ async def bulk_new_form(
 async def bulk_create_view(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     form = await request.form()
     plot_ids = form.getlist("plot_id")
@@ -184,7 +185,7 @@ async def bulk_create_view(
             status_code=303,
         )
 
-    await create_bulk_service(db, current_user.id, items)
+    await create_bulk_service(db, current_user.active_tenant_id, items, acting_user_id=current_user.id)
 
     msg = _("%(n)s registros de riego guardados correctamente") % {"n": len(items)}
     return RedirectResponse(
@@ -202,14 +203,14 @@ async def edit_form(
 ):
     from app.services.irrigation_service import _get_irrigable_plots
 
-    record = await get_irrigation_record(db, record_id, current_user.id)
+    record = await get_irrigation_record(db, record_id, current_user.active_tenant_id)
     if record is None:
         return RedirectResponse(
             url=f"/irrigation/?msg={quote_plus(_('Registro no encontrado'))}",
             status_code=303,
         )
-    plots = await _get_irrigable_plots(db, current_user.id)
-    expenses = await get_riego_expenses_for_plot(db, current_user.id, record.plot_id)
+    plots = await _get_irrigable_plots(db, current_user.active_tenant_id)
+    expenses = await get_riego_expenses_for_plot(db, current_user.active_tenant_id, record.plot_id)
     return templates.TemplateResponse(
         request,
         "riego/form.html",
@@ -233,9 +234,9 @@ async def update_view(
     expense_id: Optional[int] = Form(None),
     notes: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
-    record = await get_irrigation_record(db, record_id, current_user.id)
+    record = await get_irrigation_record(db, record_id, current_user.active_tenant_id)
     if record is None:
         return RedirectResponse(
             url=f"/irrigation/?msg={quote_plus(_('Registro no encontrado'))}",
@@ -248,7 +249,7 @@ async def update_view(
         expense_id=expense_id if expense_id else None,
         notes=notes or None,
     )
-    await update_service(db, record, data)
+    await update_service(db, record, data, acting_user_id=current_user.id)
     return RedirectResponse(
         url=f"/irrigation/?msg={quote_plus(_('Riego actualizado correctamente'))}",
         status_code=303,
@@ -260,9 +261,9 @@ async def delete_view(
     request: Request,
     record_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
-    await delete_service(db, record_id, current_user.id)
+    await delete_service(db, record_id, current_user.active_tenant_id)
     return RedirectResponse(
         url=f"/irrigation/?msg={quote_plus(_('Riego eliminado correctamente'))}",
         status_code=303,
@@ -275,7 +276,7 @@ async def expenses_for_plot(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    expenses = await get_riego_expenses_for_plot(db, current_user.id, plot_id)
+    expenses = await get_riego_expenses_for_plot(db, current_user.active_tenant_id, plot_id)
     return [
         {
             "id": e.id,

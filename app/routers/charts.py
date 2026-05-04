@@ -23,7 +23,7 @@ async def charts_index(
     current_user: User = Depends(require_subscription),
 ):
     context = await build_charts_context(
-        db, campaign=campaign, plot_id=plot_id, user_id=current_user.id
+        db, campaign=campaign, plot_id=plot_id, tenant_id=current_user.active_tenant_id
     )
 
     return templates.TemplateResponse(

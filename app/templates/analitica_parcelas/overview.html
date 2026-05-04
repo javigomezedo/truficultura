@@ -152,7 +152,11 @@
                     </h3>
                     {% if plateau_ok %}
                     {% set plateau = irrigation_thresholds.plateau_start_m3 %}
-                    <p class="mb-3 small text-muted">{{ _("Basándonos en") }} <strong>{{ irrigation_thresholds.sample_size }} {{ _("registros (bancal × campaña)") }}</strong> {{ _("con datos de agua y producción:") }}</p>
+                    <p class="mb-3 small text-muted">{{ _("Basándonos en") }} <strong>{{ irrigation_thresholds.sample_size }} {{ _("registros (bancal × campaña)") }}</strong> {{ _("con datos de agua y producción:") }}
+                        {% if irrigation_thresholds.method == "median_of_plots" %}
+                        <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle ms-1">{{ _("Mediana de") }} {{ irrigation_thresholds.contributing_plots }} {{ _("parcelas") }}</span>
+                        {% endif %}
+                    </p>
                     <div class="alert alert-success border-0 mb-2 py-2 px-3">
                         <i class="bi bi-check-circle-fill me-2"></i>
                         {{ _("Hasta") }} <strong>{{ plateau }} m³</strong> — {{ _("cada m³ extra suma kg de trufa.") }}
@@ -292,6 +296,10 @@
                     <div class="small text-muted mb-2">{{ _("Muestra") }}: {{ irrigation_thresholds.sample_size }}</div>
                     <div class="small">
                         {{ _("Estado") }}: {{ irrigation_thresholds.status }}
+                    </div>
+                    <div class="small">
+                        {{ _("Método") }}: {{ irrigation_thresholds.get("method", "—") }}
+                        {% if irrigation_thresholds.contributing_plots %}({{ irrigation_thresholds.contributing_plots }} {{ _("parcelas") }}){% endif %}
                     </div>
                     <div class="small fw-semibold mt-2">
                         {{ _("Inicio meseta (m3)") }}:

@@ -54,7 +54,7 @@ async def test_soft_delete_preserves_user_data(tmp_path: Path) -> None:
                 area_ha=1.0,
                 production_start=datetime.date(2023, 1, 1),
                 percentage=100.0,
-                user_id=user.id,
+                tenant_id=user.id,
             )
             db.add(plot)
             await db.commit()
@@ -73,7 +73,7 @@ async def test_soft_delete_preserves_user_data(tmp_path: Path) -> None:
             assert deactivated_user.is_active is False
 
             # Verify data still exists in DB
-            result = await db.execute(select(Plot).where(Plot.user_id == user.id))
+            result = await db.execute(select(Plot).where(Plot.tenant_id == user.id))
             plots = result.scalars().all()
             assert len(plots) == 1
             assert plots[0].name == "Test Plot"

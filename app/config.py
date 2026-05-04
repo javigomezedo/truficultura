@@ -37,8 +37,10 @@ class Settings(BaseSettings):
     STRIPE_SECRET_KEY: Optional[str] = None
     STRIPE_PUBLISHABLE_KEY: Optional[str] = None
     STRIPE_WEBHOOK_SECRET: Optional[str] = None
-    STRIPE_PRICE_ID: Optional[str] = None  # Price ID del plan anual en Stripe
-    TRIAL_DAYS: int = 14
+    STRIPE_PRICE_ID_BASIC: Optional[str] = None
+    STRIPE_PRICE_ID_PREMIUM: Optional[str] = None
+    STRIPE_PRICE_ID_ENTERPRISE: Optional[str] = None
+    TRIAL_DAYS: int = 30
 
     # Set to True in production so session cookies are Secure (HTTPS-only).
     # Keep False locally to allow HTTP dev server.

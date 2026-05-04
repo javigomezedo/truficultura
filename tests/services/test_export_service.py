@@ -49,7 +49,7 @@ def _make_plot(
 ):
     return Plot(
         id=id,
-        user_id=1,
+        tenant_id=1,
         name=name,
         planting_date=datetime.date(2020, 3, 15),
         polygon="21",
@@ -72,7 +72,7 @@ def _make_plot(
 def _make_expense(id=1, plot_id=1, amount=1250.0, category="Riego"):
     return Expense(
         id=id,
-        user_id=1,
+        tenant_id=1,
         date=datetime.date(2025, 11, 15),
         description="Riego por goteo",
         person="Javi",
@@ -85,7 +85,7 @@ def _make_expense(id=1, plot_id=1, amount=1250.0, category="Riego"):
 def _make_income(id=1, plot_id=1, amount_kg=2.5, euros_per_kg=120.0, category="Extra"):
     return Income(
         id=id,
-        user_id=1,
+        tenant_id=1,
         date=datetime.date(2025, 12, 5),
         plot_id=plot_id,
         amount_kg=amount_kg,
@@ -97,7 +97,7 @@ def _make_income(id=1, plot_id=1, amount_kg=2.5, euros_per_kg=120.0, category="E
 def _make_irrigation(id=1, plot_id=1, water_m3=10.5, notes=None):
     return IrrigationRecord(
         id=id,
-        user_id=1,
+        tenant_id=1,
         plot_id=plot_id,
         date=datetime.date(2025, 6, 15),
         water_m3=water_m3,
@@ -109,7 +109,7 @@ def _make_irrigation(id=1, plot_id=1, water_m3=10.5, notes=None):
 def _make_well(id=1, plot_id=1, wells_per_plant=3, notes=None):
     return Well(
         id=id,
-        user_id=1,
+        tenant_id=1,
         plot_id=plot_id,
         date=datetime.date(2025, 7, 10),
         wells_per_plant=wells_per_plant,
@@ -121,7 +121,7 @@ def _make_well(id=1, plot_id=1, wells_per_plant=3, notes=None):
 def _make_plant(id=1, plot_id=1, row_order=0, visual_col=1, label="A1"):
     return Plant(
         id=id,
-        user_id=1,
+        tenant_id=1,
         plot_id=plot_id,
         label=label,
         row_label="A",
@@ -142,7 +142,7 @@ def _make_truffle_event(
         id=id,
         plant_id=plant_id,
         plot_id=plot_id,
-        user_id=1,
+        tenant_id=1,
         source=source,
         estimated_weight_grams=estimated_weight_grams,
         created_at=datetime.datetime(2025, 12, 10, 8, 15, 0, tzinfo=datetime.UTC),
@@ -165,7 +165,7 @@ def _make_plot_event(
 ):
     return PlotEvent(
         id=id,
-        user_id=1,
+        tenant_id=1,
         plot_id=plot_id,
         event_type=event_type,
         date=datetime.date(2025, 3, 15),
@@ -202,7 +202,7 @@ async def test_export_plots_csv_returns_correct_rows():
     db = MagicMock()
     db.execute = AsyncMock(side_effect=[result([plot]), result([plant_a1, plant_a2])])
 
-    data = await export_plots_csv(db, user_id=1)
+    data = await export_plots_csv(db, tenant_id=1)
     rows = _parse_csv(data)
 
     assert len(rows) == 1
@@ -231,7 +231,7 @@ async def test_export_plots_csv_has_irrigation_false():
     db = MagicMock()
     db.execute = AsyncMock(side_effect=[result([plot]), result([])])
 
-    data = await export_plots_csv(db, user_id=1)
+    data = await export_plots_csv(db, tenant_id=1)
     rows = _parse_csv(data)
 
     assert rows[0][10] == "0"
@@ -243,7 +243,7 @@ async def test_export_plots_csv_with_caudal_riego():
     db = MagicMock()
     db.execute = AsyncMock(side_effect=[result([plot]), result([])])
 
-    data = await export_plots_csv(db, user_id=1)
+    data = await export_plots_csv(db, tenant_id=1)
     rows = _parse_csv(data)
 
     assert rows[0][12] == "3"  # recinto
@@ -256,7 +256,7 @@ async def test_export_plots_csv_with_provincia_municipio():
     db = MagicMock()
     db.execute = AsyncMock(side_effect=[result([plot]), result([])])
 
-    data = await export_plots_csv(db, user_id=1)
+    data = await export_plots_csv(db, tenant_id=1)
     rows = _parse_csv(data)
 
     assert rows[0][14] == "44"  # provincia_cod
@@ -267,7 +267,7 @@ async def test_export_plots_csv_with_provincia_municipio():
 async def test_export_plots_csv_no_optional_fields():
     plot = Plot(
         id=2,
-        user_id=1,
+        tenant_id=1,
         name="Parcela Mínima",
         planting_date=datetime.date(2021, 5, 1),
         polygon="",
@@ -284,7 +284,7 @@ async def test_export_plots_csv_no_optional_fields():
     db = MagicMock()
     db.execute = AsyncMock(side_effect=[result([plot]), result([])])
 
-    data = await export_plots_csv(db, user_id=1)
+    data = await export_plots_csv(db, tenant_id=1)
     rows = _parse_csv(data)
 
     assert rows[0][8] == ""  # area_ha empty
@@ -298,7 +298,7 @@ async def test_export_plots_csv_empty():
     db = MagicMock()
     db.execute = AsyncMock(side_effect=[result([]), result([])])
 
-    data = await export_plots_csv(db, user_id=1)
+    data = await export_plots_csv(db, tenant_id=1)
     assert data == b""
 
 
@@ -313,7 +313,7 @@ async def test_export_expenses_csv_with_plot():
     expense = _make_expense(id=1, plot_id=1)
     db = _db_with_two_calls(result([plot]), result([expense]))
 
-    data = await export_expenses_csv(db, user_id=1)
+    data = await export_expenses_csv(db, tenant_id=1)
     rows = _parse_csv(data)
 
     assert len(rows) == 1
@@ -334,7 +334,7 @@ async def test_export_expenses_csv_general_expense():
     expense.category = None
     db = _db_with_two_calls(result([plot]), result([expense]))
 
-    data = await export_expenses_csv(db, user_id=1)
+    data = await export_expenses_csv(db, tenant_id=1)
     rows = _parse_csv(data)
 
     assert rows[0][3] == ""  # bancal empty
@@ -345,7 +345,7 @@ async def test_export_expenses_csv_general_expense():
 async def test_export_expenses_csv_empty():
     db = _db_with_two_calls(result([]), result([]))
 
-    data = await export_expenses_csv(db, user_id=1)
+    data = await export_expenses_csv(db, tenant_id=1)
     assert data == b""
 
 
@@ -360,7 +360,7 @@ async def test_export_incomes_csv_with_plot():
     income = _make_income(id=1, plot_id=1)
     db = _db_with_two_calls(result([plot]), result([income]))
 
-    data = await export_incomes_csv(db, user_id=1)
+    data = await export_incomes_csv(db, tenant_id=1)
     rows = _parse_csv(data)
 
     assert len(rows) == 1
@@ -378,7 +378,7 @@ async def test_export_incomes_csv_no_plot():
     income.plot_id = None
     db = _db_with_two_calls(result([]), result([income]))
 
-    data = await export_incomes_csv(db, user_id=1)
+    data = await export_incomes_csv(db, tenant_id=1)
     rows = _parse_csv(data)
 
     assert rows[0][1] == ""  # bancal empty
@@ -388,7 +388,7 @@ async def test_export_incomes_csv_no_plot():
 async def test_export_incomes_csv_empty():
     db = _db_with_two_calls(result([]), result([]))
 
-    data = await export_incomes_csv(db, user_id=1)
+    data = await export_incomes_csv(db, tenant_id=1)
     assert data == b""
 
 
@@ -403,7 +403,7 @@ async def test_export_irrigation_csv_with_data():
     record = _make_irrigation(id=1, plot_id=1, water_m3=12.345, notes="Primera pasada")
     db = _db_with_two_calls(result([plot]), result([record]))
 
-    data = await export_irrigation_csv(db, user_id=1)
+    data = await export_irrigation_csv(db, tenant_id=1)
     rows = _parse_csv(data)
 
     assert len(rows) == 1
@@ -420,7 +420,7 @@ async def test_export_irrigation_csv_no_notes():
     record = _make_irrigation(id=1, plot_id=1, water_m3=5.0, notes=None)
     db = _db_with_two_calls(result([plot]), result([record]))
 
-    data = await export_irrigation_csv(db, user_id=1)
+    data = await export_irrigation_csv(db, tenant_id=1)
     rows = _parse_csv(data)
 
     assert rows[0][3] == ""  # notes empty
@@ -430,7 +430,7 @@ async def test_export_irrigation_csv_no_notes():
 async def test_export_irrigation_csv_empty():
     db = _db_with_two_calls(result([]), result([]))
 
-    data = await export_irrigation_csv(db, user_id=1)
+    data = await export_irrigation_csv(db, tenant_id=1)
     assert data == b""
 
 
@@ -445,7 +445,7 @@ async def test_export_wells_csv_with_data():
     well = _make_well(id=1, plot_id=1, wells_per_plant=3, notes="Pozos campaña")
     db = _db_with_two_calls(result([plot]), result([well]))
 
-    data = await export_wells_csv(db, user_id=1)
+    data = await export_wells_csv(db, tenant_id=1)
     rows = _parse_csv(data)
 
     assert len(rows) == 1
@@ -462,7 +462,7 @@ async def test_export_wells_csv_no_notes():
     well = _make_well(id=1, plot_id=1, wells_per_plant=2, notes=None)
     db = _db_with_two_calls(result([plot]), result([well]))
 
-    data = await export_wells_csv(db, user_id=1)
+    data = await export_wells_csv(db, tenant_id=1)
     rows = _parse_csv(data)
 
     assert rows[0][3] == ""
@@ -472,7 +472,7 @@ async def test_export_wells_csv_no_notes():
 async def test_export_wells_csv_empty():
     db = _db_with_two_calls(result([]), result([]))
 
-    data = await export_wells_csv(db, user_id=1)
+    data = await export_wells_csv(db, tenant_id=1)
     assert data == b""
 
 
@@ -494,7 +494,7 @@ async def test_export_truffles_csv_with_data():
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([event]))
 
-    data = await export_truffles_csv(db, user_id=1)
+    data = await export_truffles_csv(db, tenant_id=1)
     rows = _parse_csv(data)
 
     assert len(rows) == 1
@@ -511,7 +511,7 @@ async def test_export_truffles_csv_empty():
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([]))
 
-    data = await export_truffles_csv(db, user_id=1)
+    data = await export_truffles_csv(db, tenant_id=1)
     assert data == b""
 
 
@@ -558,7 +558,7 @@ async def test_export_all_csv_zip_contains_all_files(monkeypatch):
     )
 
     db = MagicMock()
-    data = await export_all_csv_zip(db, user_id=1)
+    data = await export_all_csv_zip(db, tenant_id=1)
 
     with zipfile.ZipFile(io.BytesIO(data), "r") as zf:
         names = sorted(zf.namelist())
@@ -608,7 +608,7 @@ async def test_export_plot_events_csv_with_data():
         result([regular_event]),
     )
 
-    data = await export_plot_events_csv(db, user_id=1)
+    data = await export_plot_events_csv(db, tenant_id=1)
     rows = _parse_csv(data)
 
     assert len(rows) == 1
@@ -619,7 +619,7 @@ async def test_export_plot_events_csv_with_data():
 async def test_export_plot_events_csv_empty():
     db = _db_with_two_calls(result([]), result([]))
 
-    data = await export_plot_events_csv(db, user_id=1)
+    data = await export_plot_events_csv(db, tenant_id=1)
     assert data == b""
 
 
@@ -640,7 +640,7 @@ def _make_recurring_expense(
 ):
     return RecurringExpense(
         id=id,
-        user_id=1,
+        tenant_id=1,
         description=description,
         frequency=frequency,
         plot_id=plot_id,
@@ -667,7 +667,7 @@ async def test_export_recurring_expenses_csv_with_data():
     )
     db = _db_with_two_calls(result([plot]), result([expense]))
 
-    data = await export_recurring_expenses_csv(db, user_id=1)
+    data = await export_recurring_expenses_csv(db, tenant_id=1)
     rows = _parse_csv(data)
 
     assert len(rows) == 1
@@ -695,7 +695,7 @@ async def test_export_recurring_expenses_csv_no_plot():
     )
     db = _db_with_two_calls(result([]), result([expense]))
 
-    data = await export_recurring_expenses_csv(db, user_id=1)
+    data = await export_recurring_expenses_csv(db, tenant_id=1)
     rows = _parse_csv(data)
 
     assert len(rows) == 1
@@ -715,7 +715,7 @@ def _make_plant_presence(
 ):
     return PlantPresence(
         id=id,
-        user_id=1,
+        tenant_id=1,
         plant_id=plant_id,
         plot_id=plot_id,
         presence_date=presence_date,
@@ -734,7 +734,7 @@ async def test_export_presences_csv_with_data():
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([presence]))
 
-    data = await export_presences_csv(db, user_id=1)
+    data = await export_presences_csv(db, tenant_id=1)
     rows = _parse_csv(data)
 
     assert len(rows) == 1
@@ -749,7 +749,7 @@ async def test_export_presences_csv_empty():
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([]))
 
-    data = await export_presences_csv(db, user_id=1)
+    data = await export_presences_csv(db, tenant_id=1)
     assert data == b""
 
 
@@ -757,5 +757,5 @@ async def test_export_presences_csv_empty():
 async def test_export_recurring_expenses_csv_empty():
     db = _db_with_two_calls(result([]), result([]))
 
-    data = await export_recurring_expenses_csv(db, user_id=1)
+    data = await export_recurring_expenses_csv(db, tenant_id=1)
     assert data == b""

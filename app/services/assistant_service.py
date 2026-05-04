@@ -105,8 +105,16 @@ crecimiento de kg respecto a la campaña anterior y total kg vendidos.
 - Gráficas: evolución semanal de ingresos, comparativa acumulada ingresos vs gastos por campaña, \
 mix de ingresos y gastos por categoría, y comparativa entre parcelas.
 - Analítica de parcelas: análisis de correlaciones entre riego y producción (bandas de agua \
-bajo/medio/alto), impacto de poda y labrado en producción, umbrales de riego óptimos, \
-comparativa multi-parcela y detalle por parcela y campaña.
+bajo/medio/alto), impacto de poda y labrado en producción, comparativa multi-parcela y detalle \
+por parcela y campaña. Umbral de meseta global: si ≥2 parcelas tienen meseta individual fiable \
+(≥3 campañas con agua+producción, señal no inconclusa), se usa la mediana de sus mesetas \
+(método "median_of_plots"); si no, se usa el dataset combinado como fallback (método "combined"). \
+Umbral de meseta por parcela: se calcula individualmente con las campañas de esa parcela \
+(≥5 requeridas para considerarse "propio"); en el simulador de riego se usa primero el umbral \
+propio (≥_MIN_PLOT_SAMPLE=3 campañas) y si no hay suficientes datos se usa el global. \
+La meseta se detecta como el primer punto donde la ganancia marginal de producción por m³ \
+adicional de agua cae por debajo de 0,02 kg/m³; la señal es "inconclusive" si la meseta aparece \
+en la primera transición o si más del 60% de las ganancias marginales son negativas.
 - Importar/Exportar: CSV con punto y coma como separador, formato numérico europeo (1.250,50) \
 y fechas dd/mm/aaaa.
 - Facturación (Stripe): suscripción anual con periodo de prueba inicial gestionado por la app. \
@@ -373,58 +381,58 @@ def _classify_intent(message: str) -> str:
     return "uso"
 
 
-async def _build_user_context(db: AsyncSession, user_id: int) -> str:
+async def _build_user_context(db: AsyncSession, tenant_id: int) -> str:
     """Return a compact aggregated summary of the user's data to inject into the prompt.
 
     Only aggregated totals are sent — no raw records — to minimise data exposure.
-    All queries are filtered strictly by user_id.
+    All queries are filtered strictly by tenant_id.
     """
     plots_result = await db.execute(
-        select(Plot).where(Plot.user_id == user_id).order_by(Plot.name)
+        select(Plot).where(Plot.tenant_id == tenant_id).order_by(Plot.name)
     )
     plots = plots_result.scalars().all()
 
-    incomes_result = await db.execute(select(Income).where(Income.user_id == user_id))
+    incomes_result = await db.execute(select(Income).where(Income.tenant_id == tenant_id))
     incomes = incomes_result.scalars().all()
 
     expenses_result = await db.execute(
-        select(Expense).where(Expense.user_id == user_id)
+        select(Expense).where(Expense.tenant_id == tenant_id)
     )
     expenses = expenses_result.scalars().all()
 
     irrigation_result = await db.execute(
-        select(IrrigationRecord).where(IrrigationRecord.user_id == user_id)
+        select(IrrigationRecord).where(IrrigationRecord.tenant_id == tenant_id)
     )
     irrigations = irrigation_result.scalars().all()
 
     plot_events_result = await db.execute(
-        select(PlotEvent).where(PlotEvent.user_id == user_id)
+        select(PlotEvent).where(PlotEvent.tenant_id == tenant_id)
     )
     plot_events = plot_events_result.scalars().all()
 
-    wells_result = await db.execute(select(Well).where(Well.user_id == user_id))
+    wells_result = await db.execute(select(Well).where(Well.tenant_id == tenant_id))
     wells = wells_result.scalars().all()
 
-    plants_result = await db.execute(select(Plant).where(Plant.user_id == user_id))
+    plants_result = await db.execute(select(Plant).where(Plant.tenant_id == tenant_id))
     plants = plants_result.scalars().all()
 
     truffle_events_result = await db.execute(
-        select(TruffleEvent).where(TruffleEvent.user_id == user_id)
+        select(TruffleEvent).where(TruffleEvent.tenant_id == tenant_id)
     )
     truffle_events = truffle_events_result.scalars().all()
 
     rainfall_result = await db.execute(
-        select(RainfallRecord).where(RainfallRecord.user_id == user_id)
+        select(RainfallRecord).where(RainfallRecord.tenant_id == tenant_id)
     )
     rainfall_records = rainfall_result.scalars().all()
 
     recurring_expenses_result = await db.execute(
-        select(RecurringExpense).where(RecurringExpense.user_id == user_id)
+        select(RecurringExpense).where(RecurringExpense.tenant_id == tenant_id)
     )
     recurring_expenses_list = recurring_expenses_result.scalars().all()
 
     plot_harvests_result = await db.execute(
-        select(PlotHarvest).where(PlotHarvest.user_id == user_id)
+        select(PlotHarvest).where(PlotHarvest.tenant_id == tenant_id)
     )
     plot_harvests = plot_harvests_result.scalars().all()
 
@@ -916,13 +924,13 @@ def _compose_messages(
 
 async def chat(
     db: AsyncSession,
-    user_id: int,
+    tenant_id: int,
     message: str,
     history: list[dict],
     adapter: LLMAdapter,
 ) -> dict:
     """Orchestrate an assistant response: classify intent, build context, call LLM."""
-    context = await prepare_chat_context(db, user_id, message, history)
+    context = await prepare_chat_context(db, tenant_id, message, history)
     messages = context["messages"]
     response = await adapter.complete(messages)
     return {
@@ -934,7 +942,7 @@ async def chat(
 
 async def prepare_chat_context(
     db: AsyncSession,
-    user_id: int,
+    tenant_id: int,
     message: str,
     history: list[dict],
 ) -> dict:
@@ -943,7 +951,7 @@ async def prepare_chat_context(
     intent = _classify_intent(safe_message)
     user_ctx = ""
     if intent == "datos":
-        user_ctx = await _build_user_context(db, user_id)
+        user_ctx = await _build_user_context(db, tenant_id)
     messages = _compose_messages(safe_message, history, user_ctx)
     return {
         "intent": intent,

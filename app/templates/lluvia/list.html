@@ -3,6 +3,7 @@
 {% block title %}{{ _("Lluvia") }} &mdash; Trufiq{% endblock %}
 
 {% block content %}
+{% set read_only = session_plan_mode(request.session) == 'read_only' %}
 <div class="container-xl">
     <div class="tf-page-header">
         <div>
@@ -19,9 +20,11 @@
         <a href="/lluvia/calendario{% if selected_year %}?year={{ selected_year }}{% endif %}" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-calendar3 me-1"></i>{{ _("Vista calendario") }}
         </a>
+        {% if not read_only %}
         <a href="/lluvia/nuevo" class="btn btn-outline-primary">
             <i class="bi bi-plus-circle me-1"></i> {{ _("Registro manual") }}
         </a>
+        {% endif %}
         </div>
     </div>
 
@@ -131,9 +134,11 @@
     <div class="alert alert-light border text-center py-5">
         <i class="bi bi-cloud-slash fs-1 text-muted d-block mb-3"></i>
         <p class="text-muted mb-0">{{ _("No hay registros de lluvia para los filtros seleccionados.") }}</p>
+        {% if not read_only %}
         <a href="/lluvia/nuevo" class="btn btn-outline-primary mt-3">
             <i class="bi bi-plus-circle me-1"></i> {{ _("Añadir el primero") }}
         </a>
+        {% endif %}
     </div>
     {% else %}
     <div class="card tf-panel shadow-sm border-0">
@@ -204,7 +209,7 @@
                         </td>
                         <td class="text-muted small">{{ r.notes or '' }}</td>
                         <td class="text-end">
-                            {% if r.source == 'manual' %}
+                            {% if r.source == 'manual' and not read_only %}
                             <a href="/lluvia/{{ r.id }}/editar" class="btn btn-sm btn-outline-secondary me-1">
                                 <i class="bi bi-pencil"></i>
                             </a>
@@ -214,7 +219,7 @@
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </form>
-                            {% else %}
+                            {% elif r.source != 'manual' %}
                             <span class="text-muted small" title="{{ _('Dato compartido, solo lectura') }}">
                                 <i class="bi bi-lock"></i>
                             </span>

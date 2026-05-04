@@ -1,4 +1,5 @@
 from app.models.user import User
+from app.models.tenant import Tenant, TenantMembership, TenantInvitation
 from app.models.plot import Plot
 from app.models.expense import Expense
 from app.models.expense_proration_group import ExpenseProrationGroup
@@ -16,6 +17,9 @@ from app.models.lead_capture import LeadCapture
 
 __all__ = [
     "User",
+    "Tenant",
+    "TenantMembership",
+    "TenantInvitation",
     "Plot",
     "Expense",
     "ExpenseProrationGroup",

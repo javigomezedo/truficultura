@@ -49,7 +49,7 @@ async def test_build_charts_context_generates_serialized_series() -> None:
         side_effect=[result(plots), result(expenses), result(incomes)]
     )
 
-    context = await build_charts_context(db, campaign=2025, plot_id=None, user_id=1)
+    context = await build_charts_context(db, campaign=2025, plot_id=None, tenant_id=1)
 
     assert context["selected_campaign"] == 2025
     assert context["selected_plot_id"] is None
@@ -96,7 +96,7 @@ async def test_build_charts_context_hides_campaigns_without_plot_production() ->
         side_effect=[result(plots), result(expenses), result(incomes)]
     )
 
-    context = await build_charts_context(db, campaign=None, plot_id=None, user_id=1)
+    context = await build_charts_context(db, campaign=None, plot_id=None, tenant_id=1)
 
     assert context["all_campaigns"] == [2025, 2024]
     assert [row["year"] for row in context["kg_ha_table"]] == [2025]

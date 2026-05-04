@@ -10,6 +10,7 @@ from app.database import Base
 
 if TYPE_CHECKING:
     from app.models.plot import Plot
+    from app.models.tenant import Tenant
     from app.models.user import User
 
 
@@ -17,8 +18,14 @@ class Income(Base):
     __tablename__ = "incomes"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    user_id: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True
+    tenant_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    created_by_user_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    updated_by_user_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     date: Mapped[datetime.date] = mapped_column(Date, nullable=False, index=True)
     plot_id: Mapped[Optional[int]] = mapped_column(
@@ -38,7 +45,13 @@ class Income(Base):
         return
 
     # Relationships
-    user: Mapped[Optional["User"]] = relationship("User", back_populates="incomes")
+    tenant: Mapped[Optional["Tenant"]] = relationship("Tenant")
+    created_by: Mapped[Optional["User"]] = relationship(
+        "User", foreign_keys="[Income.created_by_user_id]"
+    )
+    updated_by: Mapped[Optional["User"]] = relationship(
+        "User", foreign_keys="[Income.updated_by_user_id]"
+    )
     plot: Mapped[Optional["Plot"]] = relationship(
         "Plot", back_populates="incomes", lazy="joined"
     )

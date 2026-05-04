@@ -3,6 +3,7 @@
 {% block title %}{{ _("Registro múltiple de riego") }} &mdash; Trufiq{% endblock %}
 
 {% block content %}
+{% set read_only = session_plan_mode(request.session) == 'read_only' %}
 <div class="container-xl">
     <div class="tf-page-header">
         <div>
@@ -113,9 +114,11 @@
             <a href="/irrigation/" class="btn btn-outline-secondary">
                 <i class="bi bi-x-circle me-1"></i>{{ _("Cancelar") }}
             </a>
+            {% if not read_only %}
             <button type="submit" class="btn btn-primary">
                 <i class="bi bi-check2-circle me-1"></i>{{ _("Guardar todos los riegos") }}
             </button>
+            {% endif %}
         </div>
     </form>
     {% endif %}

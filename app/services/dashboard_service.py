@@ -10,16 +10,16 @@ from app.models import Expense, Income, Plot, Well
 from app.utils import campaign_year, distribute_unassigned_expenses
 
 
-async def build_dashboard_context(db: AsyncSession, user_id: int) -> dict:
+async def build_dashboard_context(db: AsyncSession, tenant_id: int) -> dict:
     plots_result = await db.execute(
-        select(Plot).where(Plot.user_id == user_id).order_by(Plot.name)
+        select(Plot).where(Plot.tenant_id == tenant_id).order_by(Plot.name)
     )
     all_plots = plots_result.scalars().all()
 
     # Use column-level selects to avoid loading joined relationships and binary data.
     expenses_result = await db.execute(
         select(Expense.date, Expense.amount, Expense.plot_id).where(
-            Expense.user_id == user_id
+            Expense.tenant_id == tenant_id
         )
     )
     expense_rows = expenses_result.all()
@@ -27,13 +27,13 @@ async def build_dashboard_context(db: AsyncSession, user_id: int) -> dict:
     incomes_result = await db.execute(
         select(
             Income.date, Income.amount_kg, Income.euros_per_kg, Income.plot_id
-        ).where(Income.user_id == user_id)
+        ).where(Income.tenant_id == tenant_id)
     )
     income_rows = incomes_result.all()
 
     # For wells we need plot.num_plants (already eagerly joined) but NOT the expense.
     wells_result = await db.execute(
-        select(Well).where(Well.user_id == user_id).options(lazyload(Well.expense))
+        select(Well).where(Well.tenant_id == tenant_id).options(lazyload(Well.expense))
     )
     all_wells = wells_result.scalars().all()
 

@@ -14,31 +14,31 @@ from app.models.recurring_expense import FREQUENCIES, RecurringExpense
 logger = logging.getLogger(__name__)
 
 
-async def list_plots(db: AsyncSession, user_id: int) -> list[Plot]:
+async def list_plots(db: AsyncSession, tenant_id: int) -> list[Plot]:
     result = await db.execute(
-        select(Plot).where(Plot.user_id == user_id).order_by(Plot.name)
+        select(Plot).where(Plot.tenant_id == tenant_id).order_by(Plot.name)
     )
     return result.scalars().all()
 
 
 async def list_recurring_expenses(
-    db: AsyncSession, user_id: int
+    db: AsyncSession, tenant_id: int
 ) -> list[RecurringExpense]:
     result = await db.execute(
         select(RecurringExpense)
-        .where(RecurringExpense.user_id == user_id)
+        .where(RecurringExpense.tenant_id == tenant_id)
         .order_by(RecurringExpense.description)
     )
     return result.scalars().all()
 
 
 async def get_recurring_expense(
-    db: AsyncSession, recurring_expense_id: int, user_id: int
+    db: AsyncSession, recurring_expense_id: int, tenant_id: int
 ) -> Optional[RecurringExpense]:
     result = await db.execute(
         select(RecurringExpense).where(
             RecurringExpense.id == recurring_expense_id,
-            RecurringExpense.user_id == user_id,
+            RecurringExpense.tenant_id == tenant_id,
         )
     )
     return result.scalar_one_or_none()
@@ -47,7 +47,8 @@ async def get_recurring_expense(
 async def create_recurring_expense(
     db: AsyncSession,
     *,
-    user_id: int,
+    tenant_id: int,
+    acting_user_id: Optional[int] = None,
     description: str,
     amount: float,
     category: Optional[str] = None,
@@ -56,7 +57,8 @@ async def create_recurring_expense(
     frequency: str = "monthly",
 ) -> RecurringExpense:
     obj = RecurringExpense(
-        user_id=user_id,
+        tenant_id=tenant_id,
+        created_by_user_id=acting_user_id,
         description=description,
         amount=amount,
         category=category or None,
@@ -75,6 +77,7 @@ async def update_recurring_expense(
     db: AsyncSession,
     obj: RecurringExpense,
     *,
+    acting_user_id: Optional[int] = None,
     description: str,
     amount: float,
     category: Optional[str] = None,
@@ -90,6 +93,7 @@ async def update_recurring_expense(
     obj.person = person
     obj.frequency = frequency if frequency in FREQUENCIES else "monthly"
     obj.is_active = is_active
+    obj.updated_by_user_id = acting_user_id
     await db.flush()
     return obj
 
@@ -141,7 +145,8 @@ async def process_recurring_expenses(db: AsyncSession) -> list[Expense]:
             continue
 
         expense = Expense(
-            user_id=rec.user_id,
+            tenant_id=rec.tenant_id,
+            created_by_user_id=None,
             date=today,
             description=rec.description,
             person=rec.person,
@@ -153,8 +158,8 @@ async def process_recurring_expenses(db: AsyncSession) -> list[Expense]:
         rec.last_run_date = today
         created.append(expense)
         logger.info(
-            "Gasto recurrente creado: user_id=%s description=%r amount=%s date=%s",
-            rec.user_id,
+            "Gasto recurrente creado: tenant_id=%s description=%r amount=%s date=%s",
+            rec.tenant_id,
             rec.description,
             rec.amount,
             today,

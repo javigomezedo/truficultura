@@ -20,8 +20,6 @@ def _fake_db() -> MagicMock:
 
 
 def _active_user() -> User:
-    from datetime import UTC, datetime, timedelta
-
     return User(
         id=1,
         username="javier",
@@ -32,8 +30,6 @@ def _active_user() -> User:
         role="user",
         is_active=True,
         email_confirmed=True,
-        subscription_status="trialing",
-        trial_ends_at=datetime.now(UTC) + timedelta(days=14),
     )
 
 
@@ -60,7 +56,9 @@ def test_scan_without_session_redirects_to_login() -> None:
 
 def test_scan_with_session_shows_weight_form(monkeypatch) -> None:
     db = _fake_db()
-    db.execute.return_value = result([_active_user()])
+    user = _active_user()
+    # Each request: select(User) + select(TenantMembership). 2 requests → 4 calls.
+    db.execute.side_effect = [result([user]), result([]), result([user]), result([])]
     app.dependency_overrides[get_db] = lambda: db
 
     token = __import__(
@@ -91,7 +89,9 @@ def test_scan_with_session_shows_weight_form(monkeypatch) -> None:
 
 def test_scan_without_session_then_login_returns_to_confirm(monkeypatch) -> None:
     db = _fake_db()
-    db.execute.return_value = result([_active_user()])
+    user = _active_user()
+    # GET scan (no session=0 DB) + login POST (2 DB) + GET scan again (2 DB) = 4 calls.
+    db.execute.side_effect = [result([user]), result([]), result([user]), result([])]
     app.dependency_overrides[get_db] = lambda: db
 
     token = __import__(
@@ -128,7 +128,9 @@ def test_scan_without_session_then_login_returns_to_confirm(monkeypatch) -> None
 
 def test_scan_submit_registers_weight(monkeypatch) -> None:
     db = _fake_db()
-    db.execute.return_value = result([_active_user()])
+    user = _active_user()
+    # Login POST (2 DB) + POST scan (2 DB via get_current_user) = 4 calls.
+    db.execute.side_effect = [result([user]), result([]), result([user]), result([])]
     app.dependency_overrides[get_db] = lambda: db
 
     token = __import__(

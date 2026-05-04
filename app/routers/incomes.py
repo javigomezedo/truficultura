@@ -11,6 +11,7 @@ from app.auth import require_subscription
 from app.database import get_db
 from app.i18n import _
 from app.models.user import User
+from app.plan_access import require_write_access
 from app.services.incomes_service import (
     create_income as create_income_service,
     delete_income as delete_income_service,
@@ -37,8 +38,7 @@ async def list_incomes(
     year_int = int(year) if year else None
     context = await get_incomes_list_context(
         db,
-        year_int,
-        current_user.id,
+        year_int, current_user.active_tenant_id,
         sort_by=sort or "date",
         sort_order=order if order in ("asc", "desc") else "desc",
     )
@@ -60,7 +60,7 @@ async def new_income_form(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    plots = await list_plots(db, current_user.id)
+    plots = await list_plots(db, current_user.active_tenant_id)
     return templates.TemplateResponse(
         request,
         "ingresos/form.html",
@@ -83,11 +83,11 @@ async def create_income(
     category: str = Form(""),
     euros_per_kg: float = Form(0.0),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
     await create_income_service(
         db,
-        user_id=current_user.id,
+        tenant_id=current_user.active_tenant_id,
         date=date,
         plot_id=plot_id,
         amount_kg=amount_kg,
@@ -107,14 +107,14 @@ async def edit_income_form(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_subscription),
 ):
-    income = await get_income(db, income_id, current_user.id)
+    income = await get_income(db, income_id, current_user.active_tenant_id)
     if income is None:
         return RedirectResponse(
             url=f"/incomes/?msg={quote_plus(_('Ingreso no encontrado'))}",
             status_code=303,
         )
 
-    plots = await list_plots(db, current_user.id)
+    plots = await list_plots(db, current_user.active_tenant_id)
 
     return templates.TemplateResponse(
         request,
@@ -139,9 +139,9 @@ async def update_income(
     category: str = Form(""),
     euros_per_kg: float = Form(0.0),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
-    obj = await get_income(db, income_id, current_user.id)
+    obj = await get_income(db, income_id, current_user.active_tenant_id)
     if obj is None:
         return RedirectResponse(
             url=f"/incomes/?msg={quote_plus(_('Ingreso no encontrado'))}",
@@ -168,9 +168,9 @@ async def delete_income(
     request: Request,
     income_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_write_access),
 ):
-    obj = await get_income(db, income_id, current_user.id)
+    obj = await get_income(db, income_id, current_user.active_tenant_id)
     if obj:
         await delete_income_service(db, obj)
     return RedirectResponse(

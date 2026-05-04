@@ -25,7 +25,7 @@ from tests.conftest import result
 def _make_record(**kwargs) -> RainfallRecord:
     defaults = dict(
         id=1,
-        user_id=1,
+        tenant_id=1,
         plot_id=1,
         municipio_cod=None,
         date=datetime.date(2025, 11, 10),
@@ -48,7 +48,7 @@ async def test_get_rainfall_record_found() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([record]))
 
-    found = await get_rainfall_record(db, 1, user_id=1)
+    found = await get_rainfall_record(db, 1, tenant_id=1)
 
     assert found is record
 
@@ -58,7 +58,7 @@ async def test_get_rainfall_record_not_found() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([]))
 
-    found = await get_rainfall_record(db, 99, user_id=1)
+    found = await get_rainfall_record(db, 99, tenant_id=1)
 
     assert found is None
 
@@ -68,7 +68,7 @@ async def test_get_rainfall_record_wrong_user() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([]))
 
-    found = await get_rainfall_record(db, 1, user_id=2)
+    found = await get_rainfall_record(db, 1, tenant_id=2)
 
     assert found is None
 
@@ -84,7 +84,7 @@ async def test_list_rainfall_records_empty() -> None:
     # 1st call: Plot.municipio_cod query; 2nd: RainfallRecord query
     db.execute = AsyncMock(side_effect=[result([]), result([])])
 
-    records = await list_rainfall_records(db, user_id=1)
+    records = await list_rainfall_records(db, tenant_id=1)
 
     assert records == []
 
@@ -95,7 +95,7 @@ async def test_list_rainfall_records_returns_results() -> None:
     db = MagicMock()
     db.execute = AsyncMock(side_effect=[result([]), result(records_data)])
 
-    records = await list_rainfall_records(db, user_id=1)
+    records = await list_rainfall_records(db, tenant_id=1)
 
     assert len(records) == 2
 
@@ -108,7 +108,7 @@ async def test_list_rainfall_records_filters_by_year() -> None:
     db = MagicMock()
     db.execute = AsyncMock(side_effect=[result([]), result([r1, r2])])
 
-    records = await list_rainfall_records(db, user_id=1, year=2025)
+    records = await list_rainfall_records(db, tenant_id=1, year=2025)
 
     assert len(records) == 1
     assert records[0].id == 1
@@ -120,7 +120,7 @@ async def test_list_rainfall_records_filtered_by_plot() -> None:
     db = MagicMock()
     db.execute = AsyncMock(side_effect=[result([]), result(records_data)])
 
-    records = await list_rainfall_records(db, user_id=1, plot_id=3)
+    records = await list_rainfall_records(db, tenant_id=1, plot_id=3)
 
     assert len(records) == 1
 
@@ -131,7 +131,7 @@ async def test_list_rainfall_records_filtered_by_municipio() -> None:
     db = MagicMock()
     db.execute = AsyncMock(side_effect=[result([]), result(records_data)])
 
-    records = await list_rainfall_records(db, user_id=1, municipio_cod="44216")
+    records = await list_rainfall_records(db, tenant_id=1, municipio_cod="44216")
 
     assert len(records) == 1
 
@@ -143,7 +143,7 @@ async def test_list_rainfall_records_filtered_by_municipio() -> None:
 
 @pytest.mark.asyncio
 async def test_create_rainfall_record_with_plot() -> None:
-    plot = SimpleNamespace(id=1, user_id=1, name="Parcela A")
+    plot = SimpleNamespace(id=1, tenant_id=1, name="Parcela A")
     record = _make_record()
     db = MagicMock()
     # First execute: plot lookup; second is avoided because flush/refresh use mocks
@@ -158,11 +158,11 @@ async def test_create_rainfall_record_with_plot() -> None:
         precipitation_mm=12.5,
         source="manual",
     )
-    await create_rainfall_record(db, user_id=1, data=data)
+    await create_rainfall_record(db, tenant_id=1, data=data)
 
     db.add.assert_called_once()
     added = db.add.call_args[0][0]
-    assert added.user_id == 1
+    assert added.tenant_id == 1
     assert added.plot_id == 1
     assert added.precipitation_mm == 12.5
     assert added.source == "manual"
@@ -181,7 +181,7 @@ async def test_create_rainfall_record_municipio_level() -> None:
         precipitation_mm=8.0,
         source="manual",
     )
-    await create_rainfall_record(db, user_id=1, data=data)
+    await create_rainfall_record(db, tenant_id=1, data=data)
 
     db.add.assert_called_once()
     added = db.add.call_args[0][0]
@@ -203,7 +203,7 @@ async def test_create_rainfall_record_non_manual_source_raises_400() -> None:
         source="aemet",
     )
     with pytest.raises(HTTPException) as exc_info:
-        await create_rainfall_record(db, user_id=1, data=data)
+        await create_rainfall_record(db, tenant_id=1, data=data)
 
     assert exc_info.value.status_code == 400
 
@@ -221,7 +221,7 @@ async def test_create_rainfall_record_plot_not_found() -> None:
         precipitation_mm=5.0,
     )
     with pytest.raises(HTTPException) as exc_info:
-        await create_rainfall_record(db, user_id=1, data=data)
+        await create_rainfall_record(db, tenant_id=1, data=data)
 
     assert exc_info.value.status_code == 404
 
@@ -240,7 +240,7 @@ async def test_update_rainfall_record_changes_fields() -> None:
     db.refresh = AsyncMock()
 
     data = RainfallUpdate(precipitation_mm=25.0, notes="Actualizado")
-    await update_rainfall_record(db, record_id=1, user_id=1, data=data)
+    await update_rainfall_record(db, record_id=1, tenant_id=1, data=data)
 
     assert record.precipitation_mm == 25.0
     assert record.notes == "Actualizado"
@@ -255,7 +255,7 @@ async def test_update_rainfall_record_not_found() -> None:
 
     data = RainfallUpdate(precipitation_mm=5.0)
     with pytest.raises(HTTPException) as exc_info:
-        await update_rainfall_record(db, record_id=99, user_id=1, data=data)
+        await update_rainfall_record(db, record_id=99, tenant_id=1, data=data)
 
     assert exc_info.value.status_code == 404
 
@@ -273,7 +273,7 @@ async def test_delete_rainfall_record() -> None:
     db.delete = AsyncMock()
     db.flush = AsyncMock()
 
-    await delete_rainfall_record(db, record_id=1, user_id=1)
+    await delete_rainfall_record(db, record_id=1, tenant_id=1)
 
     db.delete.assert_called_once_with(record)
 
@@ -286,7 +286,7 @@ async def test_delete_rainfall_record_not_found() -> None:
     db.execute = AsyncMock(return_value=result([]))
 
     with pytest.raises(HTTPException) as exc_info:
-        await delete_rainfall_record(db, record_id=99, user_id=1)
+        await delete_rainfall_record(db, record_id=99, tenant_id=1)
 
     assert exc_info.value.status_code == 404
 
@@ -304,7 +304,7 @@ async def test_get_rainfall_for_plot_on_date_exact_match() -> None:
     db.execute = AsyncMock(return_value=result([record]))
 
     found = await get_rainfall_for_plot_on_date(
-        db, plot, datetime.date(2025, 11, 10), user_id=1
+        db, plot, datetime.date(2025, 11, 10), tenant_id=1
     )
 
     assert found is record
@@ -319,7 +319,7 @@ async def test_get_rainfall_for_plot_on_date_fallback_municipio() -> None:
     db.execute = AsyncMock(side_effect=[result([]), result([municipio_record])])
 
     found = await get_rainfall_for_plot_on_date(
-        db, plot, datetime.date(2025, 11, 10), user_id=1
+        db, plot, datetime.date(2025, 11, 10), tenant_id=1
     )
 
     assert found is municipio_record
@@ -333,7 +333,7 @@ async def test_get_rainfall_for_plot_on_date_no_data() -> None:
     db.execute = AsyncMock(side_effect=[result([]), result([])])
 
     found = await get_rainfall_for_plot_on_date(
-        db, plot, datetime.date(2025, 11, 10), user_id=1
+        db, plot, datetime.date(2025, 11, 10), tenant_id=1
     )
 
     assert found is None
@@ -346,7 +346,7 @@ async def test_get_rainfall_for_plot_on_date_no_municipio_cod() -> None:
     db.execute = AsyncMock(return_value=result([]))
 
     found = await get_rainfall_for_plot_on_date(
-        db, plot, datetime.date(2025, 11, 10), user_id=1
+        db, plot, datetime.date(2025, 11, 10), tenant_id=1
     )
 
     assert found is None
@@ -384,10 +384,10 @@ async def test_get_rainfall_list_context_structure() -> None:
         patch("app.services.rainfall_service._get_user_plots", fake_get_plots),
         patch("app.services.rainfall_service._get_all_years", fake_get_years),
         patch(
-            "app.services.rainfall_service._get_user_municipios", fake_get_municipios
+            "app.services.rainfall_service._get_tenant_municipios", fake_get_municipios
         ),
     ):
-        context = await get_rainfall_list_context(db, user_id=1)
+        context = await get_rainfall_list_context(db, tenant_id=1)
 
     assert "records" in context
     assert "plots" in context
@@ -530,10 +530,10 @@ async def test_get_rainfall_calendar_context_structure() -> None:
         patch("app.services.rainfall_service._get_user_plots", fake_get_plots),
         patch("app.services.rainfall_service._get_all_years", fake_get_years),
         patch(
-            "app.services.rainfall_service._get_user_municipios", fake_get_municipios
+            "app.services.rainfall_service._get_tenant_municipios", fake_get_municipios
         ),
     ):
-        context = await get_rainfall_calendar_context(db, user_id=1, year=2025)
+        context = await get_rainfall_calendar_context(db, tenant_id=1, year=2025)
 
     assert "months" in context
     assert len(context["months"]) == 12
@@ -556,7 +556,7 @@ async def test_get_rainfall_calendar_context_with_plot_area() -> None:
     records_data = [
         _make_record(plot_id=1, date=datetime.date(2025, 11, 5), precipitation_mm=10.0),
     ]
-    plot_obj = SimpleNamespace(id=1, user_id=1, area_ha=2.0, name="Bancal A")
+    plot_obj = SimpleNamespace(id=1, tenant_id=1, area_ha=2.0, name="Bancal A")
     plots = [plot_obj]
     db = MagicMock()
 
@@ -580,12 +580,12 @@ async def test_get_rainfall_calendar_context_with_plot_area() -> None:
         patch("app.services.rainfall_service._get_user_plots", fake_get_plots),
         patch("app.services.rainfall_service._get_all_years", fake_get_years),
         patch(
-            "app.services.rainfall_service._get_user_municipios", fake_get_municipios
+            "app.services.rainfall_service._get_tenant_municipios", fake_get_municipios
         ),
     ):
         db.execute = AsyncMock(return_value=result([plot_obj]))
         context = await get_rainfall_calendar_context(
-            db, user_id=1, year=2025, plot_id=1
+            db, tenant_id=1, year=2025, plot_id=1
         )
 
     # 10 mm × 2 ha × 10 = 200 m³
@@ -610,9 +610,9 @@ async def test_get_rainfall_calendar_context_no_records() -> None:
         patch("app.services.rainfall_service.list_rainfall_records", fake_list),
         patch("app.services.rainfall_service._get_user_plots", fake_empty),
         patch("app.services.rainfall_service._get_all_years", fake_empty),
-        patch("app.services.rainfall_service._get_user_municipios", fake_empty),
+        patch("app.services.rainfall_service._get_tenant_municipios", fake_empty),
     ):
-        context = await get_rainfall_calendar_context(db, user_id=1, year=2024)
+        context = await get_rainfall_calendar_context(db, tenant_id=1, year=2024)
 
     assert context["total_mm"] == 0.0
     assert context["rain_days"] == 0
@@ -638,10 +638,10 @@ async def test_get_rainfall_calendar_context_source_filter() -> None:
         patch("app.services.rainfall_service.list_rainfall_records", fake_list),
         patch("app.services.rainfall_service._get_user_plots", fake_empty),
         patch("app.services.rainfall_service._get_all_years", fake_empty),
-        patch("app.services.rainfall_service._get_user_municipios", fake_empty),
+        patch("app.services.rainfall_service._get_tenant_municipios", fake_empty),
     ):
         context = await get_rainfall_calendar_context(
-            db, user_id=1, year=2025, source="aemet"
+            db, tenant_id=1, year=2025, source="aemet"
         )
 
     assert captured["source"] == "aemet"

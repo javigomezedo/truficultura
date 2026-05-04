@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth import require_subscription
 from app.database import get_db
 from app.models.user import User
+from app.plan_access import require_feature
 from app.services.plot_analytics_service import (
     detect_irrigation_thresholds,
     get_all_plot_thresholds,
@@ -180,7 +181,7 @@ def _build_overview_explanation(
 async def overview(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_feature("analitica_parcelas")),
     campaign_from: Optional[str] = Query(default=None),
     campaign_to: Optional[str] = Query(default=None),
 ):
@@ -189,37 +190,37 @@ async def overview(
 
     dataset = await get_campaign_dataset(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
     irrigation_analysis = await get_irrigation_vs_production_analysis(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
     pruning_analysis = await get_pruning_vs_production_analysis(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
     management_analysis = await get_tilling_vs_production_analysis(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
     irrigation_thresholds = await detect_irrigation_thresholds(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
     all_plot_thresholds = await get_all_plot_thresholds(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
@@ -255,7 +256,7 @@ async def overview(
 @router.get("/dataset", response_class=JSONResponse)
 async def dataset_json(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_feature("analitica_parcelas")),
     campaign_from: Optional[str] = Query(default=None),
     campaign_to: Optional[str] = Query(default=None),
 ):
@@ -264,7 +265,7 @@ async def dataset_json(
 
     rows = await get_campaign_dataset(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
@@ -274,7 +275,7 @@ async def dataset_json(
 @router.get("/irrigation-impact", response_class=JSONResponse)
 async def irrigation_impact_json(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_feature("analitica_parcelas")),
     campaign_from: Optional[str] = Query(default=None),
     campaign_to: Optional[str] = Query(default=None),
 ):
@@ -282,7 +283,7 @@ async def irrigation_impact_json(
     campaign_to_value = _parse_optional_int(campaign_to)
     return await get_irrigation_vs_production_analysis(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
@@ -291,7 +292,7 @@ async def irrigation_impact_json(
 @router.get("/pruning-impact", response_class=JSONResponse)
 async def pruning_impact_json(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_feature("analitica_parcelas")),
     campaign_from: Optional[str] = Query(default=None),
     campaign_to: Optional[str] = Query(default=None),
 ):
@@ -299,7 +300,7 @@ async def pruning_impact_json(
     campaign_to_value = _parse_optional_int(campaign_to)
     return await get_pruning_vs_production_analysis(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
@@ -308,7 +309,7 @@ async def pruning_impact_json(
 @router.get("/management-impact", response_class=JSONResponse)
 async def management_impact_json(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_feature("analitica_parcelas")),
     campaign_from: Optional[str] = Query(default=None),
     campaign_to: Optional[str] = Query(default=None),
 ):
@@ -316,7 +317,7 @@ async def management_impact_json(
     campaign_to_value = _parse_optional_int(campaign_to)
     return await get_tilling_vs_production_analysis(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
@@ -325,7 +326,7 @@ async def management_impact_json(
 @router.get("/irrigation-thresholds", response_class=JSONResponse)
 async def irrigation_thresholds_json(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_feature("analitica_parcelas")),
     campaign_from: Optional[str] = Query(default=None),
     campaign_to: Optional[str] = Query(default=None),
 ):
@@ -333,7 +334,7 @@ async def irrigation_thresholds_json(
     campaign_to_value = _parse_optional_int(campaign_to)
     return await detect_irrigation_thresholds(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
@@ -342,7 +343,7 @@ async def irrigation_thresholds_json(
 @router.get("/comparison", response_class=JSONResponse)
 async def comparison_json(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_feature("analitica_parcelas")),
     campaign_from: Optional[str] = Query(default=None),
     campaign_to: Optional[str] = Query(default=None),
 ):
@@ -350,7 +351,7 @@ async def comparison_json(
     campaign_to_value = _parse_optional_int(campaign_to)
     return await get_multi_plot_comparison(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
@@ -360,7 +361,7 @@ async def comparison_json(
 async def comparison_view(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_feature("analitica_parcelas")),
     campaign_from: Optional[str] = Query(default=None),
     campaign_to: Optional[str] = Query(default=None),
 ):
@@ -369,13 +370,13 @@ async def comparison_view(
 
     comparison = await get_multi_plot_comparison(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
     dataset = await get_campaign_dataset(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
@@ -399,7 +400,7 @@ async def plot_detail(
     request: Request,
     plot_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_feature("analitica_parcelas")),
     campaign_from: Optional[str] = Query(default=None),
     campaign_to: Optional[str] = Query(default=None),
 ):
@@ -408,21 +409,21 @@ async def plot_detail(
 
     context = await get_plot_detail_context(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         plot_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
     plot_thresholds = await detect_irrigation_thresholds(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
         plot_ids=[plot_id],
     )
     global_thresholds = await detect_irrigation_thresholds(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
     )
@@ -464,7 +465,7 @@ async def plot_detail(
 async def plot_detail_json(
     plot_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_subscription),
+    current_user: User = Depends(require_feature("analitica_parcelas")),
     campaign_from: Optional[str] = Query(default=None),
     campaign_to: Optional[str] = Query(default=None),
 ):
@@ -473,7 +474,7 @@ async def plot_detail_json(
 
     context = await get_plot_detail_context(
         db,
-        current_user.id,
+        current_user.active_tenant_id,
         plot_id,
         campaign_from=campaign_from_value,
         campaign_to=campaign_to_value,
