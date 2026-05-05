@@ -12,6 +12,9 @@ primary_region = 'cdg'
   # Run migrations once before new machines start (on a temporary release VM).
   # This avoids delaying uvicorn startup on every machine restart.
   release_command = "alembic upgrade head"
+  # Start new machines and wait for them to be healthy BEFORE stopping old ones.
+  # Eliminates the 3-second startup gap from ever affecting live traffic.
+  strategy = "bluegreen"
 
 [processes]
   app = "/entrypoint.sh"
