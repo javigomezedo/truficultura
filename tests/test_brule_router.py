@@ -23,7 +23,11 @@ def _user() -> SimpleNamespace:
 
 def _db() -> MagicMock:
     db = MagicMock()
-    db.execute = AsyncMock(return_value=MagicMock(scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[])))))
+    db.execute = AsyncMock(
+        return_value=MagicMock(
+            scalars=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[])))
+        )
+    )
     db.add = MagicMock()
     db.flush = AsyncMock()
     db.delete = AsyncMock()
@@ -309,3 +313,166 @@ def test_brule_delete_not_found_redirects(monkeypatch) -> None:
         app.dependency_overrides.clear()
 
     assert response.status_code == 303
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GET /brule/{record_id}/edit
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def test_brule_edit_form_renders(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.routers.brule.brule_service.get_brule_record",
+        AsyncMock(return_value=_fake_record()),
+    )
+    app.dependency_overrides[require_subscription] = _user
+    app.dependency_overrides[get_db] = lambda: _db()
+    try:
+        client = TestClient(app)
+        response = client.get("/brule/99/edit")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+
+
+def test_brule_edit_form_not_found_redirects(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.routers.brule.brule_service.get_brule_record",
+        AsyncMock(return_value=None),
+    )
+    app.dependency_overrides[require_subscription] = _user
+    app.dependency_overrides[get_db] = lambda: _db()
+    try:
+        client = TestClient(app, follow_redirects=False)
+        response = client.get("/brule/999/edit")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert "/brule/" in response.headers["location"]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /brule/{record_id}/edit
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def test_brule_edit_submit_redirects_on_success(monkeypatch) -> None:
+    rec = _fake_record()
+    monkeypatch.setattr(
+        "app.routers.brule.brule_service.update_brule_record",
+        AsyncMock(return_value=rec),
+    )
+    app.dependency_overrides[require_subscription] = _user
+    app.dependency_overrides[require_write_access] = _user
+    app.dependency_overrides[get_db] = lambda: _db()
+    try:
+        client = TestClient(app, follow_redirects=False)
+        response = client.post("/brule/99/edit", data={"diameter_cm": "60"})
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert "/brule/" in response.headers["location"]
+
+
+def test_brule_edit_submit_not_found_redirects(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.routers.brule.brule_service.update_brule_record",
+        AsyncMock(return_value=None),
+    )
+    app.dependency_overrides[require_subscription] = _user
+    app.dependency_overrides[require_write_access] = _user
+    app.dependency_overrides[get_db] = lambda: _db()
+    try:
+        client = TestClient(app, follow_redirects=False)
+        response = client.post("/brule/999/edit", data={"diameter_cm": "60"})
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert "/brule/" in response.headers["location"]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /plots/{plot_id}/plants/{plant_id}/brule/ — JSON paths
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def test_plant_brule_create_returns_json_on_success(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.routers.brule.get_plot",
+        AsyncMock(return_value=_fake_plot(plot_id=2)),
+    )
+    monkeypatch.setattr(
+        "app.routers.brule.brule_service.create_brule_record",
+        AsyncMock(return_value=_fake_record()),
+    )
+    app.dependency_overrides[require_subscription] = _user
+    app.dependency_overrides[require_write_access] = _user
+    app.dependency_overrides[get_db] = lambda: _db()
+    try:
+        client = TestClient(app, follow_redirects=False)
+        response = client.post(
+            "/plots/2/plants/5/brule/",
+            data={"record_date": "2025-11-05", "diameter_cm": "50"},
+            headers={"Accept": "application/json"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json()["ok"] is True
+    assert "redirect" in response.json()
+
+
+def test_plant_brule_create_returns_json_409_on_duplicate(monkeypatch) -> None:
+    from sqlalchemy.exc import IntegrityError
+
+    monkeypatch.setattr(
+        "app.routers.brule.get_plot",
+        AsyncMock(return_value=_fake_plot(plot_id=2)),
+    )
+    monkeypatch.setattr(
+        "app.routers.brule.brule_service.create_brule_record",
+        AsyncMock(side_effect=IntegrityError(None, None, Exception("dup"))),
+    )
+    db = _db()
+    db.rollback = AsyncMock()
+    app.dependency_overrides[require_subscription] = _user
+    app.dependency_overrides[require_write_access] = _user
+    app.dependency_overrides[get_db] = lambda: db
+    try:
+        client = TestClient(app, follow_redirects=False)
+        response = client.post(
+            "/plots/2/plants/5/brule/",
+            data={"record_date": "2025-11-05", "diameter_cm": "50"},
+            headers={"Accept": "application/json"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 409
+    assert "error" in response.json()
+
+
+def test_plant_brule_create_plot_not_found_redirects(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.routers.brule.get_plot",
+        AsyncMock(return_value=None),
+    )
+    app.dependency_overrides[require_subscription] = _user
+    app.dependency_overrides[require_write_access] = _user
+    app.dependency_overrides[get_db] = lambda: _db()
+    try:
+        client = TestClient(app, follow_redirects=False)
+        response = client.post(
+            "/plots/999/plants/5/brule/",
+            data={"record_date": "2025-11-05", "diameter_cm": "50"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert "/plots/" in response.headers["location"]
