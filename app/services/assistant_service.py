@@ -119,7 +119,21 @@ en la primera transición o si más del 60% de las ganancias marginales son nega
 y fechas dd/mm/aaaa.
 - Facturación (Stripe): suscripción anual con periodo de prueba inicial gestionado por la app. \
 Estados principales: active, trialing, past_due y canceled. En cancelaciones se envía email \
-de confirmación al usuario (tanto al solicitar cancelación a fin de periodo como al finalizarla).
+de confirmación al usuario (tanto al solicitar cancelación a fin de periodo como al finalizarla). \
+Flujo upgrade: nuevo Stripe Checkout prorateado; flujo downgrade: se programa en pending_plan \
+para el próximo ciclo de renovación.
+- Planes de acceso (basic/premium/enterprise): controlan qué funciones están disponibles. \
+Plan Basic (funciones core, límite 500 plantas). \
+Plan Premium (+ meteorología, analítica de parcelas, simulador de riego, asistente IA). \
+Plan Enterprise (+ organizaciones multi-tenant). \
+Trial tiene acceso completo. read_only (trial expirado, past_due, canceled) → solo lectura. \
+Admin de app siempre tiene nivel Enterprise.
+- SIGPAC: integración con la API pública del MAPA para rellenar automáticamente la referencia \
+catastral y superficie (ha) de una parcela a partir de provincia/municipio/polígono/parcela/recinto. \
+Disponible como botón en el formulario de creación/edición de parcelas.
+- Búsqueda de municipios: el usuario puede buscar municipios españoles por nombre para \
+asociarlos a parcelas y registros de lluvia. Usa la API Nominatim (OSM) para resolver el \
+código INE de 5 dígitos necesario para la importación automática de lluvia desde AEMET/Ibericam.
 - Admin (solo administrador): gestión de usuarios (alta, baja, activar/desactivar, cambio de \
 contraseña, confirmación de email). El primer usuario registrado se convierte en administrador.
 
@@ -236,6 +250,23 @@ _DATA_KEYWORDS = {
     "balance hidrico",
     "caudal",
     "caudal riego",
+    "plan",
+    "mi plan",
+    "plan actual",
+    "que plan tengo",
+    "upgrade",
+    "mejorar plan",
+    "cambiar plan",
+    "downgrade",
+    "plan basico",
+    "plan premium",
+    "plan enterprise",
+    "sigpac",
+    "catastral",
+    "referencia catastral",
+    "municipio",
+    "municipios",
+    "codigo ine",
 }
 
 _USAGE_KEYWORDS = {
@@ -282,6 +313,8 @@ _DATA_PATTERNS = [
     re.compile(r"\b(analitica|analisis)\b.*\b(parcela|riego|poda|labrado)\b"),
     re.compile(r"\b(cosecha|cosechas)\b.*\b(bancal|parcela|campana)\b"),
     re.compile(r"\b(prorrateo|prorratear)\b"),
+    re.compile(r"\b(plan|planes)\b.*\b(basico|premium|enterprise|upgrade|downgrade|cambiar|mejorar)\b"),
+    re.compile(r"\b(sigpac|catastral)\b.*\b(parcela|recinto|poligono|municipio)\b"),
 ]
 
 _PROMPT_INJECTION_PATTERNS = [
