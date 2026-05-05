@@ -26,10 +26,6 @@ primary_region = 'cdg'
     timeout = "10s"
     path = "/health"
 
-[metrics]
-  port = 8000
-  path = "/metrics"
-
 [[vm]]
   memory = '1gb'
   cpus = 1
