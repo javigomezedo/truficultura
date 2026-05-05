@@ -8,8 +8,17 @@ primary_region = 'cdg'
 
 [build]
 
+[deploy]
+  # Run migrations once before new machines start (on a temporary release VM).
+  # This avoids delaying uvicorn startup on every machine restart.
+  release_command = "alembic upgrade head"
+
 [processes]
   app = "/entrypoint.sh"
+
+[env]
+  # Migrations are handled by the release_command above; skip them in the app machines.
+  RUN_MIGRATIONS = "0"
 
 [http_service]
   internal_port = 8000
@@ -20,7 +29,7 @@ primary_region = 'cdg'
   processes = ['app']
 
   [[http_service.checks]]
-    grace_period = "30s"
+    grace_period = "60s"
     interval = "30s"
     method = "GET"
     timeout = "10s"
