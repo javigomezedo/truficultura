@@ -284,6 +284,37 @@ async def plant_limit_exceeded_handler(request: Request, exc: PlantLimitExceeded
 
 
 @app.middleware("http")
+async def csrf_origin_check(request: Request, call_next):
+    """Lightweight CSRF protection via Origin/Referer header check (F-08).
+
+    SameSite=lax on the session cookie already blocks most CSRF vectors.
+    This middleware adds defence-in-depth for state-changing requests by
+    verifying that the Origin (or Referer fallback) matches the configured
+    APP_BASE_URL.  Requests with no Origin/Referer header are allowed through
+    (non-browser clients, health checkers, Stripe webhooks, etc.).
+    Exemptions: /billing/webhook (Stripe posts with no matching origin).
+    """
+    _CSRF_SAFE_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
+    _CSRF_EXEMPT_PREFIXES = ("/billing/webhook", "/health")
+
+    if request.method not in _CSRF_SAFE_METHODS and not any(
+        request.url.path.startswith(p) for p in _CSRF_EXEMPT_PREFIXES
+    ):
+        from urllib.parse import urlsplit as _urlsplit
+
+        raw_origin = request.headers.get("Origin") or request.headers.get("Referer", "")
+        if raw_origin:
+            origin_host = _urlsplit(raw_origin).netloc  # "host:port" or ""
+            app_host = _urlsplit(settings.APP_BASE_URL).netloc
+            if origin_host and app_host and origin_host != app_host:
+                return HTMLResponse(
+                    content="CSRF check failed", status_code=403
+                )
+
+    return await call_next(request)
+
+
+@app.middleware("http")
 async def locale_middleware(request: Request, call_next):
     """Set the per-request locale from session (falls back to Accept-Language, then default)."""
     session = request.scope.get("session") or {}

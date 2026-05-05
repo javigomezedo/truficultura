@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import Date, Float, ForeignKey, Integer, LargeBinary, String
+from sqlalchemy import Date, ForeignKey, Integer, LargeBinary, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -46,7 +46,7 @@ class Expense(Base):
     plot_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("plots.id", ondelete="SET NULL"), nullable=True, index=True
     )
-    amount: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    amount: Mapped[float] = mapped_column(Numeric(12, 2, asdecimal=False), nullable=False, default=0.0)
     category: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     receipt_filename: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     receipt_data: Mapped[Optional[bytes]] = mapped_column(LargeBinary, nullable=True)
