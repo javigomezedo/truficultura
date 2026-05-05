@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("Brulé") }} — {{ plant.label }}{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+{% set read_only = session_plan_mode(request.session) == 'read_only' %}
+<div class="container-xl">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/plots/">{{ _("Parcelas") }}</a></li>
+            <li class="breadcrumb-item"><a href="/plots/{{ plot.id }}/map">{{ plot.name }}</a></li>
+            <li class="breadcrumb-item active">{{ _("Brulé") }} · {{ plant.label }}</li>
+        </ol>
+    </nav>
+
+    <div class="tf-page-header">
+        <div>
+            <p class="tf-page-kicker">{{ _("Micorriza") }}</p>
+            <h1 class="tf-page-title">
+                <i class="bi bi-circle text-warning me-2"></i>{{ _("Brulé") }} · {{ plant.label }}
+            </h1>
+            <p class="tf-page-subtitle">
+                {{ _("Evolución del diámetro de la zona quemada.") }}
+                {{ _("Parcela") }}: <strong>{{ plot.name }}</strong>
+            </p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="/plots/{{ plot.id }}/map" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>{{ _("Volver al mapa") }}
+            </a>
+        </div>
+    </div>
+
+    {% if msg %}
+    <div class="alert alert-info">{{ _(msg) }}</div>
+    {% endif %}
+
+    {% if evo_dates %}
+    <div class="card tf-panel border-0 shadow-sm mb-3">
+        <div class="card-header bg-transparent border-0 pb-0">
+            <h2 class="h6 mb-0">
+                <i class="bi bi-graph-up-arrow me-1 text-warning"></i>{{ _("Evolución del brulé") }}
+            </h2>
+        </div>
+        <div class="card-body">
+            <div style="position:relative; height:280px;">
+                <canvas id="bruleChart"></canvas>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row g-3">
+        {# Add new record #}
+        {% if not read_only %}
+        <div class="col-md-4">
+            <div class="card tf-panel border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <h2 class="h6 mb-0">
+                        <i class="bi bi-plus-circle me-1 text-success"></i>{{ _("Nuevo registro") }}
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="/plots/{{ plot.id }}/plants/{{ plant.id }}/brule/">
+                        <div class="mb-3">
+                            <label for="record_date" class="form-label fw-semibold">{{ _("Fecha") }}</label>
+                            <input type="date" id="record_date" name="record_date"
+                                   class="form-control" value="{{ today }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="diameter_cm" class="form-label fw-semibold">{{ _("Diámetro (cm)") }}</label>
+                            <div class="input-group">
+                                <span class="input-group-text">⌀</span>
+                                <input type="number" id="diameter_cm" name="diameter_cm"
+                                       class="form-control" min="1" max="999" required
+                                       placeholder="45">
+                                <span class="input-group-text">cm</span>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="bi bi-check2 me-1"></i>{{ _("Registrar") }}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {# Records table #}
+        <div class="col-md-{% if read_only %}12{% else %}8{% endif %}">
+            <div class="card tf-panel border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <h2 class="h6 mb-0">
+                        <i class="bi bi-table me-1"></i>{{ _("Historial") }}
+                    </h2>
+                </div>
+                <div class="card-body p-0">
+                    {% if records %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>{{ _("Fecha") }}</th>
+                                    <th class="text-end">{{ _("Diámetro") }}</th>
+                                    <th class="text-end">{{ _("Acciones") }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for r in records %}
+                                <tr>
+                                    <td>{{ r.record_date.strftime('%d/%m/%Y') }}</td>
+                                    <td class="text-end">
+                                        <span class="badge bg-warning text-dark">⌀ {{ r.diameter_cm }} cm</span>
+                                    </td>
+                                    <td class="text-end">
+                                        {% if not read_only %}
+                                        <a href="/brule/{{ r.id }}/edit" class="btn btn-sm btn-outline-secondary py-0">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <form method="post" action="/brule/{{ r.id }}/delete" class="d-inline"
+                                              onsubmit="return confirm('{{ _('¿Eliminar este registro?') }}')">
+                                            <input type="hidden" name="plant_id_back" value="{{ plant.id }}">
+                                            <input type="hidden" name="plot_id_back" value="{{ plot.id }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger py-0">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="p-4 text-center text-muted">
+                        <i class="bi bi-circle fs-2 d-block mb-2"></i>
+                        {{ _("Sin registros todavía.") }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if evo_dates %}
+<script>
+(function () {
+    'use strict';
+    const labels = {{ evo_dates | tojson_safe }};
+    const values = {{ evo_values | tojson_safe }};
+
+    const cssVars = getComputedStyle(document.documentElement);
+    const colorWarning = cssVars.getPropertyValue('--tf-warning').trim() || '#af7a2f';
+
+    new Chart(document.getElementById('bruleChart'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: '{{ _("Diámetro brulé (cm)") }}',
+                data: values,
+                borderColor: colorWarning,
+                backgroundColor: 'rgba(175,122,47,0.15)',
+                tension: 0.3,
+                fill: true,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    title: { display: true, text: '{{ _("cm") }}' },
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => `⌀ ${ctx.parsed.y} cm`,
+                    }
+                }
+            }
+        }
+    });
+})();
+</script>
+{% endif %}
+{% endblock %}
