@@ -8,6 +8,15 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://user:password@localhost:5432/trufiq"
     SECRET_KEY: str = "change-me-in-production-please"
     OPENAI_API_KEY: Optional[str] = None
+    # Azure OpenAI Service — alternativa privada a OpenAI consumer API.
+    # Si estas tres variables están configuradas, se usa Azure en lugar de OpenAI.
+    # Los datos NO se usan para entrenamiento y permanecen en la UE (GDPR).
+    AZURE_OPENAI_API_KEY: Optional[str] = None
+    AZURE_OPENAI_ENDPOINT: Optional[str] = None            # ej. https://mi-recurso.openai.azure.com/
+    AZURE_OPENAI_DEPLOYMENT: Optional[str] = None          # nombre del deployment de chat, ej. trufiq-chat
+    AZURE_OPENAI_WHISPER_DEPLOYMENT: Optional[str] = None  # nombre del deployment de Whisper, ej. trufiq-whisper
+    AZURE_OPENAI_WHISPER_ENDPOINT: Optional[str] = None    # si Whisper está en un recurso distinto
+    AZURE_OPENAI_WHISPER_KEY: Optional[str] = None         # si Whisper tiene una API key distinta
     AEMET_API_KEY: Optional[str] = None
     AEMET_BASE_URL: str = "https://opendata.aemet.es/opendata/api"
     AEMET_TIMEOUT_SECONDS: float = 30.0

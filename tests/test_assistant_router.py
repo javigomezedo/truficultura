@@ -9,6 +9,17 @@ from fastapi import HTTPException
 from app.auth import require_admin, require_user
 from app.database import get_db
 from app.main import app
+from app.services.llm_adapter import AzureOpenAIAdapter, OpenAIAdapter
+
+
+def _clear_llm_settings(monkeypatch) -> None:
+    """Deja todas las variables de LLM a None para forzar el estado 503."""
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "OPENAI_API_KEY", None)
+    monkeypatch.setattr(settings, "AZURE_OPENAI_API_KEY", None)
+    monkeypatch.setattr(settings, "AZURE_OPENAI_ENDPOINT", None)
+    monkeypatch.setattr(settings, "AZURE_OPENAI_DEPLOYMENT", None)
 
 
 def _user() -> SimpleNamespace:
@@ -149,9 +160,7 @@ def test_stream_returns_sse_payload(monkeypatch) -> None:
 
 
 def test_stream_returns_503_when_api_key_missing(monkeypatch) -> None:
-    from app.config import settings
-
-    monkeypatch.setattr(settings, "OPENAI_API_KEY", None)
+    _clear_llm_settings(monkeypatch)
 
     app.dependency_overrides[require_user] = _user
     app.dependency_overrides[get_db] = lambda: _db()
@@ -165,9 +174,7 @@ def test_stream_returns_503_when_api_key_missing(monkeypatch) -> None:
 
 
 def test_chat_returns_503_when_api_key_missing(monkeypatch) -> None:
-    from app.config import settings
-
-    monkeypatch.setattr(settings, "OPENAI_API_KEY", None)
+    _clear_llm_settings(monkeypatch)
 
     app.dependency_overrides[require_user] = _user
     app.dependency_overrides[get_db] = lambda: _db()
@@ -178,7 +185,7 @@ def test_chat_returns_503_when_api_key_missing(monkeypatch) -> None:
         app.dependency_overrides.clear()
 
     assert response.status_code == 503
-    assert "OPENAI_API_KEY" in response.json()["detail"]
+    assert "AZURE_OPENAI_API_KEY" in response.json()["detail"]
 
 
 def test_chat_rejects_empty_message() -> None:
@@ -262,3 +269,66 @@ def test_metrics_returns_snapshot_for_admin() -> None:
     assert "chat" in payload
     assert "stream" in payload
     assert "intents" in payload
+
+
+# ---------------------------------------------------------------------------
+# _get_adapter() — selección de proveedor LLM
+# ---------------------------------------------------------------------------
+
+
+def test_get_adapter_returns_azure_adapter_when_azure_vars_set(monkeypatch) -> None:
+    from app.config import settings
+    from app.routers.assistant import _get_adapter
+
+    monkeypatch.setattr(settings, "AZURE_OPENAI_API_KEY", "test-azure-key")
+    monkeypatch.setattr(
+        settings, "AZURE_OPENAI_ENDPOINT", "https://test.openai.azure.com/"
+    )
+    monkeypatch.setattr(settings, "AZURE_OPENAI_DEPLOYMENT", "trufiq-chat")
+    monkeypatch.setattr(settings, "OPENAI_API_KEY", None)
+
+    adapter = _get_adapter()
+    assert isinstance(adapter, AzureOpenAIAdapter)
+
+
+def test_get_adapter_returns_openai_adapter_as_fallback(monkeypatch) -> None:
+    from app.config import settings
+    from app.routers.assistant import _get_adapter
+
+    monkeypatch.setattr(settings, "AZURE_OPENAI_API_KEY", None)
+    monkeypatch.setattr(settings, "AZURE_OPENAI_ENDPOINT", None)
+    monkeypatch.setattr(settings, "AZURE_OPENAI_DEPLOYMENT", None)
+    monkeypatch.setattr(settings, "OPENAI_API_KEY", "sk-test")
+
+    adapter = _get_adapter()
+    assert isinstance(adapter, OpenAIAdapter)
+
+
+def test_get_adapter_raises_503_when_no_keys_configured(monkeypatch) -> None:
+    from app.routers.assistant import _get_adapter
+    import pytest
+
+    _clear_llm_settings(monkeypatch)
+
+    with pytest.raises(HTTPException) as exc_info:
+        _get_adapter()
+
+    assert exc_info.value.status_code == 503
+    assert "AZURE_OPENAI_API_KEY" in exc_info.value.detail
+
+
+def test_get_adapter_raises_503_when_azure_vars_incomplete(monkeypatch) -> None:
+    """Azure requiere las tres variables; con solo la API key no basta."""
+    from app.config import settings
+    from app.routers.assistant import _get_adapter
+    import pytest
+
+    monkeypatch.setattr(settings, "AZURE_OPENAI_API_KEY", "test-key")
+    monkeypatch.setattr(settings, "AZURE_OPENAI_ENDPOINT", None)  # falta endpoint
+    monkeypatch.setattr(settings, "AZURE_OPENAI_DEPLOYMENT", None)
+    monkeypatch.setattr(settings, "OPENAI_API_KEY", None)
+
+    with pytest.raises(HTTPException) as exc_info:
+        _get_adapter()
+
+    assert exc_info.value.status_code == 503

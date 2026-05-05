@@ -17,7 +17,7 @@ from app.i18n import _
 from app.models.user import User
 from app.schemas.assistant import AssistantRequest, AssistantResponse
 from app.services.assistant_service import chat, prepare_chat_context
-from app.services.llm_adapter import OpenAIAdapter
+from app.services.llm_adapter import AzureOpenAIAdapter, LLMAdapter, OpenAIAdapter
 
 router = APIRouter(prefix="/api/assistant", tags=["assistant"])
 logger = logging.getLogger(__name__)
@@ -33,15 +33,28 @@ _METRICS = {
 }
 
 
-def _get_adapter() -> OpenAIAdapter:
-    if not settings.OPENAI_API_KEY:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=_(
-                "Asistente no disponible: configura OPENAI_API_KEY en el servidor."
-            ),
+def _get_adapter() -> LLMAdapter:
+    if (
+        settings.AZURE_OPENAI_API_KEY
+        and settings.AZURE_OPENAI_ENDPOINT
+        and settings.AZURE_OPENAI_DEPLOYMENT
+    ):
+        return AzureOpenAIAdapter(
+            endpoint=settings.AZURE_OPENAI_ENDPOINT,
+            api_key=settings.AZURE_OPENAI_API_KEY,
+            deployment=settings.AZURE_OPENAI_DEPLOYMENT,
+            whisper_deployment=settings.AZURE_OPENAI_WHISPER_DEPLOYMENT,
+            whisper_endpoint=settings.AZURE_OPENAI_WHISPER_ENDPOINT,
+            whisper_key=settings.AZURE_OPENAI_WHISPER_KEY,
         )
-    return OpenAIAdapter(api_key=settings.OPENAI_API_KEY)
+    if settings.OPENAI_API_KEY:
+        return OpenAIAdapter(api_key=settings.OPENAI_API_KEY)
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail=_(
+            "Asistente no disponible: configura AZURE_OPENAI_API_KEY o OPENAI_API_KEY en el servidor."
+        ),
+    )
 
 
 def _enforce_rate_limit(request: Request) -> None:
@@ -228,6 +241,14 @@ async def assistant_transcribe(
     current_user: User = Depends(require_feature("asistente_ia")),
 ) -> dict:
     adapter = _get_adapter()
+    # Si el adapter de Azure no tiene Whisper configurado, caemos a OpenAI para la transcripción.
+    if isinstance(adapter, AzureOpenAIAdapter) and not settings.AZURE_OPENAI_WHISPER_DEPLOYMENT:
+        if not settings.OPENAI_API_KEY:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=_("Transcripción no disponible: configura AZURE_OPENAI_WHISPER_DEPLOYMENT o OPENAI_API_KEY."),
+            )
+        adapter = OpenAIAdapter(api_key=settings.OPENAI_API_KEY)
     audio_bytes = await file.read()
     if len(audio_bytes) > _MAX_AUDIO_SIZE_BYTES:
         raise HTTPException(
