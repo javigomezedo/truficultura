@@ -1,17 +1,36 @@
-FROM python:3.11-slim
+# ---------------------------------------------------------------------------
+# Stage 1: builder — instala dependencias con herramientas de compilación
+# ---------------------------------------------------------------------------
+FROM python:3.11-slim AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
-WORKDIR /app
+WORKDIR /build
 
-# Build tools are needed for some Python packages with native extensions.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml ./
+# Install into a prefix so we can copy cleanly to the runtime stage
+RUN pip install --upgrade pip \
+    && pip install --prefix=/install .
+
+# ---------------------------------------------------------------------------
+# Stage 2: runtime — imagen final mínima sin herramientas de build (F-12)
+# ---------------------------------------------------------------------------
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# Copy installed packages from builder
+COPY --from=builder /install /usr/local
+
 COPY app ./app
 COPY alembic ./alembic
 COPY alembic.ini ./
@@ -19,9 +38,12 @@ COPY locales ./locales
 COPY scripts ./scripts
 COPY docker/entrypoint.sh /entrypoint.sh
 
-RUN pip install --upgrade pip \
-    && pip install . \
-    && chmod +x /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Run as non-root for security (F-07)
+RUN useradd --system --no-create-home appuser \
+    && chown -R appuser:appuser /app /entrypoint.sh
+USER appuser
 
 EXPOSE 8000
 

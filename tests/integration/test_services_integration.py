@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import datetime
-import json
 from pathlib import Path
 from datetime import timezone
 
@@ -238,9 +237,9 @@ async def test_charts_context_with_real_db(tmp_path: Path) -> None:
 
             assert ctx["selected_campaign"] == 2025
             assert ctx["selected_plot_id"] == plot.id
-            assert json.loads(ctx["week_labels"]) != []
-            assert json.loads(ctx["income_values"]) == [80.0]
-            assert json.loads(ctx["expense_values"]) == [10.0]
+            assert ctx["week_labels"] != []
+            assert ctx["income_values"] == [80.0]
+            assert ctx["expense_values"] == [10.0]
             assert len(ctx["kg_ha_table"]) == 1
     finally:
         await engine.dispose()

@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import Boolean, Date, Float, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Date, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -44,14 +44,14 @@ class Plot(Base):
     sector: Mapped[str] = mapped_column(String(100), nullable=False, default="")
     num_plants: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     planting_date: Mapped[datetime.date] = mapped_column(Date, nullable=False)
-    area_ha: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    area_ha: Mapped[Optional[float]] = mapped_column(Numeric(10, 4, asdecimal=False), nullable=True)
     production_start: Mapped[Optional[datetime.date]] = mapped_column(
         Date, nullable=True
     )
-    percentage: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    percentage: Mapped[float] = mapped_column(Numeric(7, 4, asdecimal=False), nullable=False, default=0.0)
     has_irrigation: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     recinto: Mapped[str] = mapped_column(String(10), nullable=False, default="1")
-    caudal_riego: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    caudal_riego: Mapped[Optional[float]] = mapped_column(Numeric(10, 4, asdecimal=False), nullable=True)
     provincia_cod: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
     municipio_cod: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
 

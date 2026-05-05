@@ -16,7 +16,11 @@ from app.auth import (
     SubscriptionRequiredException,
     require_subscription,
 )
-from app.plan_access import WriteAccessDeniedException, PlanUpgradeRequiredException, PlantLimitExceededException
+from app.plan_access import (
+    WriteAccessDeniedException,
+    PlanUpgradeRequiredException,
+    PlantLimitExceededException,
+)
 from app.config import settings
 from app.database import engine, get_db
 from fastapi import Form
@@ -75,6 +79,11 @@ configure_sentry(
 async def lifespan(app: FastAPI):
     """App lifespan hook for graceful async engine disposal."""
     install_global_exception_hooks(logger)
+    if settings.METRICS_ENABLED and not settings.METRICS_TOKEN:
+        raise RuntimeError(
+            "METRICS_TOKEN debe configurarse cuando METRICS_ENABLED=true. "
+            "El endpoint /metrics quedaría accesible sin autenticación."
+        )
     yield
     await engine.dispose()
 
@@ -253,29 +262,93 @@ async def subscription_required_handler(
 
 
 @app.exception_handler(WriteAccessDeniedException)
-async def write_access_denied_handler(request: Request, exc: WriteAccessDeniedException):
+async def write_access_denied_handler(
+    request: Request, exc: WriteAccessDeniedException
+):
     from urllib.parse import quote_plus
     from app.i18n import _
+
     msg = quote_plus(_("Solo lectura: suscríbete para poder editar"))
-    return RedirectResponse(url=f"/billing/subscribe?msg={msg}&msg_type=warning", status_code=303)
+    return RedirectResponse(
+        url=f"/billing/subscribe?msg={msg}&msg_type=warning", status_code=303
+    )
 
 
 @app.exception_handler(PlanUpgradeRequiredException)
-async def plan_upgrade_required_handler(request: Request, exc: PlanUpgradeRequiredException):
+async def plan_upgrade_required_handler(
+    request: Request, exc: PlanUpgradeRequiredException
+):
     from urllib.parse import quote_plus
     from app.i18n import _
+
     msg = quote_plus(_("Esta función requiere un plan superior"))
-    return RedirectResponse(url=f"/billing/subscribe?msg={msg}&msg_type=warning", status_code=303)
+    return RedirectResponse(
+        url=f"/billing/subscribe?msg={msg}&msg_type=warning", status_code=303
+    )
 
 
 @app.exception_handler(PlantLimitExceededException)
-async def plant_limit_exceeded_handler(request: Request, exc: PlantLimitExceededException):
+async def plant_limit_exceeded_handler(
+    request: Request, exc: PlantLimitExceededException
+):
     from urllib.parse import quote_plus
     from app.i18n import _
+
     msg = quote_plus(
-        _("Has alcanzado el límite de {limit} plantas del plan Básico. Actualiza a Premium para plantas ilimitadas.").format(limit=exc.limit)
+        _(
+            "Has alcanzado el límite de {limit} plantas del plan Básico. Actualiza a Premium para plantas ilimitadas."
+        ).format(limit=exc.limit)
     )
-    return RedirectResponse(url=f"/billing/subscribe?msg={msg}&msg_type=warning", status_code=303)
+    return RedirectResponse(
+        url=f"/billing/subscribe?msg={msg}&msg_type=warning", status_code=303
+    )
+
+
+@app.middleware("http")
+async def csrf_origin_check(request: Request, call_next):
+    """Lightweight CSRF protection via Origin/Referer header check (F-08).
+
+    SameSite=lax on the session cookie already blocks most CSRF vectors.
+    This middleware adds defence-in-depth for state-changing requests by
+    verifying that the Origin (or Referer fallback) matches the configured
+    APP_BASE_URL.  Requests with no Origin/Referer header are allowed through
+    (non-browser clients, health checkers, Stripe webhooks, etc.).
+    Exemptions: /billing/webhook (Stripe posts with no matching origin).
+    """
+    _CSRF_SAFE_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
+    _CSRF_EXEMPT_PREFIXES = ("/billing/webhook", "/health")
+
+    if request.method not in _CSRF_SAFE_METHODS and not any(
+        request.url.path.startswith(p) for p in _CSRF_EXEMPT_PREFIXES
+    ):
+        from urllib.parse import urlsplit as _urlsplit
+
+        raw_origin = request.headers.get("Origin") or request.headers.get("Referer", "")
+        if raw_origin:
+            origin_host = _urlsplit(raw_origin).netloc  # "host:port" or ""
+            app_host = _urlsplit(settings.APP_BASE_URL).netloc
+            if origin_host and app_host and origin_host != app_host:
+                return HTMLResponse(content="CSRF check failed", status_code=403)
+
+    return await call_next(request)
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    """Add defensive HTTP security headers to every response."""
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault(
+        "Permissions-Policy",
+        "geolocation=(), microphone=(self), camera=()",
+    )
+    if settings.PRODUCTION:
+        response.headers.setdefault(
+            "Strict-Transport-Security", "max-age=63072000; includeSubDomains"
+        )
+    return response
 
 
 @app.middleware("http")

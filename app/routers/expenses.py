@@ -5,6 +5,17 @@ from urllib.parse import quote, quote_plus
 
 from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
+
+# Tipos MIME permitidos para recibos. Nunca servir HTML/JS almacenado por el usuario.
+_RECEIPT_ALLOWED_MIME = frozenset(
+    {
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/webp",
+        "application/pdf",
+    }
+)
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -50,7 +61,8 @@ async def list_expenses(
     plot_id_int = int(plot_id) if plot_id else None
     context = await get_expenses_list_context(
         db,
-        year_int, current_user.active_tenant_id,
+        year_int,
+        current_user.active_tenant_id,
         category=category,
         person=person,
         plot_id=plot_id_int,
@@ -118,7 +130,10 @@ async def create_expense(
             years=prorate_years,
             start_year=effective_start_year,
         )
-        msg = _("Gasto prorrateado registrado correctamente ({years} entradas)", years=prorate_years)
+        msg = _(
+            "Gasto prorrateado registrado correctamente ({years} entradas)",
+            years=prorate_years,
+        )
     else:
         await create_expense_service(
             db,
@@ -252,8 +267,16 @@ async def upload_receipt(
         )
 
     try:
+        content_type = (receipt.content_type or "").split(";")[0].strip().lower()
+        if content_type not in _RECEIPT_ALLOWED_MIME:
+            return RedirectResponse(
+                url=(
+                    f"/expenses/{expense_id}/edit?msg="
+                    f"{quote_plus(_('Tipo de archivo no permitido. Solo se aceptan imágenes (JPEG, PNG, GIF, WebP) y PDF.'))}"
+                ),
+                status_code=303,
+            )
         file_data = await receipt.read()
-        content_type = receipt.content_type or "application/octet-stream"
 
         await save_receipt(
             db,
@@ -291,10 +314,17 @@ async def download_receipt(
         )
 
     filename, file_content, content_type = receipt_data
+    # Normalise content_type against the allowlist (defence against legacy data)
+    # and force 'attachment' to prevent stored-XSS via HTML/JS files.
+    safe_ct = (
+        content_type
+        if content_type in _RECEIPT_ALLOWED_MIME
+        else "application/octet-stream"
+    )
     return StreamingResponse(
         BytesIO(file_content),
-        media_type=content_type,
-        headers={"Content-Disposition": f'inline; filename="{quote(filename)}"'},
+        media_type=safe_ct,
+        headers={"Content-Disposition": f'attachment; filename="{quote(filename)}"'},
     )
 
 

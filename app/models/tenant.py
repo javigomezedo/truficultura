@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     DateTime,
     ForeignKey,
     Index,
@@ -102,6 +103,10 @@ class TenantMembership(Base):
 
     __table_args__ = (
         UniqueConstraint("tenant_id", "user_id", name="uq_tenant_membership"),
+        CheckConstraint(
+            "role IN ('owner', 'admin', 'member')",
+            name="ck_tenant_membership_role",
+        ),
         Index("ix_tenant_membership_user", "user_id"),
         Index("ix_tenant_membership_tenant", "tenant_id"),
     )

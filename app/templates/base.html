@@ -74,7 +74,7 @@
                         <ul class="dropdown-menu">
                             <li>
                                 <a class="dropdown-item {% if request.url.path.startswith('/plots') %}active{% endif %}" href="/plots/">
-                                    <i class="bi bi-map text-secondary me-1"></i> {{ _("Gestión de parcelas") }}
+                                    <i class="bi bi-map text-secondary me-1"></i> {{ _("Mis parcelas") }}
                                 </a>
                             </li>
                             <li>
@@ -84,11 +84,31 @@
                             </li>
                         </ul>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if '/production' in request.url.path or '/truffles' in request.url.path or '/harvests' in request.url.path %}active{% endif %}"
-                           href="/production/">
-                            <i class="bi bi-grid-3x3-gap-fill"></i> {{ _("Producción") }}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if '/production' in request.url.path or '/truffles' in request.url.path or '/harvests' in request.url.path %}active{% endif %}"
+                           href="#"
+                           role="button"
+                           data-bs-toggle="dropdown"
+                           aria-expanded="false">
+                            <i class="bi bi-basket-fill"></i> {{ _("Producción") }}
                         </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item {% if '/production' in request.url.path and '/truffles' not in request.url.path and '/harvests' not in request.url.path %}active{% endif %}" href="/production/">
+                                    <i class="bi bi-grid-3x3-gap-fill text-secondary me-1"></i> {{ _("Panel de producción") }}
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if '/truffles' in request.url.path %}active{% endif %}" href="/truffles/">
+                                    <i class="bi bi-flower2 text-success me-1"></i> {{ _("Eventos de trufa") }}
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if '/harvests' in request.url.path %}active{% endif %}" href="/harvests/">
+                                    <i class="bi bi-basket3-fill text-warning me-1"></i> {{ _("Cosechas") }}
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle {% if '/irrigation' in request.url.path or '/wells' in request.url.path or '/lluvia' in request.url.path or '/plot-events' in request.url.path or '/tiempo' in request.url.path %}active{% endif %}"
@@ -163,7 +183,7 @@
                            role="button"
                            data-bs-toggle="dropdown"
                            aria-expanded="false">
-                            <i class="bi bi-tools"></i> {{ _("Herramientas") }}
+                            <i class="bi bi-graph-up-arrow"></i> {{ _("Análisis") }}
                         </a>
                         <ul class="dropdown-menu">
                             <li>
@@ -176,6 +196,8 @@
                                     <i class="bi bi-speedometer2 me-1"></i> KPIs
                                 </a>
                             </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><h6 class="dropdown-header">{{ _("Datos") }}</h6></li>
                             <li>
                                 <a class="dropdown-item {% if '/import' in request.url.path %}active{% endif %}" href="/import/">
                                     <i class="bi bi-upload me-1"></i> {{ _("Importar") }}
@@ -222,10 +244,6 @@
                     {% set first_name = request.session.get("first_name") or request.session.get("username") %}
                     {% set last_name = request.session.get("last_name") or "" %}
                     {% set _plan_mode = session_plan_mode(request.session) %}
-                    <span class="navbar-text text-light small tf-navbar-user"
-                          title="{{ first_name }} {{ last_name }}">
-                        <i class="bi bi-person-circle me-1"></i>{{ first_name }}{% if last_name %} {{ last_name }}{% endif %}
-                    </span>
                     {% if request.session.get("role") != "admin" %}
                     <a href="/billing/subscribe"
                        class="badge text-decoration-none
@@ -248,7 +266,7 @@
                                 aria-expanded="false"
                                 aria-label="{{ _('Cambiar idioma') }}"
                                 title="{{ _('Cambiar idioma') }}">
-                            <i class="bi bi-translate me-1"></i>{{ get_current_locale() | upper }}
+                            <i class="bi bi-translate"></i>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li>
@@ -299,21 +317,40 @@
                         </ul>
                     </div>
                 {% if request.session.get("username") %}
-                    {% if request.session.get("role") != "admin" %}
-                    <a href="/billing/subscribe" class="btn btn-outline-light btn-sm" title="{{ _('Gestionar suscripción') }}">
-                        <i class="bi bi-credit-card me-1"></i>{{ _("Suscripción") }}
-                    </a>
-                    {% endif %}
-                    {% if session_has_feature(request.session, 'tenants') %}
-                    <a href="/tenant/settings" class="btn btn-outline-light btn-sm" title="{{ _('Ajustes de la organización') }}">
-                        <i class="bi bi-building-gear"></i>
-                    </a>
-                    {% endif %}
-                    <form action="/logout" method="post" class="d-inline m-0">
-                        <button type="submit" class="btn btn-outline-light btn-sm">
-                            <i class="bi bi-box-arrow-right me-1"></i>{{ _("Salir") }}
+                    <div class="dropdown tf-navbar-user-dropdown">
+                        <button class="btn btn-outline-light btn-sm dropdown-toggle"
+                                type="button"
+                                data-bs-toggle="dropdown"
+                                aria-expanded="false"
+                                title="{{ first_name }} {{ last_name }}">
+                            <i class="bi bi-person-circle me-1"></i>{{ first_name }}
                         </button>
-                    </form>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><h6 class="dropdown-header">{{ first_name }}{% if last_name %} {{ last_name }}{% endif %}</h6></li>
+                            {% if request.session.get("role") != "admin" %}
+                            <li>
+                                <a class="dropdown-item" href="/billing/subscribe">
+                                    <i class="bi bi-credit-card me-1"></i>{{ _("Suscripción") }}
+                                </a>
+                            </li>
+                            {% endif %}
+                            {% if session_has_feature(request.session, 'tenants') %}
+                            <li>
+                                <a class="dropdown-item" href="/tenant/settings">
+                                    <i class="bi bi-building-gear me-1"></i>{{ _("Organización") }}
+                                </a>
+                            </li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form action="/logout" method="post" class="m-0">
+                                    <button type="submit" class="dropdown-item text-danger">
+                                        <i class="bi bi-box-arrow-right me-1"></i>{{ _("Cerrar sesión") }}
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
                 {% endif %}
                 </div>
             </div>

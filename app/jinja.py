@@ -1,7 +1,9 @@
 from datetime import UTC, datetime, timedelta
+import json
 from urllib.parse import urlencode
 
 from fastapi.templating import Jinja2Templates
+from markupsafe import Markup
 
 from app.i18n import get_current_locale, gettext_func, ngettext_func
 from app.plan_access import PLAN_HIERARCHY, _FEATURE_PLANS
@@ -11,6 +13,23 @@ templates = Jinja2Templates(directory="app/templates")
 templates.env.filters["campaign_label"] = campaign_label
 templates.env.filters["campaign_months"] = campaign_months
 templates.env.filters["format_eu"] = format_eu
+
+
+def _tojson_safe(value: object) -> Markup:
+    """Serialize *value* to JSON and escape <, >, & so the result is safe
+    to embed directly inside a <script> block without XSS risk.
+    """
+    serialized = json.dumps(value)
+    serialized = (
+        serialized
+        .replace("<", r"\u003c")
+        .replace(">", r"\u003e")
+        .replace("&", r"\u0026")
+    )
+    return Markup(serialized)
+
+
+templates.env.filters["tojson_safe"] = _tojson_safe
 templates.env.add_extension("jinja2.ext.i18n")
 templates.env.install_gettext_callables(gettext_func, ngettext_func, newstyle=True)
 templates.env.globals["get_current_locale"] = get_current_locale

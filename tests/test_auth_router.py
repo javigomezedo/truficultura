@@ -951,6 +951,7 @@ def test_reset_password_post_updates_password(monkeypatch) -> None:
         role="user",
         is_active=True,
         email_confirmed=True,
+        password_reset_token_hash=__import__("app.services.token_service", fromlist=["hash_reset_token"]).hash_reset_token("valid-token"),
     )
     db.execute.return_value = result([user])
     app.dependency_overrides[__import__("app.database", fromlist=["get_db"]).get_db] = (
@@ -975,7 +976,8 @@ def test_reset_password_post_updates_password(monkeypatch) -> None:
     assert response.status_code == 303
     assert response.headers["location"] == "/login?password_reset=1"
     assert user.hashed_password == "newhash"
-    db.commit.assert_awaited_once()
+    assert user.password_reset_token_hash is None
+    db.commit.assert_awaited()
 
 
 def test_reset_password_post_mismatch_returns_400(monkeypatch) -> None:

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from collections import defaultdict
 from typing import Optional
 
@@ -215,24 +214,20 @@ async def build_kpi_context(
     # ------------------------------------------------------------------ #
     from app.utils import campaign_label
 
-    trend_labels = json.dumps([campaign_label(t["year"]) for t in trend])
-    roi_trend = json.dumps(
-        [round(t["roi_pct"], 2) if t["roi_pct"] is not None else None for t in trend]
-    )
-    price_trend = json.dumps(
-        [
-            round(t["precio_medio"], 2) if t["precio_medio"] is not None else None
-            for t in trend
-        ]
-    )
-    kg_trend = json.dumps([round(t["total_kg"], 2) for t in trend])
-    physical_kg_trend = json.dumps([round(t["physical_kg"], 3) for t in trend])
-    m3_kg_trend = json.dumps(
-        [
-            round(t["m3_por_kg"], 2) if t["m3_por_kg"] is not None else None
-            for t in trend
-        ]
-    )
+    trend_labels = [campaign_label(t["year"]) for t in trend]
+    roi_trend = [
+        round(t["roi_pct"], 2) if t["roi_pct"] is not None else None for t in trend
+    ]
+    price_trend = [
+        round(t["precio_medio"], 2) if t["precio_medio"] is not None else None
+        for t in trend
+    ]
+    kg_trend = [round(t["total_kg"], 2) for t in trend]
+    physical_kg_trend = [round(t["physical_kg"], 3) for t in trend]
+    m3_kg_trend = [
+        round(t["m3_por_kg"], 2) if t["m3_por_kg"] is not None else None
+        for t in trend
+    ]
 
     # ------------------------------------------------------------------ #
     # Per-plot KPI table (for selected campaign or sum of all campaigns)  #
@@ -310,7 +305,7 @@ async def build_kpi_context(
         "physical_kg_trend": physical_kg_trend,
         "m3_kg_trend": m3_kg_trend,
         "plot_kpi_table": plot_kpi_table,
-        "plot_labels": json.dumps(plot_names),
-        "plot_kg_ha_values": json.dumps(plot_kg_ha_values),
-        "plot_roi_values": json.dumps(plot_roi_values),
+        "plot_labels": plot_names,
+        "plot_kg_ha_values": plot_kg_ha_values,
+        "plot_roi_values": plot_roi_values,
     }

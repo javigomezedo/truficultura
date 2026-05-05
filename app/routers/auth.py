@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 import re
+from collections import defaultdict
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Form, Query, Request
@@ -28,11 +30,38 @@ from app.services.token_service import (
     PASSWORD_RESET_SALT,
     confirm_token,
     generate_token,
+    hash_reset_token,
 )
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["auth"])
+
+# ---------------------------------------------------------------------------
+# IP-based login rate limiting (sliding window, in-process)
+# ---------------------------------------------------------------------------
+_LOGIN_FAIL_WINDOW_SECONDS = 900  # 15 minutes
+_LOGIN_FAIL_MAX = 10              # max failed attempts per IP within window
+_login_failures: defaultdict[str, list[datetime]] = defaultdict(list)
+
+
+def _get_client_ip(request: Request) -> str:
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    if forwarded_for:
+        return forwarded_for.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+def _check_login_rate_limit(ip: str) -> bool:
+    """Return True if the IP is allowed to attempt login, False if rate-limited."""
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(seconds=_LOGIN_FAIL_WINDOW_SECONDS)
+    _login_failures[ip] = [ts for ts in _login_failures[ip] if ts >= cutoff]
+    return len(_login_failures[ip]) < _LOGIN_FAIL_MAX
+
+
+def _record_login_failure(ip: str) -> None:
+    _login_failures[ip].append(datetime.now(timezone.utc))
 
 # Email validation pattern
 EMAIL_PATTERN = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
@@ -85,6 +114,20 @@ async def login_post(
 ):
     result = await db.execute(select(User).where(User.username == username))
     user = result.scalar_one_or_none()
+
+    # Check rate limit before doing any further processing
+    client_ip = _get_client_ip(request)
+    if not _check_login_rate_limit(client_ip):
+        return templates.TemplateResponse(
+            request,
+            "auth/login.html",
+            {
+                "request": request,
+                "error": "Demasiados intentos fallidos. Por favor, espera unos minutos antes de intentarlo de nuevo.",
+                "next_url": next_url or "",
+            },
+            status_code=429,
+        )
 
     # Check if user exists and password is correct
     if user is not None and verify_password(password, user.hashed_password):
@@ -150,6 +193,7 @@ async def login_post(
         return RedirectResponse(redirect_to, status_code=303)
 
     # Either user doesn't exist or password is wrong
+    _record_login_failure(client_ip)
     return templates.TemplateResponse(
         request,
         "auth/login.html",
@@ -403,6 +447,8 @@ async def forgot_password_post(
     # Always redirect to the same destination to avoid email enumeration
     if user and user.email_confirmed and user.is_active:
         token = generate_token(email, PASSWORD_RESET_SALT)
+        user.password_reset_token_hash = hash_reset_token(token)
+        await db.commit()
         if settings.email_configured:
             try:
                 await send_password_reset_email(email, token)
@@ -467,7 +513,13 @@ async def reset_password_post(
     if not user:
         return RedirectResponse("/login?reset_error=1", status_code=303)
 
+    # Verify token is still valid (one-time use) and invalidate it
+    expected_hash = hash_reset_token(token)
+    if user.password_reset_token_hash != expected_hash:
+        return RedirectResponse("/login?reset_error=1", status_code=303)
+
     user.hashed_password = hash_password(password)
+    user.password_reset_token_hash = None  # invalidate — token can't be reused
     await db.commit()
     return RedirectResponse("/login?password_reset=1", status_code=303)
 

@@ -591,14 +591,14 @@
 
 {% block extra_scripts %}
 <script>
-const trendLabels  = {{ trend_labels | safe }};
-const roiTrend     = {{ roi_trend | safe }};
-const priceTrend   = {{ price_trend | safe }};
-const kgTrend      = {{ kg_trend | safe }};
-const m3KgTrend    = {{ m3_kg_trend | safe }};
-const plotLabels   = {{ plot_labels | safe }};
-const plotKgHa     = {{ plot_kg_ha_values | safe }};
-const plotRoi      = {{ plot_roi_values | safe }};
+const trendLabels  = {{ trend_labels | tojson_safe }};
+const roiTrend     = {{ roi_trend | tojson_safe }};
+const priceTrend   = {{ price_trend | tojson_safe }};
+const kgTrend      = {{ kg_trend | tojson_safe }};
+const m3KgTrend    = {{ m3_kg_trend | tojson_safe }};
+const plotLabels   = {{ plot_labels | tojson_safe }};
+const plotKgHa     = {{ plot_kg_ha_values | tojson_safe }};
+const plotRoi      = {{ plot_roi_values | tojson_safe }};
 
 function nullFilter(arr) {
     // Returns a dataset skipping null values cleanly for Chart.js

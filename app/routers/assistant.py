@@ -23,6 +23,21 @@ router = APIRouter(prefix="/api/assistant", tags=["assistant"])
 logger = logging.getLogger(__name__)
 
 _MAX_AUDIO_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
+_AUDIO_ALLOWED_MIME = frozenset({
+    "audio/webm",
+    "audio/ogg",
+    "audio/mpeg",
+    "audio/mp3",
+    "audio/mp4",
+    "audio/wav",
+    "audio/x-wav",
+    "audio/flac",
+    "audio/x-flac",
+    "audio/aac",
+    "audio/m4a",
+    "audio/x-m4a",
+    "video/webm",  # Chrome/Firefox graban audio como video/webm
+})
 _RATE_LIMIT_KEY = "assistant_rate_timestamps"
 _RATE_LIMIT_MAX_REQUESTS = 20
 _RATE_LIMIT_WINDOW_SECONDS = 300
@@ -249,6 +264,12 @@ async def assistant_transcribe(
                 detail=_("Transcripción no disponible: configura AZURE_OPENAI_WHISPER_DEPLOYMENT o OPENAI_API_KEY."),
             )
         adapter = OpenAIAdapter(api_key=settings.OPENAI_API_KEY)
+    incoming_ct = (file.content_type or "").split(";")[0].strip().lower()
+    if incoming_ct and incoming_ct not in _AUDIO_ALLOWED_MIME:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail=_("Formato de audio no soportado."),
+        )
     audio_bytes = await file.read()
     if len(audio_bytes) > _MAX_AUDIO_SIZE_BYTES:
         raise HTTPException(

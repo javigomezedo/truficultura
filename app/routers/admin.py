@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from sqlalchemy import asc, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.auth import require_admin
 from app.config import settings
@@ -16,6 +17,7 @@ from app.database import get_db
 from app.i18n import _
 from app.jinja import templates
 from app.models.user import User
+from app.models.tenant import TenantMembership
 from app.models.lead_capture import LeadCapture
 from app.services.admin_service import get_admin_rainfall_overview
 from app.services.aemet_service import (
@@ -63,7 +65,9 @@ async def list_users(
 ):
     col = _SORT_COLUMNS.get(sort, User.username)
     direction = desc if order == "desc" else asc
-    stmt = select(User)
+    stmt = select(User).options(
+        selectinload(User.membership).selectinload(TenantMembership.tenant)
+    )
     if status == "active":
         stmt = stmt.where(User.is_active.is_(True))
     elif status == "inactive":
@@ -411,13 +415,16 @@ async def lluvia_importar_ibericam_post(
 # Leads de la landing page
 # ---------------------------------------------------------------------------
 
+
 @router.get("/leads", response_class=HTMLResponse)
 async def list_leads(
     request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    result = await db.execute(select(LeadCapture).order_by(desc(LeadCapture.created_at)))
+    result = await db.execute(
+        select(LeadCapture).order_by(desc(LeadCapture.created_at))
+    )
     leads = result.scalars().all()
     return templates.TemplateResponse(
         request,

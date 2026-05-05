@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import Date, Float, ForeignKey, Integer, String
+from sqlalchemy import Date, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -31,9 +31,9 @@ class Income(Base):
     plot_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("plots.id", ondelete="SET NULL"), nullable=True, index=True
     )
-    amount_kg: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    amount_kg: Mapped[float] = mapped_column(Numeric(10, 3, asdecimal=False), nullable=False, default=0.0)
     category: Mapped[str] = mapped_column(String(200), nullable=False, default="")
-    euros_per_kg: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    euros_per_kg: Mapped[float] = mapped_column(Numeric(10, 4, asdecimal=False), nullable=False, default=0.0)
 
     @property
     def total(self) -> float:

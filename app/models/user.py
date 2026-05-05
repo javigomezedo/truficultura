@@ -36,6 +36,9 @@ class User(Base):
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+    password_reset_token_hash: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True
+    )
 
     # Relationship to tenant membership (each user belongs to exactly one tenant)
     membership: Mapped[Optional["TenantMembership"]] = relationship(
