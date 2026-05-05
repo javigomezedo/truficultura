@@ -28,8 +28,11 @@ Trufiq permite registrar y analizar la actividad económica de una explotación 
 - Importación y exportación masiva de datos históricos desde CSV para parcelas, gastos, ingresos, riego, pozos y producción.
 - Asistente conversacional vía API para consultas sobre uso y datos, con métricas y rate limiting.
 - Distribución proporcional de gastos generales según número de plantas por parcela.
-- **Sistema de suscripción de pago** vía Stripe: periodo de prueba, checkout anual, portal de gestión y webhooks.
+- **Sistema de suscripción de pago** vía Stripe: periodo de prueba, checkout anual, portal de gestión, upgrade/downgrade entre planes y webhooks.
+- **Planes de acceso (basic/premium/enterprise)**: control de acceso a funciones según el plan contratado. Meteorología, analítica de parcelas, simulador de riego y asistente IA requieren Premium o superior; multi-tenant requiere Enterprise. El plan Básico tiene límite de 500 plantas.
 - **Multi-tenant y organizaciones**: agrupación de usuarios en organizaciones compartidas con roles diferenciados (owner / admin / member), invitaciones por email y aislamiento completo de datos por tenant.
+- **Integración SIGPAC**: autocompletar datos catastrales (referencia, área en ha) a partir de polígono/parcela/recinto consultando la API pública del SIGPAC del MAPA.
+- **Búsqueda de municipios**: localización de municipios españoles y sus códigos INE vía Nominatim (OSM) para configurar la fuente de lluvia y meteorología.
 - Página de landing pública con formulario de contacto/captura de leads.
 - Internacionalización (i18n) de la interfaz en español, inglés y francés.
 
@@ -49,11 +52,13 @@ Trufiq permite registrar y analizar la actividad económica de una explotación 
 - **Lluvia**:
   - Los registros pueden ser `manual` (parcela concreta), `aemet` o `ibericam` (nivel municipio, `user_id` puede ser NULL).
   - El cron `scripts/import_rainfall_cron.py` descarga automáticamente datos de lluvia por municipio priorizando AEMET sobre Ibericam.
-- **Suscripción**:
+- **Suscripción y planes**:
   - Nuevo usuario → periodo de prueba de N días (`TRIAL_DAYS`, por defecto 14).
   - Tras el trial, se requiere suscripción activa para acceder a la aplicación.
   - Usuarios `admin` nunca son bloqueados.
   - Estados posibles: `trialing`, `active`, `past_due`, `canceled`.
+  - Planes: `basic` (funciones core, límite 500 plantas), `premium` (+ meteorología, analítica, simulador de riego, asistente IA), `enterprise` (+ multi-tenant/organizaciones).
+  - Upgrade de plan → nuevo Stripe Checkout prorateado. Downgrade → se programa para el próximo ciclo de renovación (`pending_plan`).
 - **Identificación de parcelas**:
   - `plot_num`: número de parcela dentro del polígono (ej: 120)
   - `cadastral_ref`: referencia catastral oficial (ej: 44223A021001200000FP)
@@ -97,6 +102,7 @@ Trufiq permite registrar y analizar la actividad económica de una explotación 
 ├── app/
 │   ├── main.py                 # Arranque FastAPI y dashboard principal
 │   ├── auth.py                 # Autenticación, roles y gating de suscripción
+│   ├── plan_access.py          # Control de acceso por plan (basic/premium/enterprise) y feature gating
 │   ├── config.py               # Configuración (DATABASE_URL, Stripe, AEMET, SMTP…)
 │   ├── database.py             # Engine/sesiones async SQLAlchemy
 │   ├── i18n.py                 # Internacionalización (gettext, Babel)
@@ -160,15 +166,20 @@ Servicios principales:
 - `app/services/reports_service.py`: cálculo del informe de rentabilidad.
 - `app/services/charts_service.py`: datasets para gráficas y tablas de producción.
 - `app/services/kpi_service.py`: cálculo de KPIs globales y por parcela.
-- `app/services/billing_service.py`: integración Stripe (trial, checkout, portal, webhooks).
+- `app/services/billing_service.py`: integración Stripe (trial, checkout, portal, webhooks, upgrade/downgrade de plan).
 - `app/services/tenant_service.py`: CRUD de tenants y memberships; cambio de rol, expulsión de miembros y recreación de solo-tenant.
 - `app/services/invitation_service.py`: creación, listado, aceptación y revocación de invitaciones a tenants.
 - `app/services/assistant_service.py`: preparación de contexto y orquestación del asistente.
+- `app/services/truffle_events_service.py`: CRUD de eventos de trufa por planta con soporte de deshacer.
 - `app/services/import_service.py`: importación de parcelas, gastos, ingresos, riego, pozos y producción desde CSV.
 - `app/services/export_service.py`: exportación de parcelas, gastos, ingresos, riego, pozos y producción a CSV/ZIP.
 - `app/services/email_service.py`: envío de emails transaccionales (confirmación de cuenta, recuperación de contraseña, notificaciones de leads, eventos de suscripción) vía Postmark con fallback SMTP.
 - `app/services/token_service.py`: generación y validación de tokens firmados (confirmación email, QR).
 - `app/services/admin_service.py`: gestión de usuarios desde el panel de admin.
+- `app/services/llm_adapter.py`: abstracción de proveedor LLM (OpenAI, Azure OpenAI…) con soporte de streaming; desacopla el servicio del asistente del vendor concreto.
+- `app/services/sigpac_service.py`: cliente de la API pública SIGPAC del MAPA para autocompletar referencia catastral y área de parcela.
+- `app/services/municipios_service.py`: búsqueda de municipios españoles y sus códigos INE vía Nominatim (OSM).
+- `app/services/water_balance_service.py`: cálculo del balance hídrico por parcela y campaña (riego + lluvia convertida a m³) usado por el simulador de riego.
 
 Beneficios directos del refactor:
 
@@ -187,7 +198,10 @@ Campos relevantes:
 - `name`: nombre de la organización
 - `slug`: identificador único legible (generado automáticamente)
 - `stripe_customer_id`: ID de cliente en Stripe (migrado desde User)
+- `stripe_subscription_id`: ID de suscripción activa en Stripe
 - `subscription_status`: `trialing` | `active` | `past_due` | `canceled`
+- `plan`: plan contratado (`basic` | `premium` | `enterprise`; `None` durante trial)
+- `pending_plan`: plan programado para la próxima renovación (usado en downgrades)
 - `trial_ends_at` / `subscription_ends_at`: fechas de expiración del trial o suscripción
 - `created_at`: fecha de creación
 
@@ -459,8 +473,9 @@ Campos relevantes:
 - `/tenant/settings` Configuración de la organización: nombre, miembros, roles e invitaciones pendientes.
 - `/tenant/join/<token>` Aceptar una invitación a unirse a una organización.
 - `/api/assistant/chat` y `/api/assistant/stream` API del asistente para consultas guiadas.
-- `/billing/subscribe` página de suscripción con estado actual (trial, activo, caducado).
-- `/billing/checkout` inicia sesión de Stripe Checkout (redirige al pago).
+- `/billing/subscribe` página de suscripción con estado actual (trial, activo, caducado) y selector de plan.
+- `/billing/checkout` inicia sesión de Stripe Checkout para nueva suscripción (redirige al pago).
+- `/billing/upgrade` cambia de plan: upgrade → nuevo Checkout prorateado; downgrade → programa el cambio para el próximo ciclo.
 - `/billing/success` / `/billing/cancel` páginas de retorno desde Stripe.
 - `/billing/portal` redirige al Customer Portal de Stripe para gestionar/cancelar.
 - `/stripe/webhook` receptor de eventos Stripe (checkout, invoice, subscription).
@@ -531,6 +546,29 @@ La suscripción vive en el `Tenant`, no en el `User`.
 | `active` (caducado) | `subscription_ends_at` en el pasado | ❌ Bloqueado → `/billing/subscribe` |
 | `past_due` | Pago fallido, Stripe reintentando | ❌ Bloqueado |
 | `canceled` | Suscripción cancelada | ❌ Bloqueado |
+
+### Planes de suscripción y feature gating
+
+El módulo `app/plan_access.py` controla qué funcionalidades están disponibles según el plan activo del tenant.
+
+| Plan | Funciones incluidas | Límite plantas |
+|---|---|---|
+| `trial` | Todas (igual que Enterprise) | Sin límite |
+| `basic` | Funciones core (parcelas, gastos, ingresos, riego, pozos, lluvia, gráficas, KPIs, importar/exportar) | 500 |
+| `premium` | Basic + meteorología en tiempo real, analítica de parcelas, simulador de riego, asistente IA | Sin límite |
+| `enterprise` | Premium + organizaciones multi-tenant | Sin límite |
+| `read_only` | Solo lectura (trial expirado, past_due, canceled) | — |
+
+Reglas de resolución del plan mode (`get_plan_mode(user)`):
+- Admin de app → siempre `enterprise`
+- Trial activo → `trial`; trial expirado → `read_only`
+- Suscripción activa + `plan` → devuelve el plan (`basic`/`premium`/`enterprise`)
+- Suscripción activa sin `plan` → `basic` (legacy / nuevos registros sin plan asignado)
+- `past_due`, `canceled`, o `subscription_ends_at` pasado → `read_only`
+
+Ciclo de upgrade/downgrade:
+- **Upgrade**: se lanza un nuevo Stripe Checkout prorateado; al completarse, `plan` se actualiza inmediatamente.
+- **Downgrade**: se guarda el nuevo plan en `pending_plan` del tenant; Stripe aplica el cambio en el siguiente ciclo de facturación y el webhook actualiza `plan` en ese momento.
 
 ### Primeras acciones
 
@@ -618,6 +656,28 @@ Dashboard: [grafana.com](https://grafana.com)
 | Prioridad | AEMET sobre Ibericam (Ibericam como fallback sin clave API) |
 | Cron | `scripts/import_rainfall_cron.py` — se ejecuta diariamente para descargar datos por municipio |
 | Estado | Funcional; AEMET requiere alta en [opendata.aemet.es](https://opendata.aemet.es) |
+
+---
+
+### SIGPAC — Datos catastrales de parcelas agrícolas
+
+| Concepto | Detalle |
+|---|---|
+| Propósito | Autocompletar referencia catastral y superficie (ha) de una parcela a partir de provincia/municipio/polígono/parcela/recinto |
+| API | `https://sigpac.mapa.es/fega/serviciosvisorsigpac/layerinfo/recinto/...` (pública, sin clave) |
+| Integración | Botón "Buscar en SIGPAC" en el formulario de parcela; endpoint proxy en `/plots/sigpac-lookup` |
+| Estado | Funcional sin configuración adicional |
+
+---
+
+### Nominatim (OSM) — Búsqueda de municipios
+
+| Concepto | Detalle |
+|---|---|
+| Propósito | Buscar municipios españoles por nombre y obtener su código INE de 5 dígitos |
+| API | `https://nominatim.openstreetmap.org/search` (pública, sin clave) |
+| Integración | Campo de búsqueda de municipio al crear/editar parcelas y registros de lluvia |
+| Respeta ToS | User-Agent identificativo (`trufiq-app/1.0`) según las condiciones de Nominatim |
 
 ---
 
