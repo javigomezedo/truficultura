@@ -41,6 +41,10 @@ def test_map_view_renders(monkeypatch) -> None:
         "app.routers.plants.truffle_events_service.list_events",
         AsyncMock(return_value=[]),
     )
+    monkeypatch.setattr(
+        "app.routers.plants.brule_service.get_last_brule_by_plant",
+        AsyncMock(return_value={}),
+    )
 
     app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: db
@@ -55,7 +59,9 @@ def test_map_view_renders(monkeypatch) -> None:
     assert 'onchange="this.form.submit()"' in response.text
 
 
-def test_map_view_renders_summary_table_sorted_by_grams_desc(monkeypatch) -> None:
+def test_map_view_renders_summary_table_sorted_by_label_asc_default(
+    monkeypatch,
+) -> None:
     db = _db()
     plant_a1 = SimpleNamespace(id=1, label="A1")
     plant_a2 = SimpleNamespace(id=2, label="A2")
@@ -92,6 +98,10 @@ def test_map_view_renders_summary_table_sorted_by_grams_desc(monkeypatch) -> Non
         "app.routers.plants.truffle_events_service.list_events",
         AsyncMock(return_value=[]),
     )
+    monkeypatch.setattr(
+        "app.routers.plants.brule_service.get_last_brule_by_plant",
+        AsyncMock(return_value={}),
+    )
 
     app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: db
@@ -103,11 +113,12 @@ def test_map_view_renders_summary_table_sorted_by_grams_desc(monkeypatch) -> Non
 
     assert response.status_code == 200
     assert "Resumen de gramos por planta" in response.text
-    pos_a2 = response.text.find('<td class="fw-semibold">A2</td>')
     pos_a1 = response.text.find('<td class="fw-semibold">A1</td>')
-    assert pos_a2 != -1
+    pos_a2 = response.text.find('<td class="fw-semibold">A2</td>')
     assert pos_a1 != -1
-    assert pos_a2 < pos_a1
+    assert pos_a2 != -1
+    # Default order is label asc: A1 comes before A2
+    assert pos_a1 < pos_a2
 
 
 def test_map_view_summary_table_sorts_by_label_asc(monkeypatch) -> None:
@@ -146,6 +157,10 @@ def test_map_view_summary_table_sorts_by_label_asc(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.routers.plants.truffle_events_service.list_events",
         AsyncMock(return_value=[]),
+    )
+    monkeypatch.setattr(
+        "app.routers.plants.brule_service.get_last_brule_by_plant",
+        AsyncMock(return_value={}),
     )
 
     app.dependency_overrides[require_subscription] = _user

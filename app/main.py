@@ -41,6 +41,7 @@ from app.routers import (
     assistant,
     auth,
     billing,
+    brule,
     charts,
     expenses,
     exports,
@@ -50,6 +51,7 @@ from app.routers import (
     irrigation,
     kpis,
     lluvia,
+    maps,
     plot_analytics,
     plants,
     plot_events,
@@ -124,6 +126,7 @@ recurring_expenses.templates = templates
 lluvia.templates = templates
 weather.templates = templates
 billing.templates = templates
+brule.templates = templates
 tenants.templates = templates
 
 # Include routers
@@ -150,6 +153,8 @@ app.include_router(lluvia.router)
 app.include_router(weather.router)
 app.include_router(aemet_admin.router)
 app.include_router(billing.router)
+app.include_router(brule.router)
+app.include_router(maps.router)
 app.include_router(tenants.router)
 
 

@@ -64,7 +64,7 @@
                         </a>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {% if '/plots' in request.url.path or '/plot-analytics' in request.url.path %}active{% endif %}"
+                        <a class="nav-link dropdown-toggle {% if '/plots' in request.url.path or '/plot-analytics' in request.url.path or '/maps' in request.url.path %}active{% endif %}"
                            href="#"
                            role="button"
                            data-bs-toggle="dropdown"
@@ -75,6 +75,11 @@
                             <li>
                                 <a class="dropdown-item {% if request.url.path.startswith('/plots') %}active{% endif %}" href="/plots/">
                                     <i class="bi bi-map text-secondary me-1"></i> {{ _("Mis parcelas") }}
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if request.url.path.startswith('/maps') %}active{% endif %}" href="/maps/">
+                                    <i class="bi bi-grid-3x3-gap-fill text-success me-1"></i> {{ _("Mapas") }}
                                 </a>
                             </li>
                             <li>
@@ -111,7 +116,7 @@
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {% if '/irrigation' in request.url.path or '/wells' in request.url.path or '/lluvia' in request.url.path or '/plot-events' in request.url.path or '/tiempo' in request.url.path %}active{% endif %}"
+                        <a class="nav-link dropdown-toggle {% if '/irrigation' in request.url.path or '/wells' in request.url.path or '/lluvia' in request.url.path or '/plot-events' in request.url.path or '/tiempo' in request.url.path or '/brule' in request.url.path %}active{% endif %}"
                            href="#"
                            role="button"
                            data-bs-toggle="dropdown"
@@ -142,6 +147,11 @@
                             <li>
                                 <a class="dropdown-item {% if '/plot-events' in request.url.path %}active{% endif %}" href="/plot-events/">
                                     <i class="bi bi-calendar2-check text-success me-1"></i> {{ _("Historial de labores") }}
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if '/brule' in request.url.path %}active{% endif %}" href="/brule/">
+                                    <i class="bi bi-circle text-warning me-1"></i> {{ _("Brulé") }}
                                 </a>
                             </li>
                         </ul>

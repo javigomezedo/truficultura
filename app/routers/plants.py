@@ -19,6 +19,7 @@ from app.services import (
     plants_service,
     truffle_events_service,
 )
+from app.services import brule_service
 from app.services.plots_service import get_plot, list_plots
 from app.utils import campaign_year, parse_row_config
 
@@ -33,6 +34,14 @@ def _parse_optional_int(value: Optional[str]) -> Optional[int]:
         return int(value)
     except ValueError:
         return None
+
+
+import re
+
+
+def _natural_key(s: str):
+    """Sort key for natural (alphanumeric) ordering: A1 < A2 < A10."""
+    return [int(c) if c.isdigit() else c.lower() for c in re.split(r'(\d+)', s)]
 
 
 def _build_map_summary_rows(
@@ -77,14 +86,11 @@ def _build_map_summary_rows(
     )
     reverse = sort_order == "desc"
 
-    summary_rows.sort(
-        key=lambda item: (
-            item[selected_sort],
-            item["label"],
-            item["plant_id"],
-        ),
-        reverse=reverse,
-    )
+    def _sort_key(item):
+        primary = _natural_key(item[selected_sort]) if isinstance(item[selected_sort], str) else item[selected_sort]
+        return (primary, _natural_key(item["label"]), item["plant_id"])
+
+    summary_rows.sort(key=_sort_key, reverse=reverse)
     return summary_rows
 
 
@@ -117,8 +123,8 @@ async def map_view(
         db, plot, tenant_id=current_user.active_tenant_id, selected_campaign=selected
     )
 
-    sort_by = sort or "display_weight_grams"
-    sort_order = order if order in ("asc", "desc") else "desc"
+    sort_by = sort or "label"
+    sort_order = order if order in ("asc", "desc") else "asc"
     summary_rows = _build_map_summary_rows(
         ctx.get("rows", []),
         selected_campaign=selected,
@@ -148,7 +154,7 @@ async def map_view(
     )
 
     # Presence view data
-    map_view_mode = view if view in ("weight", "presence") else "weight"
+    map_view_mode = view if view in ("weight", "presence", "brule") else "weight"
     presence_by_plant: dict[int, bool] = {}
     if map_view_mode == "presence":
         presence_by_plant = await plant_presence_service.get_presences_by_plot(
@@ -157,6 +163,12 @@ async def map_view(
             plot_id=plot_id,
             campaign_year_filter=selected,
         )
+
+    last_brule_by_plant = await brule_service.get_last_brule_by_plant(
+        db, current_user.active_tenant_id, plot_id
+    )
+    for row in summary_rows:
+        row["last_diameter_cm"] = last_brule_by_plant.get(row["plant_id"])
 
     return templates.TemplateResponse(
         request,
@@ -172,6 +184,7 @@ async def map_view(
             "sort_order": sort_order,
             "map_view_mode": map_view_mode,
             "presence_by_plant": presence_by_plant,
+            "last_brule_by_plant": last_brule_by_plant,
             **ctx,
         },
     )

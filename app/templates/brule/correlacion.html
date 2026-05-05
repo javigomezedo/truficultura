@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("Correlación brulé → producción") }}{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="tf-page-header">
+        <div>
+            <p class="tf-page-kicker">{{ _("Análisis") }}</p>
+            <h1 class="tf-page-title">
+                <i class="bi bi-diagram-3 text-warning me-2"></i>{{ _("Correlación brulé → producción") }}
+            </h1>
+            <p class="tf-page-subtitle">
+                {{ _("Relación entre el diámetro del brulé y los kg de trufa producidos por planta.") }}
+            </p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="/brule/" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>{{ _("Ver registros") }}
+            </a>
+        </div>
+    </div>
+
+    <div class="card tf-panel tf-filters-card border-0 shadow-sm mb-3">
+        <div class="card-body py-3">
+            <form method="get" class="tf-filters-form">
+                <div class="tf-filter-item">
+                    <label class="form-label">{{ _("Parcela") }}</label>
+                    <select name="plot_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">{{ _("Todas las parcelas") }}</option>
+                        {% for p in plots %}
+                        <option value="{{ p.id }}" {% if selected_plot_id == p.id %}selected{% endif %}>{{ p.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% if selected_plot_id or selected_campaign %}
+                <div class="tf-filter-actions">
+                    <a href="/brule/correlacion" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-x me-1"></i>{{ _("Limpiar") }}
+                    </a>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    {% if correlation %}
+    <div class="card tf-panel border-0 shadow-sm mb-3">
+        <div class="card-header bg-transparent border-0 pb-0">
+            <h2 class="h6 mb-0">
+                <i class="bi bi-graph-up-arrow me-1 text-warning"></i>{{ _("Dispersión: brulé vs producción") }}
+            </h2>
+        </div>
+        <div class="card-body">
+            <div style="position:relative; height:360px;">
+                <canvas id="correlacionChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="card tf-panel border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0 pb-0">
+            <h2 class="h6 mb-0">
+                <i class="bi bi-table me-1"></i>{{ _("Detalle por planta") }}
+            </h2>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>{{ _("Planta") }}</th>
+                            <th>{{ _("Parcela") }}</th>
+                            <th class="text-end">{{ _("Último brulé (cm)") }}</th>
+                            <th class="text-end">{{ _("Producción (kg)") }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in correlation %}
+                        <tr>
+                            <td class="fw-semibold">{{ r.plant_label }}</td>
+                            <td>{{ r.plot_label }}</td>
+                            <td class="text-end">
+                                <span class="badge bg-warning text-dark">⌀ {{ r.last_diameter_cm }} cm</span>
+                            </td>
+                            <td class="text-end fw-semibold">{{ r.total_weight_kg|format_eu(3) }} kg</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card tf-panel border-0 shadow-sm">
+        <div class="p-5 text-center text-muted">
+            <i class="bi bi-diagram-3 fs-1 d-block mb-3"></i>
+            <p class="mb-0">
+                {{ _("No hay datos suficientes para mostrar la correlación.") }}<br>
+                <small>{{ _("Se necesita al menos una planta con registro de brulé y eventos de trufa en la misma campaña.") }}</small>
+            </p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if correlation %}
+<script>
+(function () {
+    'use strict';
+    const rawData = {{ scatter_data | tojson_safe }};
+
+    const cssVars = getComputedStyle(document.documentElement);
+    const colorWarning = cssVars.getPropertyValue('--tf-warning').trim() || '#af7a2f';
+
+    new Chart(document.getElementById('correlacionChart'), {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                label: '{{ _("Planta") }}',
+                data: rawData,
+                backgroundColor: colorWarning,
+                pointRadius: 7,
+                pointHoverRadius: 9,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    title: { display: true, text: '{{ _("Diámetro brulé (cm)") }}' },
+                    beginAtZero: true,
+                },
+                y: {
+                    title: { display: true, text: '{{ _("Producción (kg)") }}' },
+                    beginAtZero: true,
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => {
+                            const pt = rawData[ctx.dataIndex];
+                            return `${pt.label}: ⌀${pt.x} cm → ${pt.y} kg`;
+                        }
+                    }
+                },
+                legend: { display: false }
+            }
+        }
+    });
+})();
+</script>
+{% endif %}
+{% endblock %}

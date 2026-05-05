@@ -32,6 +32,15 @@
         padding: 0.2rem 0.5rem;
     }
 
+    .tf-map-cell-brule-has {
+        background-color: rgba(255, 193, 7, 0.55) !important;
+        border-color: #ffc107 !important;
+    }
+
+    .tf-map-cell-brule-empty {
+        background-color: rgba(0, 0, 0, 0.06) !important;
+    }
+
     @media (max-width: 576px) {
         .tf-map-cell {
             width: 32px;
@@ -93,6 +102,10 @@
                        class="btn btn-sm {{ 'btn-success' if map_view_mode == 'presence' else 'btn-outline-secondary' }}">
                         <i class="bi bi-check2-circle me-1"></i>{{ _("Presencia") }}
                     </a>
+                    <a href="/plots/{{ plot.id }}/map?{% if selected_campaign %}campaign={{ selected_campaign }}&{% endif %}view=brule"
+                       class="btn btn-sm {{ 'btn-warning' if map_view_mode == 'brule' else 'btn-outline-secondary' }}">
+                        <i class="bi bi-circle me-1"></i>{{ _("Brulé") }}
+                    </a>
                 </div>
             </form>
         </div>
@@ -129,6 +142,17 @@
                                 data-plant-id="{{ cell.plant.id }}"
                                 data-plant-label="{{ cell.plant.label }}"
                                 data-presence-mode="true">
+                        </button>
+                    {% elif map_view_mode == 'brule' %}
+                        {% set last_cm = last_brule_by_plant.get(cell.plant.id) %}
+                        <button type="button"
+                                class="tf-map-cell border rounded-3 flex-shrink-0 {{ 'tf-map-cell-brule-has' if last_cm is not none else 'tf-map-cell-brule-empty' }}"
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="top"
+                                title="{{ cell.plant.label }}{% if last_cm is not none %}: ⌀ {{ last_cm }} cm{% endif %}"
+                                data-plant-id="{{ cell.plant.id }}"
+                                data-plant-label="{{ cell.plant.label }}"
+                                data-brule-mode="true">
                         </button>
                     {% else %}
                     {% set display_weight = cell.campaign_weight_grams if selected_campaign is not none else cell.total_weight_grams %}
@@ -213,6 +237,8 @@
                                     {{ _("Gramos históricos") }}{% if sort_by == 'total_weight_grams' %}<i class="bi bi-arrow-{{ 'up' if sort_order == 'asc' else 'down' }}-short"></i>{% endif %}
                                 </a>
                             </th>
+                            <th class="text-end">{{ _("Brulé") }}</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -223,6 +249,20 @@
                             <td class="text-end">{{ row.visual_col }}</td>
                             <td class="text-end fw-semibold">{{ row.display_weight_grams|format_eu(1) }} g</td>
                             <td class="text-end text-muted">{{ row.total_weight_grams|format_eu(1) }} g</td>
+                            <td class="text-end">
+                                {% if row.last_diameter_cm is not none %}
+                                <span class="badge bg-warning text-dark">⌀ {{ row.last_diameter_cm }} cm</span>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <a href="/plots/{{ plot.id }}/plants/{{ row.plant_id }}/brule/"
+                                   class="btn btn-sm btn-outline-warning py-0"
+                                   title="{{ _('Ver brulé') }}">
+                                    <i class="bi bi-circle"></i>
+                                </a>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -286,6 +326,46 @@
     </div>
 </div>
 
+{# Brulé modal #}
+<div class="modal fade" id="bruleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <form method="post" id="bruleForm" action="">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-circle text-warning me-2"></i>{{ _("Registrar brulé") }}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Cerrar') }}"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3">
+                        {{ _("Planta") }}: <strong id="brulePlantLabel">-</strong>
+                    </p>
+                    <div class="mb-3">
+                        <label for="bruleDateInput" class="form-label fw-semibold">{{ _("Fecha") }}</label>
+                        <input type="date" id="bruleDateInput" name="record_date"
+                               class="form-control" required>
+                    </div>
+                    <div>
+                        <label for="bruleDiameterInput" class="form-label fw-semibold">{{ _("Diámetro (cm)") }}</label>
+                        <input type="number" id="bruleDiameterInput" name="diameter_cm"
+                               class="form-control" min="1" max="500" step="1" required
+                               inputmode="numeric" enterkeyhint="done">
+                    </div>
+                    <div id="bruleErrorMsg" class="alert alert-danger mt-3 mb-0 d-none" role="alert"></div>
+                </div>
+                <div class="modal-footer d-flex flex-column flex-sm-row gap-2">
+                    <a id="bruleViewLink" href="#" class="btn btn-outline-warning w-100 w-sm-auto">{{ _("Ver historial") }}</a>
+                    <button type="button" class="btn btn-outline-secondary w-100 w-sm-auto" data-bs-dismiss="modal">{{ _("Cancelar") }}</button>
+                    {% if not read_only %}
+                    <button type="submit" class="btn btn-warning w-100 w-sm-auto">{{ _("Registrar") }}</button>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 {# Presence modal #}
 <div class="modal fade" id="presenceModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
@@ -329,6 +409,13 @@
         const presenceForm = document.getElementById('presenceForm');
         const presencePlantLabel = document.getElementById('presencePlantLabel');
         const presenceDateInput = document.getElementById('presenceDateInput');
+        const bruleModalEl = document.getElementById('bruleModal');
+        const bruleForm = document.getElementById('bruleForm');
+        const brulePlantLabel = document.getElementById('brulePlantLabel');
+        const bruleDateInput = document.getElementById('bruleDateInput');
+        const bruleDiameterInput = document.getElementById('bruleDiameterInput');
+        const bruleErrorMsg = document.getElementById('bruleErrorMsg');
+        const bruleViewLink = document.getElementById('bruleViewLink');
         const mapViewMode = '{{ map_view_mode }}';
         const readOnly = {{ 'true' if read_only else 'false' }};
 
@@ -339,7 +426,7 @@
         });
 
         // Handle cell clicks
-        document.querySelectorAll('.tf-map-cell-plant, [data-presence-mode="true"]').forEach((cell) => {
+        document.querySelectorAll('.tf-map-cell-plant, [data-presence-mode="true"], [data-brule-mode="true"]').forEach((cell) => {
             cell.addEventListener('click', () => {
                 const plantId = cell.dataset.plantId;
                 const label = cell.dataset.plantLabel || '-';
@@ -350,6 +437,17 @@
                     // Default to today
                     presenceDateInput.value = new Date().toISOString().split('T')[0];
                     const modal = new bootstrap.Modal(presenceModalEl);
+                    modal.show();
+                } else if (mapViewMode === 'brule') {
+                    const nextUrl = encodeURIComponent(window.location.pathname + window.location.search);
+                    bruleForm.action = `/plots/{{ plot.id }}/plants/${plantId}/brule/?next=${nextUrl}`;
+                    brulePlantLabel.textContent = label;
+                    bruleDateInput.value = new Date().toISOString().split('T')[0];
+                    bruleDiameterInput.value = '';
+                    bruleErrorMsg.classList.add('d-none');
+                    bruleErrorMsg.textContent = '';
+                    bruleViewLink.href = `/plots/{{ plot.id }}/plants/${plantId}/brule/`;
+                    const modal = new bootstrap.Modal(bruleModalEl);
                     modal.show();
                 } else {
                     modalForm.action = `/plots/{{ plot.id }}/plants/${plantId}/add`;
@@ -381,6 +479,43 @@
         if (presenceModalEl) {
             presenceModalEl.addEventListener('shown.bs.modal', () => {
                 presenceDateInput.focus();
+            });
+        }
+
+        if (bruleModalEl) {
+            bruleModalEl.addEventListener('shown.bs.modal', () => {
+                bruleDiameterInput.focus();
+            });
+
+            bruleForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                bruleErrorMsg.classList.add('d-none');
+                bruleErrorMsg.textContent = '';
+
+                let response;
+                try {
+                    response = await fetch(bruleForm.action, {
+                        method: 'POST',
+                        body: new FormData(bruleForm),
+                        headers: { 'Accept': 'application/json' },
+                    });
+                } catch (_) {
+                    bruleErrorMsg.textContent = '{{ _("Error de red. Inténtalo de nuevo.") }}';
+                    bruleErrorMsg.classList.remove('d-none');
+                    return;
+                }
+
+                if (response.ok) {
+                    const data = await response.json();
+                    window.location.href = data.redirect;
+                } else if (response.status === 409) {
+                    const data = await response.json();
+                    bruleErrorMsg.textContent = data.error;
+                    bruleErrorMsg.classList.remove('d-none');
+                } else {
+                    bruleErrorMsg.textContent = '{{ _("Error inesperado. Inténtalo de nuevo.") }}';
+                    bruleErrorMsg.classList.remove('d-none');
+                }
             });
         }
     });

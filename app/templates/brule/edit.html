@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("Editar brulé") }}{% endblock %}
+
+{% block content %}
+<div class="container-xl" style="max-width: 480px;">
+    <div class="tf-page-header">
+        <div>
+            <p class="tf-page-kicker">{{ _("Micorriza") }}</p>
+            <h1 class="tf-page-title">
+                <i class="bi bi-pencil text-warning me-2"></i>{{ _("Editar registro de brulé") }}
+            </h1>
+        </div>
+    </div>
+
+    <div class="card tf-panel border-0 shadow-sm">
+        <div class="card-body">
+            <form method="post" action="/brule/{{ record.id }}/edit">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">{{ _("Fecha") }}</label>
+                    <input type="text" class="form-control" value="{{ record.record_date.strftime('%d/%m/%Y') }}" readonly disabled>
+                </div>
+                <div class="mb-4">
+                    <label for="diameter_cm" class="form-label fw-semibold">{{ _("Diámetro (cm)") }}</label>
+                    <div class="input-group">
+                        <span class="input-group-text">⌀</span>
+                        <input type="number" id="diameter_cm" name="diameter_cm"
+                               class="form-control" min="1" max="999"
+                               value="{{ record.diameter_cm }}" required>
+                        <span class="input-group-text">cm</span>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check2 me-1"></i>{{ _("Guardar") }}
+                    </button>
+                    {% if record.plant_id and record.plot_id %}
+                    <a href="/plots/{{ record.plot_id }}/plants/{{ record.plant_id }}/brule/" class="btn btn-outline-secondary">
+                        {{ _("Cancelar") }}
+                    </a>
+                    {% else %}
+                    <a href="/brule/" class="btn btn-outline-secondary">
+                        {{ _("Cancelar") }}
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
