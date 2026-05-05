@@ -16,7 +16,11 @@ from app.auth import (
     SubscriptionRequiredException,
     require_subscription,
 )
-from app.plan_access import WriteAccessDeniedException, PlanUpgradeRequiredException, PlantLimitExceededException
+from app.plan_access import (
+    WriteAccessDeniedException,
+    PlanUpgradeRequiredException,
+    PlantLimitExceededException,
+)
 from app.config import settings
 from app.database import engine, get_db
 from fastapi import Form
@@ -258,29 +262,46 @@ async def subscription_required_handler(
 
 
 @app.exception_handler(WriteAccessDeniedException)
-async def write_access_denied_handler(request: Request, exc: WriteAccessDeniedException):
+async def write_access_denied_handler(
+    request: Request, exc: WriteAccessDeniedException
+):
     from urllib.parse import quote_plus
     from app.i18n import _
+
     msg = quote_plus(_("Solo lectura: suscríbete para poder editar"))
-    return RedirectResponse(url=f"/billing/subscribe?msg={msg}&msg_type=warning", status_code=303)
+    return RedirectResponse(
+        url=f"/billing/subscribe?msg={msg}&msg_type=warning", status_code=303
+    )
 
 
 @app.exception_handler(PlanUpgradeRequiredException)
-async def plan_upgrade_required_handler(request: Request, exc: PlanUpgradeRequiredException):
+async def plan_upgrade_required_handler(
+    request: Request, exc: PlanUpgradeRequiredException
+):
     from urllib.parse import quote_plus
     from app.i18n import _
+
     msg = quote_plus(_("Esta función requiere un plan superior"))
-    return RedirectResponse(url=f"/billing/subscribe?msg={msg}&msg_type=warning", status_code=303)
+    return RedirectResponse(
+        url=f"/billing/subscribe?msg={msg}&msg_type=warning", status_code=303
+    )
 
 
 @app.exception_handler(PlantLimitExceededException)
-async def plant_limit_exceeded_handler(request: Request, exc: PlantLimitExceededException):
+async def plant_limit_exceeded_handler(
+    request: Request, exc: PlantLimitExceededException
+):
     from urllib.parse import quote_plus
     from app.i18n import _
+
     msg = quote_plus(
-        _("Has alcanzado el límite de {limit} plantas del plan Básico. Actualiza a Premium para plantas ilimitadas.").format(limit=exc.limit)
+        _(
+            "Has alcanzado el límite de {limit} plantas del plan Básico. Actualiza a Premium para plantas ilimitadas."
+        ).format(limit=exc.limit)
     )
-    return RedirectResponse(url=f"/billing/subscribe?msg={msg}&msg_type=warning", status_code=303)
+    return RedirectResponse(
+        url=f"/billing/subscribe?msg={msg}&msg_type=warning", status_code=303
+    )
 
 
 @app.middleware("http")
@@ -307,11 +328,27 @@ async def csrf_origin_check(request: Request, call_next):
             origin_host = _urlsplit(raw_origin).netloc  # "host:port" or ""
             app_host = _urlsplit(settings.APP_BASE_URL).netloc
             if origin_host and app_host and origin_host != app_host:
-                return HTMLResponse(
-                    content="CSRF check failed", status_code=403
-                )
+                return HTMLResponse(content="CSRF check failed", status_code=403)
 
     return await call_next(request)
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    """Add defensive HTTP security headers to every response."""
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault(
+        "Permissions-Policy",
+        "geolocation=(), microphone=(self), camera=()",
+    )
+    if settings.PRODUCTION:
+        response.headers.setdefault(
+            "Strict-Transport-Security", "max-age=63072000; includeSubDomains"
+        )
+    return response
 
 
 @app.middleware("http")
