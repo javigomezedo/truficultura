@@ -105,25 +105,35 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% set subs = user.subscription_status %}
-                            {% if subs == "active" %}
-                            <span class="badge bg-success">{{ _("Activa") }}</span>
+                            {% set tenant = user.membership.tenant if user.membership else none %}
+                            {% set subs = tenant.subscription_status if tenant else none %}
+                            {% set plan = tenant.plan if tenant else none %}
+                            {% if not tenant %}
+                            <span class="text-muted small">—</span>
                             {% elif subs == "trialing" %}
                             <span class="badge bg-info text-dark">{{ _("Prueba") }}</span>
+                            {% elif subs == "active" %}
+                                {% if plan == "premium" %}
+                                <span class="badge bg-warning text-dark">Premium</span>
+                                {% elif plan == "enterprise" %}
+                                <span class="badge bg-success">Enterprise</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Basic</span>
+                                {% endif %}
                             {% elif subs == "past_due" %}
                             <span class="badge bg-warning text-dark">{{ _("Vencida") }}</span>
                             {% elif subs == "canceled" %}
                             <span class="badge bg-danger">{{ _("Cancelada") }}</span>
                             {% else %}
-                            <span class="badge bg-secondary">{{ subs }}</span>
+                            <span class="badge bg-secondary">{{ subs or "—" }}</span>
                             {% endif %}
                         </td>
                         <td>
                             <small class="text-muted">
-                                {% if user.subscription_ends_at %}
-                                    {{ user.subscription_ends_at.strftime("%d/%m/%Y") }}
-                                {% elif user.trial_ends_at %}
-                                    {{ user.trial_ends_at.strftime("%d/%m/%Y") }}
+                                {% if tenant and tenant.subscription_ends_at %}
+                                    {{ tenant.subscription_ends_at.strftime("%d/%m/%Y") }}
+                                {% elif tenant and tenant.trial_ends_at %}
+                                    {{ tenant.trial_ends_at.strftime("%d/%m/%Y") }}
                                 {% else %}
                                     —
                                 {% endif %}
