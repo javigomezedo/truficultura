@@ -1,16 +1,16 @@
 import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ExpenseBase(BaseModel):
     date: datetime.date
-    description: str
-    person: str = ""
+    description: str = Field(..., max_length=500)
+    person: str = Field("", max_length=200)
     plot_id: Optional[int] = None
     amount: float = 0.0
-    category: Optional[str] = None
+    category: Optional[str] = Field(None, max_length=100)
 
 
 class ExpenseCreate(ExpenseBase):
@@ -19,11 +19,11 @@ class ExpenseCreate(ExpenseBase):
 
 class ExpenseUpdate(BaseModel):
     date: Optional[datetime.date] = None
-    description: Optional[str] = None
-    person: Optional[str] = None
+    description: Optional[str] = Field(None, max_length=500)
+    person: Optional[str] = Field(None, max_length=200)
     plot_id: Optional[int] = None
     amount: Optional[float] = None
-    category: Optional[str] = None
+    category: Optional[str] = Field(None, max_length=100)
 
 
 class ExpenseResponse(ExpenseBase):

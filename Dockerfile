@@ -23,6 +23,11 @@ RUN pip install --upgrade pip \
     && pip install . \
     && chmod +x /entrypoint.sh
 
+# Run as non-root for security
+RUN useradd --system --no-create-home appuser \
+    && chown -R appuser:appuser /app /entrypoint.sh
+USER appuser
+
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \

@@ -75,6 +75,11 @@ configure_sentry(
 async def lifespan(app: FastAPI):
     """App lifespan hook for graceful async engine disposal."""
     install_global_exception_hooks(logger)
+    if settings.METRICS_ENABLED and not settings.METRICS_TOKEN:
+        raise RuntimeError(
+            "METRICS_TOKEN debe configurarse cuando METRICS_ENABLED=true. "
+            "El endpoint /metrics quedaría accesible sin autenticación."
+        )
     yield
     await engine.dispose()
 

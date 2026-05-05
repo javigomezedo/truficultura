@@ -10,6 +10,7 @@ Two salts are used to make tokens non-interchangeable:
 
 from __future__ import annotations
 
+import hashlib
 from typing import Optional
 
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
@@ -18,7 +19,6 @@ from app.config import settings
 
 EMAIL_CONFIRMATION_SALT = "email-confirmation"
 PASSWORD_RESET_SALT = "password-reset"
-
 
 def _serializer() -> URLSafeTimedSerializer:
     return URLSafeTimedSerializer(settings.SECRET_KEY)
@@ -35,3 +35,8 @@ def confirm_token(token: str, salt: str, max_age: int) -> Optional[str]:
         return _serializer().loads(token, salt=salt, max_age=max_age)
     except (SignatureExpired, BadSignature):
         return None
+
+
+def hash_reset_token(raw_token: str) -> str:
+    """Return a SHA-256 hex digest of *raw_token* for one-time-use storage."""
+    return hashlib.sha256(raw_token.encode()).hexdigest()
