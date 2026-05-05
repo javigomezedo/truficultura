@@ -1,6 +1,7 @@
 from typing import Optional
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -143,6 +144,24 @@ class Settings(BaseSettings):
         case_sensitive=True,
         extra="ignore",
     )
+
+    @model_validator(mode="after")
+    def _validate_secret_key_in_production(self) -> "Settings":
+        _INSECURE_DEFAULTS = {
+            "change-me-in-production-please",
+            "secret",
+            "changeme",
+            "insecure",
+        }
+        if self.PRODUCTION and (
+            self.SECRET_KEY in _INSECURE_DEFAULTS or len(self.SECRET_KEY) < 32
+        ):
+            raise ValueError(
+                "SECRET_KEY insegura en modo producción (PRODUCTION=true). "
+                "Genera una con: "
+                'python -c "import secrets; print(secrets.token_hex(32))"'
+            )
+        return self
 
 
 settings = Settings()

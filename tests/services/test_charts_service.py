@@ -53,9 +53,9 @@ async def test_build_charts_context_generates_serialized_series() -> None:
 
     assert context["selected_campaign"] == 2025
     assert context["selected_plot_id"] is None
-    assert context["week_labels"].startswith("[")
-    assert context["income_values"].startswith("[")
-    assert context["expense_values"].startswith("[")
+    assert isinstance(context["week_labels"], list)
+    assert isinstance(context["income_values"], list)
+    assert isinstance(context["expense_values"], list)
     assert len(context["kg_ha_table"]) == 1
 
 

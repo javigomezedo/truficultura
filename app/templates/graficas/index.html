@@ -144,8 +144,7 @@
     {% endif %}
 </h5>
 
-{% set _wl = week_labels | safe %}
-{% if week_labels == '[]' %}
+{% if not week_labels %}
 <div class="alert alert-info d-flex align-items-center mb-4">
     <i class="bi bi-info-circle-fill me-2"></i>
     {{ _("Sin datos para el filtro seleccionado.") }}
@@ -277,17 +276,17 @@ function applyFilters() {
 (function () {
     'use strict';
 
-    const weekLabels      = {{ week_labels | safe }};
-    const weeklyPrice     = {{ weekly_price | safe }};
-    const priceWeekLabels = {{ price_week_labels | safe }};
-    const weeklyKg        = {{ weekly_kg | safe }};
-    const cumulativeIncome = {{ cumulative_income | safe }};
-    const catDatasets     = {{ cat_datasets | safe }};
-    const plotLabels         = {{ plot_labels | safe }};
-    const incomeValues       = {{ income_values | safe }};
-    const expenseValues      = {{ expense_values | safe }};
-    const expenseCatLabels   = {{ expense_cat_labels | safe }};
-    const expenseCatValues   = {{ expense_cat_values | safe }};
+    const weekLabels      = {{ week_labels | tojson_safe }};
+    const weeklyPrice     = {{ weekly_price | tojson_safe }};
+    const priceWeekLabels = {{ price_week_labels | tojson_safe }};
+    const weeklyKg        = {{ weekly_kg | tojson_safe }};
+    const cumulativeIncome = {{ cumulative_income | tojson_safe }};
+    const catDatasets     = {{ cat_datasets | tojson_safe }};
+    const plotLabels         = {{ plot_labels | tojson_safe }};
+    const incomeValues       = {{ income_values | tojson_safe }};
+    const expenseValues      = {{ expense_values | tojson_safe }};
+    const expenseCatLabels   = {{ expense_cat_labels | tojson_safe }};
+    const expenseCatValues   = {{ expense_cat_values | tojson_safe }};
 
     const cssVars = getComputedStyle(document.documentElement);
     const themeColor = (name, fallback) => {

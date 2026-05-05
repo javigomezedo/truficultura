@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from collections import defaultdict
 from datetime import timedelta
 from typing import Optional
@@ -206,15 +205,15 @@ async def build_charts_context(
         "selected_plot_id": selected_plot_id,
         "kg_ha_table": kg_ha_table,
         "kg_ha_totals": kg_ha_totals,
-        "week_labels": json.dumps(week_labels),
-        "weekly_price": json.dumps(weekly_price),
-        "price_week_labels": json.dumps(price_week_labels),
-        "weekly_kg": json.dumps(weekly_kg),
-        "cumulative_income": json.dumps(cumulative_income),
-        "cat_datasets": json.dumps(cat_datasets),
-        "plot_labels": json.dumps(plot_labels),
-        "income_values": json.dumps(income_values),
-        "expense_values": json.dumps(expense_values),
-        "expense_cat_labels": json.dumps(expense_cat_labels),
-        "expense_cat_values": json.dumps(expense_cat_values),
+        "week_labels": week_labels,
+        "weekly_price": weekly_price,
+        "price_week_labels": price_week_labels,
+        "weekly_kg": weekly_kg,
+        "cumulative_income": cumulative_income,
+        "cat_datasets": cat_datasets,
+        "plot_labels": plot_labels,
+        "income_values": income_values,
+        "expense_values": expense_values,
+        "expense_cat_labels": expense_cat_labels,
+        "expense_cat_values": expense_cat_values,
     }

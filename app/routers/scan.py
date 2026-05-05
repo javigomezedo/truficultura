@@ -8,7 +8,7 @@ from fastapi.templating import Jinja2Templates
 from itsdangerous import BadSignature, URLSafeSerializer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import require_subscription
+from app.auth import get_current_user, require_subscription
 from app.config import settings
 from app.database import get_db
 from app.models.user import User
@@ -39,6 +39,7 @@ async def scan_qr(
     request: Request,
     token: str,
     db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user),
 ):
     """Entry point for QR code scans.
 
@@ -54,12 +55,12 @@ async def scan_qr(
             status_code=400,
         )
 
-    if not request.session.get("user_id"):
+    if current_user is None:
         request.session["pending_scan"] = token
         return RedirectResponse(f"/login?next=/scan/{token}", status_code=303)
 
     # User is authenticated — get the plant and show quantity confirmation
-    plant = await plants_service.get_plant(db, plant_id, request.session["user_id"])
+    plant = await plants_service.get_plant(db, plant_id, current_user.active_tenant_id)
     if plant is None:
         return templates.TemplateResponse(
             request,
@@ -84,6 +85,7 @@ async def scan_qr_submit(
     token: str,
     estimated_weight_grams: float = Form(...),
     db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user),
 ):
     plant_id = verify_plant_token(token)
     if plant_id is None:
@@ -94,11 +96,11 @@ async def scan_qr_submit(
             status_code=400,
         )
 
-    if not request.session.get("user_id"):
+    if current_user is None:
         request.session["pending_scan"] = token
         return RedirectResponse(f"/login?next=/scan/{token}", status_code=303)
 
-    plant = await plants_service.get_plant(db, plant_id, request.session["user_id"])
+    plant = await plants_service.get_plant(db, plant_id, current_user.active_tenant_id)
     if plant is None:
         return templates.TemplateResponse(
             request,
@@ -112,7 +114,8 @@ async def scan_qr_submit(
         db,
         plant_id=plant.id,
         plot_id=plant.plot_id,
-        user_id=request.session["user_id"],
+        tenant_id=current_user.active_tenant_id,
+        acting_user_id=current_user.id,
         estimated_weight_grams=estimated_weight,
         source="qr",
         dedupe_window_seconds=0,
