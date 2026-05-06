@@ -504,7 +504,7 @@ async def update_plant_status(
         )
 
     parsed_baja: Optional[datetime.date] = None
-    if baja_date:
+    if baja_date and parsed_status in (PlantStatus.muerta, PlantStatus.reemplazada):
         try:
             parsed_baja = datetime.date.fromisoformat(baja_date)
         except (ValueError, TypeError):

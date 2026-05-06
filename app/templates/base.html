@@ -269,6 +269,20 @@
                     </a>
                     {% endif %}
                 {% endif %}
+                    {% if request.session.get("username") %}
+                    <!-- Bell notifications -->
+                    <div class="position-relative d-inline-block">
+                        <a href="/notifications/"
+                           class="btn btn-outline-light btn-sm position-relative"
+                           aria-label="{{ _('Avisos') }}"
+                           title="{{ _('Avisos') }}"
+                           id="tf-notifications-btn">
+                            <i class="bi bi-bell-fill"></i>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none"
+                                  id="tf-notification-badge" style="font-size:0.6em;"></span>
+                        </a>
+                    </div>
+                    {% endif %}
                     <div class="dropdown tf-navbar-language-dropdown">
                         <button class="btn btn-outline-light btn-sm dropdown-toggle"
                                 type="button"
@@ -542,6 +556,24 @@
     {% endif %}
 
     {% block extra_scripts %}{% endblock %}
+
+    {% if request.session.get("username") %}
+    <script>
+    (function () {
+        var badge = document.getElementById('tf-notification-badge');
+        if (!badge) return;
+        fetch('/notifications/unread-count', { credentials: 'same-origin' })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) {
+                if (data && data.count > 0) {
+                    badge.textContent = data.count > 99 ? '99+' : data.count;
+                    badge.classList.remove('d-none');
+                }
+            })
+            .catch(function () {});
+    })();
+    </script>
+    {% endif %}
     </div>
 </body>
 </html>

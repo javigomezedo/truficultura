@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Avisos · Trufiq{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-9 col-xl-8">
+
+            <div class="d-flex align-items-center justify-content-between mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="bi bi-bell me-2"></i>{{ _("Avisos") }}
+                    {% if unread_count > 0 %}
+                    <span class="badge bg-danger ms-2">{{ unread_count }}</span>
+                    {% endif %}
+                </h1>
+                <div class="d-flex gap-2 align-items-center">
+                    {% if include_dismissed %}
+                    <a href="/notifications/" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-eye-slash me-1"></i>{{ _("Ocultar descartados") }}
+                    </a>
+                    {% else %}
+                    <a href="/notifications/?show_dismissed=1" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-eye me-1"></i>{{ _("Ver descartados") }}
+                    </a>
+                    {% endif %}
+                    {% if unread_count > 0 %}
+                    <form action="/notifications/read-all" method="post" class="m-0">
+                        <button type="submit" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-check2-all me-1"></i>{{ _("Marcar todos como leídos") }}
+                        </button>
+                    </form>
+                    {% endif %}
+                    <a href="/notifications/preferences" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-sliders me-1"></i>{{ _("Preferencias") }}
+                    </a>
+                </div>
+            </div>
+
+            {% if msg %}
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>{{ msg | replace('+', ' ') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endif %}
+
+            {% if not notifications %}
+            <div class="text-center py-5">
+                <i class="bi bi-bell-slash display-4 text-muted mb-3 d-block"></i>
+                <p class="text-muted mb-0">{{ _("No hay avisos por el momento.") }}</p>
+            </div>
+            {% else %}
+            <div class="list-group shadow-sm">
+                {% for n in notifications %}
+                <div class="list-group-item list-group-item-action
+                            {% if not n.is_read %}border-start border-4
+                                {% if n.severity == 'warning' %}border-warning
+                                {% elif n.severity == 'critical' %}border-danger
+                                {% else %}border-info{% endif %}
+                            {% endif %}
+                            {% if n.is_dismissed %}opacity-50{% endif %}
+                            py-3">
+                    <div class="d-flex justify-content-between align-items-start gap-3">
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                {% if n.severity == 'warning' %}
+                                <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                                {% elif n.severity == 'critical' %}
+                                <i class="bi bi-x-octagon-fill text-danger"></i>
+                                {% else %}
+                                <i class="bi bi-info-circle-fill text-info"></i>
+                                {% endif %}
+                                <strong class="{% if not n.is_read %}fw-bold{% endif %}">
+                                    {{ n.title }}
+                                </strong>
+                                {% if not n.is_read %}
+                                <span class="badge bg-primary ms-1" style="font-size: 0.65em;">{{ _("Nuevo") }}</span>
+                                {% endif %}
+                            </div>
+                            <p class="mb-1 text-body-secondary small">{{ n.message }}</p>
+                            <div class="d-flex align-items-center gap-2 mt-1">
+                                <small class="text-muted">
+                                    <i class="bi bi-tag me-1"></i>
+                                    {{ type_labels.get(n.notification_type, n.notification_type) }}
+                                </small>
+                                <small class="text-muted">·</small>
+                                <small class="text-muted">
+                                    <i class="bi bi-clock me-1"></i>
+                                    {{ n.created_at.strftime('%d/%m/%Y %H:%M') }}
+                                </small>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-column gap-1 flex-shrink-0">
+                            {% if not n.is_read %}
+                            <form action="/notifications/{{ n.id }}/read" method="post" class="m-0">
+                                <button type="submit" class="btn btn-outline-secondary btn-sm"
+                                        title="{{ _('Marcar como leído') }}">
+                                    <i class="bi bi-check2"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                            {% if not n.is_dismissed %}
+                            <form action="/notifications/{{ n.id }}/dismiss" method="post" class="m-0">
+                                <button type="submit" class="btn btn-outline-secondary btn-sm"
+                                        title="{{ _('Descartar') }}">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+{% endblock %}

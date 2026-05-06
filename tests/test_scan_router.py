@@ -16,6 +16,8 @@ def _fake_db() -> MagicMock:
     db = MagicMock()
     db.execute = AsyncMock()
     db.flush = AsyncMock()
+    db.commit = AsyncMock()
+    db.rollback = AsyncMock()
     db.add = MagicMock()
     return db
 

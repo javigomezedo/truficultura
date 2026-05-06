@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Preferencias de avisos · Trufiq{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-9 col-xl-8">
+
+            <div class="d-flex align-items-center justify-content-between mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="bi bi-sliders me-2"></i>{{ _("Preferencias de avisos") }}
+                </h1>
+                <a href="/notifications/" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i>{{ _("Volver a avisos") }}
+                </a>
+            </div>
+
+            {% if msg %}
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>{{ msg | replace('+', ' ') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endif %}
+
+            <div class="card shadow-sm">
+                <div class="card-body p-0">
+                    <form action="/notifications/preferences" method="post">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3">{{ _("Tipo de aviso") }}</th>
+                                        <th class="text-center">{{ _("Activado") }}</th>
+                                        <th class="text-center">{{ _("Email") }}</th>
+                                        <th>{{ _("Umbral días") }}</th>
+                                        <th>{{ _("Umbral valor") }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for ntype in notification_types %}
+                                    {% set pref = prefs[ntype] %}
+                                    {% set label = type_labels.get(ntype, ntype) %}
+                                    <tr>
+                                        <td class="ps-3">
+                                            <span class="fw-medium">{{ label }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="form-check form-switch d-flex justify-content-center m-0">
+                                                <input class="form-check-input" type="checkbox"
+                                                       name="{{ ntype }}_enabled" id="{{ ntype }}_enabled"
+                                                       {% if pref.enabled %}checked{% endif %}>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="form-check form-switch d-flex justify-content-center m-0">
+                                                <input class="form-check-input" type="checkbox"
+                                                       name="{{ ntype }}_email_enabled" id="{{ ntype }}_email_enabled"
+                                                       {% if pref.email_enabled %}checked{% endif %}>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if pref.threshold_days is not none %}
+                                            <input type="number" class="form-control form-control-sm"
+                                                   name="{{ ntype }}_threshold_days"
+                                                   value="{{ pref.threshold_days }}"
+                                                   min="1" max="365" style="width: 90px;">
+                                            {% else %}
+                                            <span class="text-muted small">—</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if pref.threshold_value is not none %}
+                                            <input type="text" class="form-control form-control-sm"
+                                                   name="{{ ntype }}_threshold_value"
+                                                   value="{{ pref.threshold_value }}"
+                                                   style="width: 100px;">
+                                            {% else %}
+                                            <span class="text-muted small">—</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="p-3 border-top d-flex justify-content-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-floppy me-1"></i>{{ _("Guardar preferencias") }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <p class="text-muted small mt-3">
+                <i class="bi bi-info-circle me-1"></i>
+                {{ _("Los avisos se generan automáticamente cada día. Los umbrales de días y valores son por defecto si no se especifican.") }}
+            </p>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

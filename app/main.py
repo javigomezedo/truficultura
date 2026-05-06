@@ -52,6 +52,7 @@ from app.routers import (
     kpis,
     lluvia,
     maps,
+    notifications,
     plot_analytics,
     plants,
     plot_events,
@@ -128,6 +129,7 @@ weather.templates = templates
 billing.templates = templates
 brule.templates = templates
 tenants.templates = templates
+notifications.templates = templates
 
 # Include routers
 app.include_router(auth.router)
@@ -156,6 +158,7 @@ app.include_router(billing.router)
 app.include_router(brule.router)
 app.include_router(maps.router)
 app.include_router(tenants.router)
+app.include_router(notifications.router)
 
 
 @app.get("/landing", response_class=HTMLResponse, include_in_schema=False)
