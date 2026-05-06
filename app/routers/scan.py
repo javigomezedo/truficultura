@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth import get_current_user, require_subscription
 from app.config import settings
 from app.database import get_db
+from app.models.plant import PlantStatus
 from app.models.user import User
 from app.services import plants_service, truffle_events_service
 
@@ -69,6 +70,14 @@ async def scan_qr(
             status_code=404,
         )
 
+    if plant.status == PlantStatus.muerta:
+        return templates.TemplateResponse(
+            request,
+            "scan/invalid.html",
+            {"request": request, "reason": "dead"},
+            status_code=409,
+        )
+
     return templates.TemplateResponse(
         request,
         "scan/confirm.html",
@@ -107,6 +116,14 @@ async def scan_qr_submit(
             "scan/invalid.html",
             {"request": request},
             status_code=404,
+        )
+
+    if plant.status == PlantStatus.muerta:
+        return templates.TemplateResponse(
+            request,
+            "scan/invalid.html",
+            {"request": request, "reason": "dead"},
+            status_code=409,
         )
 
     estimated_weight = max(1.0, min(float(estimated_weight_grams), 5000.0))

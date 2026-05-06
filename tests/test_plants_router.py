@@ -21,7 +21,7 @@ def _db() -> MagicMock:
 
 
 def _plot(plot_id: int = 10) -> SimpleNamespace:
-    return SimpleNamespace(id=plot_id, name="Parcela Norte")
+    return SimpleNamespace(id=plot_id, name="Parcela Norte", num_plants=5)
 
 
 def test_map_view_renders(monkeypatch) -> None:
@@ -63,8 +63,14 @@ def test_map_view_renders_summary_table_sorted_by_label_asc_default(
     monkeypatch,
 ) -> None:
     db = _db()
-    plant_a1 = SimpleNamespace(id=1, label="A1")
-    plant_a2 = SimpleNamespace(id=2, label="A2")
+    from app.models.plant import PlantStatus
+
+    plant_a1 = SimpleNamespace(
+        id=1, label="A1", status=PlantStatus.viva, baja_date=None
+    )
+    plant_a2 = SimpleNamespace(
+        id=2, label="A2", status=PlantStatus.viva, baja_date=None
+    )
     row = SimpleNamespace(
         row_label="A",
         cells=[
@@ -123,8 +129,14 @@ def test_map_view_renders_summary_table_sorted_by_label_asc_default(
 
 def test_map_view_summary_table_sorts_by_label_asc(monkeypatch) -> None:
     db = _db()
-    plant_a1 = SimpleNamespace(id=1, label="A1")
-    plant_b1 = SimpleNamespace(id=2, label="B1")
+    from app.models.plant import PlantStatus
+
+    plant_a1 = SimpleNamespace(
+        id=1, label="A1", status=PlantStatus.viva, baja_date=None
+    )
+    plant_b1 = SimpleNamespace(
+        id=2, label="B1", status=PlantStatus.viva, baja_date=None
+    )
     row = SimpleNamespace(
         row_label="A",
         cells=[
@@ -287,8 +299,10 @@ def test_configure_map_submit_rejects_legacy_format(monkeypatch) -> None:
 
 
 def test_add_truffle_event_redirects_with_campaign(monkeypatch) -> None:
+    from app.models.plant import PlantStatus
+
     db = _db()
-    plant = SimpleNamespace(id=3, plot_id=10)
+    plant = SimpleNamespace(id=3, plot_id=10, status=PlantStatus.viva)
     monkeypatch.setattr(
         "app.routers.plants.plants_service.get_plant",
         AsyncMock(return_value=plant),
@@ -533,3 +547,87 @@ def test_download_plot_qr_pdf_returns_pdf(monkeypatch) -> None:
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("application/pdf")
     assert response.content.startswith(b"%PDF")
+
+
+# ---------------------------------------------------------------------------
+# POST /plots/{plot_id}/plants/{plant_id}/status
+# ---------------------------------------------------------------------------
+
+
+def test_update_plant_status_redirects_to_estado_view(monkeypatch) -> None:
+    from app.models.plant import PlantStatus
+
+    db = _db()
+    db.commit = AsyncMock()
+    plant = SimpleNamespace(id=1, plot_id=10, status=PlantStatus.muerta, baja_date=None)
+    monkeypatch.setattr("app.routers.plants.get_plot", AsyncMock(return_value=_plot()))
+    monkeypatch.setattr(
+        "app.routers.plants.plants_service.update_plant_status",
+        AsyncMock(return_value=plant),
+    )
+
+    app.dependency_overrides[require_subscription] = _user
+    app.dependency_overrides[get_db] = lambda: db
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/plots/10/plants/1/status",
+            data={"status": "muerta", "baja_date": "2026-05-01"},
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert "view=estado" in response.headers["location"]
+
+
+def test_update_plant_status_invalid_status_redirects_with_error(monkeypatch) -> None:
+    db = _db()
+    monkeypatch.setattr("app.routers.plants.get_plot", AsyncMock(return_value=_plot()))
+
+    app.dependency_overrides[require_subscription] = _user
+    app.dependency_overrides[get_db] = lambda: db
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/plots/10/plants/1/status",
+            data={"status": "zombie"},
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert "Estado+no+v" in response.headers["location"]
+
+
+# ---------------------------------------------------------------------------
+# add_truffle_event — dead plant block
+# ---------------------------------------------------------------------------
+
+
+def test_add_truffle_event_blocks_dead_plant(monkeypatch) -> None:
+    from app.models.plant import PlantStatus
+
+    db = _db()
+    dead_plant = SimpleNamespace(id=3, plot_id=10, status=PlantStatus.muerta)
+    monkeypatch.setattr(
+        "app.routers.plants.plants_service.get_plant",
+        AsyncMock(return_value=dead_plant),
+    )
+
+    app.dependency_overrides[require_subscription] = _user
+    app.dependency_overrides[get_db] = lambda: db
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/plots/10/plants/3/add",
+            data={"estimated_weight_grams": "100"},
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert "muerta" in response.headers["location"].lower()

@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from app.database import get_db
 from app.main import app
+from app.models.plant import PlantStatus
 from app.models.user import User
 from tests.conftest import result
 
@@ -66,7 +67,7 @@ def test_scan_with_session_shows_weight_form(monkeypatch) -> None:
     ).sign_plant_token(5)
     monkeypatch.setattr(
         "app.routers.scan.plants_service.get_plant",
-        AsyncMock(return_value=SimpleNamespace(id=5, plot_id=10, label="A1")),
+        AsyncMock(return_value=SimpleNamespace(id=5, plot_id=10, label="A1", status=PlantStatus.viva)),
     )
     monkeypatch.setattr("app.routers.auth.verify_password", lambda plain, hashed: True)
 
@@ -99,7 +100,7 @@ def test_scan_without_session_then_login_returns_to_confirm(monkeypatch) -> None
     ).sign_plant_token(5)
     monkeypatch.setattr(
         "app.routers.scan.plants_service.get_plant",
-        AsyncMock(return_value=SimpleNamespace(id=5, plot_id=10, label="A1")),
+        AsyncMock(return_value=SimpleNamespace(id=5, plot_id=10, label="A1", status=PlantStatus.viva)),
     )
     monkeypatch.setattr("app.routers.auth.verify_password", lambda plain, hashed: True)
 
@@ -138,7 +139,7 @@ def test_scan_submit_registers_weight(monkeypatch) -> None:
     ).sign_plant_token(5)
     monkeypatch.setattr(
         "app.routers.scan.plants_service.get_plant",
-        AsyncMock(return_value=SimpleNamespace(id=5, plot_id=10, label="A1")),
+        AsyncMock(return_value=SimpleNamespace(id=5, plot_id=10, label="A1", status=PlantStatus.viva)),
     )
     create_mock = AsyncMock(return_value=SimpleNamespace(id=101, created_at=None))
     monkeypatch.setattr(
@@ -166,3 +167,36 @@ def test_scan_submit_registers_weight(monkeypatch) -> None:
     assert "Peso orientativo" in response.text
     create_mock.assert_awaited_once()
     assert create_mock.await_args.kwargs["estimated_weight_grams"] == 125.5
+
+
+def test_scan_dead_plant_returns_409(monkeypatch) -> None:
+    from app.models.plant import PlantStatus
+
+    db = _fake_db()
+    user = _active_user()
+    db.execute.side_effect = [result([user]), result([]), result([user]), result([])]
+    app.dependency_overrides[get_db] = lambda: db
+
+    token = __import__(
+        "app.routers.scan", fromlist=["sign_plant_token"]
+    ).sign_plant_token(5)
+    dead_plant = SimpleNamespace(id=5, plot_id=10, label="A1", status=PlantStatus.muerta)
+    monkeypatch.setattr(
+        "app.routers.scan.plants_service.get_plant",
+        AsyncMock(return_value=dead_plant),
+    )
+    monkeypatch.setattr("app.routers.auth.verify_password", lambda plain, hashed: True)
+
+    try:
+        client = TestClient(app)
+        client.post(
+            "/login",
+            data={"username": "javier", "password": "secreto"},
+            follow_redirects=False,
+        )
+        response = client.get(f"/scan/{token}")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 409
+    assert "muerta" in response.text.lower() or "no activa" in response.text.lower()

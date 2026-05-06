@@ -6,7 +6,7 @@ from typing import Optional
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.plant import Plant
+from app.models.plant import Plant, PlantStatus
 from app.models.plot import Plot
 
 
@@ -41,7 +41,7 @@ async def _get_effective_plant_total(
     """
     plant_counts_res = await db.execute(
         select(Plant.plot_id, func.count(Plant.id).label("cnt"))
-        .where(Plant.tenant_id == tenant_id)
+        .where(Plant.tenant_id == tenant_id, Plant.status != PlantStatus.muerta)
         .group_by(Plant.plot_id)
     )
     plant_counts: dict[int, int] = {row.plot_id: row.cnt for row in plant_counts_res.all()}

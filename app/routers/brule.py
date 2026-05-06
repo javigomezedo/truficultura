@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth import require_subscription
 from app.database import get_db
 from app.i18n import _
+from app.models.plant import PlantStatus
 from app.models.user import User
 from app.plan_access import require_write_access
 from app.services import brule_service
@@ -183,6 +184,7 @@ async def plant_brule_create(
     current_user: User = Depends(require_write_access),
 ):
     tenant_id = current_user.active_tenant_id
+    wants_json = "application/json" in request.headers.get("accept", "")
     try:
         date = datetime.date.fromisoformat(record_date)
     except ValueError:
@@ -198,7 +200,15 @@ async def plant_brule_create(
             status_code=303,
         )
 
-    wants_json = "application/json" in request.headers.get("accept", "")
+    plant = await get_plant(db, plant_id, tenant_id)
+    if plant and plant.status == PlantStatus.muerta:
+        error_msg = _("No se puede registrar brulé en una planta muerta")
+        if wants_json:
+            return JSONResponse({"error": error_msg}, status_code=409)
+        return RedirectResponse(
+            f"/plots/{plot_id}/map?view=brule&msg={quote_plus(error_msg)}",
+            status_code=303,
+        )
 
     try:
         await brule_service.create_brule_record(
@@ -217,7 +227,9 @@ async def plant_brule_create(
             return JSONResponse({"error": error_msg}, status_code=409)
         if next_url and next_url.startswith("/plots/"):
             sep = "&" if "?" in next_url else "?"
-            return RedirectResponse(f"{next_url}{sep}msg={quote_plus(error_msg)}", status_code=303)
+            return RedirectResponse(
+                f"{next_url}{sep}msg={quote_plus(error_msg)}", status_code=303
+            )
         return RedirectResponse(
             f"/plots/{plot_id}/plants/{plant_id}/brule/?msg={quote_plus(error_msg)}",
             status_code=303,

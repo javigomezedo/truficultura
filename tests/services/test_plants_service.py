@@ -8,6 +8,7 @@ import pytest
 
 from app.models.plant import Plant
 from app.models.plot import Plot
+from app.models.plant import PlantStatus
 from app.services.plants_service import (
     MapRow,
     configure_plot_map,
@@ -15,6 +16,7 @@ from app.services.plants_service import (
     get_plot_map_context,
     has_active_truffle_events,
     list_plants,
+    update_plant_status,
 )
 from tests.conftest import result
 
@@ -72,7 +74,13 @@ async def test_list_plants_empty_when_no_plants() -> None:
 @pytest.mark.asyncio
 async def test_get_plant_found() -> None:
     plant = Plant(
-        id=5, plot_id=10, tenant_id=1, label="B3", row_label="B", row_order=1, col_order=2
+        id=5,
+        plot_id=10,
+        tenant_id=1,
+        label="B3",
+        row_label="B",
+        row_order=1,
+        col_order=2,
     )
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([plant]))
@@ -299,7 +307,13 @@ async def test_get_plot_map_context_builds_rows_with_weights() -> None:
 async def test_get_plot_map_context_no_campaign_skips_campaign_query() -> None:
     """When selected_campaign is None only 2 DB queries run (plants + total counts)."""
     plant = Plant(
-        id=1, plot_id=10, tenant_id=1, label="A1", row_label="A", row_order=0, col_order=0
+        id=1,
+        plot_id=10,
+        tenant_id=1,
+        label="A1",
+        row_label="A",
+        row_order=0,
+        col_order=0,
     )
 
     db = MagicMock()
@@ -320,3 +334,81 @@ async def test_get_plot_map_context_no_campaign_skips_campaign_query() -> None:
     assert db.execute.call_count == 2
     assert ctx["rows"][0].cells[0].total_weight_grams == 7.0
     assert ctx["rows"][0].cells[0].campaign_weight_grams == 0.0
+
+
+# ---------------------------------------------------------------------------
+# update_plant_status
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_update_plant_status_sets_status_and_baja_date() -> None:
+    plant = Plant(
+        id=1,
+        plot_id=10,
+        tenant_id=1,
+        label="A1",
+        row_label="A",
+        row_order=0,
+        col_order=0,
+    )
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([plant]))
+    db.flush = AsyncMock()
+
+    updated = await update_plant_status(
+        db,
+        plant_id=1,
+        tenant_id=1,
+        status=PlantStatus.muerta,
+        baja_date=datetime.date(2026, 5, 1),
+    )
+
+    assert updated is plant
+    assert updated.status == PlantStatus.muerta
+    assert updated.baja_date == datetime.date(2026, 5, 1)
+    db.flush.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_update_plant_status_returns_none_when_not_found() -> None:
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+
+    updated = await update_plant_status(
+        db,
+        plant_id=999,
+        tenant_id=1,
+        status=PlantStatus.estresada,
+        baja_date=None,
+    )
+
+    assert updated is None
+
+
+@pytest.mark.asyncio
+async def test_update_plant_status_clears_baja_date_when_none() -> None:
+    plant = Plant(
+        id=2,
+        plot_id=10,
+        tenant_id=1,
+        label="B1",
+        row_label="B",
+        row_order=1,
+        col_order=0,
+    )
+    plant.baja_date = datetime.date(2025, 1, 1)
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([plant]))
+    db.flush = AsyncMock()
+
+    updated = await update_plant_status(
+        db,
+        plant_id=2,
+        tenant_id=1,
+        status=PlantStatus.viva,
+        baja_date=None,
+    )
+
+    assert updated.status == PlantStatus.viva
+    assert updated.baja_date is None

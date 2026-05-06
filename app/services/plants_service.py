@@ -9,7 +9,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.i18n import _
-from app.models.plant import Plant
+from app.models.plant import Plant, PlantStatus
 from app.models.plot import Plot
 from app.models.truffle_event import TruffleEvent
 from app.utils import row_label_from_index
@@ -44,6 +44,27 @@ async def get_plant(db: AsyncSession, plant_id: int, tenant_id: int) -> Optional
         select(Plant).where(Plant.id == plant_id, Plant.tenant_id == tenant_id)
     )
     return res.scalar_one_or_none()
+
+
+async def update_plant_status(
+    db: AsyncSession,
+    plant_id: int,
+    tenant_id: int,
+    *,
+    status: PlantStatus,
+    baja_date: Optional[datetime.date],
+) -> Optional[Plant]:
+    """Update the health status and optional baja_date of a plant.
+
+    Returns the updated plant, or None if the plant does not belong to the tenant.
+    """
+    plant = await get_plant(db, plant_id, tenant_id)
+    if plant is None:
+        return None
+    plant.status = status
+    plant.baja_date = baja_date
+    await db.flush()
+    return plant
 
 
 async def has_active_truffle_events(

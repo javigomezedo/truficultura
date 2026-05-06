@@ -1,11 +1,21 @@
 from __future__ import annotations
 
+import datetime
+import enum
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import ForeignKey, Index, Integer, String, UniqueConstraint
+from sqlalchemy import Date, ForeignKey, Index, Integer, String, UniqueConstraint
+from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+
+
+class PlantStatus(str, enum.Enum):
+    viva = "viva"
+    estresada = "estresada"
+    muerta = "muerta"
+    reemplazada = "reemplazada"
 
 if TYPE_CHECKING:
     from app.models.plot import Plot
@@ -39,6 +49,15 @@ class Plant(Base):
     col_order: Mapped[int] = mapped_column(Integer, nullable=False)
     # 1-indexed visual column in the field layout (supports sparse rows and offsets)
     visual_col: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    # Plant health status
+    status: Mapped[PlantStatus] = mapped_column(
+        SAEnum(PlantStatus, name="plant_status_enum"),
+        nullable=False,
+        default=PlantStatus.viva,
+        server_default="viva",
+    )
+    # Date the plant was marked as dead or replaced (nullable for active plants)
+    baja_date: Mapped[Optional[datetime.date]] = mapped_column(Date, nullable=True)
 
     __table_args__ = (
         UniqueConstraint("plot_id", "label", name="uq_plant_label_per_plot"),
