@@ -3,10 +3,11 @@ from __future__ import annotations
 import datetime
 from typing import Optional
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.plant import Plant, PlantStatus
+from app.models.plant import HostSpecies
 from app.models.plot import Plot
 
 
@@ -107,6 +108,7 @@ async def create_plot(
     caudal_riego: Optional[float] = None,
     provincia_cod: Optional[str] = None,
     municipio_cod: Optional[str] = None,
+    default_host_species: Optional[HostSpecies] = None,
     plant_limit: Optional[int] = None,
 ) -> Plot:
     if plant_limit is not None and num_plants > 0:
@@ -134,6 +136,7 @@ async def create_plot(
         caudal_riego=caudal_riego,
         provincia_cod=provincia_cod or None,
         municipio_cod=municipio_cod or None,
+        default_host_species=default_host_species,
     )
     db.add(new_plot)
     await db.flush()
@@ -164,6 +167,7 @@ async def update_plot(
     caudal_riego: Optional[float] = None,
     provincia_cod: Optional[str] = None,
     municipio_cod: Optional[str] = None,
+    default_host_species: Optional[HostSpecies] = None,
     plant_limit: Optional[int] = None,
 ) -> Plot:
     # Enforce the limit when num_plants increases.
@@ -194,8 +198,21 @@ async def update_plot(
     plot.caudal_riego = caudal_riego
     plot.provincia_cod = provincia_cod or None
     plot.municipio_cod = municipio_cod or None
+    plot.default_host_species = default_host_species
     plot.updated_by_user_id = acting_user_id
     await db.flush()
+
+    # Propagate default species to plants that have no species yet
+    if default_host_species is not None:
+        await db.execute(
+            update(Plant)
+            .where(
+                Plant.plot_id == plot.id,
+                Plant.tenant_id == plot.tenant_id,
+                Plant.host_species.is_(None),
+            )
+            .values(host_species=default_host_species)
+        )
 
     # Recalculate all percentages for this tenant
     await _recalculate_percentages(db, plot.tenant_id)

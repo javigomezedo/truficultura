@@ -125,3 +125,50 @@ async def test_get_plant_counts_by_plot_empty() -> None:
     counts = await get_plant_counts_by_plot(db, tenant_id=99)
 
     assert counts == {}
+
+
+# ---------------------------------------------------------------------------
+# update_plot — default_host_species propagation
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_update_plot_propagates_default_host_species_to_unassigned_plants() -> (
+    None
+):
+    from app.models.plant import HostSpecies
+
+    plot = Plot(
+        id=10,
+        tenant_id=1,
+        name="Norte",
+        num_plants=3,
+        percentage=100.0,
+        planting_date=datetime.date(2020, 1, 1),
+    )
+    db = MagicMock()
+    db.flush = AsyncMock()
+    # First execute call: _get_effective_plant_total (no limit check needed, same num_plants)
+    # Second execute call: _recalculate_percentages
+    # Third execute call: bulk update plants
+    db.execute = AsyncMock(return_value=result([]))
+
+    updated = await update_plot(
+        db,
+        plot,
+        name="Norte",
+        polygon=None,
+        plot_num=None,
+        cadastral_ref=None,
+        hydrant=None,
+        sector="S1",
+        num_plants=3,
+        planting_date=datetime.date(2020, 1, 1),
+        area_ha=None,
+        production_start=None,
+        default_host_species=HostSpecies.encina,
+    )
+
+    assert updated.default_host_species == HostSpecies.encina
+    # The bulk update execute must have been called
+    assert db.execute.await_count >= 1

@@ -12,6 +12,7 @@ from app.database import get_db
 from app.i18n import _
 from app.models.user import User
 from app.plan_access import require_write_access, get_plan_mode, PLANT_LIMIT_BASIC
+from app.models.plant import HostSpecies
 from app.services.plots_service import (
     create_plot as create_plot_service,
     delete_plot as delete_plot_service,
@@ -24,6 +25,15 @@ from app.services.sigpac_service import SigpacError, fetch_sigpac_data
 
 router = APIRouter(prefix="/plots", tags=["plots"])
 templates = Jinja2Templates(directory="app/templates")
+
+
+def _parse_host_species(value: Optional[str]) -> Optional[HostSpecies]:
+    if not value:
+        return None
+    try:
+        return HostSpecies(value)
+    except ValueError:
+        return None
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -56,6 +66,7 @@ async def new_plot_form(
             "action": "/plots/",
             "method": "post",
             "current_user": current_user,
+            "host_species_choices": list(HostSpecies),
         },
     )
 
@@ -114,6 +125,7 @@ async def create_plot(
     caudal_riego: Optional[float] = Form(None),
     provincia_cod: Optional[str] = Form(None),
     municipio_cod: Optional[str] = Form(None),
+    default_host_species: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_write_access),
 ):
@@ -136,6 +148,7 @@ async def create_plot(
         caudal_riego=caudal_riego,
         provincia_cod=provincia_cod or None,
         municipio_cod=municipio_cod or None,
+        default_host_species=_parse_host_species(default_host_species),
         plant_limit=plant_limit,
     )
     return RedirectResponse(
@@ -166,6 +179,7 @@ async def edit_plot_form(
             "action": f"/plots/{plot_id}",
             "method": "post",
             "current_user": current_user,
+            "host_species_choices": list(HostSpecies),
         },
     )
 
@@ -189,6 +203,7 @@ async def update_plot(
     caudal_riego: Optional[float] = Form(None),
     provincia_cod: Optional[str] = Form(None),
     municipio_cod: Optional[str] = Form(None),
+    default_host_species: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_write_access),
 ):
@@ -218,6 +233,7 @@ async def update_plot(
         caudal_riego=caudal_riego,
         provincia_cod=provincia_cod or None,
         municipio_cod=municipio_cod or None,
+        default_host_species=_parse_host_species(default_host_species),
         plant_limit=plant_limit,
     )
     return RedirectResponse(

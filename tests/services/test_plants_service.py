@@ -8,7 +8,7 @@ import pytest
 
 from app.models.plant import Plant
 from app.models.plot import Plot
-from app.models.plant import PlantStatus
+from app.models.plant import PlantStatus, HostSpecies
 from app.services.plants_service import (
     MapRow,
     configure_plot_map,
@@ -17,6 +17,7 @@ from app.services.plants_service import (
     has_active_truffle_events,
     list_plants,
     update_plant_status,
+    update_plant_species,
 )
 from tests.conftest import result
 
@@ -145,6 +146,7 @@ async def test_configure_plot_map_creates_correct_plants() -> None:
     db.execute = AsyncMock(
         side_effect=[
             result([]),  # has_active_truffle_events → no events
+            result([]),  # select existing species by label
             result([]),  # delete(Plant)
         ]
     )
@@ -162,6 +164,70 @@ async def test_configure_plot_map_creates_correct_plants() -> None:
     assert plants[4].label == "B3"
     assert plants[0].visual_col == 1
     assert plants[4].visual_col == 3
+
+
+@pytest.mark.asyncio
+async def test_configure_plot_map_inherits_default_host_species() -> None:
+    plot = Plot(
+        id=10,
+        tenant_id=1,
+        name="P1",
+        num_plants=0,
+        percentage=100.0,
+        planting_date=datetime.date(2020, 1, 1),
+    )
+    plot.default_host_species = HostSpecies.encina
+
+    db = MagicMock()
+    db.execute = AsyncMock(
+        side_effect=[
+            result([]),  # has_active_truffle_events → no events
+            result([]),  # select existing species by label
+            result([]),  # delete(Plant)
+        ]
+    )
+    db.flush = AsyncMock()
+    db.add = MagicMock()
+
+    plants = await configure_plot_map(db, plot, tenant_id=1, row_columns=[[1, 2]])
+
+    assert all(p.host_species == HostSpecies.encina for p in plants)
+
+
+@pytest.mark.asyncio
+async def test_configure_plot_map_preserves_individual_species_on_reconfigure() -> None:
+    """Plants that had a species assigned keep it when the map is reconfigured."""
+    from types import SimpleNamespace
+
+    plot = Plot(
+        id=10,
+        tenant_id=1,
+        name="P1",
+        num_plants=0,
+        percentage=100.0,
+        planting_date=datetime.date(2020, 1, 1),
+    )
+    plot.default_host_species = HostSpecies.encina
+
+    db = MagicMock()
+    db.execute = AsyncMock(
+        side_effect=[
+            result([]),  # has_active_truffle_events → no events
+            # select existing species: A1 was manually set to roble
+            result([SimpleNamespace(label="A1", host_species=HostSpecies.roble)]),
+            result([]),  # delete(Plant)
+        ]
+    )
+    db.flush = AsyncMock()
+    db.add = MagicMock()
+
+    plants = await configure_plot_map(db, plot, tenant_id=1, row_columns=[[1, 2]])
+
+    a1 = next(p for p in plants if p.label == "A1")
+    a2 = next(p for p in plants if p.label == "A2")
+    # A1 keeps its individual assignment; A2 gets the plot default
+    assert a1.host_species == HostSpecies.roble
+    assert a2.host_species == HostSpecies.encina
 
 
 @pytest.mark.asyncio
@@ -197,6 +263,7 @@ async def test_configure_plot_map_generates_excel_labels_after_z() -> None:
     db.execute = AsyncMock(
         side_effect=[
             result([]),  # has_active_truffle_events -> no events
+            result([]),  # select existing species by label
             result([]),  # delete(Plant)
         ]
     )
@@ -412,3 +479,76 @@ async def test_update_plant_status_clears_baja_date_when_none() -> None:
 
     assert updated.status == PlantStatus.viva
     assert updated.baja_date is None
+
+
+# ---------------------------------------------------------------------------
+# update_plant_species
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_update_plant_species_sets_species() -> None:
+    plant = Plant(
+        id=1,
+        plot_id=10,
+        tenant_id=1,
+        label="A1",
+        row_label="A",
+        row_order=0,
+        col_order=0,
+    )
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([plant]))
+    db.flush = AsyncMock()
+
+    updated = await update_plant_species(
+        db,
+        plant_id=1,
+        tenant_id=1,
+        host_species=HostSpecies.encina,
+    )
+
+    assert updated is plant
+    assert updated.host_species == HostSpecies.encina
+    db.flush.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_update_plant_species_returns_none_when_not_found() -> None:
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+
+    updated = await update_plant_species(
+        db,
+        plant_id=999,
+        tenant_id=1,
+        host_species=HostSpecies.roble,
+    )
+
+    assert updated is None
+
+
+@pytest.mark.asyncio
+async def test_update_plant_species_clears_when_none() -> None:
+    plant = Plant(
+        id=2,
+        plot_id=10,
+        tenant_id=1,
+        label="B1",
+        row_label="B",
+        row_order=1,
+        col_order=0,
+    )
+    plant.host_species = HostSpecies.quejigo
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([plant]))
+    db.flush = AsyncMock()
+
+    updated = await update_plant_species(
+        db,
+        plant_id=2,
+        tenant_id=1,
+        host_species=None,
+    )
+
+    assert updated.host_species is None

@@ -9,7 +9,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.i18n import _
-from app.models.plant import Plant, PlantStatus
+from app.models.plant import Plant, HostSpecies, PlantStatus
 from app.models.plot import Plot
 from app.models.truffle_event import TruffleEvent
 from app.utils import row_label_from_index
@@ -67,6 +67,75 @@ async def update_plant_status(
     return plant
 
 
+async def update_plant_species(
+    db: AsyncSession,
+    plant_id: int,
+    tenant_id: int,
+    *,
+    host_species: Optional[HostSpecies],
+) -> Optional[Plant]:
+    """Update the host species of a plant.
+
+    Returns the updated plant, or None if the plant does not belong to the tenant.
+    """
+    plant = await get_plant(db, plant_id, tenant_id)
+    if plant is None:
+        return None
+    plant.host_species = host_species
+    await db.flush()
+    return plant
+
+
+async def get_species_summary(
+    db: AsyncSession,
+    plot_id: int,
+    tenant_id: int,
+    *,
+    selected_campaign: Optional[int],
+) -> list[dict]:
+    """Return kg/plant aggregated by host species for the given plot and campaign.
+
+    Each entry: {species, num_plants, total_grams, grams_per_plant}
+    """
+    base_filters = [
+        TruffleEvent.plot_id == plot_id,
+        TruffleEvent.tenant_id == tenant_id,
+        TruffleEvent.undone_at.is_(None),
+    ]
+    if selected_campaign is not None:
+        start, end = _campaign_date_range(selected_campaign)
+        base_filters += [
+            TruffleEvent.created_at >= start,
+            TruffleEvent.created_at < end,
+        ]
+
+    q = (
+        select(
+            Plant.host_species,
+            func.count(Plant.id.distinct()).label("num_plants"),
+            func.sum(func.coalesce(TruffleEvent.estimated_weight_grams, 1.0)).label("total_grams"),
+        )
+        .join(Plant, TruffleEvent.plant_id == Plant.id)
+        .where(*base_filters)
+        .group_by(Plant.host_species)
+    )
+    res = await db.execute(q)
+    rows = []
+    for row in res.all():
+        total_g = float(row.total_grams or 0.0)
+        n = row.num_plants or 0
+        rows.append(
+            {
+                "species": row.host_species,
+                "num_plants": n,
+                "total_grams": round(total_g, 1),
+                "grams_per_plant": round(total_g / n, 1) if n else 0.0,
+            }
+        )
+    rows.sort(key=lambda r: (r["species"] is None, str(r["species"])))
+    return rows
+
+
 async def has_active_truffle_events(
     db: AsyncSession, plot_id: int, tenant_id: int
 ) -> bool:
@@ -115,6 +184,18 @@ async def configure_plot_map(
             from app.plan_access import PlantLimitExceededException
             raise PlantLimitExceededException(plant_limit)
 
+    # Save per-label species before deleting (to restore individual assignments)
+    existing_res = await db.execute(
+        select(Plant.label, Plant.host_species).where(
+            Plant.plot_id == plot.id,
+            Plant.tenant_id == tenant_id,
+            Plant.host_species.is_not(None),
+        )
+    )
+    species_by_label: dict[str, object] = {
+        row.label: row.host_species for row in existing_res.all()
+    }
+
     # Remove all current plants (cascade deletes any orphan truffle_events)
     await db.execute(
         delete(Plant).where(Plant.plot_id == plot.id, Plant.tenant_id == tenant_id)
@@ -125,15 +206,17 @@ async def configure_plot_map(
     for row_idx, columns in enumerate(row_columns):
         row_label = row_label_from_index(row_idx)
         for visual_col in sorted(set(columns)):
+            label = f"{row_label}{visual_col}"
             p = Plant(
                 plot_id=plot.id,
                 tenant_id=tenant_id,
                 created_by_user_id=acting_user_id,
-                label=f"{row_label}{visual_col}",
+                label=label,
                 row_label=row_label,
                 row_order=row_idx,
                 col_order=visual_col - 1,
                 visual_col=visual_col,
+                host_species=species_by_label.get(label, plot.default_host_species),
             )
             db.add(p)
             plants.append(p)

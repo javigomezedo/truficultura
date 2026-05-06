@@ -66,6 +66,15 @@
     .tf-map-cell-status-muerta    { background-color: rgba(180, 180, 180, 0.50) !important; border-color: #adb5bd !important; }
     .tf-map-cell-status-reemplazada { background-color: rgba(13, 110, 253, 0.55) !important; border-color: #0d6efd !important; }
 
+    /* Species view mode — full-cell colors */
+    .tf-map-cell-sp-encina   { background-color: rgba(25,135,84,0.75) !important;  border-color: #198754 !important; }
+    .tf-map-cell-sp-roble    { background-color: rgba(139,78,20,0.75) !important;   border-color: #8b4e14 !important; }
+    .tf-map-cell-sp-quejigo  { background-color: rgba(102,126,0,0.75) !important;   border-color: #667e00 !important; }
+    .tf-map-cell-sp-coscoja  { background-color: rgba(220,100,60,0.75) !important;  border-color: #dc643c !important; }
+    .tf-map-cell-sp-avellano { background-color: rgba(130,60,180,0.75) !important;  border-color: #823cb4 !important; }
+    .tf-map-cell-sp-carpe    { background-color: rgba(32,178,170,0.75) !important;  border-color: #20b2aa !important; }
+    .tf-map-cell-sp-otros    { background-color: rgba(108,117,125,0.75) !important; border-color: #6c757d !important; }
+
     @media (max-width: 576px) {
         .tf-map-cell {
             width: 32px;
@@ -135,6 +144,10 @@
                        class="btn btn-sm {{ 'btn-danger' if map_view_mode == 'estado' else 'btn-outline-secondary' }}">
                         <i class="bi bi-heart-pulse me-1"></i>{{ _("Estado") }}
                     </a>
+                    <a href="/plots/{{ plot.id }}/map?{% if selected_campaign %}campaign={{ selected_campaign }}&{% endif %}view=especie"
+                       class="btn btn-sm {{ 'btn-info' if map_view_mode == 'especie' else 'btn-outline-secondary' }}">
+                        <i class="bi bi-tree me-1"></i>{{ _("Especie") }}
+                    </a>
                 </div>
             </form>
         </div>
@@ -149,6 +162,16 @@
         {# Legend — shown above the grid so it's always visible #}
         <div class="card-header bg-transparent border-bottom d-flex flex-wrap gap-3 align-items-center small text-muted py-2">
             <span class="fw-semibold">{{ _("Leyenda:") }}</span>
+            {% if map_view_mode == 'especie' %}
+            <span class="d-flex align-items-center gap-1"><span style="width:16px;height:16px;background:rgba(25,135,84,0.75);border:1px solid #198754;border-radius:3px;display:inline-block;"></span>{{ _("Encina") }}</span>
+            <span class="d-flex align-items-center gap-1"><span style="width:16px;height:16px;background:rgba(139,78,20,0.75);border:1px solid #8b4e14;border-radius:3px;display:inline-block;"></span>{{ _("Roble") }}</span>
+            <span class="d-flex align-items-center gap-1"><span style="width:16px;height:16px;background:rgba(102,126,0,0.75);border:1px solid #667e00;border-radius:3px;display:inline-block;"></span>{{ _("Quejigo") }}</span>
+            <span class="d-flex align-items-center gap-1"><span style="width:16px;height:16px;background:rgba(220,100,60,0.75);border:1px solid #dc643c;border-radius:3px;display:inline-block;"></span>{{ _("Coscoja") }}</span>
+            <span class="d-flex align-items-center gap-1"><span style="width:16px;height:16px;background:rgba(130,60,180,0.75);border:1px solid #823cb4;border-radius:3px;display:inline-block;"></span>{{ _("Avellano") }}</span>
+            <span class="d-flex align-items-center gap-1"><span style="width:16px;height:16px;background:rgba(32,178,170,0.75);border:1px solid #20b2aa;border-radius:3px;display:inline-block;"></span>{{ _("Carpe") }}</span>
+            <span class="d-flex align-items-center gap-1"><span style="width:16px;height:16px;background:rgba(108,117,125,0.75);border:1px solid #6c757d;border-radius:3px;display:inline-block;"></span>{{ _("Otros") }}</span>
+            <span class="d-flex align-items-center gap-1"><span style="width:16px;height:16px;background:var(--bs-body-bg);border:1px solid #adb5bd;border-radius:3px;display:inline-block;"></span>{{ _("Sin asignar") }}</span>
+            {% else %}
             <span class="d-flex align-items-center gap-1">
                 <span style="width:16px;height:16px;background:rgba(25,135,84,0.7);border:1px solid #198754;border-radius:3px;display:inline-block;"></span>
                 {{ _("Viva") }}
@@ -165,6 +188,7 @@
                 <span style="width:16px;height:16px;background:repeating-linear-gradient(-45deg,rgba(0,0,0,0.1) 0px,rgba(0,0,0,0.1) 3px,rgba(180,180,180,0.35) 3px,rgba(180,180,180,0.35) 8px);border-radius:3px;display:inline-block;"></span>
                 {{ _("Muerta") }}
             </span>
+            {% endif %}
         </div>
         <div class="card-body p-3">
             <div class="overflow-x-auto pb-1">
@@ -229,6 +253,18 @@
                                 data-plant-status="{{ plant_status }}"
                                 data-plant-baja-date="{{ cell.plant.baja_date.isoformat() if cell.plant.baja_date else '' }}"
                                 data-status-mode="true">
+                        </button>
+                    {% elif map_view_mode == 'especie' %}
+                        {% set sp = cell.plant.host_species.value if cell.plant.host_species else None %}
+                        <button type="button"
+                                class="tf-map-cell border rounded-3 flex-shrink-0 {{ 'tf-map-cell-sp-' + sp if sp else '' }} {{ status_overlay }}"
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="top"
+                                title="{{ cell.plant.label }}{{ status_title_suffix }}: {{ _(sp) if sp else _('Sin asignar') }}"
+                                data-plant-id="{{ cell.plant.id }}"
+                                data-plant-label="{{ cell.plant.label }}"
+                                data-plant-species="{{ sp or '' }}"
+                                data-species-mode="true">
                         </button>
                     {% else %}
                     {% set display_weight = cell.campaign_weight_grams if selected_campaign is not none else cell.total_weight_grams %}
@@ -322,6 +358,7 @@
                             </th>
                             <th class="text-end">{{ _("Brulé") }}</th>
                             <th>{{ _("Estado") }}</th>
+                            <th>{{ _("Especie") }}</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -355,6 +392,17 @@
                                 <small class="text-muted d-block">{{ row.baja_date }}</small>
                                 {% endif %}
                             </td>
+                            <td>
+                                {% set sp = row.host_species.value if row.host_species else None %}
+                                {% if sp == 'encina' %}<span class="badge" style="background-color:#198754;">{{ _("Encina") }}</span>
+                                {% elif sp == 'roble' %}<span class="badge" style="background-color:#8b4e14;">{{ _("Roble") }}</span>
+                                {% elif sp == 'quejigo' %}<span class="badge" style="background-color:#667e00;">{{ _("Quejigo") }}</span>
+                                {% elif sp == 'coscoja' %}<span class="badge" style="background-color:#dc643c;">{{ _("Coscoja") }}</span>
+                                {% elif sp == 'avellano' %}<span class="badge" style="background-color:#823cb4;">{{ _("Avellano") }}</span>
+                                {% elif sp == 'carpe' %}<span class="badge" style="background-color:#20b2aa;">{{ _("Carpe") }}</span>
+                                {% elif sp == 'otros' %}<span class="badge bg-secondary">{{ _("Otros") }}</span>
+                                {% else %}<span class="text-muted">—</span>{% endif %}
+                            </td>
                             <td class="text-end">
                                 <a href="/plots/{{ plot.id }}/plants/{{ row.plant_id }}/brule/"
                                    class="btn btn-sm btn-outline-warning py-0"
@@ -370,6 +418,50 @@
             {% else %}
             <p class="text-muted mb-0">{{ _("Sin datos de gramos para mostrar.") }}</p>
             {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if species_summary %}
+    <div class="card tf-panel border-0 shadow-sm mt-3">
+        <div class="card-header bg-transparent border-0 pb-0">
+            <h2 class="h6 mb-0">
+                <i class="bi bi-tree me-1 text-info"></i>{{ _("Resumen por especie") }}
+            </h2>
+        </div>
+        <div class="card-body pt-3 pb-2">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>{{ _("Especie") }}</th>
+                            <th class="text-end">{{ _("Plantas") }}</th>
+                            <th class="text-end">{{ _("Gramos totales") }}</th>
+                            <th class="text-end">{{ _("g / planta") }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in species_summary %}
+                        {% set sp = s.species.value if s.species else None %}
+                        <tr>
+                            <td>
+                                {% if sp == 'encina' %}<span class="badge" style="background-color:#198754;">{{ _("Encina") }}</span>
+                                {% elif sp == 'roble' %}<span class="badge" style="background-color:#8b4e14;">{{ _("Roble") }}</span>
+                                {% elif sp == 'quejigo' %}<span class="badge" style="background-color:#667e00;">{{ _("Quejigo") }}</span>
+                                {% elif sp == 'coscoja' %}<span class="badge" style="background-color:#dc643c;">{{ _("Coscoja") }}</span>
+                                {% elif sp == 'avellano' %}<span class="badge" style="background-color:#823cb4;">{{ _("Avellano") }}</span>
+                                {% elif sp == 'carpe' %}<span class="badge" style="background-color:#20b2aa;">{{ _("Carpe") }}</span>
+                                {% elif sp == 'otros' %}<span class="badge bg-secondary">{{ _("Otros") }}</span>
+                                {% else %}<span class="text-muted">{{ _("Sin asignar") }}</span>{% endif %}
+                            </td>
+                            <td class="text-end">{{ s.num_plants }}</td>
+                            <td class="text-end fw-semibold">{{ s.total_grams|format_eu(1) }} g</td>
+                            <td class="text-end text-muted">{{ s.grams_per_plant|format_eu(1) }} g</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     {% endif %}
@@ -541,6 +633,43 @@
     </div>
 </div>
 
+{# Plant species modal #}
+<div class="modal fade" id="speciesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <form method="post" id="speciesForm" action="">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-tree text-info me-2"></i>{{ _("Especie de árbol huésped") }}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Cerrar') }}"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3">{{ _("Planta") }}: <strong id="speciesPlantLabel">-</strong></p>
+                    <div class="mb-3">
+                        <label for="speciesSelect" class="form-label fw-semibold">{{ _("Especie") }}</label>
+                        <select id="speciesSelect" name="host_species" class="form-select">
+                            <option value="">— {{ _("Sin asignar") }} —</option>
+                            {% for sp in host_species_choices %}
+                            <option value="{{ sp.value }}">{{ _(sp.value|capitalize) }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% if selected_campaign is not none %}
+                    <input type="hidden" name="campaign" value="{{ selected_campaign }}">
+                    {% endif %}
+                </div>
+                <div class="modal-footer d-flex flex-column flex-sm-row gap-2">
+                    <button type="button" class="btn btn-outline-secondary w-100 w-sm-auto" data-bs-dismiss="modal">{{ _("Cancelar") }}</button>
+                    {% if not read_only %}
+                    <button type="submit" class="btn btn-info w-100 w-sm-auto">{{ _("Guardar") }}</button>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const registerWeightModalEl = document.getElementById('registerWeightModal');
@@ -566,6 +695,10 @@
         const statusSelect = document.getElementById('statusSelect');
         const statusBajaDate = document.getElementById('statusBajaDate');
         const statusBajaDateGroup = document.getElementById('statusBajaDateGroup');
+        const speciesModalEl = document.getElementById('speciesModal');
+        const speciesForm = document.getElementById('speciesForm');
+        const speciesPlantLabel = document.getElementById('speciesPlantLabel');
+        const speciesSelect = document.getElementById('speciesSelect');
         const mapViewMode = '{{ map_view_mode }}';
         const readOnly = {{ 'true' if read_only else 'false' }};
 
@@ -586,7 +719,7 @@
         }
 
         // Handle cell clicks
-        document.querySelectorAll('.tf-map-cell-plant, [data-presence-mode="true"], [data-brule-mode="true"], [data-status-mode="true"]').forEach((cell) => {
+        document.querySelectorAll('.tf-map-cell-plant, [data-presence-mode="true"], [data-brule-mode="true"], [data-status-mode="true"], [data-species-mode="true"]').forEach((cell) => {
             cell.addEventListener('click', () => {
                 const plantId = cell.dataset.plantId;
                 const label = cell.dataset.plantLabel || '-';
@@ -598,6 +731,12 @@
                     statusBajaDate.value = cell.dataset.plantBajaDate || new Date().toISOString().split('T')[0];
                     statusSelect.dispatchEvent(new Event('change'));
                     const modal = new bootstrap.Modal(statusModalEl);
+                    modal.show();
+                } else if (mapViewMode === 'especie') {
+                    speciesForm.action = `/plots/{{ plot.id }}/plants/${plantId}/species`;
+                    speciesPlantLabel.textContent = label;
+                    speciesSelect.value = cell.dataset.plantSpecies || '';
+                    const modal = new bootstrap.Modal(speciesModalEl);
                     modal.show();
                 } else if (mapViewMode === 'presence') {
                     presenceForm.action = `/plots/{{ plot.id }}/plants/${plantId}/presence`;

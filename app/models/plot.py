@@ -3,10 +3,11 @@ from __future__ import annotations
 import datetime
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import Boolean, Date, ForeignKey, Integer, Numeric, String
+from sqlalchemy import Boolean, Date, Enum as SAEnum, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.models.plant import HostSpecies
 
 if TYPE_CHECKING:
     from app.models.expense import Expense
@@ -54,6 +55,11 @@ class Plot(Base):
     caudal_riego: Mapped[Optional[float]] = mapped_column(Numeric(10, 4, asdecimal=False), nullable=True)
     provincia_cod: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
     municipio_cod: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    # Default species for this plot (inherited by new plants when species is uniform)
+    default_host_species: Mapped[Optional[HostSpecies]] = mapped_column(
+        SAEnum(HostSpecies, name="host_species_enum"),
+        nullable=True,
+    )
 
     # Relationships
     tenant: Mapped[Optional["Tenant"]] = relationship("Tenant")

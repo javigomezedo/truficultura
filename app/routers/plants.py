@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth import require_subscription
 from app.database import get_db
 from app.i18n import _
-from app.models.plant import PlantStatus
+from app.models.plant import PlantStatus, HostSpecies
 from app.models.user import User
 from app.plan_access import (
     require_plant_limit,
@@ -78,6 +78,7 @@ def _build_map_summary_rows(
                     "display_weight_grams": display_grams,
                     "status": cell.plant.status,
                     "baja_date": cell.plant.baja_date,
+                    "host_species": cell.plant.host_species,
                 }
             )
 
@@ -167,7 +168,7 @@ async def map_view(
 
     # Presence view data
     map_view_mode = (
-        view if view in ("weight", "presence", "brule", "estado") else "weight"
+        view if view in ("weight", "presence", "brule", "estado", "especie") else "weight"
     )
     presence_by_plant: dict[int, bool] = {}
     if map_view_mode == "presence":
@@ -183,6 +184,10 @@ async def map_view(
     )
     for row in summary_rows:
         row["last_diameter_cm"] = last_brule_by_plant.get(row["plant_id"])
+
+    species_summary = await plants_service.get_species_summary(
+        db, plot_id, current_user.active_tenant_id, selected_campaign=selected
+    )
 
     active_plant_count = sum(
         1
@@ -212,6 +217,8 @@ async def map_view(
             "presence_by_plant": presence_by_plant,
             "last_brule_by_plant": last_brule_by_plant,
             "show_plants_warning": show_plants_warning,
+            "species_summary": species_summary,
+            "host_species_choices": list(HostSpecies),
             **ctx,
         },
     )
@@ -521,6 +528,61 @@ async def update_plant_status(
     camp_param = f"&campaign={campaign}" if campaign else ""
     return RedirectResponse(
         f"/plots/{plot_id}/map?view=estado{camp_param}&msg={quote_plus(_('Estado actualizado correctamente'))}",
+        status_code=303,
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Plant species — update
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+@router.post(
+    "/plots/{plot_id}/plants/{plant_id}/species", response_class=RedirectResponse
+)
+async def update_plant_species(
+    request: Request,
+    plot_id: int,
+    plant_id: int,
+    host_species: Optional[str] = Form(default=None),
+    campaign: Optional[str] = Form(default=None),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_write_access),
+):
+    plot = await get_plot(db, plot_id, current_user.active_tenant_id)
+    if plot is None:
+        return RedirectResponse(
+            f"/plots/?msg={quote_plus(_('Parcela no encontrada'))}",
+            status_code=303,
+        )
+
+    parsed_species: Optional[HostSpecies] = None
+    if host_species:
+        try:
+            parsed_species = HostSpecies(host_species)
+        except ValueError:
+            return RedirectResponse(
+                f"/plots/{plot_id}/map?view=especie&msg={quote_plus(_('Especie no válida'))}",
+                status_code=303,
+            )
+
+    plant = await plants_service.update_plant_species(
+        db,
+        plant_id,
+        current_user.active_tenant_id,
+        host_species=parsed_species,
+    )
+    if plant is None or plant.plot_id != plot_id:
+        return RedirectResponse(
+            f"/plots/{plot_id}/map?view=especie&msg={quote_plus(_('Planta no encontrada'))}",
+            status_code=303,
+        )
+
+    await db.commit()
+
+    camp_param = f"&campaign={campaign}" if campaign else ""
+    return RedirectResponse(
+        f"/plots/{plot_id}/map?view=especie{camp_param}&msg={quote_plus(_('Especie actualizada correctamente'))}",
         status_code=303,
     )
 
