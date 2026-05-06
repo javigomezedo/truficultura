@@ -1,0 +1,22 @@
+name: Cron diario (04:00 UTC = 06:00 CEST)
+
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:  # permite lanzarlo manualmente desde GitHub
+
+permissions:
+  contents: read
+
+jobs:
+  run-cron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Arrancar máquina cron
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          fly machine start 287e6dece12e68 --app trufiq-dev
