@@ -17,6 +17,17 @@ class PlantStatus(str, enum.Enum):
     muerta = "muerta"
     reemplazada = "reemplazada"
 
+
+class HostSpecies(str, enum.Enum):
+    encina = "encina"      # Quercus ilex
+    roble = "roble"        # Quercus pubescens
+    quejigo = "quejigo"    # Quercus faginea
+    coscoja = "coscoja"    # Quercus coccifera
+    avellano = "avellano"  # Corylus avellana
+    carpe = "carpe"        # Carpinus betulus
+    otros = "otros"
+
+
 if TYPE_CHECKING:
     from app.models.plot import Plot
     from app.models.tenant import Tenant
@@ -58,6 +69,11 @@ class Plant(Base):
     )
     # Date the plant was marked as dead or replaced (nullable for active plants)
     baja_date: Mapped[Optional[datetime.date]] = mapped_column(Date, nullable=True)
+    # Host tree species (nullable = unknown / not yet assigned)
+    host_species: Mapped[Optional[HostSpecies]] = mapped_column(
+        SAEnum(HostSpecies, name="host_species_enum"),
+        nullable=True,
+    )
 
     __table_args__ = (
         UniqueConstraint("plot_id", "label", name="uq_plant_label_per_plot"),

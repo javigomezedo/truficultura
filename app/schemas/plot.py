@@ -21,6 +21,7 @@ class PlotBase(BaseModel):
     caudal_riego: Optional[float] = None
     provincia_cod: Optional[str] = Field(None, max_length=10)
     municipio_cod: Optional[str] = Field(None, max_length=10)
+    default_host_species: Optional[str] = None
 
 
 class PlotCreate(PlotBase):
@@ -44,6 +45,7 @@ class PlotUpdate(BaseModel):
     caudal_riego: Optional[float] = None
     provincia_cod: Optional[str] = Field(None, max_length=10)
     municipio_cod: Optional[str] = Field(None, max_length=10)
+    default_host_species: Optional[str] = None
 
 
 class PlotResponse(PlotBase):

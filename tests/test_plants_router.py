@@ -45,6 +45,10 @@ def test_map_view_renders(monkeypatch) -> None:
         "app.routers.plants.brule_service.get_last_brule_by_plant",
         AsyncMock(return_value={}),
     )
+    monkeypatch.setattr(
+        "app.routers.plants.plants_service.get_species_summary",
+        AsyncMock(return_value=[]),
+    )
 
     app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: db
@@ -66,10 +70,10 @@ def test_map_view_renders_summary_table_sorted_by_label_asc_default(
     from app.models.plant import PlantStatus
 
     plant_a1 = SimpleNamespace(
-        id=1, label="A1", status=PlantStatus.viva, baja_date=None
+        id=1, label="A1", status=PlantStatus.viva, baja_date=None, host_species=None
     )
     plant_a2 = SimpleNamespace(
-        id=2, label="A2", status=PlantStatus.viva, baja_date=None
+        id=2, label="A2", status=PlantStatus.viva, baja_date=None, host_species=None
     )
     row = SimpleNamespace(
         row_label="A",
@@ -108,6 +112,10 @@ def test_map_view_renders_summary_table_sorted_by_label_asc_default(
         "app.routers.plants.brule_service.get_last_brule_by_plant",
         AsyncMock(return_value={}),
     )
+    monkeypatch.setattr(
+        "app.routers.plants.plants_service.get_species_summary",
+        AsyncMock(return_value=[]),
+    )
 
     app.dependency_overrides[require_subscription] = _user
     app.dependency_overrides[get_db] = lambda: db
@@ -132,10 +140,10 @@ def test_map_view_summary_table_sorts_by_label_asc(monkeypatch) -> None:
     from app.models.plant import PlantStatus
 
     plant_a1 = SimpleNamespace(
-        id=1, label="A1", status=PlantStatus.viva, baja_date=None
+        id=1, label="A1", status=PlantStatus.viva, baja_date=None, host_species=None
     )
     plant_b1 = SimpleNamespace(
-        id=2, label="B1", status=PlantStatus.viva, baja_date=None
+        id=2, label="B1", status=PlantStatus.viva, baja_date=None, host_species=None
     )
     row = SimpleNamespace(
         row_label="A",
@@ -173,6 +181,10 @@ def test_map_view_summary_table_sorts_by_label_asc(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.routers.plants.brule_service.get_last_brule_by_plant",
         AsyncMock(return_value={}),
+    )
+    monkeypatch.setattr(
+        "app.routers.plants.plants_service.get_species_summary",
+        AsyncMock(return_value=[]),
     )
 
     app.dependency_overrides[require_subscription] = _user
@@ -631,3 +643,56 @@ def test_add_truffle_event_blocks_dead_plant(monkeypatch) -> None:
 
     assert response.status_code == 303
     assert "muerta" in response.headers["location"].lower()
+
+
+# ---------------------------------------------------------------------------
+# update_plant_species
+# ---------------------------------------------------------------------------
+
+
+def test_update_plant_species_redirects_to_especie_view(monkeypatch) -> None:
+    from app.models.plant import HostSpecies
+
+    db = _db()
+    db.commit = AsyncMock()
+    plant = SimpleNamespace(id=1, plot_id=10, host_species=HostSpecies.encina)
+    monkeypatch.setattr("app.routers.plants.get_plot", AsyncMock(return_value=_plot()))
+    monkeypatch.setattr(
+        "app.routers.plants.plants_service.update_plant_species",
+        AsyncMock(return_value=plant),
+    )
+
+    app.dependency_overrides[require_subscription] = _user
+    app.dependency_overrides[get_db] = lambda: db
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/plots/10/plants/1/species",
+            data={"host_species": "encina"},
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert "view=especie" in response.headers["location"]
+
+
+def test_update_plant_species_invalid_species_redirects_with_error(monkeypatch) -> None:
+    db = _db()
+    monkeypatch.setattr("app.routers.plants.get_plot", AsyncMock(return_value=_plot()))
+
+    app.dependency_overrides[require_subscription] = _user
+    app.dependency_overrides[get_db] = lambda: db
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/plots/10/plants/1/species",
+            data={"host_species": "platano"},
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert "Especie+no+v" in response.headers["location"]

@@ -211,6 +211,22 @@
                                name="production_start"
                                value="{{ plot.production_start.isoformat() if plot and plot.production_start else '' }}">
                     </div>
+
+                    <!-- Especie de árbol huésped por defecto -->
+                    {% if host_species_choices %}
+                    <div class="col-md-6">
+                        <label for="default_host_species" class="form-label fw-semibold">{{ _("Especie de árbol huésped") }}</label>
+                        <select class="form-select" id="default_host_species" name="default_host_species">
+                            <option value="">— {{ _("Sin asignar") }} —</option>
+                            {% for sp in host_species_choices %}
+                            <option value="{{ sp.value }}" {% if plot and plot.default_host_species and plot.default_host_species.value == sp.value %}selected{% endif %}>
+                                {{ _(sp.value|capitalize) }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text small text-muted mt-1">{{ _("Se asigna automáticamente a las plantas al configurar el mapa") }}</div>
+                    </div>
+                    {% endif %}
                 </div>
 
                 {# ── SECCIÓN 3: Comunidad de Regantes (condicional) ──────────── #}
