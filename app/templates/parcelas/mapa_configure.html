@@ -157,8 +157,16 @@
             input.value = rowColumnsToConfig(state.rowColumns);
         }
 
+        function countActivePlants() {
+            var total = 0;
+            for (var i = 0; i < state.rowColumns.length; i += 1) {
+                total += (state.rowColumns[i] || []).length;
+            }
+            return total;
+        }
+
         function updateGridSizeInfo() {
-            sizeInfo.textContent = "Filas: " + state.rows + " · Columnas: " + state.cols;
+            sizeInfo.textContent = "Filas: " + state.rows + " · Columnas: " + state.cols + " · Plantas: " + countActivePlants();
         }
 
         function renderGrid() {
