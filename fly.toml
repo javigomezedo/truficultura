@@ -50,9 +50,9 @@ primary_region = 'cdg'
 # Máquina gestionada MANUALMENTE (fly deploy no la toca — las scheduled machines
 # no son compatibles con el ciclo de deploy de procesos regulares en fly.io).
 #
-# Machine: 287e6dece12e68 (trufiq-dev-cron, 256 MB, región cdg)
+# Machine: 2876015b966378 (trufiq-dev-cron, 256 MB, región cdg)
 #   schedule: NINGUNO — arrancada diariamente a las 04:00 UTC por GitHub Actions
-#             (.github/workflows/cron-daily.yml → fly machine start 287e6dece12e68)
+#             (.github/workflows/cron-daily.yml → fly machine start 2876015b966378)
 #             04:00 UTC = 06:00 CEST (verano) / 05:00 CET (invierno)
 #   cmd: sh -c 'python scripts/import_rainfall_cron.py; python scripts/process_recurring_expenses_cron.py; python scripts/process_notifications_cron.py'
 #   NOTA: usa ; (no &&) para que cada script siempre se ejecute aunque el anterior falle.
@@ -61,12 +61,12 @@ primary_region = 'cdg'
 # el step "Update cron machine image" en .github/workflows/fly-deploy.yml.
 #
 # Para verificar: fly machine list --app trufiq-dev
-# Para logs:      fly logs --app trufiq-dev --instance 287e6dece12e68
+# Para logs:      fly logs --app trufiq-dev --instance 2876015b966378
 # Para lanzar manualmente:
-#   fly machine start 287e6dece12e68 --app trufiq-dev
+#   fly machine start 2876015b966378 --app trufiq-dev
 # Para actualizar el comando (requiere token personal, no deploy token):
 #   TOKEN=$(fly auth token)
-#   curl -X POST https://api.machines.dev/v1/apps/trufiq-dev/machines/287e6dece12e68 \
+#   curl -X POST https://api.machines.dev/v1/apps/trufiq-dev/machines/2876015b966378 \
 #     -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
 #     -d '{"config":{"image":"<imagen-actual>","init":{"cmd":["sh","-c","<comando>"]},"restart":{"policy":"no"},"auto_destroy":true}}'
 # ---------------------------------------------------------------------------
