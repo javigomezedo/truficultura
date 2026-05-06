@@ -19,4 +19,4 @@ jobs:
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
-          fly machine start 287e6dece12e68 --app trufiq-dev
+          fly machine start 2876015b966378 --app trufiq-dev
