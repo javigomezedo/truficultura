@@ -60,9 +60,9 @@ async def notifications_list(
     )
     unread = await get_unread_count(current_user.id, db)
     return templates.TemplateResponse(
+        request,
         "notifications/index.html",
         {
-            "request": request,
             "current_user": current_user,
             "notifications": notifications,
             "unread_count": unread,
@@ -120,9 +120,9 @@ async def preferences_form(
 
     prefs = await get_preferences(current_user.id, tenant_id, db)
     return templates.TemplateResponse(
+        request,
         "notifications/preferences.html",
         {
-            "request": request,
             "current_user": current_user,
             "prefs": prefs,
             "notification_types": NOTIFICATION_TYPES,
