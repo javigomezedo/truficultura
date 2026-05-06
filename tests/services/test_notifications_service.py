@@ -624,7 +624,9 @@ async def test_check_low_water_balance_no_members():
     """No members → returns 0 immediately."""
     tenant = _make_tenant()
     db = MagicMock()
-    count = await svc._check_low_water_balance(datetime.date(2025, 6, 15), tenant, [], db)
+    count = await svc._check_low_water_balance(
+        datetime.date(2025, 6, 15), tenant, [], db
+    )
     assert count == 0
 
 
@@ -640,7 +642,9 @@ async def test_check_low_water_balance_no_plots():
     db = AsyncMock()
     db.execute = AsyncMock(return_value=fake_plots)
 
-    count = await svc._check_low_water_balance(datetime.date(2025, 6, 15), tenant, [user], db)
+    count = await svc._check_low_water_balance(
+        datetime.date(2025, 6, 15), tenant, [user], db
+    )
     assert count == 0
 
 
@@ -661,7 +665,9 @@ async def test_check_no_rainfall_data_no_municipios():
     db = AsyncMock()
     db.execute = AsyncMock(return_value=fake_plots)
 
-    count = await svc._check_no_rainfall_data(datetime.date(2025, 6, 15), tenant, [user], db)
+    count = await svc._check_no_rainfall_data(
+        datetime.date(2025, 6, 15), tenant, [user], db
+    )
     assert count == 0
 
 
@@ -677,13 +683,20 @@ async def test_check_stressed_plants_disabled_pref_skips():
     user = _make_user()
 
     prefs_result = {
-        ntype: {"enabled": False, "email_enabled": False, "threshold_days": 30, "threshold_value": None}
+        ntype: {
+            "enabled": False,
+            "email_enabled": False,
+            "threshold_days": 30,
+            "threshold_value": None,
+        }
         for ntype in svc._DEFAULTS.keys()
     }
 
     with patch.object(svc, "get_preferences", AsyncMock(return_value=prefs_result)):
         db = MagicMock()
-        count = await svc._check_stressed_plants(datetime.date(2025, 6, 15), tenant, [user], db)
+        count = await svc._check_stressed_plants(
+            datetime.date(2025, 6, 15), tenant, [user], db
+        )
 
     assert count == 0
 
@@ -699,7 +712,9 @@ async def test_check_no_irrigation_summer_wrong_month():
     tenant = _make_tenant()
     user = _make_user()
     db = MagicMock()
-    count = await svc._check_no_irrigation_summer(datetime.date(2025, 3, 15), tenant, [user], db)
+    count = await svc._check_no_irrigation_summer(
+        datetime.date(2025, 3, 15), tenant, [user], db
+    )
     assert count == 0
 
 
@@ -715,7 +730,9 @@ async def test_check_no_irrigation_summer_no_plots():
     db = AsyncMock()
     db.execute = AsyncMock(return_value=fake_plots)
 
-    count = await svc._check_no_irrigation_summer(datetime.date(2025, 8, 1), tenant, [user], db)
+    count = await svc._check_no_irrigation_summer(
+        datetime.date(2025, 8, 1), tenant, [user], db
+    )
     assert count == 0
 
 
@@ -731,13 +748,20 @@ async def test_check_no_brule_measurement_disabled_pref_skips():
     user = _make_user()
 
     prefs_result = {
-        ntype: {"enabled": False, "email_enabled": False, "threshold_days": 28, "threshold_value": None}
+        ntype: {
+            "enabled": False,
+            "email_enabled": False,
+            "threshold_days": 28,
+            "threshold_value": None,
+        }
         for ntype in svc._DEFAULTS.keys()
     }
 
     with patch.object(svc, "get_preferences", AsyncMock(return_value=prefs_result)):
         db = MagicMock()
-        count = await svc._check_no_brule_measurement(datetime.date(2025, 6, 15), tenant, [user], db)
+        count = await svc._check_no_brule_measurement(
+            datetime.date(2025, 6, 15), tenant, [user], db
+        )
 
     assert count == 0
 
@@ -770,7 +794,12 @@ async def test_check_no_rainfall_data_no_rain_creates():
     user = _make_user()
 
     prefs_result = {
-        ntype: {"enabled": True, "email_enabled": False, "threshold_days": 14, "threshold_value": None}
+        ntype: {
+            "enabled": True,
+            "email_enabled": False,
+            "threshold_days": 14,
+            "threshold_value": None,
+        }
         for ntype in svc._DEFAULTS.keys()
     }
 
@@ -785,7 +814,9 @@ async def test_check_no_rainfall_data_no_rain_creates():
     fake_count.scalar.return_value = 0  # no rainfall records
 
     with patch.object(svc, "get_preferences", AsyncMock(return_value=prefs_result)):
-        with patch.object(svc, "_create_if_not_exists", AsyncMock(return_value=MagicMock())) as mock_create:
+        with patch.object(
+            svc, "_create_if_not_exists", AsyncMock(return_value=MagicMock())
+        ) as mock_create:
             db = AsyncMock()
             db.execute = AsyncMock(side_effect=[fake_municipios, fake_count])
             count = await svc._check_no_rainfall_data(today, tenant, [user], db)
@@ -802,7 +833,12 @@ async def test_check_no_rainfall_data_with_rain_skips():
     user = _make_user()
 
     prefs_result = {
-        ntype: {"enabled": True, "email_enabled": False, "threshold_days": 14, "threshold_value": None}
+        ntype: {
+            "enabled": True,
+            "email_enabled": False,
+            "threshold_days": 14,
+            "threshold_value": None,
+        }
         for ntype in svc._DEFAULTS.keys()
     }
 
@@ -817,7 +853,9 @@ async def test_check_no_rainfall_data_with_rain_skips():
     fake_count.scalar.return_value = 5  # has rainfall records
 
     with patch.object(svc, "get_preferences", AsyncMock(return_value=prefs_result)):
-        with patch.object(svc, "_create_if_not_exists", AsyncMock(return_value=None)) as mock_create:
+        with patch.object(
+            svc, "_create_if_not_exists", AsyncMock(return_value=None)
+        ) as mock_create:
             db = AsyncMock()
             db.execute = AsyncMock(side_effect=[fake_municipios, fake_count])
             count = await svc._check_no_rainfall_data(today, tenant, [user], db)
@@ -839,7 +877,12 @@ async def test_check_stressed_plants_with_stressed_plants_creates():
     user = _make_user()
 
     prefs_result = {
-        ntype: {"enabled": True, "email_enabled": False, "threshold_days": 30, "threshold_value": None}
+        ntype: {
+            "enabled": True,
+            "email_enabled": False,
+            "threshold_days": 30,
+            "threshold_value": None,
+        }
         for ntype in svc._DEFAULTS.keys()
     }
 
@@ -847,7 +890,9 @@ async def test_check_stressed_plants_with_stressed_plants_creates():
     fake_count.scalar.return_value = 3  # 3 stressed plants
 
     with patch.object(svc, "get_preferences", AsyncMock(return_value=prefs_result)):
-        with patch.object(svc, "_create_if_not_exists", AsyncMock(return_value=MagicMock())) as mock_create:
+        with patch.object(
+            svc, "_create_if_not_exists", AsyncMock(return_value=MagicMock())
+        ) as mock_create:
             db = AsyncMock()
             db.execute = AsyncMock(return_value=fake_count)
             count = await svc._check_stressed_plants(today, tenant, [user], db)
@@ -864,7 +909,12 @@ async def test_check_stressed_plants_no_stressed_plants_skips():
     user = _make_user()
 
     prefs_result = {
-        ntype: {"enabled": True, "email_enabled": False, "threshold_days": 30, "threshold_value": None}
+        ntype: {
+            "enabled": True,
+            "email_enabled": False,
+            "threshold_days": 30,
+            "threshold_value": None,
+        }
         for ntype in svc._DEFAULTS.keys()
     }
 
@@ -872,7 +922,9 @@ async def test_check_stressed_plants_no_stressed_plants_skips():
     fake_count.scalar.return_value = 0
 
     with patch.object(svc, "get_preferences", AsyncMock(return_value=prefs_result)):
-        with patch.object(svc, "_create_if_not_exists", AsyncMock(return_value=None)) as mock_create:
+        with patch.object(
+            svc, "_create_if_not_exists", AsyncMock(return_value=None)
+        ) as mock_create:
             db = AsyncMock()
             db.execute = AsyncMock(return_value=fake_count)
             count = await svc._check_stressed_plants(today, tenant, [user], db)
@@ -894,7 +946,12 @@ async def test_check_no_brule_measurement_no_recent_creates():
     user = _make_user()
 
     prefs_result = {
-        ntype: {"enabled": True, "email_enabled": False, "threshold_days": 28, "threshold_value": None}
+        ntype: {
+            "enabled": True,
+            "email_enabled": False,
+            "threshold_days": 28,
+            "threshold_value": None,
+        }
         for ntype in svc._DEFAULTS.keys()
     }
 
@@ -905,7 +962,9 @@ async def test_check_no_brule_measurement_no_recent_creates():
     fake_historical.scalar.return_value = 5  # has historical data
 
     with patch.object(svc, "get_preferences", AsyncMock(return_value=prefs_result)):
-        with patch.object(svc, "_create_if_not_exists", AsyncMock(return_value=MagicMock())) as mock_create:
+        with patch.object(
+            svc, "_create_if_not_exists", AsyncMock(return_value=MagicMock())
+        ) as mock_create:
             db = AsyncMock()
             db.execute = AsyncMock(side_effect=[fake_recent, fake_historical])
             count = await svc._check_no_brule_measurement(today, tenant, [user], db)
@@ -922,7 +981,12 @@ async def test_check_no_brule_measurement_no_historical_skips():
     user = _make_user()
 
     prefs_result = {
-        ntype: {"enabled": True, "email_enabled": False, "threshold_days": 28, "threshold_value": None}
+        ntype: {
+            "enabled": True,
+            "email_enabled": False,
+            "threshold_days": 28,
+            "threshold_value": None,
+        }
         for ntype in svc._DEFAULTS.keys()
     }
 
@@ -933,7 +997,9 @@ async def test_check_no_brule_measurement_no_historical_skips():
     fake_historical.scalar.return_value = 0  # no historical either
 
     with patch.object(svc, "get_preferences", AsyncMock(return_value=prefs_result)):
-        with patch.object(svc, "_create_if_not_exists", AsyncMock(return_value=None)) as mock_create:
+        with patch.object(
+            svc, "_create_if_not_exists", AsyncMock(return_value=None)
+        ) as mock_create:
             db = AsyncMock()
             db.execute = AsyncMock(side_effect=[fake_recent, fake_historical])
             count = await svc._check_no_brule_measurement(today, tenant, [user], db)
@@ -996,7 +1062,12 @@ async def test_check_low_harvest_low_harvest_creates():
     user = _make_user()
 
     prefs_result = {
-        ntype: {"enabled": True, "email_enabled": False, "threshold_days": None, "threshold_value": 50.0}
+        ntype: {
+            "enabled": True,
+            "email_enabled": False,
+            "threshold_days": None,
+            "threshold_value": 50.0,
+        }
         for ntype in svc._DEFAULTS.keys()
     }
 
@@ -1015,9 +1086,13 @@ async def test_check_low_harvest_low_harvest_creates():
     fake_campaigns.all.return_value = [(past_date_1,), (past_date_2,)]
 
     with patch.object(svc, "get_preferences", AsyncMock(return_value=prefs_result)):
-        with patch.object(svc, "_create_if_not_exists", AsyncMock(return_value=MagicMock())) as mock_create:
+        with patch.object(
+            svc, "_create_if_not_exists", AsyncMock(return_value=MagicMock())
+        ) as mock_create:
             db = AsyncMock()
-            db.execute = AsyncMock(side_effect=[fake_current, fake_historical, fake_campaigns])
+            db.execute = AsyncMock(
+                side_effect=[fake_current, fake_historical, fake_campaigns]
+            )
             count = await svc._check_low_harvest(today, tenant, [user], db)
 
     assert count == 1
