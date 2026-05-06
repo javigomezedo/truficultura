@@ -146,3 +146,47 @@ def test_preferences_renders(monkeypatch) -> None:
 
     assert response.status_code == 200
     assert "Preferencias" in response.text
+
+
+def test_save_preferences_redirects(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.routers.notifications.upsert_preference",
+        AsyncMock(return_value=None),
+    )
+    app.dependency_overrides[require_user] = _user
+    app.dependency_overrides[get_db] = lambda: _db()
+    try:
+        client = TestClient(app, follow_redirects=False)
+        response = client.post(
+            "/notifications/preferences",
+            data={
+                "campaign_start_enabled": "on",
+                "campaign_start_email_enabled": "on",
+                "campaign_start_threshold_days": "7",
+                "campaign_start_threshold_value": "",
+            },
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert "preferences" in response.headers["location"]
+
+
+def test_preferences_no_tenant_redirects(monkeypatch) -> None:
+    def _user_no_tenant():
+        return SimpleNamespace(id=1, role="user", is_active=True, active_tenant_id=None)
+
+    monkeypatch.setattr(
+        "app.routers.notifications.get_preferences",
+        AsyncMock(return_value={}),
+    )
+    app.dependency_overrides[require_user] = _user_no_tenant
+    app.dependency_overrides[get_db] = lambda: _db()
+    try:
+        client = TestClient(app, follow_redirects=False)
+        response = client.get("/notifications/preferences")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 302

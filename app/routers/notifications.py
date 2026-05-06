@@ -4,11 +4,11 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import require_user
 from app.database import get_db
+from app.jinja import templates
 from app.models.notification import NOTIFICATION_TYPES
 from app.models.user import User
 from app.services.notifications_service import (
@@ -22,7 +22,6 @@ from app.services.notifications_service import (
 )
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
-templates = Jinja2Templates(directory="app/templates")
 
 _TYPE_LABELS: dict[str, str] = {
     "campaign_start": "Inicio de campaña agrícola",
