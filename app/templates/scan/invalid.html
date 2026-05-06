@@ -4,9 +4,16 @@
 
 {% block content %}
 <div class="container py-5">
+    {% if reason == 'dead' %}
+    <div class="alert alert-warning">
+        <h4 class="alert-heading"><i class="bi bi-x-circle me-2"></i>{{ _("Planta no activa") }}</h4>
+        <p class="mb-0">{{ _("Esta planta está marcada como muerta y no puede registrar cosecha.") }}</p>
+    </div>
+    {% else %}
     <div class="alert alert-danger">
         <h4 class="alert-heading">{{ _("QR inválido o caducado") }}</h4>
         <p class="mb-0">{{ _("No hemos podido validar este código QR.") }}</p>
     </div>
+    {% endif %}
 </div>
 {% endblock %}

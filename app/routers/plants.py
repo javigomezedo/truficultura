@@ -5,15 +5,21 @@ from typing import Optional
 from urllib.parse import quote_plus
 
 from fastapi import APIRouter, Depends, Form, Query, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import require_subscription
 from app.database import get_db
 from app.i18n import _
+from app.models.plant import PlantStatus
 from app.models.user import User
-from app.plan_access import require_plant_limit, require_write_access, get_plan_mode, PLANT_LIMIT_BASIC
+from app.plan_access import (
+    require_plant_limit,
+    require_write_access,
+    get_plan_mode,
+    PLANT_LIMIT_BASIC,
+)
 from app.services import (
     plant_presence_service,
     plants_service,
@@ -41,7 +47,7 @@ import re
 
 def _natural_key(s: str):
     """Sort key for natural (alphanumeric) ordering: A1 < A2 < A10."""
-    return [int(c) if c.isdigit() else c.lower() for c in re.split(r'(\d+)', s)]
+    return [int(c) if c.isdigit() else c.lower() for c in re.split(r"(\d+)", s)]
 
 
 def _build_map_summary_rows(
@@ -70,6 +76,8 @@ def _build_map_summary_rows(
                     "campaign_weight_grams": float(cell.campaign_weight_grams),
                     "total_weight_grams": float(cell.total_weight_grams),
                     "display_weight_grams": display_grams,
+                    "status": cell.plant.status,
+                    "baja_date": cell.plant.baja_date,
                 }
             )
 
@@ -87,7 +95,11 @@ def _build_map_summary_rows(
     reverse = sort_order == "desc"
 
     def _sort_key(item):
-        primary = _natural_key(item[selected_sort]) if isinstance(item[selected_sort], str) else item[selected_sort]
+        primary = (
+            _natural_key(item[selected_sort])
+            if isinstance(item[selected_sort], str)
+            else item[selected_sort]
+        )
         return (primary, _natural_key(item["label"]), item["plant_id"])
 
     summary_rows.sort(key=_sort_key, reverse=reverse)
@@ -154,7 +166,9 @@ async def map_view(
     )
 
     # Presence view data
-    map_view_mode = view if view in ("weight", "presence", "brule") else "weight"
+    map_view_mode = (
+        view if view in ("weight", "presence", "brule", "estado") else "weight"
+    )
     presence_by_plant: dict[int, bool] = {}
     if map_view_mode == "presence":
         presence_by_plant = await plant_presence_service.get_presences_by_plot(
@@ -169,6 +183,18 @@ async def map_view(
     )
     for row in summary_rows:
         row["last_diameter_cm"] = last_brule_by_plant.get(row["plant_id"])
+
+    active_plant_count = sum(
+        1
+        for r in ctx.get("rows", [])
+        for c in r.cells
+        if c.plant is not None and c.plant.status != PlantStatus.muerta
+    )
+    show_plants_warning = (
+        plot.num_plants is not None
+        and ctx.get("has_plants", False)
+        and active_plant_count != plot.num_plants
+    )
 
     return templates.TemplateResponse(
         request,
@@ -185,6 +211,7 @@ async def map_view(
             "map_view_mode": map_view_mode,
             "presence_by_plant": presence_by_plant,
             "last_brule_by_plant": last_brule_by_plant,
+            "show_plants_warning": show_plants_warning,
             **ctx,
         },
     )
@@ -197,6 +224,7 @@ async def map_view(
 
 @router.post("/plots/{plot_id}/plants/{plant_id}/presence", response_class=HTMLResponse)
 async def toggle_plant_presence(
+    request: Request,
     plot_id: int,
     plant_id: int,
     presence_date: str = Form(...),
@@ -204,6 +232,8 @@ async def toggle_plant_presence(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_write_access),
 ):
+    wants_json = "application/json" in request.headers.get("accept", "")
+
     # Validate the plot belongs to the user
     from app.services.plots_service import get_plot as _get_plot
 
@@ -211,6 +241,17 @@ async def toggle_plant_presence(
     if plot is None:
         return RedirectResponse(
             f"/plots/?msg={quote_plus(_('Parcela no encontrada'))}",
+            status_code=303,
+        )
+
+    plant = await plants_service.get_plant(db, plant_id, current_user.active_tenant_id)
+    if plant and plant.status == PlantStatus.muerta:
+        error_msg = _("No se puede registrar presencia en una planta muerta")
+        if wants_json:
+            return JSONResponse({"error": error_msg}, status_code=409)
+        camp_param = f"&campaign={campaign}" if campaign else ""
+        return RedirectResponse(
+            f"/plots/{plot_id}/map?view=presence{camp_param}&msg={quote_plus(error_msg)}",
             status_code=303,
         )
 
@@ -232,10 +273,10 @@ async def toggle_plant_presence(
     await db.commit()
 
     camp_param = f"&campaign={campaign}" if campaign else ""
-    return RedirectResponse(
-        f"/plots/{plot_id}/map?view=presence{camp_param}",
-        status_code=303,
-    )
+    target = f"/plots/{plot_id}/map?view=presence{camp_param}"
+    if wants_json:
+        return JSONResponse({"ok": True, "redirect": target})
+    return RedirectResponse(target, status_code=303)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -262,7 +303,9 @@ async def configure_map_form(
     )
 
     # Build current row configuration string from existing plants
-    all_plants = await plants_service.list_plants(db, plot_id, current_user.active_tenant_id)
+    all_plants = await plants_service.list_plants(
+        db, plot_id, current_user.active_tenant_id
+    )
     row_columns: list[list[int]] = []
     if all_plants:
         by_row: dict[int, list[int]] = {}
@@ -307,9 +350,14 @@ async def configure_map_submit(
         )
 
     try:
-        plant_limit = PLANT_LIMIT_BASIC if get_plan_mode(current_user) == "basic" else None
+        plant_limit = (
+            PLANT_LIMIT_BASIC if get_plan_mode(current_user) == "basic" else None
+        )
         await plants_service.configure_plot_map(
-            db, plot, tenant_id=current_user.active_tenant_id, row_columns=row_columns,
+            db,
+            plot,
+            tenant_id=current_user.active_tenant_id,
+            row_columns=row_columns,
             plant_limit=plant_limit,
         )
     except ValueError as exc:
@@ -346,6 +394,17 @@ async def add_truffle_event(
             status_code=303,
         )
 
+    wants_json = "application/json" in request.headers.get("accept", "")
+
+    if plant.status == PlantStatus.muerta:
+        error_msg = _("No se puede registrar cosecha en una planta muerta")
+        if wants_json:
+            return JSONResponse({"error": error_msg}, status_code=409)
+        return RedirectResponse(
+            f"/plots/{plot_id}/map?msg={quote_plus(error_msg)}",
+            status_code=303,
+        )
+
     weight = max(0.1, min(float(estimated_weight_grams), 50000.0))
 
     await truffle_events_service.create_event(
@@ -367,6 +426,8 @@ async def add_truffle_event(
             f"/plots/{plot_id}/map?msg="
             f"{quote_plus(_('Trufa registrada correctamente'))}"
         )
+    if wants_json:
+        return JSONResponse({"ok": True, "redirect": target})
     return RedirectResponse(target, status_code=303)
 
 
@@ -400,6 +461,68 @@ async def undo_truffle_event(
     else:
         target = f"/plots/{plot_id}/map?msg={msg}"
     return RedirectResponse(target, status_code=303)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Plant status — update
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+@router.post(
+    "/plots/{plot_id}/plants/{plant_id}/status", response_class=RedirectResponse
+)
+async def update_plant_status(
+    request: Request,
+    plot_id: int,
+    plant_id: int,
+    status: str = Form(...),
+    baja_date: Optional[str] = Form(default=None),
+    campaign: Optional[str] = Form(default=None),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_write_access),
+):
+    plot = await get_plot(db, plot_id, current_user.active_tenant_id)
+    if plot is None:
+        return RedirectResponse(
+            f"/plots/?msg={quote_plus(_('Parcela no encontrada'))}",
+            status_code=303,
+        )
+
+    try:
+        parsed_status = PlantStatus(status)
+    except ValueError:
+        return RedirectResponse(
+            f"/plots/{plot_id}/map?view=estado&msg={quote_plus(_('Estado no válido'))}",
+            status_code=303,
+        )
+
+    parsed_baja: Optional[datetime.date] = None
+    if baja_date:
+        try:
+            parsed_baja = datetime.date.fromisoformat(baja_date)
+        except (ValueError, TypeError):
+            pass
+
+    plant = await plants_service.update_plant_status(
+        db,
+        plant_id,
+        current_user.active_tenant_id,
+        status=parsed_status,
+        baja_date=parsed_baja,
+    )
+    if plant is None or plant.plot_id != plot_id:
+        return RedirectResponse(
+            f"/plots/{plot_id}/map?view=estado&msg={quote_plus(_('Planta no encontrada'))}",
+            status_code=303,
+        )
+
+    await db.commit()
+
+    camp_param = f"&campaign={campaign}" if campaign else ""
+    return RedirectResponse(
+        f"/plots/{plot_id}/map?view=estado{camp_param}&msg={quote_plus(_('Estado actualizado correctamente'))}",
+        status_code=303,
+    )
 
 
 @router.post("/truffles/{event_id}/delete", response_class=RedirectResponse)
@@ -566,7 +689,9 @@ async def download_plot_qr_pdf(
             status_code=303,
         )
 
-    plants = await plants_service.list_plants(db, plot_id, current_user.active_tenant_id)
+    plants = await plants_service.list_plants(
+        db, plot_id, current_user.active_tenant_id
+    )
     if not plants:
         return RedirectResponse(
             f"/plots/?msg={quote_plus(_('La parcela no tiene plantas configuradas'))}",
