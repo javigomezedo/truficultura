@@ -37,6 +37,7 @@ from app.models.rainfall import RainfallRecord
 from app.models.tenant import Tenant, TenantMembership
 from app.models.truffle_event import TruffleEvent
 from app.models.user import User
+from app.services.rainfall_service import resolve_municipio_cod
 from app.utils import campaign_label, campaign_year
 
 logger = logging.getLogger(__name__)
@@ -636,14 +637,17 @@ async def _check_no_rainfall_data(
     """Sin registros de lluvia para ninguna parcela del tenant en los últimos N días."""
     created = 0
 
-    # Get distinct municipio codes for this tenant's plots
+    # Get distinct municipio codes for this tenant's plots, normalized to 5-digit INE codes
     plots_result = await db.execute(
-        select(Plot.municipio_cod).where(
+        select(Plot).where(
             Plot.tenant_id == tenant.id,
             Plot.municipio_cod.isnot(None),
         )
     )
-    municipios = [row[0] for row in plots_result.all() if row[0]]
+    municipios = list({
+        cod for plot in plots_result.scalars().all()
+        if (cod := resolve_municipio_cod(plot))
+    })
     if not municipios:
         return 0
 

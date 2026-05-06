@@ -774,8 +774,12 @@ async def test_check_no_rainfall_data_no_rain_creates():
         for ntype in svc._DEFAULTS.keys()
     }
 
+    fake_plot = MagicMock()
+    fake_plot.municipio_cod = "001"
+    fake_plot.provincia_cod = "30"
+
     fake_municipios = MagicMock()
-    fake_municipios.all.return_value = [("30001",)]  # one municipio row
+    fake_municipios.scalars.return_value.all.return_value = [fake_plot]
 
     fake_count = MagicMock()
     fake_count.scalar.return_value = 0  # no rainfall records
@@ -802,8 +806,12 @@ async def test_check_no_rainfall_data_with_rain_skips():
         for ntype in svc._DEFAULTS.keys()
     }
 
+    fake_plot = MagicMock()
+    fake_plot.municipio_cod = "001"
+    fake_plot.provincia_cod = "30"
+
     fake_municipios = MagicMock()
-    fake_municipios.all.return_value = [("30001",)]
+    fake_municipios.scalars.return_value.all.return_value = [fake_plot]
 
     fake_count = MagicMock()
     fake_count.scalar.return_value = 5  # has rainfall records
