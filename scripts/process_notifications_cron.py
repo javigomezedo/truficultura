@@ -1,0 +1,95 @@
+#!/usr/bin/env python3
+"""
+Cron script: genera los avisos automáticos para todos los usuarios.
+
+Uso:
+    uv run scripts/process_notifications_cron.py
+    uv run scripts/process_notifications_cron.py --dry-run   # muestra qué haría sin escribir nada
+
+Variables de entorno requeridas:
+    DATABASE_URL   — URL de conexión a PostgreSQL (igual que en .env)
+"""
+
+import argparse
+import asyncio
+import logging
+import os
+import sys
+
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+
+# Asegura que el directorio raíz del proyecto está en el path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from app.services.notifications_service import check_and_create_notifications
+from app.observability import (
+    configure_logging,
+    configure_sentry,
+    install_global_exception_hooks,
+)
+
+configure_logging(level=os.environ.get("LOG_LEVEL", "INFO"), json_logs=False)
+log = logging.getLogger(__name__)
+configure_sentry(
+    dsn=os.environ.get("SENTRY_DSN"),
+    environment=os.environ.get("SENTRY_ENVIRONMENT", "development"),
+    release=os.environ.get("SENTRY_RELEASE"),
+    traces_sample_rate=float(os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0")),
+    service_name="trufiq-cron-notifications",
+    logger=log,
+)
+
+
+async def main(dry_run: bool = False) -> None:
+    log.info("=== Cron avisos: inicio ===")
+    database_url = os.environ.get("DATABASE_URL")
+    if not database_url:
+        log.error("DATABASE_URL no definida. Abortando.")
+        sys.exit(1)
+
+    from app.config import Settings
+
+    settings = Settings(DATABASE_URL=database_url)
+    database_url = settings.SQLALCHEMY_DATABASE_URL
+
+    engine = create_async_engine(database_url, echo=False)
+    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)  # type: ignore[call-overload]
+
+    try:
+        async with async_session() as session:
+            if dry_run:
+                log.info(
+                    "[DRY-RUN] Modo simulación activado — no se escribirá nada en la BD."
+                )
+                created = await check_and_create_notifications(session)
+                log.info(
+                    "[DRY-RUN] Se crearían %d aviso(s). No se ha escrito nada.",
+                    created,
+                )
+                await session.rollback()
+            else:
+                created = await check_and_create_notifications(session)
+                await session.commit()
+                log.info("Avisos procesados: %d creados.", created)
+    except Exception:
+        log.exception("Error al procesar avisos.")
+        await engine.dispose()
+        sys.exit(1)
+
+    await engine.dispose()
+    log.info("=== Cron avisos: fin ===")
+
+
+if __name__ == "__main__":
+    install_global_exception_hooks(log)
+    parser = argparse.ArgumentParser(
+        description="Genera los avisos automáticos para todos los usuarios."
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Simula la ejecución sin escribir en la base de datos.",
+    )
+    args = parser.parse_args()
+    asyncio.run(main(dry_run=args.dry_run))

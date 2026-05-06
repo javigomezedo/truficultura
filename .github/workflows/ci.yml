@@ -37,22 +37,24 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e .
-          pip install pytest pytest-asyncio pytest-cov httpx aiosqlite
+        run: uv sync --frozen
 
       - name: Validate migrations bootstrap from empty DB
         env:
           DATABASE_URL: postgres://trufi:trufi@localhost:5433/trufiq
         run: |
-          alembic upgrade head
+          uv run alembic upgrade head
 
       - name: Run tests
-        run: pytest -q tests/
+        run: uv run pytest -q
 
       - name: Build Docker image
         run: docker build -t trufiq:ci .

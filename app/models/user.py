@@ -39,6 +39,9 @@ class User(Base):
     password_reset_token_hash: Mapped[Optional[str]] = mapped_column(
         String(64), nullable=True
     )
+    last_seen_at: Mapped[Optional[datetime.datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Relationship to tenant membership (each user belongs to exactly one tenant)
     membership: Mapped[Optional["TenantMembership"]] = relationship(

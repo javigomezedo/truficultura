@@ -15,6 +15,7 @@ from app.models.plot_harvest import PlotHarvest
 from app.models.recurring_expense import RecurringExpense
 from app.models.brule import BruleRecord
 from app.models.lead_capture import LeadCapture
+from app.models.notification import Notification, NotificationPreference
 
 __all__ = [
     "User",
@@ -36,4 +37,6 @@ __all__ = [
     "RecurringExpense",
     "BruleRecord",
     "LeadCapture",
+    "Notification",
+    "NotificationPreference",
 ]

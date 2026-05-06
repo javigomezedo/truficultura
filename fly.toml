@@ -46,14 +46,14 @@ primary_region = 'cdg'
 
 
 # ---------------------------------------------------------------------------
-# Cron: importación diaria de lluvia + gastos recurrentes
+# Cron: importación diaria de lluvia + gastos recurrentes + avisos
 # Máquina gestionada MANUALMENTE (fly deploy no la toca — las scheduled machines
 # no son compatibles con el ciclo de deploy de procesos regulares en fly.io).
 #
 # Machine: 287e6dece12e68 (trufiq-dev-cron, 256 MB, región cdg)
 #   schedule: daily | env: RUN_MIGRATIONS=0
-#   cmd: sh -c 'python scripts/import_rainfall_cron.py; python scripts/process_recurring_expenses_cron.py'
-#   NOTA: usa ; (no &&) para que el segundo script siempre se ejecute aunque el primero falle.
+#   cmd: sh -c 'python scripts/import_rainfall_cron.py; python scripts/process_recurring_expenses_cron.py; python scripts/process_notifications_cron.py'
+#   NOTA: usa ; (no &&) para que cada script siempre se ejecute aunque el anterior falle.
 #
 # La imagen se actualiza automáticamente tras cada push a main mediante
 # el step "Update cron machine image" en .github/workflows/fly-deploy.yml.
@@ -62,6 +62,6 @@ primary_region = 'cdg'
 # Para logs:      fly logs --app trufiq-dev --instance <cron-machine-id>
 # Para actualizar el comando:
 #   fly machine update <cron-machine-id> --app trufiq-dev \
-#     --command "sh -c 'python scripts/import_rainfall_cron.py; python scripts/process_recurring_expenses_cron.py'"
+#     --command "sh -c 'python scripts/import_rainfall_cron.py; python scripts/process_recurring_expenses_cron.py; python scripts/process_notifications_cron.py'"
 # ---------------------------------------------------------------------------
 

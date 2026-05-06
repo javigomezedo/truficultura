@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Optional
 
 from fastapi import Depends, Request
@@ -75,6 +75,17 @@ async def get_current_user(
     if user is None and user_id is not None:
         request.session.clear()
         return None
+
+    # Update last_seen_at throttled: write at most once per hour to avoid
+    # excess DB writes on every request.
+    if user is not None:
+        now = datetime.now(UTC)
+        if user.last_seen_at is None or (now - user.last_seen_at) >= timedelta(hours=1):
+            user.last_seen_at = now
+            try:
+                await db.commit()
+            except Exception:
+                await db.rollback()
 
     # Load the tenant membership for this user
     if user is not None:

@@ -71,6 +71,8 @@ class TestRequireAdmin:
 
         db = MagicMock()
         db.execute = AsyncMock()
+        db.commit = AsyncMock()
+        db.rollback = AsyncMock()
         # Mock the query result
         mock_result = MagicMock()
         mock_result.scalar_one_or_none = MagicMock(return_value=admin_user)
@@ -104,6 +106,8 @@ class TestRequireAdmin:
 
         db = MagicMock()
         db.execute = AsyncMock()
+        db.commit = AsyncMock()
+        db.rollback = AsyncMock()
         mock_result = MagicMock()
         mock_result.scalar_one_or_none = MagicMock(return_value=user)
         empty_membership = MagicMock()
@@ -156,6 +160,8 @@ class TestRequireAdmin:
 
         db = MagicMock()
         db.execute = AsyncMock()
+        db.commit = AsyncMock()
+        db.rollback = AsyncMock()
         mock_result = MagicMock()
         mock_result.scalar_one_or_none = MagicMock(return_value=inactive_user)
         empty_membership = MagicMock()
@@ -191,6 +197,7 @@ class TestGetCurrentUserResilience:
 
         db = MagicMock()
         db.rollback = AsyncMock()
+        db.commit = AsyncMock()
 
         mock_result = MagicMock()
         mock_result.scalar_one_or_none = MagicMock(return_value=user)
