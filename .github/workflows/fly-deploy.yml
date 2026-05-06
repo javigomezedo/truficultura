@@ -38,7 +38,29 @@ jobs:
           print(app_machines[0]['config']['image'])
           ")
           echo "Updating cron machine with image: $IMAGE"
-          flyctl machine update "$CRON_MACHINE_ID" --app "$APP_NAME" --image "$IMAGE" --yes
+          # flyctl machine update no puede actualizar máquinas con auto_destroy=true;
+          # se usa la REST API directamente.
+          RESULT=$(curl -s -X POST \
+            "https://api.machines.dev/v1/apps/${APP_NAME}/machines/${CRON_MACHINE_ID}" \
+            -H "Authorization: Bearer $FLY_API_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"config\": {
+                \"image\": \"$IMAGE\",
+                \"init\": {
+                  \"cmd\": [\"sh\", \"-c\", \"python scripts/import_rainfall_cron.py; python scripts/process_recurring_expenses_cron.py; python scripts/process_notifications_cron.py\"]
+                },
+                \"restart\": {\"policy\": \"no\"},
+                \"auto_destroy\": true
+              }
+            }")
+          echo "$RESULT" | python3 -c "
+          import sys, json
+          d = json.load(sys.stdin)
+          if 'error' in d:
+              print('ERROR:', d['error']); sys.exit(1)
+          print('OK - image:', d.get('config',{}).get('image','?')[:80])
+          "
       - name: Healthcheck post-deploy
         run: |
           curl --fail --silent --show-error https://trufiq-dev.fly.dev/health
