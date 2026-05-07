@@ -640,7 +640,8 @@ async def import_plot_events_csv(
 
     - fecha:         DD/MM/YYYY (required)
     - bancal:        plot name (required)
-    - tipo_evento:   one of labrado, picado, poda, vallado, installed_drip, riego, pozo (required)
+    - tipo_evento:   one of labrado, picado, poda, vallado, installed_drip, riego, pozo,
+                     herbicida, tratamiento_fitosanitario, siega, abonado, dano_jabali (required)
     - notas:         optional free text notes
     - es_recurrente: 1 or 0 (optional; inferred from event type if omitted)
 

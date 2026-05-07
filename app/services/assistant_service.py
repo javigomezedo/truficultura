@@ -75,7 +75,8 @@ Si no hay suficientes datos históricos, el simulador lo indica sin emitir recom
 - Pozos / Labores de pozo: registro de labores de pozo por parcela con número de pozos por \
 planta y fecha. Se integra con los eventos de parcela (tipo "pozo").
 - Eventos de parcela (labores): historial de labores agrícolas por parcela. Tipos disponibles: \
-labrado, picado, poda, vallado, instalación de goteo (installed_drip), riego, pozo. \
+labrado, picado, poda, vallado, instalación de goteo (installed_drip), riego, pozo, \
+herbicida, tratamiento_fitosanitario, siega, abonado, dano_jabali. \
 Cada evento tiene fecha, notas y puede marcarse como recurrente.
 - Lluvia / Pluviometría: registro de precipitaciones por parcela o por municipio. Fuentes: \
 manual (el propio usuario), AEMET (red meteorológica oficial española), Ibericam (red privada). \
