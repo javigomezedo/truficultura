@@ -72,7 +72,7 @@ def test_create_income_redirects(monkeypatch) -> None:
             data={
                 "date": "2025-12-05",
                 "amount_kg": "2.5",
-                "category": "Extra",
+                "category": "extra",
                 "euros_per_kg": "120",
             },
             follow_redirects=False,
@@ -139,7 +139,7 @@ def test_update_income_not_found_redirects(monkeypatch) -> None:
             data={
                 "date": "2025-12-05",
                 "amount_kg": "2.5",
-                "category": "Extra",
+                "category": "extra",
                 "euros_per_kg": "120",
             },
             follow_redirects=False,
@@ -166,7 +166,7 @@ def test_update_income_redirects(monkeypatch) -> None:
             data={
                 "date": "2025-12-06",
                 "amount_kg": "3",
-                "category": "Primera",
+                "category": "primera",
                 "euros_per_kg": "110",
             },
             follow_redirects=False,

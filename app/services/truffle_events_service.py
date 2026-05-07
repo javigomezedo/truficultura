@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.truffle_event import TruffleEvent
+from app.models.truffle_quality import TruffleQuality
 
 
 def build_plot_event_summary(
@@ -104,6 +105,7 @@ async def create_event(
     acting_user_id: Optional[int] = None,
     estimated_weight_grams: float = 1.0,
     source: str = "manual",
+    quality: Optional[TruffleQuality] = None,
     dedupe_window_seconds: int = 2,
 ) -> TruffleEvent:
     """Append a truffle event for a plant.
@@ -138,6 +140,7 @@ async def create_event(
         created_by_user_id=acting_user_id,
         source=source,
         estimated_weight_grams=max(float(estimated_weight_grams), 0.0),
+        quality=quality,
         created_at=now,
         undo_window_expires_at=now + timedelta(seconds=30),
     )

@@ -501,6 +501,17 @@
                         <button type="button" class="btn btn-outline-success btn-sm js-modal-weight-add" data-add="100">+100</button>
                         <button type="button" class="btn btn-outline-success btn-sm js-modal-weight-add" data-add="500">+500</button>
                     </div>
+                    <div class="mt-3">
+                        <label for="registerQualityInput" class="form-label fw-semibold">{{ _("Calidad") }}</label>
+                        <select id="registerQualityInput" name="quality" class="form-select">
+                            <option value="">{{ _("— Sin calidad —") }}</option>
+                            <option value="extra">{{ _("Extra") }}</option>
+                            <option value="primera">{{ _("Primera") }}</option>
+                            <option value="segunda">{{ _("Segunda") }}</option>
+                            <option value="blanda">{{ _("Blanda") }}</option>
+                            <option value="agusanada">{{ _("Agusanada") }}</option>
+                        </select>
+                    </div>
                     {% if selected_campaign is not none %}
                     <input type="hidden" name="campaign" value="{{ selected_campaign }}">
                     {% endif %}
@@ -762,6 +773,7 @@
                     modalForm.action = `/plots/{{ plot.id }}/plants/${plantId}/add`;
                     plantLabel.textContent = label;
                     weightInput.value = '0';
+                    document.getElementById('registerQualityInput').value = '';
                     registerWeightErrorMsg.classList.add('d-none');
                     registerWeightErrorMsg.textContent = '';
                     const campaignParam = '{{ selected_campaign }}' ? `&camp={{ selected_campaign }}` : '';

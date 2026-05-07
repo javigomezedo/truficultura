@@ -18,6 +18,7 @@ from app.services.irrigation_service import (
     list_irrigation_records,
 )
 from app.services.plots_service import create_plot, delete_plot, get_plot
+from app.models.truffle_quality import TruffleQuality
 from app.services.plants_service import get_plant, list_plants
 from app.services.reports_service import build_profitability_context
 from app.services.truffle_events_service import (
@@ -79,7 +80,7 @@ async def test_services_crud_flow_with_real_db(tmp_path: Path) -> None:
                 date=datetime.date(2025, 12, 10),
                 plot_id=plot.id,
                 amount_kg=2.0,
-                category="A",
+                category=TruffleQuality.EXTRA,
                 euros_per_kg=50.0,
                 tenant_id=1,
             )
@@ -160,7 +161,7 @@ async def test_dashboard_and_reports_context_with_real_db(tmp_path: Path) -> Non
                 date=datetime.date(2025, 12, 1),
                 plot_id=p1.id,
                 amount_kg=1.0,
-                category="A",
+                category=TruffleQuality.EXTRA,
                 euros_per_kg=40.0,
                 tenant_id=1,
             )
@@ -169,7 +170,7 @@ async def test_dashboard_and_reports_context_with_real_db(tmp_path: Path) -> Non
                 date=datetime.date(2025, 12, 2),
                 plot_id=p2.id,
                 amount_kg=1.0,
-                category="A",
+                category=TruffleQuality.EXTRA,
                 euros_per_kg=30.0,
                 tenant_id=1,
             )
@@ -225,7 +226,7 @@ async def test_charts_context_with_real_db(tmp_path: Path) -> None:
                 date=datetime.date(2025, 12, 1),
                 plot_id=plot.id,
                 amount_kg=4.0,
-                category="A",
+                category=TruffleQuality.EXTRA,
                 euros_per_kg=20.0,
                 tenant_id=1,
             )
@@ -472,7 +473,7 @@ async def test_cross_tenant_incomes_isolation(tmp_path: Path) -> None:
                 date=datetime.date(2025, 11, 1),
                 plot_id=None,
                 amount_kg=50.0,
-                category="A",
+                category=TruffleQuality.EXTRA,
                 euros_per_kg=100.0,
                 tenant_id=user_b.id,
             )
@@ -678,7 +679,9 @@ async def test_cross_tenant_irrigation_isolation(tmp_path: Path) -> None:
             await db.commit()
 
             # A intenta leer el riego de B por ID → None
-            found = await get_irrigation_record(db, irrigation_b.id, tenant_id=user_a.id)
+            found = await get_irrigation_record(
+                db, irrigation_b.id, tenant_id=user_a.id
+            )
             assert found is None
 
             # El listado de A no incluye riegos de B

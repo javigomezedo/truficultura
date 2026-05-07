@@ -1,14 +1,16 @@
 import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
+
+from app.models.truffle_quality import TruffleQuality
 
 
 class IncomeBase(BaseModel):
     date: datetime.date
     plot_id: Optional[int] = None
     amount_kg: float = 0.0
-    category: str = Field("", max_length=100)
+    category: Optional[TruffleQuality] = None
     euros_per_kg: float = 0.0
     total: float = 0.0
 
@@ -21,7 +23,7 @@ class IncomeUpdate(BaseModel):
     date: Optional[datetime.date] = None
     plot_id: Optional[int] = None
     amount_kg: Optional[float] = None
-    category: Optional[str] = Field(None, max_length=100)
+    category: Optional[TruffleQuality] = None
     euros_per_kg: Optional[float] = None
     total: Optional[float] = None
 

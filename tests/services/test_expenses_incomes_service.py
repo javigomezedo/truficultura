@@ -28,6 +28,7 @@ from app.services.incomes_service import (
     get_incomes_list_context,
     update_income,
 )
+from app.models.truffle_quality import TruffleQuality
 from tests.conftest import result
 
 
@@ -69,7 +70,9 @@ async def test_expenses_list_context_filters_by_plot() -> None:
     ]
     db = MagicMock()
     # 3 queries: (1) meta (date+person), (2) plots, (3) filtered expenses (DB applies WHERE plot_id=10)
-    db.execute = AsyncMock(side_effect=[result(expenses), result([]), result([expenses[0]])])
+    db.execute = AsyncMock(
+        side_effect=[result(expenses), result([]), result([expenses[0]])]
+    )
 
     context = await get_expenses_list_context(db, 2025, tenant_id=1, plot_id=10)
 
@@ -152,7 +155,7 @@ async def test_create_update_delete_income() -> None:
         date=datetime.date(2025, 11, 1),
         plot_id=2,
         amount_kg=3.0,
-        category="A",
+        category=TruffleQuality.EXTRA,
         euros_per_kg=100.0,
         tenant_id=1,
     )
@@ -164,7 +167,7 @@ async def test_create_update_delete_income() -> None:
         date=datetime.date(2025, 11, 2),
         plot_id=None,
         amount_kg=4.0,
-        category="B",
+        category=TruffleQuality.PRIMERA,
         euros_per_kg=80.0,
     )
     assert income.total == 320.0

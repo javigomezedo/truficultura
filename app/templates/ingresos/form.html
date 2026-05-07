@@ -61,12 +61,15 @@
                     <!-- Categoría -->
                     <div class="col-md-6">
                         <label for="category" class="form-label fw-semibold">{{ _("Categoría") }}</label>
-                        <input type="text"
-                               class="form-control"
-                               id="category"
-                               name="category"
-                               value="{{ income.category if income else '' }}"
-                               placeholder="{{ _('Ej: Extra, Primera, Segunda') }}">
+                        <select class="form-select" id="category" name="category">
+                            <option value="">{{ _("— Sin categoría —") }}</option>
+                            {% set cat_val = income.category.value if income and income.category else '' %}
+                            <option value="extra"     {% if cat_val == 'extra' %}selected{% endif %}>{{ _("Extra") }}</option>
+                            <option value="primera"   {% if cat_val == 'primera' %}selected{% endif %}>{{ _("Primera") }}</option>
+                            <option value="segunda"   {% if cat_val == 'segunda' %}selected{% endif %}>{{ _("Segunda") }}</option>
+                            <option value="blanda"    {% if cat_val == 'blanda' %}selected{% endif %}>{{ _("Blanda") }}</option>
+                            <option value="agusanada" {% if cat_val == 'agusanada' %}selected{% endif %}>{{ _("Agusanada") }}</option>
+                        </select>
                         <div class="form-text">{{ _("Calidad o categoría de la trufa") }}</div>
                     </div>
 

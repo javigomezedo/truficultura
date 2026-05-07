@@ -12,6 +12,7 @@ from app.auth import get_current_user, require_subscription
 from app.config import settings
 from app.database import get_db
 from app.models.plant import PlantStatus
+from app.models.truffle_quality import TruffleQuality
 from app.models.user import User
 from app.services import plants_service, truffle_events_service
 
@@ -93,6 +94,7 @@ async def scan_qr_submit(
     request: Request,
     token: str,
     estimated_weight_grams: float = Form(...),
+    quality: Optional[TruffleQuality] = Form(None),
     db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user),
 ):
@@ -135,6 +137,7 @@ async def scan_qr_submit(
         acting_user_id=current_user.id,
         estimated_weight_grams=estimated_weight,
         source="qr",
+        quality=quality,
         dedupe_window_seconds=0,
     )
 

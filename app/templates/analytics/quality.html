@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("Calidad: cosecha vs venta") }}{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="tf-page-header">
+        <div>
+            <p class="tf-page-kicker">{{ _("Análisis") }}</p>
+            <h1 class="tf-page-title">
+                <i class="bi bi-award text-warning me-2"></i>{{ _("Calidad: cosecha vs venta") }}
+            </h1>
+            <p class="tf-page-subtitle">
+                {{ _("Compara la trufa cosechada y la vendida por categoría de calidad.") }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Filtro de campaña -->
+    <div class="card tf-panel tf-filters-card border-0 shadow-sm mb-3">
+        <div class="card-body py-3">
+            <form method="get" class="tf-filters-form">
+                <div class="tf-filter-item">
+                    <label class="form-label">{{ _("Campaña") }}</label>
+                    <select name="campaign" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">{{ _("Todas las campañas") }}</option>
+                        {% for c in campaigns %}
+                        <option value="{{ c.year }}" {% if selected_campaign == c.year %}selected{% endif %}>{{ c.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% if selected_campaign %}
+                <div class="tf-filter-actions">
+                    <a href="/quality-analytics" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-x me-1"></i>{{ _("Limpiar") }}
+                    </a>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- Gráfico cosecha vs ventas (kg) -->
+    <div class="card tf-panel border-0 shadow-sm mb-3">
+        <div class="card-header bg-transparent border-0 pb-0">
+            <h2 class="h6 mb-0">
+                <i class="bi bi-bar-chart-grouped me-1 text-success"></i>
+                {{ _("Cosecha vs venta por calidad (kg)") }}
+                {% if selected_campaign_label %}
+                <span class="badge bg-secondary ms-2">{{ selected_campaign_label }}</span>
+                {% endif %}
+            </h2>
+        </div>
+        <div class="card-body">
+            <div style="position:relative; height:320px;">
+                <canvas id="kgChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráfico precio medio por calidad -->
+    <div class="card tf-panel border-0 shadow-sm mb-3">
+        <div class="card-header bg-transparent border-0 pb-0">
+            <h2 class="h6 mb-0">
+                <i class="bi bi-currency-euro me-1 text-warning"></i>{{ _("Precio medio (€/kg) por calidad") }}
+            </h2>
+        </div>
+        <div class="card-body">
+            <div style="position:relative; height:240px;">
+                <canvas id="priceChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla resumen -->
+    <div class="card tf-panel border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent border-0 pb-0">
+            <h2 class="h6 mb-0">
+                <i class="bi bi-table me-1"></i>{{ _("Resumen por calidad") }}
+            </h2>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>{{ _("Calidad") }}</th>
+                            <th class="text-end">{{ _("Cosecha (kg)") }}</th>
+                            <th class="text-end">{{ _("Vendido (kg)") }}</th>
+                            <th class="text-end">{{ _("Ingresos (€)") }}</th>
+                            <th class="text-end">{{ _("Precio medio (€/kg)") }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for q in qualities %}
+                        <tr>
+                            <td><span class="fw-semibold">{{ q }}</span></td>
+                            <td class="text-end">{{ "%.3f"|format(harvest_kg.get(q, 0)) }}</td>
+                            <td class="text-end">{{ "%.3f"|format(sales_kg.get(q, 0)) }}</td>
+                            <td class="text-end">{{ "%.2f"|format(sales_eur.get(q, 0)) }}</td>
+                            <td class="text-end">
+                                {% if sales_eur_per_kg.get(q, 0) %}
+                                {{ "%.2f"|format(sales_eur_per_kg.get(q, 0)) }}
+                                {% else %}—{% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">{{ _("Sin datos para mostrar") }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const qualities = {{ qualities_json | safe }};
+const harvestKg = {{ harvest_kg_json | safe }};
+const salesKg = {{ sales_kg_json | safe }};
+const salesEur = {{ sales_eur_json | safe }};
+const salesEurPerKg = {{ sales_eur_per_kg_json | safe }};
+
+// Chart 1: Cosecha vs Venta (kg)
+new Chart(document.getElementById('kgChart'), {
+    type: 'bar',
+    data: {
+        labels: qualities,
+        datasets: [
+            {
+                label: '{{ _("Cosecha (kg)") }}',
+                data: harvestKg,
+                backgroundColor: 'rgba(25, 135, 84, 0.7)',
+                borderColor: 'rgba(25, 135, 84, 1)',
+                borderWidth: 1,
+            },
+            {
+                label: '{{ _("Vendido (kg)") }}',
+                data: salesKg,
+                backgroundColor: 'rgba(255, 193, 7, 0.7)',
+                borderColor: 'rgba(255, 193, 7, 1)',
+                borderWidth: 1,
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'top' } },
+        scales: {
+            y: { beginAtZero: true, title: { display: true, text: 'kg' } }
+        }
+    }
+});
+
+// Chart 2: Precio medio €/kg
+new Chart(document.getElementById('priceChart'), {
+    type: 'bar',
+    data: {
+        labels: qualities,
+        datasets: [{
+            label: '{{ _("€/kg") }}',
+            data: salesEurPerKg,
+            backgroundColor: 'rgba(13, 110, 253, 0.7)',
+            borderColor: 'rgba(13, 110, 253, 1)',
+            borderWidth: 1,
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { beginAtZero: true, title: { display: true, text: '€/kg' } }
+        }
+    }
+});
+</script>
+{% endblock %}

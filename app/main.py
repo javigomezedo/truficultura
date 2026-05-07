@@ -57,6 +57,7 @@ from app.routers import (
     plants,
     plot_events,
     plots,
+    quality_analytics,
     recurring_expenses,
     reports,
     scan,
@@ -124,6 +125,7 @@ kpis.templates = templates
 plot_events.templates = templates
 plot_analytics.templates = templates
 recurring_expenses.templates = templates
+quality_analytics.templates = templates
 lluvia.templates = templates
 weather.templates = templates
 billing.templates = templates
@@ -151,6 +153,7 @@ app.include_router(harvests.router)
 app.include_router(scan.router)
 app.include_router(kpis.router)
 app.include_router(recurring_expenses.router)
+app.include_router(quality_analytics.router)
 app.include_router(lluvia.router)
 app.include_router(weather.router)
 app.include_router(aemet_admin.router)
