@@ -3,10 +3,11 @@ from __future__ import annotations
 import datetime
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, String
+from sqlalchemy import DateTime, Enum, Float, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.models.truffle_quality import TruffleQuality
 
 if TYPE_CHECKING:
     from app.models.plant import Plant
@@ -48,6 +49,12 @@ class TruffleEvent(Base):
     # Set when the event is reversed; NULL means the event is still active
     undone_at: Mapped[Optional[datetime.datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
+    )
+    # Truffle quality category assigned at harvest time
+    quality: Mapped[Optional[TruffleQuality]] = mapped_column(
+        Enum(TruffleQuality, name="trufflequality", values_callable=lambda x: [e.value for e in x]),
+        nullable=True,
+        default=None,
     )
 
     __table_args__ = (

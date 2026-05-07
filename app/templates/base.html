@@ -188,7 +188,7 @@
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {% if '/charts' in request.url.path or '/import' in request.url.path or '/export' in request.url.path or '/kpis' in request.url.path %}active{% endif %}"
+                        <a class="nav-link dropdown-toggle {% if '/charts' in request.url.path or '/import' in request.url.path or '/export' in request.url.path or '/kpis' in request.url.path or '/quality-analytics' in request.url.path %}active{% endif %}"
                            href="#"
                            role="button"
                            data-bs-toggle="dropdown"
@@ -204,6 +204,11 @@
                             <li>
                                 <a class="dropdown-item {% if '/kpis' in request.url.path %}active{% endif %}" href="/kpis/">
                                     <i class="bi bi-speedometer2 me-1"></i> KPIs
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if '/quality-analytics' in request.url.path %}active{% endif %}" href="/quality-analytics">
+                                    <i class="bi bi-stars me-1"></i> {{ _("Calidad") }}
                                 </a>
                             </li>
                             <li><hr class="dropdown-divider"></li>

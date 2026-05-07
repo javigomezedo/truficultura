@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.income import Income
 from app.models.plot import Plot
+from app.models.truffle_quality import TruffleQuality
 from app.utils import campaign_year
 
 
@@ -88,7 +89,7 @@ async def create_income(
     date: datetime.date,
     plot_id: Optional[int],
     amount_kg: float,
-    category: str,
+    category: Optional[TruffleQuality],
     euros_per_kg: float,
 ) -> Income:
     new_income = Income(
@@ -113,7 +114,7 @@ async def update_income(
     date: datetime.date,
     plot_id: Optional[int],
     amount_kg: float,
-    category: str,
+    category: Optional[TruffleQuality],
     euros_per_kg: float,
 ) -> Income:
     income.date = date

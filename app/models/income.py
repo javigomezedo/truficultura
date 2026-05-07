@@ -3,10 +3,11 @@ from __future__ import annotations
 import datetime
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import Date, ForeignKey, Integer, Numeric, String
+from sqlalchemy import Date, Enum, ForeignKey, Integer, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.models.truffle_quality import TruffleQuality
 
 if TYPE_CHECKING:
     from app.models.plot import Plot
@@ -32,7 +33,11 @@ class Income(Base):
         Integer, ForeignKey("plots.id", ondelete="SET NULL"), nullable=True, index=True
     )
     amount_kg: Mapped[float] = mapped_column(Numeric(10, 3, asdecimal=False), nullable=False, default=0.0)
-    category: Mapped[str] = mapped_column(String(200), nullable=False, default="")
+    category: Mapped[Optional[TruffleQuality]] = mapped_column(
+        Enum(TruffleQuality, name="trufflequality", values_callable=lambda x: [e.value for e in x]),
+        nullable=True,
+        default=None,
+    )
     euros_per_kg: Mapped[float] = mapped_column(Numeric(10, 4, asdecimal=False), nullable=False, default=0.0)
 
     @property

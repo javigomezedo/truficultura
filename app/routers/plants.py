@@ -13,6 +13,7 @@ from app.auth import require_subscription
 from app.database import get_db
 from app.i18n import _
 from app.models.plant import PlantStatus, HostSpecies
+from app.models.truffle_quality import TruffleQuality
 from app.models.user import User
 from app.plan_access import (
     require_plant_limit,
@@ -391,6 +392,7 @@ async def add_truffle_event(
     plant_id: int,
     campaign: Optional[str] = Form(default=None),
     estimated_weight_grams: float = Form(default=1.0),
+    quality: Optional[TruffleQuality] = Form(default=None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_plant_limit),
 ):
@@ -421,6 +423,7 @@ async def add_truffle_event(
         tenant_id=current_user.active_tenant_id,
         estimated_weight_grams=weight,
         source="manual",
+        quality=quality,
     )
 
     if campaign:

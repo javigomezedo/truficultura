@@ -82,7 +82,7 @@
                             <td class="text-end fw-semibold">{{ i.amount_kg|format_eu(3) }} kg</td>
                             <td>
                                 {% if i.category %}
-                                <span class="badge bg-secondary">{{ i.category }}</span>
+                                <span class="badge bg-secondary">{{ i.category.value | capitalize }}</span>
                                 {% else %}
                                 <span class="text-muted small">&mdash;</span>
                                 {% endif %}

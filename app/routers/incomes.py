@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth import require_subscription
 from app.database import get_db
 from app.i18n import _
+from app.models.truffle_quality import TruffleQuality
 from app.models.user import User
 from app.plan_access import require_write_access
 from app.services.incomes_service import (
@@ -80,7 +81,7 @@ async def create_income(
     date: datetime.date = Form(...),
     plot_id: Optional[int] = Form(None),
     amount_kg: float = Form(0.0),
-    category: str = Form(""),
+    category: Optional[TruffleQuality] = Form(None),
     euros_per_kg: float = Form(0.0),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_write_access),
@@ -136,7 +137,7 @@ async def update_income(
     date: datetime.date = Form(...),
     plot_id: Optional[int] = Form(None),
     amount_kg: float = Form(0.0),
-    category: str = Form(""),
+    category: Optional[TruffleQuality] = Form(None),
     euros_per_kg: float = Form(0.0),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_write_access),
