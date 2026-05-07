@@ -55,13 +55,13 @@ _DEFAULTS: dict[str, dict[str, Any]] = {
     },
     "no_truffle_events": {
         "enabled": True,
-        "email_enabled": True,
+        "email_enabled": False,
         "threshold_days": 7,
         "threshold_value": None,
     },
     "low_water_balance": {
         "enabled": True,
-        "email_enabled": True,
+        "email_enabled": False,
         "threshold_days": 5,
         "threshold_value": 2.0,  # m³ total lluvia+riego en el periodo
     },
