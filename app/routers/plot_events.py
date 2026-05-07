@@ -37,6 +37,11 @@ MANUAL_EVENT_TYPES = [
     EventType.PODA,
     EventType.VALLADO,
     EventType.INSTALLED_DRIP,
+    EventType.HERBICIDA,
+    EventType.TRATAMIENTO_FITOSANITARIO,
+    EventType.SIEGA,
+    EventType.ABONADO,
+    EventType.DANO_JABALI,
 ]
 
 MONTH_LABELS = {
@@ -56,6 +61,8 @@ MONTH_LABELS = {
 
 EVENT_LABEL_OVERRIDES = {
     EventType.INSTALLED_DRIP.value: _("Instalación de Riego"),
+    EventType.TRATAMIENTO_FITOSANITARIO.value: _("Tratamiento fitosanitario"),
+    EventType.DANO_JABALI.value: _("Daño jabalí"),
 }
 
 EVENT_COLORS = {
@@ -66,6 +73,11 @@ EVENT_COLORS = {
     EventType.INSTALLED_DRIP.value: "#0e7490",
     EventType.RIEGO.value: "#0891b2",
     EventType.POZO.value: "#475569",
+    EventType.HERBICIDA.value: "#65a30d",
+    EventType.TRATAMIENTO_FITOSANITARIO.value: "#dc2626",
+    EventType.SIEGA.value: "#84cc16",
+    EventType.ABONADO.value: "#d97706",
+    EventType.DANO_JABALI.value: "#92400e",
 }
 
 

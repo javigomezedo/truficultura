@@ -15,6 +15,11 @@ class EventType(str, Enum):
     INSTALLED_DRIP = "installed_drip"
     RIEGO = "riego"
     POZO = "pozo"
+    HERBICIDA = "herbicida"
+    TRATAMIENTO_FITOSANITARIO = "tratamiento_fitosanitario"
+    SIEGA = "siega"
+    ABONADO = "abonado"
+    DANO_JABALI = "dano_jabali"
 
 
 class PlotEventBase(BaseModel):
