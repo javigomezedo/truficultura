@@ -14,7 +14,7 @@
             <p class="tf-page-subtitle">{{ incomes|length }} {{ _("ingreso(s) registrado(s)") }}{% if selected_year %} {{ _("en campaña") }} {{ selected_year|campaign_label }} <small class="text-nowrap">({{ selected_year|campaign_months }})</small>{% endif %}</p>
         </div>
         {% if not read_only %}
-        <a href="/incomes/new" class="btn btn-success">
+        <a href="/incomes/new" class="btn btn-primary">
             <i class="bi bi-plus-circle me-1"></i> {{ _("Nuevo Ingreso") }}
         </a>
         {% endif %}
@@ -135,7 +135,7 @@
                     {% endif %}
                 </p>
                 {% if not read_only %}
-                <a href="/incomes/new" class="btn btn-success">
+                <a href="/incomes/new" class="btn btn-primary">
                     <i class="bi bi-plus-circle me-1"></i> {{ _("Registrar primer ingreso") }}
                 </a>
                 {% endif %}

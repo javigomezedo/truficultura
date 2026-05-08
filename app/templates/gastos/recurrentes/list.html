@@ -14,7 +14,7 @@
             <p class="tf-page-subtitle">{{ recurring_expenses|length }} {{ _("configuración(es) de gasto recurrente") }}</p>
         </div>
         {% if not read_only %}
-        <a href="/recurring-expenses/new" class="btn btn-danger">
+        <a href="/recurring-expenses/new" class="btn btn-primary">
             <i class="bi bi-plus-circle me-1"></i> {{ _("Nuevo Gasto Recurrente") }}
         </a>
         {% endif %}
@@ -121,7 +121,7 @@
                 <i class="bi bi-arrow-repeat display-4 mb-3 d-block"></i>
                 <p class="mb-1">{{ _("No hay gastos recurrentes configurados.") }}</p>
                 {% if not read_only %}
-                <a href="/recurring-expenses/new" class="btn btn-danger mt-2">
+                <a href="/recurring-expenses/new" class="btn btn-primary mt-2">
                     <i class="bi bi-plus-circle me-1"></i> {{ _("Crear el primero") }}
                 </a>
                 {% endif %}
