@@ -2246,3 +2246,15 @@ msgstr "Line {line}: empty plant — skipped"
 
 msgid "Línea {line}: planta '{plant}' no encontrada en bancal '{plot}' — omitida"
 msgstr "Line {line}: plant '{plant}' not found in plot '{plot}' — skipped"
+
+msgid "Demasiados intentos fallidos. Por favor, espera unos minutos antes de intentarlo de nuevo."
+msgstr "Too many failed attempts. Please wait a few minutes before trying again."
+
+msgid "Debes confirmar tu dirección de email antes de acceder. Revisa tu bandeja de entrada."
+msgstr "You must confirm your email address before logging in. Please check your inbox."
+
+msgid "Este usuario ha sido desactivado. Por favor, contacta con el administrador si necesitas reactivar tu cuenta."
+msgstr "This account has been deactivated. Please contact the administrator if you need to reactivate it."
+
+msgid "Usuario o contraseña incorrectos."
+msgstr "Incorrect username or password."

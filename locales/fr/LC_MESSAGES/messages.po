@@ -2282,3 +2282,15 @@ msgstr "Ligne {line} : plant vide — ignoré"
 
 msgid "Línea {line}: planta '{plant}' no encontrada en bancal '{plot}' — omitida"
 msgstr "Ligne {line} : plant '{plant}' introuvable dans la parcelle '{plot}' — ignoré"
+
+msgid "Demasiados intentos fallidos. Por favor, espera unos minutos antes de intentarlo de nuevo."
+msgstr "Trop de tentatives échouées. Veuillez patienter quelques minutes avant de réessayer."
+
+msgid "Debes confirmar tu dirección de email antes de acceder. Revisa tu bandeja de entrada."
+msgstr "Vous devez confirmer votre adresse e-mail avant de vous connecter. Veuillez vérifier votre boîte de réception."
+
+msgid "Este usuario ha sido desactivado. Por favor, contacta con el administrador si necesitas reactivar tu cuenta."
+msgstr "Ce compte a été désactivé. Veuillez contacter l'administrateur si vous avez besoin de le réactiver."
+
+msgid "Usuario o contraseña incorrectos."
+msgstr "Nom d'utilisateur ou mot de passe incorrect."
