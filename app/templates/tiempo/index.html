@@ -85,11 +85,11 @@
                     </div>
                     <div class="weather-icon-big mb-1">
                         {% if w.temperature is not none %}
-                            {% if w.temperature >= 30 %}☀️
-                            {% elif w.temperature >= 20 %}🌤️
-                            {% elif w.temperature >= 10 %}⛅
-                            {% elif w.temperature >= 0 %}🌥️
-                            {% else %}❄️
+                            {% if w.temperature >= 30 %}<i class="bi bi-sun-fill text-warning"></i>
+                            {% elif w.temperature >= 20 %}<i class="bi bi-cloud-sun-fill text-warning"></i>
+                            {% elif w.temperature >= 10 %}<i class="bi bi-cloud-sun"></i>
+                            {% elif w.temperature >= 0 %}<i class="bi bi-cloud-fill text-secondary"></i>
+                            {% else %}<i class="bi bi-snow text-info"></i>
                             {% endif %}
                         {% endif %}
                     </div>
@@ -150,16 +150,16 @@
                     <div class="d-flex align-items-center gap-3 mb-3">
                         <div class="weather-icon-big">
                             {% set code = w.tomorrow_sky_code or "" %}
-                            {% if code in ["11", "12"] %}☀️
-                            {% elif code in ["13", "17"] %}🌤️
-                            {% elif code in ["14", "24", "14n"] %}⛅
-                            {% elif code in ["15", "25", "23"] %}🌦️
-                            {% elif code in ["16", "26"] %}🌧️
-                            {% elif code in ["33", "34", "35", "36"] %}🌨️
-                            {% elif code in ["43", "44", "45", "46"] %}⛈️
-                            {% elif code in ["51", "52", "53", "54"] %}🌩️
-                            {% elif code in ["61", "62", "63", "64"] %}🌫️
-                            {% else %}🌡️
+                            {% if code in ["11", "12"] %}<i class="bi bi-sun-fill text-warning"></i>
+                            {% elif code in ["13", "17"] %}<i class="bi bi-cloud-sun-fill text-warning"></i>
+                            {% elif code in ["14", "24", "14n"] %}<i class="bi bi-cloud-sun"></i>
+                            {% elif code in ["15", "25", "23"] %}<i class="bi bi-cloud-drizzle-fill text-primary"></i>
+                            {% elif code in ["16", "26"] %}<i class="bi bi-cloud-rain-fill text-primary"></i>
+                            {% elif code in ["33", "34", "35", "36"] %}<i class="bi bi-cloud-snow-fill text-info"></i>
+                            {% elif code in ["43", "44", "45", "46"] %}<i class="bi bi-cloud-lightning-rain-fill text-warning"></i>
+                            {% elif code in ["51", "52", "53", "54"] %}<i class="bi bi-cloud-lightning-fill text-warning"></i>
+                            {% elif code in ["61", "62", "63", "64"] %}<i class="bi bi-cloud-fog2-fill text-secondary"></i>
+                            {% else %}<i class="bi bi-thermometer-half"></i>
                             {% endif %}
                         </div>
                         <div>
