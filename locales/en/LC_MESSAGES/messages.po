@@ -693,9 +693,8 @@ msgstr ""
 
 #: app/templates/base.html:282 app/templates/base.html:283
 #: app/templates/notifications/index.html:11
-#, fuzzy
 msgid "Avisos"
-msgstr "warning(s)"
+msgstr "Notifications"
 
 #: app/templates/base.html:296 app/templates/base.html:297
 msgid "Cambiar idioma"
@@ -742,19 +741,16 @@ msgid "Bodega Técnica"
 msgstr "Technical Cellar"
 
 #: app/templates/admin/users_list.html:70 app/templates/base.html:362
-#, fuzzy
 msgid "Suscripción"
-msgstr "Description"
+msgstr "Subscription"
 
 #: app/templates/base.html:369 app/templates/tenant/settings.html:9
-#, fuzzy
 msgid "Organización"
-msgstr "Administration"
+msgstr "Organization"
 
 #: app/templates/base.html:377
-#, fuzzy
 msgid "Cerrar sesión"
-msgstr "Sign in"
+msgstr "Sign out"
 
 #: app/templates/base.html:393 app/templates/base.html:426
 #, fuzzy
@@ -4770,40 +4766,36 @@ msgid "Nueva parcela"
 msgstr "New Plot"
 
 #: app/templates/notifications/index.html:9
-#, fuzzy
 msgid "Sistema"
-msgstr "Assistant"
+msgstr "System"
 
 #: app/templates/notifications/index.html:20
-#, fuzzy
 msgid "Ocultar descartados"
-msgstr "Import data"
+msgstr "Hide dismissed"
 
 #: app/templates/notifications/index.html:24
-#, fuzzy
 msgid "Ver descartados"
-msgstr "View expenses"
+msgstr "View dismissed"
 
 #: app/templates/notifications/index.html:30
 msgid "Marcar todos como leídos"
-msgstr ""
+msgstr "Mark all as read"
 
 #: app/templates/notifications/index.html:35
 msgid "Preferencias"
-msgstr ""
+msgstr "Preferences"
 
 #: app/templates/notifications/index.html:50
 msgid "No hay avisos por el momento."
-msgstr ""
+msgstr "No notifications at this time."
 
 #: app/templates/notifications/index.html:77
-#, fuzzy
 msgid "Nuevo"
-msgstr "New Expense"
+msgstr "New"
 
 #: app/templates/notifications/index.html:97
 msgid "Marcar como leído"
-msgstr ""
+msgstr "Mark as read"
 
 #: app/templates/notifications/index.html:105
 #, fuzzy
@@ -4812,12 +4804,11 @@ msgstr "Download QR"
 
 #: app/templates/notifications/preferences.html:12
 msgid "Preferencias de avisos"
-msgstr ""
+msgstr "Notification preferences"
 
 #: app/templates/notifications/preferences.html:15
-#, fuzzy
 msgid "Volver a avisos"
-msgstr "Back to list"
+msgstr "Back to notifications"
 
 #: app/templates/notifications/preferences.html:33
 msgid "Tipo de aviso"
@@ -4837,9 +4828,8 @@ msgid "Umbral valor"
 msgstr ""
 
 #: app/templates/notifications/preferences.html:89
-#, fuzzy
 msgid "Guardar preferencias"
-msgstr "Save changes"
+msgstr "Save preferences"
 
 #: app/templates/notifications/preferences.html:98
 msgid ""
