@@ -9,59 +9,6 @@
         position: relative;
         min-height: 280px;
     }
-    .tf-help-tip-btn {
-        width: 1.75rem;
-        height: 1.75rem;
-        border-radius: 50%;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        line-height: 1;
-        padding: 0;
-    }
-
-    .tf-help-tip {
-        position: relative;
-        display: inline-flex;
-    }
-
-    .tf-help-tip-text {
-        position: absolute;
-        top: calc(100% + 0.35rem);
-        left: 0;
-        z-index: 30;
-        min-width: 260px;
-        max-width: min(420px, 80vw);
-        background: #1f2937;
-        color: #f8fafc;
-        border-radius: 0.5rem;
-        padding: 0.55rem 0.7rem;
-        font-size: 0.82rem;
-        line-height: 1.35;
-        box-shadow: 0 10px 20px rgba(15, 23, 42, 0.25);
-        opacity: 0;
-        pointer-events: none;
-        transform: translateY(-2px);
-        transition: opacity 0.15s ease, transform 0.15s ease;
-    }
-
-    .tf-help-tip-text::before {
-        content: "";
-        position: absolute;
-        top: -6px;
-        left: 12px;
-        width: 10px;
-        height: 10px;
-        background: #1f2937;
-        transform: rotate(45deg);
-    }
-
-    .tf-help-tip:hover .tf-help-tip-text {
-        opacity: 1;
-        pointer-events: auto;
-        transform: translateY(0);
-    }
 </style>
 {% endblock %}
 
