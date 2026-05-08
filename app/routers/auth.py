@@ -41,6 +41,14 @@ router = APIRouter(tags=["auth"])
 # ---------------------------------------------------------------------------
 # IP-based login rate limiting (sliding window, in-process)
 # ---------------------------------------------------------------------------
+# WARNING: This implementation stores failed attempts in a module-level dict.
+# Limitations:
+#   - State is lost on every process restart (not persistent).
+#   - In multi-worker deployments (e.g. multiple uvicorn workers or replicas),
+#     each worker maintains its own independent counter, so the effective limit
+#     is multiplied by the number of workers.
+# For production hardening, replace with a Redis- or DB-backed counter.
+# ---------------------------------------------------------------------------
 _LOGIN_FAIL_WINDOW_SECONDS = 900  # 15 minutes
 _LOGIN_FAIL_MAX = 10  # max failed attempts per IP within window
 _login_failures: defaultdict[str, list[datetime]] = defaultdict(list)
