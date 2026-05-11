@@ -1,3 +1,4 @@
+from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -6,8 +7,9 @@ from app.config import settings
 engine = create_async_engine(
     settings.SQLALCHEMY_DATABASE_URL,
     echo=False,
-    pool_pre_ping=True,
-    pool_recycle=1800,  # Recycle connections after 30 min to avoid server-side timeouts
+    poolclass=NullPool,  # No connection pooling — each request opens/closes its own connection.
+    # Fly.io's proxy aggressively kills idle TCP connections, making pooled
+    # connections unreliable. NullPool avoids stale-connection errors entirely.
 )
 
 AsyncSessionLocal = async_sessionmaker(
