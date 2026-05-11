@@ -15,8 +15,12 @@ from __future__ import annotations
 
 import asyncio
 import sys
+from pathlib import Path
 
-from sqlalchemy import delete, text
+# Ensure the project root is in sys.path when running the script directly
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
