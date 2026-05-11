@@ -163,3 +163,131 @@ def test_download_all_csv_zip(monkeypatch) -> None:
         response.headers["content-disposition"]
         == "attachment; filename=exportacion_csv.zip"
     )
+
+
+def test_download_wells_csv(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.routers.exports.export_wells_csv", AsyncMock(return_value=b"wells")
+    )
+    app.dependency_overrides[require_subscription] = _user
+    app.dependency_overrides[get_db] = _db
+    try:
+        client = TestClient(app)
+        response = client.get("/export/wells.csv")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.content == b"wells"
+    assert response.headers["content-disposition"] == "attachment; filename=pozos.csv"
+
+
+def test_download_plot_events_csv(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.routers.exports.export_plot_events_csv",
+        AsyncMock(return_value=b"labores"),
+    )
+    app.dependency_overrides[require_subscription] = _user
+    app.dependency_overrides[get_db] = _db
+    try:
+        client = TestClient(app)
+        response = client.get("/export/plot_events.csv")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.content == b"labores"
+    assert response.headers["content-disposition"] == "attachment; filename=labores.csv"
+
+
+def test_download_harvests_csv(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.routers.exports.export_harvests_csv",
+        AsyncMock(return_value=b"cosechas"),
+    )
+    app.dependency_overrides[require_subscription] = _user
+    app.dependency_overrides[get_db] = _db
+    try:
+        client = TestClient(app)
+        response = client.get("/export/harvests.csv")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.content == b"cosechas"
+    assert (
+        response.headers["content-disposition"] == "attachment; filename=cosechas.csv"
+    )
+
+
+def test_download_presences_csv(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.routers.exports.export_presences_csv",
+        AsyncMock(return_value=b"presencias"),
+    )
+    app.dependency_overrides[require_subscription] = _user
+    app.dependency_overrides[get_db] = _db
+    try:
+        client = TestClient(app)
+        response = client.get("/export/presences.csv")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.content == b"presencias"
+    assert (
+        response.headers["content-disposition"] == "attachment; filename=presencias.csv"
+    )
+
+
+def test_download_plants_csv(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.routers.exports.export_plants_csv",
+        AsyncMock(return_value=b"plantas"),
+    )
+    app.dependency_overrides[require_subscription] = _user
+    app.dependency_overrides[get_db] = _db
+    try:
+        client = TestClient(app)
+        response = client.get("/export/plants.csv")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.content == b"plantas"
+    assert response.headers["content-disposition"] == "attachment; filename=plantas.csv"
+
+
+def test_download_brule_csv(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.routers.exports.export_brule_csv", AsyncMock(return_value=b"brule")
+    )
+    app.dependency_overrides[require_subscription] = _user
+    app.dependency_overrides[get_db] = _db
+    try:
+        client = TestClient(app)
+        response = client.get("/export/brule.csv")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.content == b"brule"
+    assert response.headers["content-disposition"] == "attachment; filename=brule.csv"
+
+
+def test_download_rainfall_csv(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.routers.exports.export_rainfall_csv",
+        AsyncMock(return_value=b"lluvia"),
+    )
+    app.dependency_overrides[require_subscription] = _user
+    app.dependency_overrides[get_db] = _db
+    try:
+        client = TestClient(app)
+        response = client.get("/export/rainfall.csv")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.content == b"lluvia"
+    assert response.headers["content-disposition"] == "attachment; filename=lluvia.csv"

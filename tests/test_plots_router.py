@@ -258,3 +258,124 @@ def test_delete_plot_redirects_when_not_found(monkeypatch) -> None:
     assert response.status_code == 303
     assert "Parcela+eliminada+correctamente" in response.headers["location"]
     delete_mock.assert_not_called()
+
+
+def test_sigpac_lookup_returns_400_for_non_numeric_param() -> None:
+    app.dependency_overrides[require_subscription] = _user
+    try:
+        client = TestClient(app)
+        response = client.get(
+            "/plots/sigpac-lookup",
+            params={
+                "provincia": "44",
+                "municipio": "abc",
+                "poligono": "1",
+                "parcela": "2",
+            },
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 400
+    assert "numérico" in response.json()["error"]
+
+
+def test_sigpac_lookup_returns_422_on_sigpac_error(monkeypatch) -> None:
+    from app.services.sigpac_service import SigpacError
+
+    monkeypatch.setattr(
+        "app.routers.plots.fetch_sigpac_data",
+        AsyncMock(side_effect=SigpacError("Recinto no encontrado")),
+    )
+    app.dependency_overrides[require_subscription] = _user
+    try:
+        client = TestClient(app)
+        response = client.get(
+            "/plots/sigpac-lookup",
+            params={
+                "provincia": "44",
+                "municipio": "1",
+                "poligono": "1",
+                "parcela": "2",
+            },
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 422
+    assert "Recinto no encontrado" in response.json()["error"]
+
+
+def test_sigpac_lookup_returns_422_on_unexpected_error(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.routers.plots.fetch_sigpac_data",
+        AsyncMock(side_effect=RuntimeError("timeout")),
+    )
+    app.dependency_overrides[require_subscription] = _user
+    try:
+        client = TestClient(app)
+        response = client.get(
+            "/plots/sigpac-lookup",
+            params={
+                "provincia": "44",
+                "municipio": "1",
+                "poligono": "1",
+                "parcela": "2",
+            },
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 422
+    assert "inesperado" in response.json()["error"]
+
+
+def test_sigpac_lookup_returns_data_on_success(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.routers.plots.fetch_sigpac_data",
+        AsyncMock(return_value={"area": 1.5, "uso": "FRU"}),
+    )
+    app.dependency_overrides[require_subscription] = _user
+    try:
+        client = TestClient(app)
+        response = client.get(
+            "/plots/sigpac-lookup",
+            params={
+                "provincia": "44",
+                "municipio": "1",
+                "poligono": "1",
+                "parcela": "2",
+                "recinto": "1",
+            },
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == {"area": 1.5, "uso": "FRU"}
+
+
+def test_create_plot_with_invalid_host_species_falls_back_to_none(monkeypatch) -> None:
+    """_parse_host_species should silently return None for unknown values."""
+    fake_db = _db()
+    create_mock = AsyncMock()
+    monkeypatch.setattr("app.routers.plots.create_plot_service", create_mock)
+    app.dependency_overrides[require_subscription] = _user
+    app.dependency_overrides[get_db] = lambda: fake_db
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/plots/",
+            data={
+                "name": "Bancal X",
+                "planting_date": "2020-03-15",
+                "num_plants": "50",
+                "default_host_species": "INVALID_SPECIES",
+            },
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert create_mock.await_args.kwargs["default_host_species"] is None
