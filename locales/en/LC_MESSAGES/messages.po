@@ -6162,6 +6162,28 @@ msgstr ""
 msgid "Historial de lluvia"
 msgstr ""
 
+
+msgid "Línea {line}: se esperaban 5 columnas, se encontraron {count} — omitida"
+msgstr "Line {line}: expected 5 columns, found {count} — skipped"
+
+msgid "Línea {line}: error al parsear los datos — omitida"
+msgstr "Line {line}: error parsing data — skipped"
+
+msgid "Línea {line}: bancal '{plot}' no encontrado — omitida"
+msgstr "Line {line}: plot '{plot}' not found — skipped"
+
+msgid "Línea {line}: bancal '{plot}' no encontrado — importado sin bancal"
+msgstr "Line {line}: plot '{plot}' not found — imported without plot"
+
+msgid "Línea {line}: bancal '{plot}' no tiene riego habilitado — omitida"
+msgstr "Line {line}: plot '{plot}' does not have irrigation enabled — skipped"
+
+msgid "Línea {line}: bancal vacío — omitida"
+msgstr "Line {line}: empty plot — skipped"
+
+msgid "Línea {line}: planta vacía — omitida"
+msgstr "Line {line}: empty plant — skipped"
+
 #~ msgid ""
 #~ "Este usuario ha sido desactivado. Por"
 #~ " favor, contacta con el administrador "
@@ -6298,3 +6320,35 @@ msgstr ""
 #~ msgid "Activa esta opción para poder registrar riegos en esta parcela."
 #~ msgstr "Enable this option to register irrigation events for this plot."
 
+msgid "Línea {line}: se esperaban al menos 2 columnas, se encontraron {count} — omitida"
+msgstr "Line {line}: expected at least 2 columns, found {count} — skipped"
+
+msgid "Línea {line}: se esperaban al menos 3 columnas, se encontraron {count} — omitida"
+msgstr "Line {line}: expected at least 3 columns, found {count} — skipped"
+
+msgid "Línea {line}: se esperaban al menos 4 columnas, se encontraron {count} — omitida"
+msgstr "Line {line}: expected at least 4 columns, found {count} — skipped"
+
+msgid "Línea {line}: se esperaban 3 columnas, se encontraron {count} — omitida"
+msgstr "Line {line}: expected 3 columns, found {count} — skipped"
+
+msgid "Línea {line}: bancal vacío — omitida (el registro de pozos siempre requiere parcela)"
+msgstr "Line {line}: empty plot — skipped (well records always require a plot)"
+
+msgid "Línea {line}: bancal vacío — omitida (el riego siempre requiere parcela)"
+msgstr "Line {line}: empty plot — skipped (irrigation always requires a plot)"
+
+msgid "Línea {line}: planta '{plant}' no encontrada en bancal '{plot}' — omitida"
+msgstr "Line {line}: plant '{plant}' not found in plot '{plot}' — skipped"
+
+msgid "Línea {line}: presencia ya registrada para planta '{plant}' el {date} — omitida"
+msgstr "Line {line}: presence already recorded for plant '{plant}' on {date} — skipped"
+
+msgid "Línea {line}: tipo de evento '{tipo}' no reconocido — omitida"
+msgstr "Line {line}: event type '{tipo}' not recognised — skipped"
+
+msgid "Línea {line}: el evento '{tipo}' ya existe para '{plot}' (solo se permite uno) — omitida"
+msgstr "Line {line}: event '{tipo}' already exists for '{plot}' (only one allowed) — skipped"
+
+msgid "El archivo ZIP no es válido"
+msgstr "The ZIP file is not valid"

@@ -6208,6 +6208,28 @@ msgstr ""
 msgid "Historial de lluvia"
 msgstr ""
 
+
+msgid "Línea {line}: se esperaban 5 columnas, se encontraron {count} — omitida"
+msgstr "Ligne {line} : 5 colonnes attendues, {count} trouvées — ignorée"
+
+msgid "Línea {line}: error al parsear los datos — omitida"
+msgstr "Ligne {line} : erreur lors de l'analyse des données — ignorée"
+
+msgid "Línea {line}: bancal '{plot}' no encontrado — omitida"
+msgstr "Ligne {line} : parcelle '{plot}' introuvable — ignorée"
+
+msgid "Línea {line}: bancal '{plot}' no encontrado — importado sin bancal"
+msgstr "Ligne {line} : parcelle '{plot}' introuvable — importé sans parcelle"
+
+msgid "Línea {line}: bancal '{plot}' no tiene riego habilitado — omitida"
+msgstr "Ligne {line} : la parcelle '{plot}' n'a pas l'irrigation activée — ignorée"
+
+msgid "Línea {line}: bancal vacío — omitida"
+msgstr "Ligne {line} : parcelle vide — ignorée"
+
+msgid "Línea {line}: planta vacía — omitida"
+msgstr "Ligne {line} : plante vide — ignorée"
+
 #~ msgid ""
 #~ "Este usuario ha sido desactivado. Por"
 #~ " favor, contacta con el administrador "
@@ -6366,3 +6388,35 @@ msgstr ""
 #~ "Activez cette option pour enregistrer "
 #~ "des irrigations sur cette parcelle."
 
+msgid "Línea {line}: se esperaban al menos 2 columnas, se encontraron {count} — omitida"
+msgstr "Ligne {line} : au moins 2 colonnes attendues, {count} trouvées — ignorée"
+
+msgid "Línea {line}: se esperaban al menos 3 columnas, se encontraron {count} — omitida"
+msgstr "Ligne {line} : au moins 3 colonnes attendues, {count} trouvées — ignorée"
+
+msgid "Línea {line}: se esperaban al menos 4 columnas, se encontraron {count} — omitida"
+msgstr "Ligne {line} : au moins 4 colonnes attendues, {count} trouvées — ignorée"
+
+msgid "Línea {line}: se esperaban 3 columnas, se encontraron {count} — omitida"
+msgstr "Ligne {line} : 3 colonnes attendues, {count} trouvées — ignorée"
+
+msgid "Línea {line}: bancal vacío — omitida (el registro de pozos siempre requiere parcela)"
+msgstr "Ligne {line} : parcelle vide — ignorée (les enregistrements de puits nécessitent toujours une parcelle)"
+
+msgid "Línea {line}: bancal vacío — omitida (el riego siempre requiere parcela)"
+msgstr "Ligne {line} : parcelle vide — ignorée (l'irrigation nécessite toujours une parcelle)"
+
+msgid "Línea {line}: planta '{plant}' no encontrada en bancal '{plot}' — omitida"
+msgstr "Ligne {line} : plante '{plant}' introuvable dans la parcelle '{plot}' — ignorée"
+
+msgid "Línea {line}: presencia ya registrada para planta '{plant}' el {date} — omitida"
+msgstr "Ligne {line} : présence déjà enregistrée pour la plante '{plant}' le {date} — ignorée"
+
+msgid "Línea {line}: tipo de evento '{tipo}' no reconocido — omitida"
+msgstr "Ligne {line} : type d'événement '{tipo}' non reconnu — ignorée"
+
+msgid "Línea {line}: el evento '{tipo}' ya existe para '{plot}' (solo se permite uno) — omitida"
+msgstr "Ligne {line} : l'événement '{tipo}' existe déjà pour '{plot}' (un seul autorisé) — ignorée"
+
+msgid "El archivo ZIP no es válido"
+msgstr "Le fichier ZIP n'est pas valide"
