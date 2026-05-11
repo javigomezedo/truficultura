@@ -867,6 +867,53 @@ async def test_import_all_csv_zip_without_supported_files_warns():
     assert "no contiene archivos CSV compatibles" in warnings[0]
 
 
+@pytest.mark.asyncio
+async def test_import_all_csv_zip_importer_error_captured_as_warning(monkeypatch):
+    """Any exception raised by an importer is captured as a per-file warning."""
+
+    async def fake_import_plots_csv(db, content: bytes, tenant_id: int):
+        raise RuntimeError("simulated db error")
+
+    monkeypatch.setattr(
+        "app.services.import_service.import_plots_csv", fake_import_plots_csv
+    )
+
+    db = AsyncMock()
+    zip_content = _zip_bytes({"parcelas.csv": b"data"})
+
+    imported_by_file, warnings = await import_all_csv_zip(db, zip_content, tenant_id=1)
+
+    assert imported_by_file == {}
+    assert any("parcelas.csv" in w for w in warnings)
+    db.rollback.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_import_truffles_csv_in_loop_batch_flush():
+    """When 50+ rows are parsed the in-loop flush is triggered."""
+    plot = _make_plot(id=10, name="Bancal Sur")
+    plant = _make_plant(id=20, plot_id=10, label="A1")
+
+    db = MagicMock()
+    db.execute = AsyncMock(side_effect=[result([plot]), result([plant])])
+    db.add_all = MagicMock()
+    db.flush = AsyncMock()
+
+    # 50 identical truffle event lines → triggers in-loop flush at row 50
+    lines = ["10/12/2025 08:00:00;Bancal Sur;A1;10,0;manual"] * 50
+    rows, warnings = await import_truffles_csv(
+        db,
+        _plots_csv(lines),
+        tenant_id=1,
+    )
+
+    assert warnings == []
+    assert len(rows) == 50
+    # add_all called once in-loop (batch of 50) + final if block skipped (0 remaining)
+    assert db.add_all.call_count == 1
+    assert db.flush.await_count == 1
+
+
 # ---------------------------------------------------------------------------
 # import_recurring_expenses_csv
 # ---------------------------------------------------------------------------

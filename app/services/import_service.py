@@ -577,6 +577,8 @@ async def import_truffles_csv(
 
     rows: list[TruffleEvent] = []
     warnings: list[str] = []
+    _BATCH_SIZE = 50
+    _flushed = 0
 
     reader = csv.reader(io.StringIO(content.decode("utf-8")), delimiter=";")
     for i, line in enumerate(reader, 1):
@@ -656,14 +658,17 @@ async def import_truffles_csv(
                 quality=quality,
             )
             rows.append(row)
+            if len(rows) % _BATCH_SIZE == 0:
+                db.add_all(rows[_flushed:])
+                await db.flush()
+                _flushed = len(rows)
         except (ValueError, KeyError):
             warnings.append(
                 _warning("Línea {line}: error al parsear los datos — omitida", line=i)
             )
 
-    _BATCH_SIZE = 50
-    for i in range(0, len(rows), _BATCH_SIZE):
-        db.add_all(rows[i : i + _BATCH_SIZE])
+    if _flushed < len(rows):
+        db.add_all(rows[_flushed:])
         await db.flush()
 
     return rows, warnings
@@ -1444,10 +1449,11 @@ async def import_all_csv_zip(
                 rows, file_warnings = await importer(db, file_content, tenant_id)
                 imported_by_file[filename] = len(rows)
                 warnings.extend([f"{filename}: {w}" for w in file_warnings])
-                # Flush after each file so Postgres sees incremental work and
-                # the connection doesn't time out idle-in-transaction.
-                await db.flush()
-            except (UnicodeDecodeError, ValueError) as exc:
+                # Commit after each file to release the DB connection between
+                # files and avoid idle-in-transaction timeouts on Fly.io.
+                await db.commit()
+            except Exception as exc:
+                await db.rollback()
                 warnings.append(
                     _warning(
                         "{file}: error al procesar el archivo ({error})",
