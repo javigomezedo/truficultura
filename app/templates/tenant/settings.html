@@ -3,13 +3,15 @@
 {% block content %}
 {% set read_only = session_plan_mode(request.session) == 'read_only' %}
 {% set has_tenants = session_has_feature(request.session, 'tenants') %}
-<div class="container mt-4">
-  <div class="row justify-content-center">
-    <div class="col-lg-9">
-
-      <h1 class="h3 mb-4 fw-bold">
-        <i class="bi bi-building me-2"></i>{{ _("Ajustes de la organización") }}
-      </h1>
+<div class="container-xl">
+    <div class="tf-page-header">
+        <div>
+            <p class="tf-page-kicker">{{ _("Organización") }}</p>
+            <h1 class="tf-page-title">
+                <i class="bi bi-building me-2"></i>{{ _("Ajustes de la organización") }}
+            </h1>
+        </div>
+    </div>
 
       {% if request.query_params.get("saved") %}
       <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -199,7 +201,5 @@
       {% endif %}
       {% endif %}
 
-    </div>
-  </div>
 </div>
 {% endblock %}

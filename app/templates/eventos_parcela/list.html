@@ -35,16 +35,18 @@
         <div class="d-flex gap-2 align-items-center">
             <div class="btn-group" role="group" aria-label="{{ _('Selector de vista') }}">
                 <a href="/plot-events/calendar-view?plot_id={{ selected_plot or '' }}"
-                   class="btn btn-sm btn-outline-primary">
+                   class="btn btn-sm btn-outline-primary"
+                   aria-pressed="false">
                     <i class="bi bi-calendar3 me-1"></i>{{ _("Calendario") }}
                 </a>
                 <a href="/plot-events/list"
-                   class="btn btn-sm btn-primary">
+                   class="btn btn-sm btn-primary"
+                   aria-pressed="true">
                     <i class="bi bi-list-ul me-1"></i>{{ _("Lista") }}
                 </a>
             </div>
             {% if not read_only %}
-            <a href="/plot-events/new?view_mode=list" class="btn btn-sm btn-primary">
+            <a href="/plot-events/new?view_mode=list" class="btn btn-primary">
                 <i class="bi bi-plus-circle me-1"></i>{{ _("Nuevo evento") }}
             </a>
             {% endif %}

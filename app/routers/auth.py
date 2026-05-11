@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import hash_password, verify_password
 from app.config import settings
+from app.i18n import _
 from app.database import get_db
 from app.jinja import templates
 from app.models.expense import Expense
@@ -40,8 +41,16 @@ router = APIRouter(tags=["auth"])
 # ---------------------------------------------------------------------------
 # IP-based login rate limiting (sliding window, in-process)
 # ---------------------------------------------------------------------------
+# WARNING: This implementation stores failed attempts in a module-level dict.
+# Limitations:
+#   - State is lost on every process restart (not persistent).
+#   - In multi-worker deployments (e.g. multiple uvicorn workers or replicas),
+#     each worker maintains its own independent counter, so the effective limit
+#     is multiplied by the number of workers.
+# For production hardening, replace with a Redis- or DB-backed counter.
+# ---------------------------------------------------------------------------
 _LOGIN_FAIL_WINDOW_SECONDS = 900  # 15 minutes
-_LOGIN_FAIL_MAX = 10              # max failed attempts per IP within window
+_LOGIN_FAIL_MAX = 10  # max failed attempts per IP within window
 _login_failures: defaultdict[str, list[datetime]] = defaultdict(list)
 
 
@@ -62,6 +71,7 @@ def _check_login_rate_limit(ip: str) -> bool:
 
 def _record_login_failure(ip: str) -> None:
     _login_failures[ip].append(datetime.now(timezone.utc))
+
 
 # Email validation pattern
 EMAIL_PATTERN = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
@@ -123,7 +133,9 @@ async def login_post(
             "auth/login.html",
             {
                 "request": request,
-                "error": "Demasiados intentos fallidos. Por favor, espera unos minutos antes de intentarlo de nuevo.",
+                "error": _(
+                    "Demasiados intentos fallidos. Por favor, espera unos minutos antes de intentarlo de nuevo."
+                ),
                 "next_url": next_url or "",
             },
             status_code=429,
@@ -138,7 +150,9 @@ async def login_post(
                 "auth/login.html",
                 {
                     "request": request,
-                    "error": "Debes confirmar tu dirección de email antes de acceder. Revisa tu bandeja de entrada.",
+                    "error": _(
+                        "Debes confirmar tu dirección de email antes de acceder. Revisa tu bandeja de entrada."
+                    ),
                     "next_url": next_url or "",
                 },
                 status_code=401,
@@ -150,7 +164,9 @@ async def login_post(
                 "auth/login.html",
                 {
                     "request": request,
-                    "error": "Este usuario ha sido desactivado. Por favor, contacta con el administrador si necesitas reactivar tu cuenta.",
+                    "error": _(
+                        "Este usuario ha sido desactivado. Por favor, contacta con el administrador si necesitas reactivar tu cuenta."
+                    ),
                     "next_url": next_url or "",
                 },
                 status_code=401,
@@ -179,6 +195,7 @@ async def login_post(
 
         # If trial expired or subscription lapsed, send directly to billing
         from app.auth import is_subscription_blocked
+
         if is_subscription_blocked(user):
             return RedirectResponse("/billing/subscribe", status_code=303)
 
@@ -197,7 +214,11 @@ async def login_post(
     return templates.TemplateResponse(
         request,
         "auth/login.html",
-        {"request": request, "error": "Usuario o contraseña incorrectos.", "next_url": next_url or ""},
+        {
+            "request": request,
+            "error": _("Usuario o contraseña incorrectos."),
+            "next_url": next_url or "",
+        },
         status_code=401,
     )
 
@@ -268,7 +289,10 @@ async def register_post(
         return templates.TemplateResponse(
             request,
             "auth/register.html",
-            {**_reg_error_ctx, "error": "La contraseña debe tener al menos 8 caracteres."},
+            {
+                **_reg_error_ctx,
+                "error": "La contraseña debe tener al menos 8 caracteres.",
+            },
             status_code=400,
         )
 
@@ -276,7 +300,10 @@ async def register_post(
         return templates.TemplateResponse(
             request,
             "auth/register.html",
-            {**_reg_error_ctx, "error": "La contraseña es demasiado larga (máximo 72 bytes)."},
+            {
+                **_reg_error_ctx,
+                "error": "La contraseña es demasiado larga (máximo 72 bytes).",
+            },
             status_code=400,
         )
 
@@ -315,7 +342,9 @@ async def register_post(
     await db.flush()
 
     # Create a tenant for this user (1-person tenant for independent farmers)
-    full_name = f"{new_user.first_name} {new_user.last_name}".strip() or new_user.username
+    full_name = (
+        f"{new_user.first_name} {new_user.last_name}".strip() or new_user.username
+    )
     base_slug = re.sub(r"[^\w\s-]", "", full_name.lower()).strip()
     base_slug = re.sub(r"[\s_]+", "-", base_slug) or f"user-{new_user.id}"
 
@@ -347,10 +376,14 @@ async def register_post(
             update(Plot).where(Plot.tenant_id.is_(None)).values(tenant_id=new_tenant.id)
         )
         await db.execute(
-            update(Expense).where(Expense.tenant_id.is_(None)).values(tenant_id=new_tenant.id)
+            update(Expense)
+            .where(Expense.tenant_id.is_(None))
+            .values(tenant_id=new_tenant.id)
         )
         await db.execute(
-            update(Income).where(Income.tenant_id.is_(None)).values(tenant_id=new_tenant.id)
+            update(Income)
+            .where(Income.tenant_id.is_(None))
+            .values(tenant_id=new_tenant.id)
         )
 
     await db.commit()
@@ -365,10 +398,14 @@ async def register_post(
         safe_next = _safe_next(next_url) if next_url else ""
         try:
             await send_confirmation_email(
-                email, token, next_url=safe_next if safe_next and safe_next != "/" else None
+                email,
+                token,
+                next_url=safe_next if safe_next and safe_next != "/" else None,
             )
         except Exception as exc:
-            logger.warning("[auth] Could not send confirmation email to %s: %s", email, exc)
+            logger.warning(
+                "[auth] Could not send confirmation email to %s: %s", email, exc
+            )
         pending_url = (
             f"/login?pending_confirmation=1&next={safe_next}"
             if safe_next and safe_next != "/"
@@ -377,7 +414,11 @@ async def register_post(
         return RedirectResponse(pending_url, status_code=303)
 
     safe_next = _safe_next(next_url) if next_url else ""
-    redirect_target = f"/login?registered=1&next={safe_next}" if safe_next and safe_next != "/" else "/login?registered=1"
+    redirect_target = (
+        f"/login?registered=1&next={safe_next}"
+        if safe_next and safe_next != "/"
+        else "/login?registered=1"
+    )
     return RedirectResponse(redirect_target, status_code=303)
 
 
@@ -453,7 +494,9 @@ async def forgot_password_post(
             try:
                 await send_password_reset_email(email, token)
             except Exception as exc:
-                logger.warning("[auth] Could not send password reset email to %s: %s", email, exc)
+                logger.warning(
+                    "[auth] Could not send password reset email to %s: %s", email, exc
+                )
         else:
             reset_url = f"{settings.APP_BASE_URL}/reset-password/{token}"
             logger.info("[dev] Password reset link for %s: %s", email, reset_url)
