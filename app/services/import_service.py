@@ -1444,6 +1444,9 @@ async def import_all_csv_zip(
                 rows, file_warnings = await importer(db, file_content, tenant_id)
                 imported_by_file[filename] = len(rows)
                 warnings.extend([f"{filename}: {w}" for w in file_warnings])
+                # Flush after each file so Postgres sees incremental work and
+                # the connection doesn't time out idle-in-transaction.
+                await db.flush()
             except (UnicodeDecodeError, ValueError) as exc:
                 warnings.append(
                     _warning(

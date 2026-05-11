@@ -7,6 +7,7 @@ engine = create_async_engine(
     settings.SQLALCHEMY_DATABASE_URL,
     echo=False,
     pool_pre_ping=True,
+    pool_recycle=1800,  # Recycle connections after 30 min to avoid server-side timeouts
 )
 
 AsyncSessionLocal = async_sessionmaker(
