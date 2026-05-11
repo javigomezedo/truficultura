@@ -12,15 +12,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.i18n import _
 from app.models.expense import Expense
 from app.models.expense_proration_group import ExpenseProrationGroup
+from app.models.brule import BruleRecord
 from app.models.income import Income
 from app.models.irrigation import IrrigationRecord
-from app.models.plant import Plant
+from app.models.plant import Plant, PlantStatus, HostSpecies
 from app.models.plant_presence import PlantPresence
 from app.models.plot import Plot
 from app.models.plot_event import PlotEvent
 from app.models.plot_harvest import PlotHarvest
+from app.models.rainfall import RainfallRecord
 from app.models.recurring_expense import FREQUENCIES, RecurringExpense
 from app.models.truffle_event import TruffleEvent
+from app.models.truffle_quality import TruffleQuality
 from app.models.well import Well
 from app.utils import parse_row_config
 
@@ -250,24 +253,25 @@ async def import_plots_csv(
     """Parse plots CSV and persist rows.
 
     Expected format (semicolon-delimited, no header, min 2 columns):
-        nombre;fecha_plantacion[;poligono;parcela;ref_catastral;hidrante;sector;n_plantas;superficie_ha;inicio_produccion[;tiene_riego[;config_mapa[;recinto[;caudal_riego[;provincia_cod[;municipio_cod]]]]]]]]
+        nombre;fecha_plantacion[;poligono;parcela;ref_catastral;hidrante;sector;n_plantas;superficie_ha;inicio_produccion[;tiene_riego[;config_mapa[;recinto[;caudal_riego[;provincia_cod[;municipio_cod[;especie_huesped_defecto]]]]]]]]
 
-    - nombre:            plot name (required)
-    - fecha_plantacion:  planting date DD/MM/YYYY (required)
-    - poligono:          polygon reference (optional)
-    - parcela:           plot number within polygon (optional)
-    - ref_catastral:     official cadastral reference (optional)
-    - hidrante:          hydrant identifier (optional)
-    - sector:            sector (optional)
-    - n_plantas:         number of plants (optional, integer)
-    - superficie_ha:     area in hectares (optional, decimal)
-    - inicio_produccion: production start date DD/MM/YYYY (optional)
-    - tiene_riego:       1 or 0 (optional, default 0 — backward compatible)
-    - config_mapa:       sparse map config (optional, e.g. A:1-4; B:2-5)
-    - recinto:           SIGPAC recinto number (optional, default '1')
-    - caudal_riego:      irrigation flow in m³/h (optional, decimal)
-    - provincia_cod:     cadastral province code (optional)
-    - municipio_cod:     cadastral municipality code (optional)
+    - nombre:                 plot name (required)
+    - fecha_plantacion:       planting date DD/MM/YYYY (required)
+    - poligono:               polygon reference (optional)
+    - parcela:                plot number within polygon (optional)
+    - ref_catastral:          official cadastral reference (optional)
+    - hidrante:               hydrant identifier (optional)
+    - sector:                 sector (optional)
+    - n_plantas:              number of plants (optional, integer)
+    - superficie_ha:          area in hectares (optional, decimal)
+    - inicio_produccion:      production start date DD/MM/YYYY (optional)
+    - tiene_riego:            1 or 0 (optional, default 0 — backward compatible)
+    - config_mapa:            sparse map config (optional, e.g. A:1-4; B:2-5)
+    - recinto:                SIGPAC recinto number (optional, default '1')
+    - caudal_riego:           irrigation flow in m³/h (optional, decimal)
+    - provincia_cod:          cadastral province code (optional)
+    - municipio_cod:          cadastral municipality code (optional)
+    - especie_huesped_defecto: default host species (optional): encina|roble|quejigo|coscoja|avellano|carpe|otros
 
     Note: Percentage is automatically calculated based on total plant count.
     """
@@ -293,6 +297,19 @@ async def import_plots_csv(
             return line[n].strip() if len(line) > n else ""
 
         try:
+            default_species_s = col(16)
+            default_host_species: Optional[HostSpecies] = None
+            if default_species_s:
+                try:
+                    default_host_species = HostSpecies(default_species_s.lower())
+                except ValueError:
+                    warnings.append(
+                        _warning(
+                            "Línea {line}: especie '{val}' no reconocida — parcela importada sin especie por defecto",
+                            line=i,
+                            val=default_species_s,
+                        )
+                    )
             row = Plot(
                 tenant_id=tenant_id,
                 name=col(0),
@@ -311,6 +328,7 @@ async def import_plots_csv(
                 caudal_riego=_parse_num(col(13)) or None,
                 provincia_cod=col(14) or None,
                 municipio_cod=col(15) or None,
+                default_host_species=default_host_species,
             )
             rows.append(row)
             map_config = col(11)
@@ -540,7 +558,14 @@ async def import_truffles_csv(
     """Parse truffle production CSV and persist rows.
 
     Expected format (semicolon-delimited, no header):
-        fecha_hora;bancal;planta;peso_g[;origen]
+        fecha_hora;bancal;planta;peso_g[;origen[;calidad]]
+
+    - fecha_hora: DD/MM/YYYY HH:MM:SS
+    - bancal:     plot name
+    - planta:     plant label
+    - peso_g:     weight in grams, European format
+    - origen:     'manual' | 'qr' (optional, default 'manual')
+    - calidad:    quality category (optional): extra|primera|segunda|blanda|agusanada
     """
     plots_result = await db.execute(select(Plot).where(Plot.tenant_id == tenant_id))
     plots: dict[str, Plot] = {p.name.lower(): p for p in plots_result.scalars().all()}
@@ -572,6 +597,7 @@ async def import_truffles_csv(
         planta_label = line[2].strip()
         peso_s = line[3].strip()
         origen = (line[4].strip() if len(line) > 4 else "manual") or "manual"
+        quality_s = line[5].strip().lower() if len(line) > 5 else ""
 
         if not bancal:
             warnings.append(_warning("Línea {line}: bancal vacío — omitida", line=i))
@@ -606,6 +632,18 @@ async def import_truffles_csv(
         try:
             created_at = _parse_datetime(fecha_hora_s)
             estimated_weight_grams = _parse_num(peso_s)
+            quality: Optional[TruffleQuality] = None
+            if quality_s:
+                try:
+                    quality = TruffleQuality(quality_s)
+                except ValueError:
+                    warnings.append(
+                        _warning(
+                            "Línea {line}: calidad '{val}' no reconocida — importada sin calidad",
+                            line=i,
+                            val=quality_s,
+                        )
+                    )
             row = TruffleEvent(
                 plant_id=plant.id,
                 plot_id=plot.id,
@@ -615,6 +653,7 @@ async def import_truffles_csv(
                 created_at=created_at,
                 undo_window_expires_at=created_at + datetime.timedelta(seconds=30),
                 undone_at=None,
+                quality=quality,
             )
             rows.append(row)
         except (ValueError, KeyError):
@@ -1046,6 +1085,304 @@ async def import_presences_csv(
     return rows, warnings
 
 
+async def import_plants_csv(
+    db: AsyncSession, content: bytes, tenant_id: int
+) -> tuple[list[Plant], list[str]]:
+    """Update Plant attributes from CSV. Does not create new plants.
+
+    Expected format (semicolon-delimited, no header):
+        bancal;etiqueta;estado;fecha_baja;especie_huesped
+
+    - bancal:          plot name (required)
+    - etiqueta:        plant label, e.g. "A1" (required)
+    - estado:          plant status: viva|estresada|muerta|reemplazada (required)
+    - fecha_baja:      date plant was retired DD/MM/YYYY (optional, empty for active)
+    - especie_huesped: host species (optional): encina|roble|quejigo|coscoja|avellano|carpe|otros
+
+    Rows are matched by (bancal, etiqueta). Unknown plots or plants are skipped.
+    """
+    plots_result = await db.execute(select(Plot).where(Plot.tenant_id == tenant_id))
+    plots: dict[str, Plot] = {p.name.lower(): p for p in plots_result.scalars().all()}
+
+    plants_result = await db.execute(select(Plant).where(Plant.tenant_id == tenant_id))
+    plants_by_plot_label: dict[tuple[int, str], Plant] = {
+        (p.plot_id, p.label.lower()): p for p in plants_result.scalars().all()
+    }
+
+    updated: list[Plant] = []
+    warnings: list[str] = []
+
+    reader = csv.reader(io.StringIO(content.decode("utf-8")), delimiter=";")
+    for i, line in enumerate(reader, 1):
+        if not any(line):
+            continue
+        if len(line) < 3:
+            warnings.append(
+                _warning(
+                    "Línea {line}: se esperaban al menos 3 columnas, se encontraron {count} — omitida",
+                    line=i,
+                    count=len(line),
+                )
+            )
+            continue
+
+        bancal_s = line[0].strip()
+        etiqueta_s = line[1].strip()
+        estado_s = line[2].strip().lower()
+        fecha_baja_s = line[3].strip() if len(line) > 3 else ""
+        especie_s = line[4].strip().lower() if len(line) > 4 else ""
+
+        if not bancal_s or not etiqueta_s:
+            warnings.append(
+                _warning("Línea {line}: bancal o etiqueta vacíos — omitida", line=i)
+            )
+            continue
+
+        plot = plots.get(bancal_s.lower())
+        if plot is None:
+            warnings.append(
+                _warning(
+                    "Línea {line}: bancal '{plot}' no encontrado — omitida",
+                    line=i,
+                    plot=bancal_s,
+                )
+            )
+            continue
+
+        plant = plants_by_plot_label.get((plot.id, etiqueta_s.lower()))
+        if plant is None:
+            warnings.append(
+                _warning(
+                    "Línea {line}: planta '{plant}' no encontrada en bancal '{plot}' — omitida",
+                    line=i,
+                    plant=etiqueta_s,
+                    plot=bancal_s,
+                )
+            )
+            continue
+
+        try:
+            plant.status = PlantStatus(estado_s)
+        except ValueError:
+            warnings.append(
+                _warning(
+                    "Línea {line}: estado '{val}' no reconocido — omitida",
+                    line=i,
+                    val=estado_s,
+                )
+            )
+            continue
+
+        plant.baja_date = _parse_date_opt(fecha_baja_s)
+
+        if especie_s:
+            try:
+                plant.host_species = HostSpecies(especie_s)
+            except ValueError:
+                warnings.append(
+                    _warning(
+                        "Línea {line}: especie '{val}' no reconocida — planta actualizada sin especie",
+                        line=i,
+                        val=especie_s,
+                    )
+                )
+
+        updated.append(plant)
+
+    return updated, warnings
+
+
+async def import_brule_csv(
+    db: AsyncSession, content: bytes, tenant_id: int
+) -> tuple[list[BruleRecord], list[str]]:
+    """Parse brulé measurement CSV and persist rows.
+
+    Expected format (semicolon-delimited, no header):
+        fecha;bancal;planta;diametro_cm
+
+    - fecha:       DD/MM/YYYY (required)
+    - bancal:      plot name (required)
+    - planta:      plant label, e.g. "A1" (required)
+    - diametro_cm: integer diameter in cm (required)
+
+    Duplicate records (same plant + date) are skipped with a warning.
+    """
+    plots_result = await db.execute(select(Plot).where(Plot.tenant_id == tenant_id))
+    plots: dict[str, Plot] = {p.name.lower(): p for p in plots_result.scalars().all()}
+
+    plants_result = await db.execute(select(Plant).where(Plant.tenant_id == tenant_id))
+    plants_by_plot_label: dict[tuple[int, str], Plant] = {
+        (p.plot_id, p.label.lower()): p for p in plants_result.scalars().all()
+    }
+
+    # Pre-load existing records to detect UniqueConstraint conflicts
+    existing_result = await db.execute(
+        select(BruleRecord.plant_id, BruleRecord.record_date).where(
+            BruleRecord.tenant_id == tenant_id
+        )
+    )
+    existing: set[tuple[int, datetime.date]] = {
+        (row.plant_id, row.record_date) for row in existing_result.all()
+    }
+
+    rows: list[BruleRecord] = []
+    warnings: list[str] = []
+
+    reader = csv.reader(io.StringIO(content.decode("utf-8")), delimiter=";")
+    for i, line in enumerate(reader, 1):
+        if not any(line):
+            continue
+        if len(line) < 4:
+            warnings.append(
+                _warning(
+                    "Línea {line}: se esperaban 4 columnas, se encontraron {count} — omitida",
+                    line=i,
+                    count=len(line),
+                )
+            )
+            continue
+
+        fecha_s = line[0].strip()
+        bancal_s = line[1].strip()
+        planta_s = line[2].strip()
+        diametro_s = line[3].strip()
+
+        if not bancal_s or not planta_s:
+            warnings.append(
+                _warning("Línea {line}: bancal o planta vacíos — omitida", line=i)
+            )
+            continue
+
+        plot = plots.get(bancal_s.lower())
+        if plot is None:
+            warnings.append(
+                _warning(
+                    "Línea {line}: bancal '{plot}' no encontrado — omitida",
+                    line=i,
+                    plot=bancal_s,
+                )
+            )
+            continue
+
+        plant = plants_by_plot_label.get((plot.id, planta_s.lower()))
+        if plant is None:
+            warnings.append(
+                _warning(
+                    "Línea {line}: planta '{plant}' no encontrada en bancal '{plot}' — omitida",
+                    line=i,
+                    plant=planta_s,
+                    plot=bancal_s,
+                )
+            )
+            continue
+
+        try:
+            record_date = _parse_date(fecha_s)
+            diameter_cm = int(_parse_int(diametro_s))
+        except (ValueError, KeyError):
+            warnings.append(
+                _warning("Línea {line}: error al parsear los datos — omitida", line=i)
+            )
+            continue
+
+        key = (plant.id, record_date)
+        if key in existing:
+            warnings.append(
+                _warning(
+                    "Línea {line}: ya existe un registro de brulé para planta '{plant}' el {date} — omitida",
+                    line=i,
+                    plant=planta_s,
+                    date=fecha_s,
+                )
+            )
+            continue
+        existing.add(key)
+
+        rows.append(
+            BruleRecord(
+                tenant_id=tenant_id,
+                plot_id=plot.id,
+                plant_id=plant.id,
+                record_date=record_date,
+                diameter_cm=diameter_cm,
+            )
+        )
+
+    _BATCH_SIZE = 50
+    for i in range(0, len(rows), _BATCH_SIZE):
+        db.add_all(rows[i : i + _BATCH_SIZE])
+        await db.flush()
+
+    return rows, warnings
+
+
+async def import_rainfall_csv(
+    db: AsyncSession, content: bytes, tenant_id: int
+) -> tuple[list[RainfallRecord], list[str]]:
+    """Parse manual rainfall records CSV and persist rows.
+
+    Expected format (semicolon-delimited, no header):
+        fecha;bancal;mm;notas
+
+    - fecha:  DD/MM/YYYY (required)
+    - bancal: plot name (optional — leave empty for general rainfall)
+    - mm:     precipitation in millimetres, European format (required)
+    - notas:  optional free text notes
+    """
+    plots = await _load_plots(db, tenant_id)
+    rows: list[RainfallRecord] = []
+    warnings: list[str] = []
+
+    reader = csv.reader(io.StringIO(content.decode("utf-8")), delimiter=";")
+    for i, line in enumerate(reader, 1):
+        if not any(line):
+            continue
+        if len(line) < 3:
+            warnings.append(
+                _warning(
+                    "Línea {line}: se esperaban al menos 3 columnas, se encontraron {count} — omitida",
+                    line=i,
+                    count=len(line),
+                )
+            )
+            continue
+
+        fecha_s = line[0].strip()
+        bancal_s = line[1].strip()
+        mm_s = line[2].strip()
+        notas = line[3].strip() if len(line) > 3 else None
+
+        plot_id: Optional[int] = None
+        if bancal_s:
+            plot_id = plots.get(bancal_s.lower())
+            if plot_id is None:
+                warnings.append(
+                    _warning(
+                        "Línea {line}: bancal '{plot}' no encontrado — importado sin bancal",
+                        line=i,
+                        plot=bancal_s,
+                    )
+                )
+
+        try:
+            row = RainfallRecord(
+                tenant_id=tenant_id,
+                plot_id=plot_id,
+                date=_parse_date(fecha_s),
+                precipitation_mm=_parse_num(mm_s),
+                source="manual",
+                notes=notas or None,
+            )
+            rows.append(row)
+        except (ValueError, KeyError):
+            warnings.append(
+                _warning("Línea {line}: error al parsear los datos — omitida", line=i)
+            )
+
+    db.add_all(rows)
+    return rows, warnings
+
+
 async def import_all_csv_zip(
     db: AsyncSession, content: bytes, tenant_id: int
 ) -> tuple[dict[str, int], list[str]]:
@@ -1053,6 +1390,7 @@ async def import_all_csv_zip(
 
     Supported filenames:
     - parcelas.csv
+    - plantas.csv  (must come after parcelas.csv)
     - gastos.csv
     - ingresos.csv
     - riego.csv
@@ -1061,6 +1399,9 @@ async def import_all_csv_zip(
     - labores.csv
     - gastos_recurrentes.csv
     - cosechas.csv
+    - presencias.csv
+    - brule.csv
+    - lluvia.csv
     """
     try:
         zf = zipfile.ZipFile(io.BytesIO(content))
@@ -1069,6 +1410,7 @@ async def import_all_csv_zip(
 
     importers: list[tuple[str, object]] = [
         ("parcelas.csv", import_plots_csv),
+        ("plantas.csv", import_plants_csv),
         ("gastos.csv", import_expenses_csv),
         ("ingresos.csv", import_incomes_csv),
         ("riego.csv", import_irrigation_csv),
@@ -1078,6 +1420,8 @@ async def import_all_csv_zip(
         ("gastos_recurrentes.csv", import_recurring_expenses_csv),
         ("cosechas.csv", import_harvests_csv),
         ("presencias.csv", import_presences_csv),
+        ("brule.csv", import_brule_csv),
+        ("lluvia.csv", import_rainfall_csv),
     ]
 
     imported_by_file: dict[str, int] = {}

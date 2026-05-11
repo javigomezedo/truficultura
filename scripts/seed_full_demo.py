@@ -20,14 +20,20 @@ from dataclasses import dataclass, field
 from sqlalchemy import select
 
 from app.database import AsyncSessionLocal
+from app.models.brule import BruleRecord
 from app.models.expense import Expense
 from app.models.income import Income
 from app.models.irrigation import IrrigationRecord
-from app.models.plant import Plant
+from app.models.plant import HostSpecies, Plant, PlantStatus
+from app.models.plant_presence import PlantPresence
 from app.models.plot import Plot
 from app.models.plot_event import PlotEvent
+from app.models.plot_harvest import PlotHarvest
 from app.models.rainfall import RainfallRecord
+from app.models.recurring_expense import RecurringExpense
+from app.models.tenant import TenantMembership
 from app.models.truffle_event import TruffleEvent
+from app.models.truffle_quality import TruffleQuality
 from app.models.user import User
 from app.models.well import Well
 from app.schemas.plot_event import EventType
@@ -132,6 +138,10 @@ class SeedSummary:
     truffle_events: int = 0
     plot_events: int = 0
     rainfall: int = 0
+    brule: int = 0
+    harvests: int = 0
+    presences: int = 0
+    recurring_expenses: int = 0
     campaigns: list[int] = field(default_factory=list)
 
 
@@ -179,10 +189,11 @@ def _harvest_date(rng: random.Random, cy: int) -> dt.date:
 
 def _make_plants(
     rng: random.Random,
-    user_id: int,
+    tenant_id: int | None,
     plot_id: int,
     num_rows: int,
     cols_range: tuple[int, int],
+    default_host_species: HostSpecies | None = None,
 ) -> list[Plant]:
     plants = []
     for row_idx in range(num_rows):
@@ -193,15 +204,44 @@ def _make_plants(
         keep = max(1, int(len(all_cols) * rng.uniform(0.75, 1.0)))
         chosen = sorted(rng.sample(all_cols, k=keep))
         for vc in chosen:
+            # Realistic status distribution: 90% viva, 5% estresada, 3% muerta, 2% reemplazada
+            status_roll = rng.random()
+            if status_roll < 0.90:
+                status = PlantStatus.viva
+                baja_date = None
+            elif status_roll < 0.95:
+                status = PlantStatus.estresada
+                baja_date = None
+            elif status_roll < 0.98:
+                status = PlantStatus.muerta
+                baja_date = dt.date(
+                    rng.randint(2018, dt.date.today().year - 1),
+                    rng.randint(1, 12),
+                    rng.randint(1, 28),
+                )
+            else:
+                status = PlantStatus.reemplazada
+                baja_date = dt.date(
+                    rng.randint(2018, dt.date.today().year - 1),
+                    rng.randint(1, 12),
+                    rng.randint(1, 28),
+                )
+            # Host species: inherit default with small per-plant variation
+            host_species = default_host_species
+            if rng.random() < 0.05:  # 5% diverge from plot default
+                host_species = rng.choice(list(HostSpecies))
             plants.append(
                 Plant(
-                    user_id=user_id,
+                    tenant_id=tenant_id,
                     plot_id=plot_id,
                     label=f"{rl}{vc}",
                     row_label=rl,
                     row_order=row_idx,
                     col_order=vc - 1,
                     visual_col=vc,
+                    status=status,
+                    baja_date=baja_date,
+                    host_species=host_species,
                 )
             )
     return plants
@@ -209,7 +249,7 @@ def _make_plants(
 
 def _make_expenses_for_plot(
     rng: random.Random,
-    user_id: int,
+    tenant_id: int | None,
     plot_id: int,
     planting_date: dt.date,
     campaign_years: list[int],
@@ -222,7 +262,7 @@ def _make_expenses_for_plot(
         # Labrar: every year
         expenses.append(
             Expense(
-                user_id=user_id,
+                tenant_id=tenant_id,
                 plot_id=plot_id,
                 date=_random_date_in_campaign(rng, cy, 9, 11),
                 description="Laboreo anual",
@@ -238,7 +278,7 @@ def _make_expenses_for_plot(
             for _ in range(n_riego):
                 expenses.append(
                     Expense(
-                        user_id=user_id,
+                        tenant_id=tenant_id,
                         plot_id=plot_id,
                         date=_random_date_in_campaign(rng, cy, 6, 9),
                         description="Coste riego",
@@ -253,7 +293,7 @@ def _make_expenses_for_plot(
         if age <= 3:
             expenses.append(
                 Expense(
-                    user_id=user_id,
+                    tenant_id=tenant_id,
                     plot_id=plot_id,
                     date=_random_date_in_campaign(rng, cy, 5, 8),
                     description="Pozos micorrización",
@@ -267,7 +307,7 @@ def _make_expenses_for_plot(
         if cy == first_cy and planting_date.year >= cy:
             expenses.append(
                 Expense(
-                    user_id=user_id,
+                    tenant_id=tenant_id,
                     plot_id=plot_id,
                     date=_random_date_in_campaign(rng, cy, 5, 7),
                     description="Adquisición plantel",
@@ -281,7 +321,7 @@ def _make_expenses_for_plot(
         if rng.random() < 0.4:
             expenses.append(
                 Expense(
-                    user_id=user_id,
+                    tenant_id=tenant_id,
                     plot_id=plot_id,
                     date=_random_date_in_campaign(rng, cy, 8, 11),
                     description="Adiestramiento perro trufero",
@@ -295,7 +335,7 @@ def _make_expenses_for_plot(
         if rng.random() < 0.3:
             expenses.append(
                 Expense(
-                    user_id=user_id,
+                    tenant_id=tenant_id,
                     plot_id=plot_id,
                     date=_random_date_in_campaign(rng, cy, 5, 12),
                     description=rng.choice(
@@ -318,7 +358,7 @@ def _make_expenses_for_plot(
 
 def _make_general_expenses(
     rng: random.Random,
-    user_id: int,
+    tenant_id: int | None,
     campaign_years: list[int],
 ) -> list[Expense]:
     """Unassigned (general) expenses shared across all plots."""
@@ -327,7 +367,7 @@ def _make_general_expenses(
         # Regadío social: yearly
         expenses.append(
             Expense(
-                user_id=user_id,
+                tenant_id=tenant_id,
                 plot_id=None,
                 date=_random_date_in_campaign(rng, cy, 5, 7),
                 description="Regadío social comunidad",
@@ -340,7 +380,7 @@ def _make_general_expenses(
         if rng.random() < 0.25:
             expenses.append(
                 Expense(
-                    user_id=user_id,
+                    tenant_id=tenant_id,
                     plot_id=None,
                     date=_random_date_in_campaign(rng, cy, 5, 10),
                     description="Reparación/ampliación vallado",
@@ -353,7 +393,7 @@ def _make_general_expenses(
         if rng.random() < 0.5:
             expenses.append(
                 Expense(
-                    user_id=user_id,
+                    tenant_id=tenant_id,
                     plot_id=None,
                     date=_random_date_in_campaign(rng, cy, 5, 11),
                     description=rng.choice(
@@ -369,7 +409,7 @@ def _make_general_expenses(
 
 def _make_incomes_for_plot(
     rng: random.Random,
-    user_id: int,
+    tenant_id: int | None,
     plot_id: int,
     planting_date: dt.date,
     num_plants: int,
@@ -409,24 +449,24 @@ def _make_incomes_for_plot(
                 continue
 
             euros_per_kg = round(rng.uniform(pmin, pmax), 2)
-            # Grade variation: extra costs more
-            category = rng.choices(
-                INCOME_CATEGORIES,
-                weights=[20, 45, 25, 10],
+            # Grade variation: extra costs more, agusanada/blanda much less
+            quality = rng.choices(
+                list(TruffleQuality),
+                weights=[15, 50, 25, 7, 3],
             )[0]
-            if "extra" in category:
+            if quality == TruffleQuality.EXTRA:
                 euros_per_kg = round(euros_per_kg * rng.uniform(1.1, 1.4), 2)
-            elif "picada" in category:
-                euros_per_kg = round(euros_per_kg * rng.uniform(0.3, 0.5), 2)
+            elif quality in (TruffleQuality.BLANDA, TruffleQuality.AGUSANADA):
+                euros_per_kg = round(euros_per_kg * rng.uniform(0.2, 0.5), 2)
 
             incomes.append(
                 Income(
-                    user_id=user_id,
+                    tenant_id=tenant_id,
                     plot_id=plot_id,
                     date=_harvest_date(rng, cy),
                     amount_kg=round(sale_kg, 3),
                     euros_per_kg=euros_per_kg,
-                    category=category,
+                    category=quality,
                 )
             )
 
@@ -435,7 +475,7 @@ def _make_incomes_for_plot(
 
 def _make_wells_for_plot(
     rng: random.Random,
-    user_id: int,
+    tenant_id: int | None,
     plot_id: int,
     planting_date: dt.date,
     campaign_years: list[int],
@@ -450,7 +490,7 @@ def _make_wells_for_plot(
         for _ in range(n_sessions):
             wells.append(
                 Well(
-                    user_id=user_id,
+                    tenant_id=tenant_id,
                     plot_id=plot_id,
                     date=_random_date_in_campaign(rng, cy, 5, 9),
                     wells_per_plant=rng.randint(1, 3),
@@ -465,7 +505,7 @@ def _make_wells_for_plot(
 
 def _make_irrigation_for_plot(
     rng: random.Random,
-    user_id: int,
+    tenant_id: int | None,
     plot_id: int,
     planting_date: dt.date,
     num_plants: int,
@@ -485,7 +525,7 @@ def _make_irrigation_for_plot(
             water_m3 = round(litres_per_plant * num_plants / 1000, 2)
             records.append(
                 IrrigationRecord(
-                    user_id=user_id,
+                    tenant_id=tenant_id,
                     plot_id=plot_id,
                     date=_random_date_in_campaign(rng, cy, 6, 9),
                     water_m3=water_m3,
@@ -497,7 +537,7 @@ def _make_irrigation_for_plot(
 
 def _make_plot_events_for_plot(
     rng: random.Random,
-    user_id: int,
+    tenant_id: int | None,
     plot_id: int,
     planting_date: dt.date,
     campaign_years: list[int],
@@ -530,7 +570,7 @@ def _make_plot_events_for_plot(
         for _ in range(n_tilling):
             events.append(
                 PlotEvent(
-                    user_id=user_id,
+                    tenant_id=tenant_id,
                     plot_id=plot_id,
                     event_type=EventType.LABRADO.value,
                     date=_random_date_in_campaign(rng, cy, 9, 11),
@@ -550,7 +590,7 @@ def _make_plot_events_for_plot(
                 month = rng.randint(4, 6)
                 events.append(
                     PlotEvent(
-                        user_id=user_id,
+                        tenant_id=tenant_id,
                         plot_id=plot_id,
                         event_type=EventType.PICADO.value,
                         date=dt.date(cy, month, rng.randint(1, 28)),
@@ -574,7 +614,7 @@ def _make_plot_events_for_plot(
                 pdate = dt.date(year, month, 28)
             events.append(
                 PlotEvent(
-                    user_id=user_id,
+                    tenant_id=tenant_id,
                     plot_id=plot_id,
                     event_type=EventType.PODA.value,
                     date=pdate,
@@ -595,7 +635,7 @@ def _timestamp_for_date(date_value: dt.date) -> dt.datetime:
 
 
 def _make_linked_plot_events_for_records(
-    user_id: int,
+    tenant_id: int | None,
     plot_id: int,
     irrigation_records: list[IrrigationRecord],
     well_records: list[Well],
@@ -606,7 +646,7 @@ def _make_linked_plot_events_for_records(
         timestamp = _timestamp_for_date(record.date)
         events.append(
             PlotEvent(
-                user_id=user_id,
+                tenant_id=tenant_id,
                 plot_id=plot_id,
                 event_type=EventType.RIEGO.value,
                 date=record.date,
@@ -621,7 +661,7 @@ def _make_linked_plot_events_for_records(
         timestamp = _timestamp_for_date(record.date)
         events.append(
             PlotEvent(
-                user_id=user_id,
+                tenant_id=tenant_id,
                 plot_id=plot_id,
                 event_type=EventType.POZO.value,
                 date=record.date,
@@ -652,7 +692,7 @@ def _random_precipitation_mm(rng: random.Random) -> float:
 
 def _make_rainfall_manual_for_plot(
     rng: random.Random,
-    user_id: int,
+    tenant_id: int | None,
     plot_id: int,
     planting_date: dt.date,
     campaign_years: list[int],
@@ -673,7 +713,7 @@ def _make_rainfall_manual_for_plot(
             date = dt.date(year, month, rng.randint(1, 28))
             records.append(
                 RainfallRecord(
-                    user_id=user_id,
+                    tenant_id=tenant_id,
                     plot_id=plot_id,
                     municipio_cod=None,
                     municipio_name=None,
@@ -690,7 +730,7 @@ def _make_rainfall_manual_for_plot(
 
 def _make_rainfall_external_for_municipio(
     rng: random.Random,
-    user_id: int,
+    tenant_id: int | None,
     municipio_full_cod: str,
     municipio_name: str,
     campaign_years: list[int],
@@ -706,7 +746,7 @@ def _make_rainfall_external_for_municipio(
         while current <= end_ibericam:
             records.append(
                 RainfallRecord(
-                    user_id=user_id,
+                    tenant_id=tenant_id,
                     plot_id=None,
                     municipio_cod=municipio_full_cod,
                     municipio_name=municipio_name,
@@ -726,7 +766,7 @@ def _make_rainfall_external_for_municipio(
             # Día 15 del mes como fecha representativa del mes
             records.append(
                 RainfallRecord(
-                    user_id=user_id,
+                    tenant_id=tenant_id,
                     plot_id=None,
                     municipio_cod=municipio_full_cod,
                     municipio_name=municipio_name,
@@ -740,9 +780,207 @@ def _make_rainfall_external_for_municipio(
     return records
 
 
+def _make_brule_for_plants(
+    rng: random.Random,
+    tenant_id: int,
+    plot_id: int,
+    plants: list[Plant],
+    planting_date: dt.date,
+    campaign_years: list[int],
+) -> list[BruleRecord]:
+    """Mediciones de diámetro de brulé por planta. 2 sesiones/año (primavera y otoño)
+    para una muestra aleatoria de plantas. Garantiza unicidad (plant_id, date)."""
+    records: list[BruleRecord] = []
+    seen: set[tuple[int, dt.date]] = set()  # dedup guard
+
+    alive_plants = [
+        p for p in plants if p.status in (PlantStatus.viva, PlantStatus.estresada)
+    ]
+    if not alive_plants:
+        alive_plants = plants  # fallback
+
+    for cy in campaign_years:
+        if cy < planting_date.year + 2:
+            continue  # brulé needs at least 2 years to be meaningful
+        # Sample 40–80% of alive plants for measurement sessions
+        sample_size = max(1, int(len(alive_plants) * rng.uniform(0.4, 0.8)))
+        sample = rng.sample(alive_plants, k=min(sample_size, len(alive_plants)))
+
+        for session_month in [4, 10]:  # April (spring) and October (autumn)
+            session_year = cy if session_month >= 5 else cy + 1
+            session_date = dt.date(session_year, session_month, rng.randint(5, 25))
+            for plant in sample:
+                key = (plant.id, session_date)
+                if key in seen:
+                    continue
+                seen.add(key)
+                records.append(
+                    BruleRecord(
+                        tenant_id=tenant_id,
+                        created_by_user_id=None,
+                        plot_id=plot_id,
+                        plant_id=plant.id,
+                        record_date=session_date,
+                        diameter_cm=rng.randint(20, 150),
+                    )
+                )
+    return records
+
+
+def _make_harvests_for_plot(
+    rng: random.Random,
+    tenant_id: int,
+    plot_id: int,
+    planting_date: dt.date,
+    area_ha: float,
+    campaign_years: list[int],
+) -> list[PlotHarvest]:
+    """Registros de cosecha agregada por bancal (PlotHarvest). 3–8 sesiones por
+    campaña productiva, en temporada Nov–Feb."""
+    records: list[PlotHarvest] = []
+    for cy in campaign_years:
+        age = cy - planting_date.year + 0.5
+        factor = _production_factor(age)
+        if factor <= 0:
+            continue
+        n_sessions = rng.randint(3, 8)
+        for _ in range(n_sessions):
+            month = rng.randint(11, 14)  # 13=Jan, 14=Feb (next year)
+            year = cy if month <= 12 else cy + 1
+            month = month if month <= 12 else month - 12
+            harvest_date = dt.date(year, month, rng.randint(1, 28))
+            weight_g = round(rng.uniform(200, 3000) * area_ha * factor, 0)
+            if weight_g < 50:
+                continue
+            records.append(
+                PlotHarvest(
+                    tenant_id=tenant_id,
+                    created_by_user_id=None,
+                    plot_id=plot_id,
+                    harvest_date=harvest_date,
+                    weight_grams=weight_g,
+                    notes=rng.choice(["", "", "Buena sesión", "Poco rendimiento", ""]),
+                )
+            )
+    return records
+
+
+def _make_presences_for_plot(
+    rng: random.Random,
+    tenant_id: int,
+    plot_id: int,
+    plants: list[Plant],
+    planting_date: dt.date,
+    campaign_years: list[int],
+) -> list[PlantPresence]:
+    """Registros de presencia de trufa por planta (PlantPresence). Durante la
+    temporada de recolección (nov–feb) se marcan plantas donde se detecta trufa.
+    Garantiza unicidad (plant_id, presence_date)."""
+    records: list[PlantPresence] = []
+    seen: set[tuple[int, dt.date]] = set()
+
+    alive_plants = [
+        p for p in plants if p.status in (PlantStatus.viva, PlantStatus.estresada)
+    ]
+    if not alive_plants:
+        return records
+
+    for cy in campaign_years:
+        age = cy - planting_date.year + 0.5
+        factor = _production_factor(age)
+        if factor <= 0:
+            continue
+        # 5–15 survey sessions in season
+        n_sessions = rng.randint(5, 15)
+        for _ in range(n_sessions):
+            month = rng.randint(11, 14)
+            year = cy if month <= 12 else cy + 1
+            month = month if month <= 12 else month - 12
+            survey_date = dt.date(year, month, rng.randint(1, 28))
+
+            hit_rate = rng.uniform(0.10, 0.40) * factor
+            for plant in alive_plants:
+                if rng.random() > hit_rate:
+                    continue
+                key = (plant.id, survey_date)
+                if key in seen:
+                    continue
+                seen.add(key)
+                records.append(
+                    PlantPresence(
+                        tenant_id=tenant_id,
+                        created_by_user_id=None,
+                        plot_id=plot_id,
+                        plant_id=plant.id,
+                        presence_date=survey_date,
+                        has_truffle=True,
+                    )
+                )
+    return records
+
+
+def _make_recurring_expenses(
+    rng: random.Random,
+    tenant_id: int,
+    plots: list[Plot],
+) -> list[RecurringExpense]:
+    """Plantillas de gastos recurrentes: anuales genéricos y mensuales por parcela."""
+    templates: list[RecurringExpense] = []
+
+    general_annual = [
+        (
+            "Seguro explotación trufícola",
+            "annual",
+            "Otros",
+            round(rng.uniform(300, 800), 2),
+        ),
+        (
+            "Cuota comunidad de regantes",
+            "annual",
+            "Regadío Social",
+            round(rng.uniform(150, 400), 2),
+        ),
+        ("Asesoría agrícola anual", "annual", "Otros", round(rng.uniform(200, 500), 2)),
+    ]
+    for desc, freq, cat, amount in general_annual:
+        templates.append(
+            RecurringExpense(
+                tenant_id=tenant_id,
+                created_by_user_id=None,
+                description=desc,
+                amount=amount,
+                category=cat,
+                plot_id=None,
+                person="",
+                frequency=freq,
+                is_active=True,
+                last_run_date=None,
+            )
+        )
+
+    irrigated = [p for p in plots if p.has_irrigation]
+    for plot in irrigated[:5]:  # cap at 5 to avoid noise
+        templates.append(
+            RecurringExpense(
+                tenant_id=tenant_id,
+                created_by_user_id=None,
+                description="Coste mensual agua riego",
+                amount=round(rng.uniform(20, 80), 2),
+                category="Riego",
+                plot_id=plot.id,
+                person="",
+                frequency="monthly",
+                is_active=rng.random() < 0.85,
+                last_run_date=None,
+            )
+        )
+
+    return templates
+
+
 def _make_truffle_events_for_plot(
     rng: random.Random,
-    user_id: int,
+    tenant_id: int | None,
     plot_id: int,
     plants: list[Plant],
     planting_date: dt.date,
@@ -770,9 +1008,14 @@ def _make_truffle_events_for_plot(
             undone_at = None
             if rng.random() < 0.08:
                 undone_at = created_at + dt.timedelta(seconds=rng.randint(5, 120))
+            # Quality: primera most common, extra and segunda less so
+            quality = rng.choices(
+                list(TruffleQuality),
+                weights=[15, 50, 25, 7, 3],
+            )[0]
             events.append(
                 TruffleEvent(
-                    user_id=user_id,
+                    tenant_id=tenant_id,
                     plot_id=plot_id,
                     plant_id=plant.id,
                     source="qr" if rng.random() < 0.6 else "manual",
@@ -780,6 +1023,7 @@ def _make_truffle_events_for_plot(
                     created_at=created_at,
                     undo_window_expires_at=created_at + dt.timedelta(seconds=30),
                     undone_at=undone_at,
+                    quality=quality,
                 )
             )
     return events
@@ -823,8 +1067,16 @@ async def seed(args: argparse.Namespace) -> SeedSummary:
         user = await _resolve_user(session, args.user_id)
         uid = user.id
 
+        # Resolve tenant_id from user membership
+        mem_res = await session.execute(
+            select(TenantMembership).where(TenantMembership.user_id == uid).limit(1)
+        )
+        membership = mem_res.scalar_one_or_none()
+        tenant_id: int | None = membership.tenant_id if membership else None
+
         specs = PLOT_SPECS[: args.plots]
         municipios_seen: dict[str, str] = {}  # full_cod → name
+        seeded_plots: list[Plot] = []  # collected for recurring expenses
 
         for spec_name, area_ha, num_rows, cols_range in specs:
             # Planting date: stagger over the first 4 years of the range
@@ -839,9 +1091,20 @@ async def seed(args: argparse.Namespace) -> SeedSummary:
             caudal_riego = round(rng.uniform(3.0, 20.0), 1) if has_irrigation else None
             mun = rng.choice(TERUEL_MUNICIPIOS)
             mun_prov, mun_cod, mun_name = mun
+            # Default host species for the plot (one species per plot, realistic for monocultivo)
+            default_host_species = rng.choices(
+                [
+                    HostSpecies.encina,
+                    HostSpecies.roble,
+                    HostSpecies.quejigo,
+                    HostSpecies.avellano,
+                    None,
+                ],
+                weights=[45, 25, 20, 7, 3],
+            )[0]
 
             plot = Plot(
-                user_id=uid,
+                tenant_id=tenant_id,
                 name=spec_name,
                 polygon=str(rng.randint(1, 30)),
                 plot_num=str(rng.randint(100, 999)),
@@ -857,12 +1120,15 @@ async def seed(args: argparse.Namespace) -> SeedSummary:
                 caudal_riego=caudal_riego,
                 provincia_cod=mun_prov,
                 municipio_cod=mun_cod,
+                default_host_species=default_host_species,
             )
             session.add(plot)
             await session.flush()
 
             # Plants
-            plants = _make_plants(rng, uid, plot.id, num_rows, cols_range)
+            plants = _make_plants(
+                rng, tenant_id, plot.id, num_rows, cols_range, default_host_species
+            )
             session.add_all(plants)
             await session.flush()
             plot.num_plants = len(plants)
@@ -870,20 +1136,28 @@ async def seed(args: argparse.Namespace) -> SeedSummary:
 
             # Expenses (plot-assigned)
             exps = _make_expenses_for_plot(
-                rng, uid, plot.id, planting_date, campaign_years, has_irrigation
+                rng, tenant_id, plot.id, planting_date, campaign_years, has_irrigation
             )
             session.add_all(exps)
             summary.expenses += len(exps)
 
             # Incomes
             incs = _make_incomes_for_plot(
-                rng, uid, plot.id, planting_date, len(plants), area_ha, campaign_years
+                rng,
+                tenant_id,
+                plot.id,
+                planting_date,
+                len(plants),
+                area_ha,
+                campaign_years,
             )
             session.add_all(incs)
             summary.incomes += len(incs)
 
             # Wells
-            ws = _make_wells_for_plot(rng, uid, plot.id, planting_date, campaign_years)
+            ws = _make_wells_for_plot(
+                rng, tenant_id, plot.id, planting_date, campaign_years
+            )
             session.add_all(ws)
             await session.flush()
             summary.wells += len(ws)
@@ -893,7 +1167,7 @@ async def seed(args: argparse.Namespace) -> SeedSummary:
             if has_irrigation:
                 irr = _make_irrigation_for_plot(
                     rng,
-                    uid,
+                    tenant_id,
                     plot.id,
                     planting_date,
                     len(plants),
@@ -906,47 +1180,82 @@ async def seed(args: argparse.Namespace) -> SeedSummary:
 
             # Truffle events
             evts = _make_truffle_events_for_plot(
-                rng, uid, plot.id, plants, planting_date, campaign_years
+                rng, tenant_id, plot.id, plants, planting_date, campaign_years
             )
             session.add_all(evts)
             summary.truffle_events += len(evts)
 
             # Plot management events (poda, labrado, picado)
             pevts = _make_plot_events_for_plot(
-                rng, uid, plot.id, planting_date, campaign_years
+                rng, tenant_id, plot.id, planting_date, campaign_years
             )
-            linked_pevts = _make_linked_plot_events_for_records(uid, plot.id, irr, ws)
+            linked_pevts = _make_linked_plot_events_for_records(
+                tenant_id, plot.id, irr, ws
+            )
             session.add_all(pevts + linked_pevts)
             summary.plot_events += len(pevts) + len(linked_pevts)
 
             # Rainfall manual (pluviómetro por parcela)
             rain_manual = _make_rainfall_manual_for_plot(
-                rng, uid, plot.id, planting_date, campaign_years
+                rng, tenant_id, plot.id, planting_date, campaign_years
             )
             session.add_all(rain_manual)
             summary.rainfall += len(rain_manual)
 
+            # Brulé measurements
+            if tenant_id is not None:
+                brule_recs = _make_brule_for_plants(
+                    rng, tenant_id, plot.id, plants, planting_date, campaign_years
+                )
+                session.add_all(brule_recs)
+                summary.brule += len(brule_recs)
+
+            # Plot harvests (aggregated by plot)
+            if tenant_id is not None:
+                harvest_recs = _make_harvests_for_plot(
+                    rng, tenant_id, plot.id, planting_date, area_ha, campaign_years
+                )
+                session.add_all(harvest_recs)
+                summary.harvests += len(harvest_recs)
+
+            # Plant presences (truffle detected per plant)
+            if tenant_id is not None:
+                presence_recs = _make_presences_for_plot(
+                    rng, tenant_id, plot.id, plants, planting_date, campaign_years
+                )
+                session.add_all(presence_recs)
+                summary.presences += len(presence_recs)
+
             # Registra el municipio de esta parcela para los registros externos
             mun_full_cod = mun_prov + mun_cod.zfill(3)
             municipios_seen[mun_full_cod] = mun_name
+            seeded_plots.append(plot)
 
             summary.plots += 1
 
         # Rainfall externo (ibericam + aemet) por municipio único
         for mun_full_cod, mun_name in municipios_seen.items():
             rain_ext = _make_rainfall_external_for_municipio(
-                rng, uid, mun_full_cod, mun_name, campaign_years
+                rng, tenant_id, mun_full_cod, mun_name, campaign_years
             )
             session.add_all(rain_ext)
             summary.rainfall += len(rain_ext)
 
         # General (unassigned) expenses
-        gen_exps = _make_general_expenses(rng, uid, campaign_years)
+        gen_exps = _make_general_expenses(rng, tenant_id, campaign_years)
         session.add_all(gen_exps)
         summary.expenses += len(gen_exps)
 
+        # Recurring expenses (plantillas)
+        if tenant_id is not None:
+            rec_exps = _make_recurring_expenses(rng, tenant_id, seeded_plots)
+            session.add_all(rec_exps)
+            summary.recurring_expenses += len(rec_exps)
+
         # Recalculate percentages for ALL user plots
-        all_plots_res = await session.execute(select(Plot).where(Plot.user_id == uid))
+        all_plots_res = await session.execute(
+            select(Plot).where(Plot.tenant_id == tenant_id)
+        )
         all_plots = all_plots_res.scalars().all()
         total_plants = sum(p.num_plants or 0 for p in all_plots)
         for p in all_plots:
@@ -1008,17 +1317,21 @@ async def _main_async(args: argparse.Namespace) -> None:
     cy_labels = [campaign_label(cy) for cy in summary.campaigns]
     print("\n── Seed completado ─────────────────────────────────────")
     print(
-        f"  Campañas:        {cy_labels[0]} → {cy_labels[-1]} ({len(cy_labels)} años)"
+        f"  Campañas:            {cy_labels[0]} → {cy_labels[-1]} ({len(cy_labels)} años)"
     )
-    print(f"  Parcelas:        {summary.plots}")
-    print(f"  Plantas:         {summary.plants}")
-    print(f"  Gastos:          {summary.expenses}")
-    print(f"  Ingresos:        {summary.incomes}")
-    print(f"  Pozos:           {summary.wells}")
-    print(f"  Riego:           {summary.irrigation}")
-    print(f"  Eventos trufa:   {summary.truffle_events}")
-    print(f"  Eventos parcela: {summary.plot_events}")
-    print(f"  Lluvias:         {summary.rainfall}")
+    print(f"  Parcelas:            {summary.plots}")
+    print(f"  Plantas:             {summary.plants}")
+    print(f"  Gastos:              {summary.expenses}")
+    print(f"  Ingresos:            {summary.incomes}")
+    print(f"  Pozos:               {summary.wells}")
+    print(f"  Riego:               {summary.irrigation}")
+    print(f"  Eventos trufa:       {summary.truffle_events}")
+    print(f"  Eventos parcela:     {summary.plot_events}")
+    print(f"  Lluvias:             {summary.rainfall}")
+    print(f"  Brulé:               {summary.brule}")
+    print(f"  Cosechas parcela:    {summary.harvests}")
+    print(f"  Presencias planta:   {summary.presences}")
+    print(f"  Gastos recurrentes:  {summary.recurring_expenses}")
     print("─────────────────────────────────────────────────────────\n")
 
 

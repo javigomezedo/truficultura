@@ -219,3 +219,200 @@ async def test_delete_well() -> None:
     db.delete.assert_awaited_once_with(well)
     db.flush.assert_awaited_once()
     delete_event_mock.assert_awaited_once_with(db, 1, 1)
+
+
+@pytest.mark.asyncio
+async def test_delete_well_not_found_is_noop() -> None:
+    """delete_well when well does not exist must be a no-op."""
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+    db.delete = AsyncMock()
+    db.flush = AsyncMock()
+
+    with patch(
+        "app.services.plot_events_service.delete_plot_event_for_well",
+        new=AsyncMock(),
+    ):
+        await delete_well(db, 99, tenant_id=1)
+
+    db.delete.assert_not_called()
+    db.flush.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_list_wells_filtered_by_year() -> None:
+    """list_wells with year filter applies campaign_year matching."""
+    wells = [
+        Well(
+            id=1,
+            tenant_id=1,
+            plot_id=1,
+            date=datetime.date(2025, 6, 15),  # campaign 2025
+            wells_per_plant=3,
+            expense_id=None,
+            notes=None,
+        ),
+        Well(
+            id=2,
+            tenant_id=1,
+            plot_id=1,
+            date=datetime.date(2024, 6, 15),  # campaign 2024
+            wells_per_plant=2,
+            expense_id=None,
+            notes=None,
+        ),
+    ]
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result(wells))
+
+    result_wells = await list_wells(db, tenant_id=1, year=2025)
+
+    assert len(result_wells) == 1
+    assert result_wells[0].id == 1
+
+
+@pytest.mark.asyncio
+async def test_create_well_raises_when_expense_invalid() -> None:
+    """create_well raises HTTPException when expense_id does not match the plot/category."""
+    from fastapi import HTTPException
+
+    plot = SimpleNamespace(id=1, name="Plot1")
+    db = MagicMock()
+    db.flush = AsyncMock()
+    # First execute returns the plot; second returns no matching expense
+    db.execute = AsyncMock(side_effect=[result([plot]), result([])])
+
+    with pytest.raises(HTTPException) as exc_info:
+        await create_well(
+            db,
+            tenant_id=1,
+            data=WellCreate(
+                plot_id=1,
+                date=datetime.date(2025, 6, 15),
+                wells_per_plant=5,
+                expense_id=42,  # non-matching expense
+                notes=None,
+            ),
+        )
+
+    assert exc_info.value.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_update_well_changes_plot_id() -> None:
+    """update_well when plot_id is provided validates and sets the new plot."""
+    existing_well = Well(
+        id=1,
+        tenant_id=1,
+        plot_id=1,
+        date=datetime.date(2025, 6, 15),
+        wells_per_plant=5,
+        expense_id=None,
+        notes=None,
+    )
+    new_plot = SimpleNamespace(id=2, name="NewPlot")
+    db = MagicMock()
+    db.flush = AsyncMock()
+    db.execute = AsyncMock(return_value=result([new_plot]))
+
+    with patch(
+        "app.services.plot_events_service.sync_plot_event_from_well",
+        new=AsyncMock(),
+    ):
+        updated = await update_well(
+            db,
+            record=existing_well,
+            data=WellUpdate(
+                plot_id=2, date=None, wells_per_plant=None, expense_id=None, notes=None
+            ),
+        )
+
+    assert updated.plot_id == 2
+
+
+@pytest.mark.asyncio
+async def test_update_well_raises_when_plot_not_found() -> None:
+    """update_well raises HTTPException when the new plot_id doesn't belong to tenant."""
+    from fastapi import HTTPException
+
+    existing_well = Well(
+        id=1,
+        tenant_id=1,
+        plot_id=1,
+        date=datetime.date(2025, 6, 15),
+        wells_per_plant=5,
+        expense_id=None,
+        notes=None,
+    )
+    db = MagicMock()
+    db.flush = AsyncMock()
+    db.execute = AsyncMock(return_value=result([]))  # plot not found
+
+    with pytest.raises(HTTPException) as exc_info:
+        await update_well(
+            db,
+            record=existing_well,
+            data=WellUpdate(
+                plot_id=99, date=None, wells_per_plant=None, expense_id=None, notes=None
+            ),
+        )
+
+    assert exc_info.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_update_well_raises_when_expense_invalid() -> None:
+    """update_well raises HTTPException when expense_id validation fails."""
+    from fastapi import HTTPException
+
+    existing_well = Well(
+        id=1,
+        tenant_id=1,
+        plot_id=1,
+        date=datetime.date(2025, 6, 15),
+        wells_per_plant=5,
+        expense_id=None,
+        notes=None,
+    )
+    db = MagicMock()
+    db.flush = AsyncMock()
+    # No plot change so no plot lookup; expense lookup returns empty
+    db.execute = AsyncMock(return_value=result([]))
+
+    with pytest.raises(HTTPException) as exc_info:
+        await update_well(
+            db,
+            record=existing_well,
+            data=WellUpdate(
+                plot_id=None, date=None, wells_per_plant=None, expense_id=99, notes=None
+            ),
+        )
+
+    assert exc_info.value.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_update_well_clears_expense_id_when_explicit_none() -> None:
+    """update_well clears expense_id when None is explicitly passed in model_fields_set."""
+    existing_well = Well(
+        id=1,
+        tenant_id=1,
+        plot_id=1,
+        date=datetime.date(2025, 6, 15),
+        wells_per_plant=5,
+        expense_id=10,
+        notes=None,
+    )
+    db = MagicMock()
+    db.flush = AsyncMock()
+
+    # model_construct keeps _fields_set so "expense_id" appears in model_fields_set
+    data = WellUpdate.model_construct(_fields_set={"expense_id"}, expense_id=None)
+
+    with patch(
+        "app.services.plot_events_service.sync_plot_event_from_well",
+        new=AsyncMock(),
+    ):
+        updated = await update_well(db, record=existing_well, data=data)
+
+    assert updated.expense_id is None

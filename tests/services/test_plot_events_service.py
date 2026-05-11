@@ -152,6 +152,50 @@ async def test_get_plot_events_filters_by_user_id() -> None:
 
 
 @pytest.mark.asyncio
+async def test_get_plot_events_with_start_date_filter() -> None:
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([_make_event()]))
+
+    events = await get_plot_events(
+        db,
+        tenant_id=1,
+        start_date=datetime.date(2025, 1, 1),
+    )
+
+    assert len(events) == 1
+    where_sql = str(db.execute.call_args[0][0])
+    assert "date" in where_sql
+
+
+@pytest.mark.asyncio
+async def test_get_plot_events_with_end_date_filter() -> None:
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([_make_event()]))
+
+    events = await get_plot_events(
+        db,
+        tenant_id=1,
+        end_date=datetime.date(2025, 12, 31),
+    )
+
+    assert len(events) == 1
+
+
+@pytest.mark.asyncio
+async def test_get_plot_events_with_event_types_filter() -> None:
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([_make_event()]))
+
+    events = await get_plot_events(
+        db,
+        tenant_id=1,
+        event_types=[EventType.LABRADO],
+    )
+
+    assert len(events) == 1
+
+
+@pytest.mark.asyncio
 async def test_delete_plot_event_success() -> None:
     db = MagicMock()
     db.execute = AsyncMock(return_value=result([_make_event()]))
@@ -225,3 +269,224 @@ async def test_delete_plot_event_for_irrigation_and_well() -> None:
 
     assert db.delete.await_count == 2
     assert db.flush.await_count == 2
+
+
+# ---------------------------------------------------------------------------
+# validate_plot_ownership — plot not found
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_validate_plot_ownership_raises_when_not_found() -> None:
+    from fastapi import HTTPException
+
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+
+    with pytest.raises(HTTPException) as exc_info:
+        from app.services.plot_events_service import validate_plot_ownership
+
+        await validate_plot_ownership(db, plot_id=99, tenant_id=1)
+
+    assert exc_info.value.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# validate_one_time_event — with exclude_event_id, no conflict
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_validate_one_time_event_no_conflict_with_exclude() -> None:
+    """When exclude_event_id is set and the only existing event matches, no error."""
+    db = MagicMock()
+    # Returns no event (the exclude filters it out)
+    db.execute = AsyncMock(return_value=result([]))
+
+    # Should not raise
+    await validate_one_time_event(
+        db,
+        plot_id=1,
+        tenant_id=1,
+        event_type=EventType.VALLADO,
+        exclude_event_id=5,
+    )
+
+
+@pytest.mark.asyncio
+async def test_validate_one_time_event_raises_with_conflict_and_exclude() -> None:
+    """When a different event exists (not excluded), raise HTTPException."""
+    from fastapi import HTTPException
+
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([_make_event(event_type="vallado")]))
+
+    with pytest.raises(HTTPException) as exc_info:
+        await validate_one_time_event(
+            db,
+            plot_id=1,
+            tenant_id=1,
+            event_type=EventType.VALLADO,
+            exclude_event_id=999,  # different event excluded, conflict still present
+        )
+
+    assert exc_info.value.status_code == 400
+
+
+# ---------------------------------------------------------------------------
+# update_plot_event — event_type and notes clear
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_update_plot_event_changes_event_type() -> None:
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))  # no one-time conflict
+    db.flush = AsyncMock()
+
+    event = _make_event(event_type="labrado")
+
+    updated = await update_plot_event(
+        db,
+        event,
+        PlotEventUpdate(event_type=EventType.PODA, date=None, notes=None),
+    )
+
+    assert updated.event_type == EventType.PODA.value
+
+
+@pytest.mark.asyncio
+async def test_update_plot_event_changes_date() -> None:
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+    db.flush = AsyncMock()
+
+    event = _make_event(event_type="labrado")
+    original_date = event.date
+
+    updated = await update_plot_event(
+        db,
+        event,
+        PlotEventUpdate(event_type=None, date=datetime.date(2026, 3, 1), notes=None),
+    )
+
+    assert updated.date == datetime.date(2026, 3, 1)
+    assert updated.date != original_date
+
+
+@pytest.mark.asyncio
+async def test_update_plot_event_updates_notes() -> None:
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+    db.flush = AsyncMock()
+
+    event = _make_event(event_type="labrado")
+    event.notes = "old notes"
+
+    updated = await update_plot_event(
+        db,
+        event,
+        PlotEventUpdate(event_type=None, date=None, notes="new notes"),
+    )
+
+    assert updated.notes == "new notes"
+
+
+@pytest.mark.asyncio
+async def test_update_plot_event_clears_notes_via_explicit_none() -> None:
+    """When 'notes' is in model_fields_set with None, notes should be cleared."""
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+    db.flush = AsyncMock()
+
+    event = _make_event(event_type="labrado")
+    event.notes = "some notes"
+
+    # model_construct keeps _fields_set so "notes" appears in model_fields_set
+    data = PlotEventUpdate.model_construct(_fields_set={"notes"}, notes=None)
+
+    updated = await update_plot_event(db, event, data)
+
+    assert updated.notes is None
+
+
+# ---------------------------------------------------------------------------
+# sync_plot_event_from_irrigation — update path
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_sync_plot_event_from_irrigation_updates_existing() -> None:
+    existing = _make_event(event_type="riego")
+    existing.related_irrigation_id = 20
+
+    irrigation_record = MagicMock()
+    irrigation_record.id = 20
+    irrigation_record.tenant_id = 1
+    irrigation_record.plot_id = 5
+    irrigation_record.date = datetime.date(2025, 9, 1)
+    irrigation_record.notes = "updated irrigation"
+    irrigation_record.created_by_user_id = 1
+
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([existing]))
+    db.flush = AsyncMock()
+
+    from app.services.plot_events_service import sync_plot_event_from_irrigation
+
+    event = await sync_plot_event_from_irrigation(db, irrigation_record)
+
+    assert event.plot_id == 5
+    assert event.date == datetime.date(2025, 9, 1)
+    assert event.notes == "updated irrigation"
+    db.add.assert_not_called()
+    db.flush.assert_awaited_once()
+
+
+# ---------------------------------------------------------------------------
+# delete_plot_event — event not found (early return, no delete)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_delete_plot_event_not_found_is_noop() -> None:
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+    db.delete = AsyncMock()
+    db.flush = AsyncMock()
+
+    await delete_plot_event(db, event_id=999, tenant_id=1)
+
+    db.delete.assert_not_called()
+    db.flush.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# delete_plot_event_for_irrigation / delete_plot_event_for_well — not found
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_delete_plot_event_for_irrigation_not_found_is_noop() -> None:
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+    db.delete = AsyncMock()
+    db.flush = AsyncMock()
+
+    await delete_plot_event_for_irrigation(db, irrigation_id=999, tenant_id=1)
+
+    db.delete.assert_not_called()
+    db.flush.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_delete_plot_event_for_well_not_found_is_noop() -> None:
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+    db.delete = AsyncMock()
+    db.flush = AsyncMock()
+
+    await delete_plot_event_for_well(db, well_id=999, tenant_id=1)
+
+    db.delete.assert_not_called()
+    db.flush.assert_not_called()

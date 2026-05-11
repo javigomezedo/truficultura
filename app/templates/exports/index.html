@@ -59,6 +59,21 @@
             <i class="bi bi-arrow-repeat text-danger me-1"></i>{{ _("Gastos Recurrentes") }}
         </button>
     </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-export-plants" data-bs-target="#panel-export-plants" type="button" role="tab">
+            <i class="bi bi-tree-fill text-success me-1"></i>{{ _("Plantas") }}
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-export-brule" data-bs-target="#panel-export-brule" type="button" role="tab">
+            <i class="bi bi-circle-fill text-dark me-1"></i>{{ _("Brulé") }}
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-export-rainfall" data-bs-target="#panel-export-rainfall" type="button" role="tab">
+            <i class="bi bi-cloud-rain-fill text-info me-1"></i>{{ _("Lluvia") }}
+        </button>
+    </li>
 </ul>
 
 <div class="tab-content" id="exportTabContent">
@@ -69,6 +84,7 @@
                 <p class="text-muted mb-3">{{ _("Descarga un único archivo ZIP con todos los CSV de exportación: parcelas, gastos, ingresos, riego, pozos, producción (cosechas y presencias por planta), labores y gastos recurrentes.") }}</p>
                 <div class="mb-4">
                     <span class="badge text-bg-light me-2">parcelas.csv</span>
+                    <span class="badge text-bg-light me-2">plantas.csv</span>
                     <span class="badge text-bg-light me-2">gastos.csv</span>
                     <span class="badge text-bg-light me-2">ingresos.csv</span>
                     <span class="badge text-bg-light me-2">riego.csv</span>
@@ -77,7 +93,9 @@
                     <span class="badge text-bg-light me-2">cosechas.csv</span>
                     <span class="badge text-bg-light me-2">presencias.csv</span>
                     <span class="badge text-bg-light me-2">labores.csv</span>
-                    <span class="badge text-bg-light">gastos_recurrentes.csv</span>
+                    <span class="badge text-bg-light me-2">gastos_recurrentes.csv</span>
+                    <span class="badge text-bg-light me-2">brule.csv</span>
+                    <span class="badge text-bg-light">lluvia.csv</span>
                 </div>
                 <a href="/export/all.zip" class="btn btn-success">
                     <i class="bi bi-file-earmark-zip me-1"></i>{{ _("Descargar ZIP") }}
@@ -107,7 +125,8 @@
                     <span class="badge text-bg-primary me-2">recinto</span>
                     <span class="badge text-bg-primary me-2">caudal_riego</span>
                     <span class="badge text-bg-primary me-2">provincia_cod</span>
-                    <span class="badge text-bg-primary">municipio_cod</span>
+                    <span class="badge text-bg-primary me-2">municipio_cod</span>
+                    <span class="badge text-bg-info text-dark">especie_huesped_defecto</span>
                 </div>
                 <a href="/export/plots.csv" class="btn btn-success">
                     <i class="bi bi-download me-1"></i>{{ _("Descargar CSV") }}
@@ -202,7 +221,8 @@
                     <span class="badge text-bg-light me-2">bancal</span>
                     <span class="badge text-bg-light me-2">planta</span>
                     <span class="badge text-bg-light me-2">peso_g</span>
-                    <span class="badge text-bg-light">origen</span>
+                    <span class="badge text-bg-light me-2">origen</span>
+                    <span class="badge text-bg-info text-dark">calidad</span>
                 </div>
                 <a href="/export/truffles.csv" class="btn btn-success">
                     <i class="bi bi-download me-1"></i>{{ _("Descargar produccion.csv") }}
@@ -274,6 +294,61 @@
                     <span class="badge text-bg-light">activo</span>
                 </div>
                 <a href="/export/recurring_expenses.csv" class="btn btn-success">
+                    <i class="bi bi-download me-1"></i>{{ _("Descargar CSV") }}
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="panel-export-plants" role="tabpanel">
+        <div class="card tf-panel shadow-sm border-0">
+            <div class="card-body p-4">
+                <h5 class="card-title mb-3">{{ _("Exportar plantas") }}</h5>
+                <p class="text-muted mb-3">{{ _("Descarga los atributos individuales de cada planta (estado, fecha de baja, especie huésped). Importar este archivo después de parcelas.csv permite restaurar estos campos en un nuevo entorno.") }}</p>
+                <div class="mb-4">
+                    <span class="badge text-bg-light me-2">bancal</span>
+                    <span class="badge text-bg-light me-2">etiqueta</span>
+                    <span class="badge text-bg-light me-2">estado</span>
+                    <span class="badge text-bg-light me-2">fecha_baja</span>
+                    <span class="badge text-bg-light">especie_huesped</span>
+                </div>
+                <a href="/export/plants.csv" class="btn btn-success">
+                    <i class="bi bi-download me-1"></i>{{ _("Descargar CSV") }}
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="panel-export-brule" role="tabpanel">
+        <div class="card tf-panel shadow-sm border-0">
+            <div class="card-body p-4">
+                <h5 class="card-title mb-3">{{ _("Exportar mediciones de brulé") }}</h5>
+                <p class="text-muted mb-3">{{ _("Descarga los registros de diámetro de brulé por planta y fecha en formato CSV.") }}</p>
+                <div class="mb-4">
+                    <span class="badge text-bg-light me-2">fecha</span>
+                    <span class="badge text-bg-light me-2">bancal</span>
+                    <span class="badge text-bg-light me-2">planta</span>
+                    <span class="badge text-bg-light">diametro_cm</span>
+                </div>
+                <a href="/export/brule.csv" class="btn btn-success">
+                    <i class="bi bi-download me-1"></i>{{ _("Descargar CSV") }}
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="panel-export-rainfall" role="tabpanel">
+        <div class="card tf-panel shadow-sm border-0">
+            <div class="card-body p-4">
+                <h5 class="card-title mb-3">{{ _("Exportar registros de lluvia") }}</h5>
+                <p class="text-muted mb-3">{{ _("Descarga los registros de precipitación manual del pluviómetro. Solo se exportan los registros introducidos manualmente (no los de AEMET ni ibericam).") }}</p>
+                <div class="mb-4">
+                    <span class="badge text-bg-light me-2">fecha</span>
+                    <span class="badge text-bg-light me-2">bancal</span>
+                    <span class="badge text-bg-light me-2">mm</span>
+                    <span class="badge text-bg-light">notas</span>
+                </div>
+                <a href="/export/rainfall.csv" class="btn btn-success">
                     <i class="bi bi-download me-1"></i>{{ _("Descargar CSV") }}
                 </a>
             </div>

@@ -118,6 +118,27 @@
             <i class="bi bi-arrow-repeat text-danger me-1"></i>{{ _('Gastos Recurrentes') }}
         </button>
     </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link {% if active_tab == 'plants' %}active{% endif %}"
+                id="tab-plants" data-bs-target="#panel-plants"
+                type="button" role="tab">
+            <i class="bi bi-tree-fill text-success me-1"></i>{{ _('Plantas') }}
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link {% if active_tab == 'brule' %}active{% endif %}"
+                id="tab-brule" data-bs-target="#panel-brule"
+                type="button" role="tab">
+            <i class="bi bi-circle-fill text-dark me-1"></i>{{ _('Brulé') }}
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link {% if active_tab == 'rainfall' %}active{% endif %}"
+                id="tab-rainfall" data-bs-target="#panel-rainfall"
+                type="button" role="tab">
+            <i class="bi bi-cloud-rain-fill text-info me-1"></i>{{ _('Lluvia') }}
+        </button>
+    </li>
 </ul>
 
 <div class="tab-content" id="importTabContent">
@@ -871,6 +892,211 @@
                             </div>
                             <button type="submit" class="btn btn-danger w-100">
                                 <i class="bi bi-upload me-1"></i>{{ _('Importar gastos recurrentes') }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── PLANTAS ── -->
+    <div class="tab-pane fade {% if active_tab == 'plants' %}show active{% endif %}"
+         id="panel-plants" role="tabpanel">
+        <div class="row g-3 tf-import-pane-row align-items-start">
+            <div class="col-xl-7 col-lg-6">
+                <div class="card tf-panel tf-import-format-card border-0">
+                    <div class="card-header fw-semibold">
+                        <i class="bi bi-filetype-csv me-1"></i>{{ _("Formato del archivo") }}
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-2">
+                            {{ _("Archivo CSV delimitado por <code>;</code>, sin cabecera, codificación UTF-8.") }}
+                        </p>
+                        <table class="table table-sm table-bordered small tf-import-format-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>{{ _("Columna") }}</th>
+                                    <th>{{ _("Descripción") }}</th>
+                                    <th>{{ _("Ejemplo") }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><code>bancal</code></td><td>{{ _("Nombre del bancal") }} <span class="text-danger">*</span></td><td><code>Bancal Sur</code></td></tr>
+                                <tr><td><code>etiqueta</code></td><td>{{ _("Etiqueta de la planta") }} <span class="text-danger">*</span></td><td><code>A1</code></td></tr>
+                                <tr><td><code>estado</code></td><td>{{ _("Estado (viva/estresada/muerta/reemplazada)") }}</td><td><code>viva</code></td></tr>
+                                <tr><td><code>fecha_baja</code></td><td>{{ _("Fecha de baja (DD/MM/AAAA, opcional)") }}</td><td><code>10/05/2024</code></td></tr>
+                                <tr><td><code>especie_huesped</code></td><td>{{ _("Especie huésped (encina/roble/…, opcional)") }}</td><td><code>encina</code></td></tr>
+                            </tbody>
+                        </table>
+                        <p class="text-muted small mb-0">
+                            <i class="bi bi-info-circle me-1"></i>
+                            {{ _("Solo actualiza plantas existentes (bancal + etiqueta). No crea plantas nuevas. Importar después de parcelas.csv.") }}
+                        </p>
+                        <div class="mt-3 rounded p-3 tf-sample-box tf-sample-box-warning">
+                            <small class="text-muted d-block mb-1 fw-semibold">{{ _("Ejemplo de línea:") }}</small>
+                            <code class="small">Bancal Sur;A1;viva;;encina</code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-5 col-lg-6">
+                <div class="card tf-panel tf-import-upload-card border-0">
+                    <div class="card-header fw-semibold">
+                        <i class="bi bi-cloud-upload me-1"></i>{{ _("Subir archivo") }}
+                    </div>
+                    <div class="card-body">
+                        <form method="post" action="/import/plants" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="plants-file" class="form-label fw-semibold">
+                                    {{ _("Archivo CSV de plantas") }}
+                                </label>
+                                <input type="file" class="form-control" id="plants-file"
+                                       name="file" accept=".csv,text/csv" required>
+                                <div class="form-text">{{ _("Solo archivos .csv codificados en UTF-8.") }}</div>
+                            </div>
+                            <div class="alert alert-warning small py-2 mb-3">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                {{ _("Actualiza los campos de plantas ya existentes. Las plantas no encontradas generarán un aviso y serán omitidas.") }}
+                            </div>
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="bi bi-upload me-1"></i>{{ _("Importar plantas") }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── BRULÉ ── -->
+    <div class="tab-pane fade {% if active_tab == 'brule' %}show active{% endif %}"
+         id="panel-brule" role="tabpanel">
+        <div class="row g-3 tf-import-pane-row align-items-start">
+            <div class="col-xl-7 col-lg-6">
+                <div class="card tf-panel tf-import-format-card border-0">
+                    <div class="card-header fw-semibold">
+                        <i class="bi bi-filetype-csv me-1"></i>{{ _("Formato del archivo") }}
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-2">
+                            {{ _("Archivo CSV delimitado por <code>;</code>, sin cabecera, codificación UTF-8.") }}
+                        </p>
+                        <table class="table table-sm table-bordered small tf-import-format-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>{{ _("Columna") }}</th>
+                                    <th>{{ _("Descripción") }}</th>
+                                    <th>{{ _("Ejemplo") }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><code>fecha</code></td><td>{{ _("Fecha (DD/MM/AAAA)") }} <span class="text-danger">*</span></td><td><code>10/03/2025</code></td></tr>
+                                <tr><td><code>bancal</code></td><td>{{ _("Nombre del bancal") }} <span class="text-danger">*</span></td><td><code>Bancal Sur</code></td></tr>
+                                <tr><td><code>planta</code></td><td>{{ _("Etiqueta de la planta") }} <span class="text-danger">*</span></td><td><code>A1</code></td></tr>
+                                <tr><td><code>diametro_cm</code></td><td>{{ _("Diámetro en cm") }} <span class="text-danger">*</span></td><td><code>45,5</code></td></tr>
+                            </tbody>
+                        </table>
+                        <p class="text-muted small mb-0">
+                            <i class="bi bi-info-circle me-1"></i>
+                            {{ _("Los registros duplicados (misma planta y fecha) generan un aviso y se omiten.") }}
+                        </p>
+                        <div class="mt-3 rounded p-3 tf-sample-box tf-sample-box-warning">
+                            <small class="text-muted d-block mb-1 fw-semibold">{{ _("Ejemplo de línea:") }}</small>
+                            <code class="small">10/03/2025;Bancal Sur;A1;45,5</code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-5 col-lg-6">
+                <div class="card tf-panel tf-import-upload-card border-0">
+                    <div class="card-header fw-semibold">
+                        <i class="bi bi-cloud-upload me-1"></i>{{ _("Subir archivo") }}
+                    </div>
+                    <div class="card-body">
+                        <form method="post" action="/import/brule" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="brule-file" class="form-label fw-semibold">
+                                    {{ _("Archivo CSV de brulé") }}
+                                </label>
+                                <input type="file" class="form-control" id="brule-file"
+                                       name="file" accept=".csv,text/csv" required>
+                                <div class="form-text">{{ _("Solo archivos .csv codificados en UTF-8.") }}</div>
+                            </div>
+                            <div class="alert alert-warning small py-2 mb-3">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                {{ _("Esta acción insertará todos los registros del archivo. Los duplicados por planta+fecha serán omitidos con aviso.") }}
+                            </div>
+                            <button type="submit" class="btn btn-dark w-100">
+                                <i class="bi bi-upload me-1"></i>{{ _("Importar brulé") }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── LLUVIA ── -->
+    <div class="tab-pane fade {% if active_tab == 'rainfall' %}show active{% endif %}"
+         id="panel-rainfall" role="tabpanel">
+        <div class="row g-3 tf-import-pane-row align-items-start">
+            <div class="col-xl-7 col-lg-6">
+                <div class="card tf-panel tf-import-format-card border-0">
+                    <div class="card-header fw-semibold">
+                        <i class="bi bi-filetype-csv me-1"></i>{{ _("Formato del archivo") }}
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-2">
+                            {{ _("Archivo CSV delimitado por <code>;</code>, sin cabecera, codificación UTF-8.") }}
+                        </p>
+                        <table class="table table-sm table-bordered small tf-import-format-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>{{ _("Columna") }}</th>
+                                    <th>{{ _("Descripción") }}</th>
+                                    <th>{{ _("Ejemplo") }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><code>fecha</code></td><td>{{ _("Fecha (DD/MM/AAAA)") }} <span class="text-danger">*</span></td><td><code>12/04/2025</code></td></tr>
+                                <tr><td><code>bancal</code></td><td>{{ _("Nombre del bancal (opcional)") }}</td><td><code>Bancal Sur</code></td></tr>
+                                <tr><td><code>mm</code></td><td>{{ _("Milímetros de lluvia") }} <span class="text-danger">*</span></td><td><code>18,5</code></td></tr>
+                                <tr><td><code>notas</code></td><td>{{ _("Notas (opcional)") }}</td><td><code>Tormenta</code></td></tr>
+                            </tbody>
+                        </table>
+                        <p class="text-muted small mb-0">
+                            <i class="bi bi-info-circle me-1"></i>
+                            {{ _("Si el bancal se deja vacío el registro se asocia al tenant sin parcela concreta.") }}
+                        </p>
+                        <div class="mt-3 rounded p-3 tf-sample-box tf-sample-box-warning">
+                            <small class="text-muted d-block mb-1 fw-semibold">{{ _("Ejemplo de línea:") }}</small>
+                            <code class="small">12/04/2025;Bancal Sur;18,5;Tormenta</code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-5 col-lg-6">
+                <div class="card tf-panel tf-import-upload-card border-0">
+                    <div class="card-header fw-semibold">
+                        <i class="bi bi-cloud-upload me-1"></i>{{ _("Subir archivo") }}
+                    </div>
+                    <div class="card-body">
+                        <form method="post" action="/import/rainfall" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="rainfall-file" class="form-label fw-semibold">
+                                    {{ _("Archivo CSV de lluvia") }}
+                                </label>
+                                <input type="file" class="form-control" id="rainfall-file"
+                                       name="file" accept=".csv,text/csv" required>
+                                <div class="form-text">{{ _("Solo archivos .csv codificados en UTF-8.") }}</div>
+                            </div>
+                            <div class="alert alert-warning small py-2 mb-3">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                {{ _("Esta acción insertará los registros de lluvia manual. Comprueba que el archivo no contiene duplicados.") }}
+                            </div>
+                            <button type="submit" class="btn btn-info w-100">
+                                <i class="bi bi-upload me-1"></i>{{ _("Importar lluvia") }}
                             </button>
                         </form>
                     </div>
