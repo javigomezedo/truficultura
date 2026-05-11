@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.models.brule import BruleRecord
 from app.models.expense import Expense
 from app.models.income import Income
 from app.models.irrigation import IrrigationRecord
@@ -18,6 +19,7 @@ from app.models.plant_presence import PlantPresence
 from app.models.plot import Plot
 from app.models.plot_event import PlotEvent
 from app.models.plot_harvest import PlotHarvest
+from app.models.rainfall import RainfallRecord
 from app.models.recurring_expense import RecurringExpense
 from app.models.truffle_event import TruffleEvent
 from app.models.well import Well
@@ -86,6 +88,36 @@ async def export_plots_csv(db: AsyncSession, tenant_id: int) -> bytes:
                 _format_num(p.caudal_riego, 2) if p.caudal_riego is not None else "",
                 p.provincia_cod or "",
                 p.municipio_cod or "",
+                p.default_host_species.value if p.default_host_species else "",
+            ]
+        )
+    return buf.getvalue().encode("utf-8")
+
+
+async def export_plants_csv(db: AsyncSession, tenant_id: int) -> bytes:
+    """Export Plant fields not reconstructible from the map config.
+
+    Format (semicolon-delimited, no header):
+        bancal;etiqueta;estado;fecha_baja;especie_huesped
+    """
+    result = await db.execute(
+        select(Plant)
+        .options(selectinload(Plant.plot))
+        .where(Plant.tenant_id == tenant_id)
+        .order_by(Plant.plot_id, Plant.row_order, Plant.visual_col)
+    )
+    plants = result.scalars().all()
+
+    buf = io.StringIO()
+    writer = csv.writer(buf, delimiter=";", lineterminator="\n")
+    for p in plants:
+        writer.writerow(
+            [
+                p.plot.name if p.plot else "",
+                p.label,
+                p.status.value,
+                _format_date(p.baja_date) if p.baja_date else "",
+                p.host_species.value if p.host_species else "",
             ]
         )
     return buf.getvalue().encode("utf-8")
@@ -119,6 +151,69 @@ async def export_truffles_csv(db: AsyncSession, tenant_id: int) -> bytes:
                 e.plant.label if e.plant else "",
                 _format_num(e.estimated_weight_grams or 0.0, 1),
                 e.source or "manual",
+                e.quality.value if e.quality else "",
+            ]
+        )
+    return buf.getvalue().encode("utf-8")
+
+
+async def export_brule_csv(db: AsyncSession, tenant_id: int) -> bytes:
+    """Export BruleRecord data.
+
+    Format (semicolon-delimited, no header):
+        fecha;bancal;planta;diametro_cm
+    """
+    result = await db.execute(
+        select(BruleRecord)
+        .options(
+            selectinload(BruleRecord.plot),
+            selectinload(BruleRecord.plant),
+        )
+        .where(BruleRecord.tenant_id == tenant_id)
+        .order_by(BruleRecord.record_date, BruleRecord.plot_id, BruleRecord.plant_id)
+    )
+    records = result.scalars().all()
+
+    buf = io.StringIO()
+    writer = csv.writer(buf, delimiter=";", lineterminator="\n")
+    for r in records:
+        writer.writerow(
+            [
+                _format_date(r.record_date),
+                r.plot.name if r.plot else "",
+                r.plant.label if r.plant else "",
+                r.diameter_cm,
+            ]
+        )
+    return buf.getvalue().encode("utf-8")
+
+
+async def export_rainfall_csv(db: AsyncSession, tenant_id: int) -> bytes:
+    """Export manual rainfall records (source='manual') for the tenant.
+
+    Format (semicolon-delimited, no header):
+        fecha;bancal;mm;notas
+    """
+    plots_by_id = await _load_plots_by_id(db, tenant_id)
+    result = await db.execute(
+        select(RainfallRecord)
+        .where(
+            RainfallRecord.tenant_id == tenant_id,
+            RainfallRecord.source == "manual",
+        )
+        .order_by(RainfallRecord.date)
+    )
+    records = result.scalars().all()
+
+    buf = io.StringIO()
+    writer = csv.writer(buf, delimiter=";", lineterminator="\n")
+    for r in records:
+        writer.writerow(
+            [
+                _format_date(r.date),
+                plots_by_id.get(r.plot_id, "") if r.plot_id else "",
+                _format_num(r.precipitation_mm, 1),
+                r.notes or "",
             ]
         )
     return buf.getvalue().encode("utf-8")
@@ -322,6 +417,7 @@ async def export_presences_csv(db: AsyncSession, tenant_id: int) -> bytes:
 async def export_all_csv_zip(db: AsyncSession, tenant_id: int) -> bytes:
     files = [
         ("parcelas.csv", await export_plots_csv(db, tenant_id)),
+        ("plantas.csv", await export_plants_csv(db, tenant_id)),
         ("gastos.csv", await export_expenses_csv(db, tenant_id)),
         ("ingresos.csv", await export_incomes_csv(db, tenant_id)),
         ("riego.csv", await export_irrigation_csv(db, tenant_id)),
@@ -331,6 +427,8 @@ async def export_all_csv_zip(db: AsyncSession, tenant_id: int) -> bytes:
         ("gastos_recurrentes.csv", await export_recurring_expenses_csv(db, tenant_id)),
         ("cosechas.csv", await export_harvests_csv(db, tenant_id)),
         ("presencias.csv", await export_presences_csv(db, tenant_id)),
+        ("brule.csv", await export_brule_csv(db, tenant_id)),
+        ("lluvia.csv", await export_rainfall_csv(db, tenant_id)),
     ]
 
     zip_buffer = io.BytesIO()

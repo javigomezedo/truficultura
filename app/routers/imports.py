@@ -11,13 +11,16 @@ from app.database import get_db
 from app.models.user import User
 from app.services.import_service import (
     import_all_csv_zip,
+    import_brule_csv,
     import_expenses_csv,
     import_harvests_csv,
     import_incomes_csv,
     import_irrigation_csv,
+    import_plants_csv,
     import_plot_events_csv,
     import_plots_csv,
     import_presences_csv,
+    import_rainfall_csv,
     import_recurring_expenses_csv,
     import_truffles_csv,
     import_wells_csv,
@@ -30,6 +33,7 @@ templates = Jinja2Templates(directory="app/templates")
 def _summarize_zip_import(imported_by_file: dict[str, int]) -> list[str]:
     labels = {
         "parcelas.csv": "parcelas",
+        "plantas.csv": "plantas",
         "gastos.csv": "gastos",
         "ingresos.csv": "ingresos",
         "riego.csv": "riego",
@@ -39,6 +43,8 @@ def _summarize_zip_import(imported_by_file: dict[str, int]) -> list[str]:
         "gastos_recurrentes.csv": "gastos recurrentes",
         "cosechas.csv": "cosechas",
         "presencias.csv": "presencias",
+        "brule.csv": "brulé",
+        "lluvia.csv": "lluvia",
     }
     return [
         f"{labels.get(name, name)}: {count}" for name, count in imported_by_file.items()
@@ -351,6 +357,84 @@ async def upload_presences(
                 "imported": len(rows),
                 "warnings": warnings,
             },
-            "active_tab": "truffles",
+            "active_tab": "presences",
+        },
+    )
+
+
+@router.post("/plants", response_class=HTMLResponse)
+async def upload_plants(
+    request: Request,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_write_access),
+):
+    content = await file.read()
+    rows, warnings = await import_plants_csv(db, content, current_user.active_tenant_id)
+    await db.commit()
+    return templates.TemplateResponse(
+        request,
+        "imports/index.html",
+        {
+            "request": request,
+            "result": {
+                "type": "plants",
+                "filename": file.filename,
+                "imported": len(rows),
+                "warnings": warnings,
+            },
+            "active_tab": "plants",
+        },
+    )
+
+
+@router.post("/brule", response_class=HTMLResponse)
+async def upload_brule(
+    request: Request,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_write_access),
+):
+    content = await file.read()
+    rows, warnings = await import_brule_csv(db, content, current_user.active_tenant_id)
+    await db.commit()
+    return templates.TemplateResponse(
+        request,
+        "imports/index.html",
+        {
+            "request": request,
+            "result": {
+                "type": "brule",
+                "filename": file.filename,
+                "imported": len(rows),
+                "warnings": warnings,
+            },
+            "active_tab": "brule",
+        },
+    )
+
+
+@router.post("/rainfall", response_class=HTMLResponse)
+async def upload_rainfall(
+    request: Request,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_write_access),
+):
+    content = await file.read()
+    rows, warnings = await import_rainfall_csv(db, content, current_user.active_tenant_id)
+    await db.commit()
+    return templates.TemplateResponse(
+        request,
+        "imports/index.html",
+        {
+            "request": request,
+            "result": {
+                "type": "rainfall",
+                "filename": file.filename,
+                "imported": len(rows),
+                "warnings": warnings,
+            },
+            "active_tab": "rainfall",
         },
     )

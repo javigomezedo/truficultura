@@ -556,6 +556,16 @@ async def test_export_all_csv_zip_contains_all_files(monkeypatch):
         "app.services.export_service.export_presences_csv",
         AsyncMock(return_value=b"pres"),
     )
+    monkeypatch.setattr(
+        "app.services.export_service.export_plants_csv", AsyncMock(return_value=b"pl")
+    )
+    monkeypatch.setattr(
+        "app.services.export_service.export_brule_csv", AsyncMock(return_value=b"br")
+    )
+    monkeypatch.setattr(
+        "app.services.export_service.export_rainfall_csv",
+        AsyncMock(return_value=b"rain"),
+    )
 
     db = MagicMock()
     data = await export_all_csv_zip(db, tenant_id=1)
@@ -565,6 +575,7 @@ async def test_export_all_csv_zip_contains_all_files(monkeypatch):
         assert names == sorted(
             [
                 "parcelas.csv",
+                "plantas.csv",
                 "gastos.csv",
                 "ingresos.csv",
                 "riego.csv",
@@ -574,9 +585,12 @@ async def test_export_all_csv_zip_contains_all_files(monkeypatch):
                 "gastos_recurrentes.csv",
                 "cosechas.csv",
                 "presencias.csv",
+                "brule.csv",
+                "lluvia.csv",
             ]
         )
         assert zf.read("parcelas.csv") == b"p"
+        assert zf.read("plantas.csv") == b"pl"
         assert zf.read("gastos.csv") == b"e"
         assert zf.read("ingresos.csv") == b"i"
         assert zf.read("riego.csv") == b"r"
@@ -586,6 +600,8 @@ async def test_export_all_csv_zip_contains_all_files(monkeypatch):
         assert zf.read("gastos_recurrentes.csv") == b"rec"
         assert zf.read("cosechas.csv") == b"h"
         assert zf.read("presencias.csv") == b"pres"
+        assert zf.read("brule.csv") == b"br"
+        assert zf.read("lluvia.csv") == b"rain"
 
 
 # ---------------------------------------------------------------------------
