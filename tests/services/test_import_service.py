@@ -821,7 +821,7 @@ async def test_import_all_csv_zip_imports_supported_files(monkeypatch):
         fake_import_recurring_expenses_csv,
     )
 
-    db = MagicMock()
+    db = AsyncMock()
     zip_content = _zip_bytes(
         {
             "parcelas.csv": b"p",
