@@ -57,6 +57,7 @@ from app.routers import (
     plants,
     plot_events,
     plots,
+    profile,
     quality_analytics,
     recurring_expenses,
     reports,
@@ -132,6 +133,7 @@ billing.templates = templates
 brule.templates = templates
 tenants.templates = templates
 notifications.templates = templates
+profile.templates = templates
 
 # Include routers
 app.include_router(auth.router)
@@ -162,6 +164,7 @@ app.include_router(brule.router)
 app.include_router(maps.router)
 app.include_router(tenants.router)
 app.include_router(notifications.router)
+app.include_router(profile.router)
 
 
 @app.get("/landing", response_class=HTMLResponse, include_in_schema=False)
@@ -466,6 +469,7 @@ async def dashboard(
             "request": request,
             "joined": request.query_params.get("joined") == "1",
             "show_onboarding_congrats": show_onboarding_congrats,
+            "msg": request.query_params.get("msg"),
             **context,
         },
     )

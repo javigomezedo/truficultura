@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("Mi perfil") }} — Trufiq{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="tf-page-header">
+        <div>
+            <p class="tf-page-kicker">{{ _("Cuenta") }}</p>
+            <h1 class="tf-page-title mb-0"><i class="bi bi-person-fill me-2"></i>{{ _("Mi perfil") }}</h1>
+            <p class="tf-page-subtitle">{{ _("Actualiza tus datos personales.") }}</p>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-6">
+
+            {% if msg %}
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill me-1"></i>{{ msg | replace('+', ' ') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ _('Cerrar') }}"></button>
+            </div>
+            {% endif %}
+
+            <div class="card tf-panel border-0 shadow-sm">
+                <div class="card-body p-4">
+
+                    {% if error %}
+                    <div class="alert alert-danger" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ _(error) }}
+                    </div>
+                    {% endif %}
+
+                    <form method="post" action="/profile/">
+                        <div class="mb-3">
+                            <label for="first_name" class="form-label fw-semibold">{{ _("Nombre") }}</label>
+                            <input type="text" class="form-control" id="first_name" name="first_name"
+                                   value="{{ current_user.first_name }}" required autofocus>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="last_name" class="form-label fw-semibold">{{ _("Apellidos") }}</label>
+                            <input type="text" class="form-control" id="last_name" name="last_name"
+                                   value="{{ current_user.last_name }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="username" class="form-label fw-semibold">{{ _("Nombre de usuario") }}</label>
+                            <input type="text" class="form-control" id="username" name="username"
+                                   value="{{ current_user.username }}" required>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="email" class="form-label fw-semibold">{{ _("Email") }}</label>
+                            <input type="email" class="form-control" id="email"
+                                   value="{{ current_user.email }}" disabled>
+                            <div class="form-text">
+                                <i class="bi bi-lock-fill me-1"></i>{{ _("El email no se puede cambiar desde aquí. Contacta con el administrador si necesitas modificarlo.") }}
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="comunidad_regantes"
+                                       name="comunidad_regantes" value="on"
+                                       {% if current_user.comunidad_regantes %}checked{% endif %}>
+                                <label class="form-check-label fw-semibold" for="comunidad_regantes">
+                                    <i class="bi bi-droplet-fill me-1 text-primary"></i>
+                                    {{ _("Pertenezco a la Comunidad de Regantes de Sarrión") }}
+                                </label>
+                                <div class="form-text">{{ _("Activa esta opción para mostrar los campos específicos de la comunidad en el formulario de parcelas.") }}</div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary flex-grow-1">
+                                <i class="bi bi-check-circle me-1"></i>{{ _("Guardar cambios") }}
+                            </button>
+                            <a href="/" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle me-1"></i>{{ _("Cancelar") }}
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
