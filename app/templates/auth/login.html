@@ -94,9 +94,19 @@
             {% endif %}
 
             {% if request.query_params.get("pending_confirmation") %}
-            <div class="alert alert-info small mb-3">
+            <div class="alert alert-info small mb-2">
                 <i class="bi bi-envelope-fill me-1"></i>
                 {{ _("Hemos enviado un correo de confirmación a tu email. Revisa tu bandeja de entrada y pulsa el enlace para activar tu cuenta.") }}
+            </div>
+            <div class="mb-3">
+                <p class="small text-muted mb-2">{{ _("¿No llegó el email? Reenvíatelo:") }}</p>
+                <form method="post" action="/resend-confirmation" class="d-flex gap-2">
+                    <input type="email" name="email" class="form-control form-control-sm"
+                           placeholder="{{ _('Tu dirección de email') }}" required autocomplete="email">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary text-nowrap">
+                        <i class="bi bi-envelope-arrow-up me-1"></i>{{ _("Reenviar") }}
+                    </button>
+                </form>
             </div>
             {% endif %}
 
@@ -115,9 +125,25 @@
             {% endif %}
 
             {% if request.query_params.get("confirm_error") %}
-            <div class="alert alert-danger small mb-3">
+            <div class="alert alert-danger small mb-2">
                 <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                {{ _("El enlace de confirmación no es válido o ha caducado. Regístrate de nuevo o contacta con soporte.") }}
+                {{ _("El enlace de confirmación no es válido o ha caducado. Solicita un nuevo enlace:") }}
+            </div>
+            <div class="mb-3">
+                <form method="post" action="/resend-confirmation" class="d-flex gap-2">
+                    <input type="email" name="email" class="form-control form-control-sm"
+                           placeholder="{{ _('Tu dirección de email') }}" required autocomplete="email">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary text-nowrap">
+                        <i class="bi bi-envelope-arrow-up me-1"></i>{{ _("Nuevo enlace") }}
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+
+            {% if request.query_params.get("resend_done") %}
+            <div class="alert alert-success small mb-3">
+                <i class="bi bi-check-circle-fill me-1"></i>
+                {{ _("Si el email está registrado y pendiente de confirmación, recibirás un nuevo enlace en breve.") }}
             </div>
             {% endif %}
 

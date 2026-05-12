@@ -560,7 +560,9 @@
             });
         }
 
-        var parcelasEl = document.querySelector('#tour-step-parcelas');
+        var parcelasEl = window.innerWidth >= 992
+            ? document.querySelector('#tour-step-parcelas')
+            : null;
         if (parcelasEl) {
             steps.push({
                 element: parcelasEl,
@@ -569,7 +571,9 @@
             });
         }
 
-        var finanzasEl = document.querySelector('#tour-step-finanzas');
+        var finanzasEl = window.innerWidth >= 992
+            ? document.querySelector('#tour-step-finanzas')
+            : null;
         if (finanzasEl) {
             steps.push({
                 element: finanzasEl,

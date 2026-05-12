@@ -127,7 +127,7 @@ async def build_dashboard_context(db: AsyncSession, tenant_id: int) -> dict:
             "label": "Indica el número de plantas",
             "description": "Añade cuántas plantas tiene cada parcela para calcular rentabilidad y distribuir gastos.",
             "done": has_plants,
-            "href": "/plots/",
+            "href": f"/plots/{all_plots[0].id}/edit" if len(all_plots) == 1 and not has_plants else "/plots/",
             "icon": "bi-tree-fill",
         },
         {

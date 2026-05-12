@@ -581,6 +581,38 @@ async def reset_password_post(
     return RedirectResponse("/login?password_reset=1", status_code=303)
 
 
+@router.post("/resend-confirmation", response_class=HTMLResponse)
+async def resend_confirmation_post(
+    request: Request,
+    email: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Reenvía el email de confirmación si el usuario no lo recibió o expiró.
+
+    Siempre redirige al mismo destino para no revelar si el email existe.
+    """
+    email = email.strip().lower()
+    if settings.email_configured:
+        result = await db.execute(select(User).where(User.email == email))
+        user = result.scalar_one_or_none()
+        if user and not user.email_confirmed:
+            token = generate_token(email, EMAIL_CONFIRMATION_SALT)
+            try:
+                await send_confirmation_email(email, token)
+            except Exception as exc:
+                logger.warning(
+                    "[auth] Could not resend confirmation email to %s: %s", email, exc
+                )
+        else:
+            logger.info(
+                "[auth] Resend confirmation skipped for %s (confirmed=%s, exists=%s)",
+                email,
+                user.email_confirmed if user else "N/A",
+                user is not None,
+            )
+    return RedirectResponse("/login?resend_done=1", status_code=303)
+
+
 @router.post("/logout")
 async def logout(request: Request):
     request.session.clear()
