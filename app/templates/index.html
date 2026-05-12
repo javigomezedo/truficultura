@@ -3,12 +3,140 @@
 {% block title %}{{ _("Panel de Control") }} &mdash; Trufiq{% endblock %}
 
 {% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intro.js@7/minified/introjs.min.css" crossorigin="anonymous">
 <style>
     .report-table th, .report-table td { font-size: 0.85rem; white-space: nowrap; }
     .cell-positive { background-color: #d1e7dd; color: #0a3622; font-weight: 600; }
     .cell-negative { background-color: #f8d7da; color: #58151c; font-weight: 600; }
     .cell-zero { color: #6c757d; }
     .sticky-col { position: sticky; left: 0; background: inherit; z-index: 1; }
+
+    /* ── Intro.js overrides ───────────────────────────────────────────── */
+    .introjs-overlay {
+        background: rgba(24, 14, 19, 0.55) !important;
+        backdrop-filter: blur(2px);
+    }
+
+    .introjs-tooltip {
+        font-family: var(--tf-font-sans);
+        background: var(--tf-surface-strong, #fffaf3) !important;
+        border: 1px solid var(--tf-border, rgba(88, 67, 45, 0.14));
+        border-radius: var(--tf-radius-md, 1.25rem) !important;
+        box-shadow: var(--tf-shadow-md) !important;
+        min-width: 300px;
+        max-width: 380px;
+        padding: 0 !important;
+    }
+
+    .introjs-tooltip-header {
+        padding: 1.1rem 1.25rem 0.25rem;
+        border-bottom: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .introjs-tooltipTitle {
+        font-family: var(--tf-font-display, "Cormorant Garamond", serif);
+        font-size: 1.35rem !important;
+        font-weight: 600 !important;
+        color: var(--tf-heading, #24180f) !important;
+        line-height: 1.2;
+        margin: 0;
+    }
+
+    .introjs-tooltiptext {
+        font-size: 0.875rem;
+        color: var(--tf-text-soft, #6f6254) !important;
+        line-height: 1.6;
+        padding: 0.5rem 1.25rem 1rem;
+    }
+
+    .introjs-tooltipbuttons {
+        border-top: 1px solid var(--tf-border, rgba(88, 67, 45, 0.12)) !important;
+        padding: 0.75rem 1.25rem !important;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        background: transparent;
+    }
+
+    .introjs-button {
+        font-family: var(--tf-font-sans) !important;
+        font-size: 0.8rem !important;
+        font-weight: 600 !important;
+        border-radius: 0.6rem !important;
+        padding: 0.4rem 1rem !important;
+        border: none !important;
+        cursor: pointer !important;
+        text-shadow: none !important;
+        box-shadow: none !important;
+        transition: opacity 0.15s;
+    }
+    .introjs-button:hover { opacity: 0.85; }
+    .introjs-button:focus { outline: none !important; box-shadow: none !important; }
+
+    .introjs-nextbutton {
+        background: var(--tf-primary, #566b2f) !important;
+        color: #fff !important;
+    }
+
+    .introjs-prevbutton {
+        background: transparent !important;
+        color: var(--tf-text-soft, #6f6254) !important;
+        border: 1px solid var(--tf-border, rgba(88, 67, 45, 0.2)) !important;
+    }
+    .introjs-prevbutton.introjs-disabled {
+        opacity: 0.3 !important;
+    }
+
+    .introjs-donebutton {
+        background: var(--tf-primary, #566b2f) !important;
+        color: #fff !important;
+    }
+
+    .introjs-skipbutton {
+        font-family: var(--tf-font-sans) !important;
+        color: var(--tf-text-soft, #6f6254) !important;
+        font-size: 1rem !important;
+        opacity: 0.55;
+        top: 0.85rem !important;
+        right: 1rem !important;
+    }
+    .introjs-skipbutton:hover { opacity: 1; color: var(--tf-heading) !important; }
+
+    .introjs-progress {
+        background: var(--tf-border, rgba(88, 67, 45, 0.12)) !important;
+        height: 3px !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+    }
+    .introjs-progressbar {
+        background: var(--tf-primary, #566b2f) !important;
+        height: 3px !important;
+    }
+
+    .introjs-arrow {
+        border-color: transparent !important;
+    }
+    .introjs-arrow.top, .introjs-arrow.top-right, .introjs-arrow.top-middle {
+        border-bottom-color: var(--tf-surface-strong, #fffaf3) !important;
+    }
+    .introjs-arrow.bottom, .introjs-arrow.bottom-right, .introjs-arrow.bottom-middle {
+        border-top-color: var(--tf-surface-strong, #fffaf3) !important;
+    }
+    .introjs-arrow.left, .introjs-arrow.left-bottom {
+        border-right-color: var(--tf-surface-strong, #fffaf3) !important;
+    }
+    .introjs-arrow.right, .introjs-arrow.right-bottom {
+        border-left-color: var(--tf-surface-strong, #fffaf3) !important;
+    }
+
+    .introjs-helperLayer {
+        border-radius: var(--tf-radius-sm, 0.9rem) !important;
+        box-shadow: 0 0 0 3px var(--tf-primary, #566b2f), var(--tf-shadow-md) !important;
+    }
 </style>
 {% endblock %}
 
@@ -36,19 +164,24 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     {% endif %}
-    <div class="tf-page-header">
+    <div class="tf-page-header" id="tour-step-dashboard">
         <div>
             <p class="tf-page-kicker">{{ _("Explotación trufícola") }}</p>
             <h1 class="tf-page-title">{{ _("Panel de Control") }}</h1>
             <p class="tf-page-subtitle">{{ _("Visión general de campañas, rentabilidad y actividad reciente con una presentación más sobria y clara para el trabajo diario.") }}</p>
         </div>
-        <a href="/plots/" class="btn btn-primary btn-sm">
-            <i class="bi bi-map-fill me-1"></i>{{ total_plots }} {{ _("bancal(es)") }}
-        </a>
+        <div class="d-flex gap-2 align-items-center">
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-start-tour" title="{{ _('Ver tour') }}">
+                <i class="bi bi-question-circle me-1"></i>{{ _("Tour") }}
+            </button>
+            <a href="/plots/" class="btn btn-primary btn-sm">
+                <i class="bi bi-map-fill me-1"></i>{{ total_plots }} {{ _("bancal(es)") }}
+            </a>
+        </div>
     </div>
 
     {% if not onboarding_complete %}
-    <div class="card shadow-sm border-0 mb-4">
+    <div class="card shadow-sm border-0 mb-4" id="tour-step-onboarding">
         <div class="card-header bg-transparent border-bottom-0 pt-3 pb-0 px-3">
             <h6 class="text-uppercase text-muted fw-semibold mb-0 small">
                 <i class="bi bi-list-check me-1"></i>{{ _("Primeros pasos") }}
@@ -399,4 +532,86 @@
     </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/intro.js@7/minified/intro.min.js" crossorigin="anonymous"></script>
+<script>
+(function () {
+    function buildTourSteps() {
+        var steps = [
+            {
+                title: '{{ _("¡Bienvenido/a a Trufiq!") }}',
+                intro: '{{ _("Vamos a darte un recorrido rápido por la aplicación. Pulsa «Siguiente» para continuar o «Omitir» para cerrar el tour en cualquier momento.") }}',
+            },
+            {
+                element: document.querySelector('#tour-step-dashboard'),
+                title: '{{ _("Panel de Control") }}',
+                intro: '{{ _("Aquí tendrás siempre una visión global de tu explotación: rentabilidad por campaña, gastos, ingresos y los principales indicadores.") }}',
+            },
+        ];
+
+        var onboardingEl = document.querySelector('#tour-step-onboarding');
+        if (onboardingEl) {
+            steps.push({
+                element: onboardingEl,
+                title: '{{ _("Primeros pasos") }}',
+                intro: '{{ _("Esta tarjeta te guía en la configuración inicial. Completa los tres pasos para activar todos los cálculos de rentabilidad.") }}',
+            });
+        }
+
+        var parcelasEl = document.querySelector('#tour-step-parcelas');
+        if (parcelasEl) {
+            steps.push({
+                element: parcelasEl,
+                title: '{{ _("Parcelas") }}',
+                intro: '{{ _("Gestiona tus bancales: añade parcelas, configura el número de plantas y consulta el rendimiento individual de cada una.") }}',
+            });
+        }
+
+        var finanzasEl = document.querySelector('#tour-step-finanzas');
+        if (finanzasEl) {
+            steps.push({
+                element: finanzasEl,
+                title: '{{ _("Finanzas") }}',
+                intro: '{{ _("Registra gastos e ingresos por campaña. Los gastos generales se distribuyen automáticamente entre parcelas según el número de plantas.") }}',
+            });
+        }
+
+        var bellEl = document.querySelector('#tf-notifications-btn');
+        if (bellEl) {
+            steps.push({
+                element: bellEl,
+                title: '{{ _("Avisos") }}',
+                intro: '{{ _("Recibirás aquí notificaciones sobre eventos importantes de tu explotación.") }}',
+            });
+        }
+
+        return steps;
+    }
+
+    function startTour() {
+        introJs().setOptions({
+            steps: buildTourSteps(),
+            nextLabel: '{{ _("Siguiente") }} →',
+            prevLabel: '← {{ _("Anterior") }}',
+            doneLabel: '{{ _("Finalizar") }}',
+            skipLabel: '✕',
+            showProgress: true,
+            showBullets: false,
+            exitOnOverlayClick: false,
+            scrollToElement: true,
+        }).start();
+    }
+
+    var btnTour = document.getElementById('btn-start-tour');
+    if (btnTour) {
+        btnTour.addEventListener('click', startTour);
+    }
+
+    {% if request.query_params.get('welcome') == '1' %}
+    startTour();
+    {% endif %}
+})();
+</script>
 {% endblock %}
