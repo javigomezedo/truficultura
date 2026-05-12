@@ -95,6 +95,10 @@ async def test_build_dashboard_context_returns_expected_totals() -> None:
     assert context["total_estimated_wells"] == 30
     assert context["total_well_events"] == 1
     assert len(context["campaign_rows"]) == 1
+    assert context["total_plants"] == 30
+    assert context["onboarding_complete"] is True
+    assert len(context["onboarding_steps"]) == 3
+    assert all(s["done"] for s in context["onboarding_steps"])
 
 
 @pytest.mark.asyncio
@@ -139,3 +143,47 @@ async def test_build_profitability_context_returns_matrix() -> None:
     assert context["grand_total_expenses"] == 3.0
     assert context["grand_total_profitability"] == 7.0
     assert len(context["matrix"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_build_dashboard_context_onboarding_incomplete_no_plots() -> None:
+    """onboarding_complete is False and step 1 not done when there are no plots."""
+    db = MagicMock()
+    db.execute = AsyncMock(side_effect=[result([]), result([]), result([]), result([])])
+
+    context = await build_dashboard_context(db, tenant_id=1)
+
+    assert context["total_plots"] == 0
+    assert context["total_plants"] == 0
+    assert context["onboarding_complete"] is False
+    assert context["onboarding_steps"][0]["done"] is False
+    assert context["onboarding_steps"][1]["done"] is False
+    assert context["onboarding_steps"][2]["done"] is False
+
+
+@pytest.mark.asyncio
+async def test_build_dashboard_context_onboarding_incomplete_no_financial_data() -> (
+    None
+):
+    """onboarding_complete is False when plots exist but no expenses or incomes."""
+    plots = [
+        Plot(
+            id=1,
+            name="P1",
+            planting_date=datetime.date(2020, 1, 1),
+            percentage=100.0,
+            num_plants=15,
+        ),
+    ]
+
+    db = MagicMock()
+    db.execute = AsyncMock(
+        side_effect=[result(plots), result([]), result([]), result([])]
+    )
+
+    context = await build_dashboard_context(db, tenant_id=1)
+
+    assert context["onboarding_complete"] is False
+    assert context["onboarding_steps"][0]["done"] is True
+    assert context["onboarding_steps"][1]["done"] is True
+    assert context["onboarding_steps"][2]["done"] is False
