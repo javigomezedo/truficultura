@@ -469,6 +469,11 @@
 
     <footer class="container-fluid text-center tf-footer">
         <span>Trufiq &mdash; {{ _("Gestión de explotación trufícola") }}</span>
+        <span class="d-block mt-1" style="font-size:0.75rem;opacity:0.6;">
+            <a href="/aviso-legal" class="text-reset text-decoration-none">{{ _("Aviso Legal") }}</a>
+            &middot;
+            <a href="/privacidad" class="text-reset text-decoration-none">{{ _("Privacidad") }}</a>
+        </span>
     </footer>
 
     {% if request.session.get("username") %}
@@ -612,6 +617,58 @@
     })();
     </script>
     {% endif %}
+
+    <!-- Cookie notice (solo cookies técnicas esenciales, sin consentimiento requerido) -->
+    <div id="tf-cookie-notice"
+         class="position-fixed bottom-0 start-0 end-0 bg-dark text-white py-2 px-3 d-flex align-items-center justify-content-between gap-3"
+         style="z-index:2000;font-size:0.82rem;display:none!important;">
+        <span>
+            Trufiq usa únicamente cookies técnicas esenciales para gestionar tu sesión.
+            No hay cookies de seguimiento ni publicidad.
+            <a href="/privacidad" class="text-white-50 ms-1">Política de Privacidad</a>
+        </span>
+        <button type="button"
+                class="btn btn-sm btn-outline-light flex-shrink-0"
+                id="tf-cookie-ok-btn">Entendido</button>
+    </div>
+    <script>
+    (function () {
+        var notice = document.getElementById('tf-cookie-notice');
+        var assistantBtn = document.getElementById('tf-cookie-notice') && document.querySelector('.tf-assistant-launch');
+
+        function liftAssistantBtn() {
+            var btn = document.querySelector('.tf-assistant-launch');
+            var bar = document.getElementById('tf-cookie-notice');
+            if (!btn || !bar) return;
+            btn.style.bottom = (bar.offsetHeight + 12) + 'px';
+        }
+
+        function resetAssistantBtn() {
+            var btn = document.querySelector('.tf-assistant-launch');
+            if (btn) btn.style.bottom = '';
+        }
+
+        if (!localStorage.getItem('tf-cookie-ok')) {
+            var el = document.getElementById('tf-cookie-notice');
+            if (el) {
+                el.style.cssText = '';
+                // Lift the assistant button once the bar is rendered
+                requestAnimationFrame(liftAssistantBtn);
+            }
+        }
+
+        var btn = document.getElementById('tf-cookie-ok-btn');
+        if (btn) {
+            btn.addEventListener('click', function () {
+                localStorage.setItem('tf-cookie-ok', '1');
+                var el = document.getElementById('tf-cookie-notice');
+                if (el) el.style.display = 'none';
+                resetAssistantBtn();
+            });
+        }
+    })();
+    </script>
+
     </div>
 </body>
 </html>

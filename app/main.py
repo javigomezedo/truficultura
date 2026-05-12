@@ -50,6 +50,7 @@ from app.routers import (
     incomes,
     irrigation,
     kpis,
+    legal,
     lluvia,
     maps,
     notifications,
@@ -139,6 +140,7 @@ profile.templates = templates
 app.include_router(auth.router)
 app.include_router(admin.router)
 app.include_router(assistant.router)
+app.include_router(legal.router)
 app.include_router(plots.router)
 app.include_router(expenses.router)
 app.include_router(incomes.router)
