@@ -453,12 +453,19 @@ async def dashboard(
 ):
     context = await build_dashboard_context(db, current_user.active_tenant_id)
 
+    # Flash "onboarding completado" una sola vez
+    show_onboarding_congrats = False
+    if context.get("onboarding_complete") and not request.session.get("onboarding_congratulated"):
+        request.session["onboarding_congratulated"] = True
+        show_onboarding_congrats = True
+
     return templates.TemplateResponse(
         request,
         "index.html",
         {
             "request": request,
             "joined": request.query_params.get("joined") == "1",
+            "show_onboarding_congrats": show_onboarding_congrats,
             **context,
         },
     )

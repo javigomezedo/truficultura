@@ -28,6 +28,14 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     {% endif %}
+    {% if show_onboarding_congrats %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-trophy-fill me-2"></i>
+        <strong>{{ _("¡Configuración completada!") }}</strong>
+        {{ _("Ya tienes parcelas, plantas y datos económicos registrados. ¡Tu explotación está lista para hacer seguimiento!") }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
     <div class="tf-page-header">
         <div>
             <p class="tf-page-kicker">{{ _("Explotación trufícola") }}</p>
