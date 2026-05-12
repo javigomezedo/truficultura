@@ -12,6 +12,7 @@ from app.services.email_service import (
     send_confirmation_email,
     send_email,
     send_password_reset_email,
+    send_welcome_email,
 )
 
 
@@ -247,3 +248,31 @@ async def test_send_email_reraises_when_postmark_fails_and_no_smtp(monkeypatch) 
     ):
         with pytest.raises(RuntimeError, match="postmark down"):
             await send_email("to@example.com", "Hello", "<p>hi</p>")
+
+
+@pytest.mark.asyncio
+async def test_send_welcome_email_contains_first_name_and_dashboard_url(monkeypatch) -> None:
+    fake_settings = type(
+        "S",
+        (),
+        {
+            "postmark_configured": True,
+            "smtp_configured": False,
+            "effective_from": "noreply@example.com",
+            "APP_BASE_URL": "https://app.example.com",
+        },
+    )()
+    monkeypatch.setattr("app.services.email_service.settings", fake_settings)
+
+    sent_html: list[str] = []
+
+    async def capture_send(to, subject, html_body):
+        sent_html.append(html_body)
+
+    monkeypatch.setattr("app.services.email_service.send_email", capture_send)
+    await send_welcome_email("María", "maria@example.com")
+
+    assert len(sent_html) == 1
+    assert "María" in sent_html[0]
+    assert "https://app.example.com/" in sent_html[0]
+    assert "https://app.example.com/plots/new" in sent_html[0]

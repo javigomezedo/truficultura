@@ -24,6 +24,7 @@ from app.models.user import User
 from app.services.email_service import (
     send_confirmation_email,
     send_password_reset_email,
+    send_welcome_email,
 )
 from app.services import billing_service
 from app.services.token_service import (
@@ -172,6 +173,9 @@ async def login_post(
                 status_code=401,
             )
         # User is active and confirmed, proceed with login
+        is_first_login = user.last_seen_at is None
+        user.last_seen_at = datetime.now(timezone.utc)
+        await db.commit()
         request.session["user_id"] = user.id
         request.session["username"] = user.username
         request.session["role"] = user.role
@@ -207,6 +211,8 @@ async def login_post(
         redirect_to = _safe_next(next_url) if next_url else "/"
         if redirect_to.startswith("/scan/"):
             request.session.pop("pending_scan", None)
+        if is_first_login and redirect_to == "/":
+            redirect_to = "/?welcome=1"
         return RedirectResponse(redirect_to, status_code=303)
 
     # Either user doesn't exist or password is wrong
@@ -419,6 +425,10 @@ async def register_post(
         if safe_next and safe_next != "/"
         else "/login?registered=1"
     )
+    try:
+        await send_welcome_email(new_user.first_name, new_user.email)
+    except Exception as exc:
+        logger.warning("[auth] Could not send welcome email to %s: %s", new_user.email, exc)
     return RedirectResponse(redirect_target, status_code=303)
 
 
@@ -463,6 +473,10 @@ async def register_confirm(
         if safe_next and safe_next != "/"
         else "/login?confirmed=1"
     )
+    try:
+        await send_welcome_email(user.first_name, user.email)
+    except Exception as exc:
+        logger.warning("[auth] Could not send welcome email to %s: %s", user.email, exc)
     return RedirectResponse(redirect_target, status_code=303)
 
 
@@ -565,6 +579,38 @@ async def reset_password_post(
     user.password_reset_token_hash = None  # invalidate — token can't be reused
     await db.commit()
     return RedirectResponse("/login?password_reset=1", status_code=303)
+
+
+@router.post("/resend-confirmation", response_class=HTMLResponse)
+async def resend_confirmation_post(
+    request: Request,
+    email: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Reenvía el email de confirmación si el usuario no lo recibió o expiró.
+
+    Siempre redirige al mismo destino para no revelar si el email existe.
+    """
+    email = email.strip().lower()
+    if settings.email_configured:
+        result = await db.execute(select(User).where(User.email == email))
+        user = result.scalar_one_or_none()
+        if user and not user.email_confirmed:
+            token = generate_token(email, EMAIL_CONFIRMATION_SALT)
+            try:
+                await send_confirmation_email(email, token)
+            except Exception as exc:
+                logger.warning(
+                    "[auth] Could not resend confirmation email to %s: %s", email, exc
+                )
+        else:
+            logger.info(
+                "[auth] Resend confirmation skipped for %s (confirmed=%s, exists=%s)",
+                email,
+                user.email_confirmed if user else "N/A",
+                user is not None,
+            )
+    return RedirectResponse("/login?resend_done=1", status_code=303)
 
 
 @router.post("/logout")

@@ -109,8 +109,39 @@ async def build_dashboard_context(db: AsyncSession, tenant_id: int) -> dict:
             plot_totals[pid]["incomes"] - plot_totals[pid]["expenses"]
         )
 
+    # Onboarding state — computed from existing data, no extra DB query needed
+    total_plants = sum(p.num_plants for p in all_plots)
+    has_plots = len(all_plots) > 0
+    has_plants = total_plants > 0
+    has_financial_data = grand_expenses > 0 or grand_incomes > 0
+    onboarding_complete = has_plots and has_plants and has_financial_data
+    onboarding_steps = [
+        {
+            "label": "Crea tu primera parcela",
+            "description": "Define los bancales de tu explotación con su ubicación y número de plantas.",
+            "done": has_plots,
+            "href": "/plots/new" if not has_plots else "/plots/",
+            "icon": "bi-map-fill",
+        },
+        {
+            "label": "Indica el número de plantas",
+            "description": "Añade cuántas plantas tiene cada parcela para calcular rentabilidad y distribuir gastos.",
+            "done": has_plants,
+            "href": f"/plots/{all_plots[0].id}/edit" if len(all_plots) == 1 and not has_plants else "/plots/",
+            "icon": "bi-tree-fill",
+        },
+        {
+            "label": "Registra tu primer gasto o ingreso",
+            "description": "Empieza a construir el historial económico de tu explotación.",
+            "done": has_financial_data,
+            "href": "/expenses/new" if not has_financial_data else "/expenses/",
+            "icon": "bi-cash-coin",
+        },
+    ]
+
     return {
         "total_plots": len(all_plots),
+        "total_plants": total_plants,
         "grand_expenses": grand_expenses,
         "grand_incomes": grand_incomes,
         "grand_profitability": grand_profitability,
@@ -121,4 +152,6 @@ async def build_dashboard_context(db: AsyncSession, tenant_id: int) -> dict:
         "plots": all_plots,
         "matrix": matrix,
         "plot_totals": dict(plot_totals),
+        "onboarding_complete": onboarding_complete,
+        "onboarding_steps": onboarding_steps,
     }

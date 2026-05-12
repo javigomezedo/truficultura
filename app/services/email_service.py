@@ -176,6 +176,61 @@ async def send_password_reset_email(to_email: str, token: str) -> None:
     await send_email(to_email, "Recuperación de contraseña — Trufiq", html_body)
 
 
+async def send_welcome_email(first_name: str, to_email: str) -> None:
+    """Send a welcome email right after a user's account is active and confirmed."""
+    dashboard_url = f"{settings.APP_BASE_URL}/"
+    plots_url = f"{settings.APP_BASE_URL}/plots/new"
+    expenses_url = f"{settings.APP_BASE_URL}/expenses/new"
+    html_body = f"""
+<!DOCTYPE html>
+<html lang="es">
+<body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #333;">
+  <h2 style="color: #5a3e1b;">¡Bienvenido/a a Trufiq, {html.escape(first_name)}!</h2>
+  <p>Tu cuenta está activa y lista para usar. Trufiq te ayuda a gestionar tu explotación trufícola: parcelas, plantas, gastos, ingresos y rentabilidad por campaña.</p>
+  <p style="margin: 24px 0;">
+    <a href="{dashboard_url}"
+       style="background: #5a3e1b; color: #fff; padding: 12px 24px;
+              text-decoration: none; border-radius: 6px; font-weight: bold;">
+      Ir al panel de control
+    </a>
+  </p>
+  <h3 style="color: #5a3e1b; border-bottom: 1px solid #e5e0d8; padding-bottom: 8px;">Primeros pasos</h3>
+  <table style="width:100%; border-collapse: collapse;">
+    <tr>
+      <td style="padding: 10px 0; border-bottom: 1px solid #f0ebe4; vertical-align: top; width: 28px;">
+        <span style="font-size: 1.2em;">🗺️</span>
+      </td>
+      <td style="padding: 10px 8px; border-bottom: 1px solid #f0ebe4;">
+        <strong><a href="{plots_url}" style="color: #5a3e1b;">Crea tu primera parcela</a></strong><br>
+        <span style="color: #888; font-size: 0.9em;">Define los bancales de tu explotación con su ubicación y número de plantas.</span>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 10px 0; border-bottom: 1px solid #f0ebe4; vertical-align: top;">
+        <span style="font-size: 1.2em;">🌳</span>
+      </td>
+      <td style="padding: 10px 8px; border-bottom: 1px solid #f0ebe4;">
+        <strong>Indica el número de plantas</strong><br>
+        <span style="color: #888; font-size: 0.9em;">Añade cuántas plantas tiene cada parcela para calcular rentabilidad y distribuir gastos.</span>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 10px 0; vertical-align: top;">
+        <span style="font-size: 1.2em;">💶</span>
+      </td>
+      <td style="padding: 10px 8px;">
+        <strong><a href="{expenses_url}" style="color: #5a3e1b;">Registra tu primer gasto o ingreso</a></strong><br>
+        <span style="color: #888; font-size: 0.9em;">Empieza a construir el historial económico de tu explotación.</span>
+      </td>
+    </tr>
+  </table>
+  <p style="color: #999; font-size: 0.85em; margin-top: 32px;">Si tienes alguna duda, responde a este email y te ayudamos.</p>
+</body>
+</html>
+"""
+    await send_email(to_email, "¡Bienvenido/a a Trufiq!", html_body)
+
+
 async def send_lead_notification(
     name: str, email: str, message: str | None = None
 ) -> None:

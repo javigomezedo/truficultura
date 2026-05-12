@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from unittest import mock
 from unittest.mock import AsyncMock, MagicMock
 
@@ -129,6 +130,7 @@ def test_login_post_success_redirects_and_sets_session(monkeypatch) -> None:
         role="user",
         is_active=True,
         email_confirmed=True,
+        last_seen_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
     )
     db.execute.side_effect = [result([user]), result([])]
     app.dependency_overrides.clear()
@@ -653,7 +655,9 @@ def test_register_post_second_user_pending_confirmation_with_smtp(monkeypatch) -
     send_mock.assert_awaited_once_with("segundo@example.com", mock.ANY, next_url=None)
 
 
-def test_register_post_second_user_pending_confirmation_preserves_next(monkeypatch) -> None:
+def test_register_post_second_user_pending_confirmation_preserves_next(
+    monkeypatch,
+) -> None:
     """When next_url is passed, it is embedded in the confirmation link and pending redirect."""
     db = _fake_db()
     app.dependency_overrides[__import__("app.database", fromlist=["get_db"]).get_db] = (
@@ -696,7 +700,10 @@ def test_register_post_second_user_pending_confirmation_preserves_next(monkeypat
         app.dependency_overrides.clear()
 
     assert response.status_code == 303
-    assert response.headers["location"] == "/login?pending_confirmation=1&next=/tenant/join/tok-abc"
+    assert (
+        response.headers["location"]
+        == "/login?pending_confirmation=1&next=/tenant/join/tok-abc"
+    )
     send_mock.assert_awaited_once_with(
         "invitado@example.com", mock.ANY, next_url="/tenant/join/tok-abc"
     )
@@ -770,9 +777,9 @@ def test_register_confirm_preserves_next_url(monkeypatch) -> None:
         app.dependency_overrides.clear()
 
     assert response.status_code == 303
-    assert response.headers["location"] == "/login?confirmed=1&next=/tenant/join/tok-abc"
-
-
+    assert (
+        response.headers["location"] == "/login?confirmed=1&next=/tenant/join/tok-abc"
+    )
 
     db = _fake_db()
     app.dependency_overrides[__import__("app.database", fromlist=["get_db"]).get_db] = (
@@ -951,7 +958,9 @@ def test_reset_password_post_updates_password(monkeypatch) -> None:
         role="user",
         is_active=True,
         email_confirmed=True,
-        password_reset_token_hash=__import__("app.services.token_service", fromlist=["hash_reset_token"]).hash_reset_token("valid-token"),
+        password_reset_token_hash=__import__(
+            "app.services.token_service", fromlist=["hash_reset_token"]
+        ).hash_reset_token("valid-token"),
     )
     db.execute.return_value = result([user])
     app.dependency_overrides[__import__("app.database", fromlist=["get_db"]).get_db] = (
@@ -1060,3 +1069,219 @@ def test_logout_clears_session_and_redirects(monkeypatch) -> None:
     assert login.status_code == 303
     assert logout.status_code == 303
     assert logout.headers["location"] == "/login"
+
+
+def test_login_post_first_login_redirects_to_welcome(monkeypatch) -> None:
+    """First login (last_seen_at=None) redirects to /?welcome=1."""
+    db = _fake_db()
+    user = User(
+        id=1,
+        username="javier",
+        first_name="Javier",
+        last_name="Gomez",
+        email="javier@example.com",
+        hashed_password="hash",
+        role="user",
+        is_active=True,
+        email_confirmed=True,
+        last_seen_at=None,
+    )
+    db.execute.side_effect = [result([user]), result([])]
+    app.dependency_overrides[__import__("app.database", fromlist=["get_db"]).get_db] = (
+        lambda: db
+    )
+    monkeypatch.setattr("app.routers.auth.verify_password", lambda plain, hashed: True)
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/login",
+            data={"username": "javier", "password": "secreto"},
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/?welcome=1"
+    db.commit.assert_awaited_once()
+
+
+def test_login_post_subsequent_login_redirects_to_root(monkeypatch) -> None:
+    """Subsequent login (last_seen_at already set) redirects to / without welcome param."""
+    db = _fake_db()
+    user = User(
+        id=1,
+        username="javier",
+        first_name="Javier",
+        last_name="Gomez",
+        email="javier@example.com",
+        hashed_password="hash",
+        role="user",
+        is_active=True,
+        email_confirmed=True,
+        last_seen_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+    )
+    db.execute.side_effect = [result([user]), result([])]
+    app.dependency_overrides[__import__("app.database", fromlist=["get_db"]).get_db] = (
+        lambda: db
+    )
+    monkeypatch.setattr("app.routers.auth.verify_password", lambda plain, hashed: True)
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/login",
+            data={"username": "javier", "password": "secreto"},
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/"
+
+
+# ---------------------------------------------------------------------------
+# /resend-confirmation
+# ---------------------------------------------------------------------------
+
+
+def test_resend_confirmation_sends_when_unconfirmed(monkeypatch) -> None:
+    """When email is configured and user is unconfirmed, sends a new link."""
+    db = _fake_db()
+    user = User(
+        id=5,
+        username="pendiente",
+        first_name="Pendiente",
+        last_name="Usuario",
+        email="pendiente@example.com",
+        hashed_password="hash",
+        role="user",
+        is_active=False,
+        email_confirmed=False,
+    )
+    db.execute.return_value = result([user])
+    app.dependency_overrides[__import__("app.database", fromlist=["get_db"]).get_db] = (
+        lambda: db
+    )
+    monkeypatch.setattr(
+        "app.routers.auth.settings",
+        type("S", (), {"email_configured": True, "APP_BASE_URL": "http://localhost"})(),
+    )
+    send_mock = AsyncMock()
+    monkeypatch.setattr("app.routers.auth.send_confirmation_email", send_mock)
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/resend-confirmation",
+            data={"email": "pendiente@example.com"},
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/login?resend_done=1"
+    send_mock.assert_awaited_once()
+    args = send_mock.call_args
+    assert args[0][0] == "pendiente@example.com"
+
+
+def test_resend_confirmation_skips_when_already_confirmed(monkeypatch) -> None:
+    """When user is already confirmed, does not resend and still redirects to resend_done."""
+    db = _fake_db()
+    user = User(
+        id=6,
+        username="activo",
+        first_name="Activo",
+        last_name="Usuario",
+        email="activo@example.com",
+        hashed_password="hash",
+        role="user",
+        is_active=True,
+        email_confirmed=True,
+    )
+    db.execute.return_value = result([user])
+    app.dependency_overrides[__import__("app.database", fromlist=["get_db"]).get_db] = (
+        lambda: db
+    )
+    monkeypatch.setattr(
+        "app.routers.auth.settings",
+        type("S", (), {"email_configured": True})(),
+    )
+    send_mock = AsyncMock()
+    monkeypatch.setattr("app.routers.auth.send_confirmation_email", send_mock)
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/resend-confirmation",
+            data={"email": "activo@example.com"},
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/login?resend_done=1"
+    send_mock.assert_not_called()
+
+
+def test_resend_confirmation_skips_when_user_not_found(monkeypatch) -> None:
+    """When the email is not registered, silently redirects to resend_done (no enumeration)."""
+    db = _fake_db()
+    db.execute.return_value = result([])
+    app.dependency_overrides[__import__("app.database", fromlist=["get_db"]).get_db] = (
+        lambda: db
+    )
+    monkeypatch.setattr(
+        "app.routers.auth.settings",
+        type("S", (), {"email_configured": True})(),
+    )
+    send_mock = AsyncMock()
+    monkeypatch.setattr("app.routers.auth.send_confirmation_email", send_mock)
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/resend-confirmation",
+            data={"email": "noexiste@example.com"},
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/login?resend_done=1"
+    send_mock.assert_not_called()
+
+
+def test_resend_confirmation_skips_when_email_not_configured(monkeypatch) -> None:
+    """When no email backend is configured, skips silently and redirects."""
+    db = _fake_db()
+    app.dependency_overrides[__import__("app.database", fromlist=["get_db"]).get_db] = (
+        lambda: db
+    )
+    monkeypatch.setattr(
+        "app.routers.auth.settings",
+        type("S", (), {"email_configured": False})(),
+    )
+    send_mock = AsyncMock()
+    monkeypatch.setattr("app.routers.auth.send_confirmation_email", send_mock)
+
+    try:
+        client = TestClient(app)
+        response = client.post(
+            "/resend-confirmation",
+            data={"email": "cualquiera@example.com"},
+            follow_redirects=False,
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/login?resend_done=1"
+    send_mock.assert_not_called()
+    db.execute.assert_not_called()  # no DB query when email not configured
