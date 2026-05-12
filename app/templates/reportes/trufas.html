@@ -85,7 +85,7 @@
                             <th>{{ _("Parcela") }}</th>
                             <th>{{ _("Total campaña (g)") }}</th>
                             <th>{{ _("Total histórico (g)") }}</th>
-                            <th>{{ _("Top plantas (g)") }}</th>
+                            <th class="d-none d-md-table-cell">{{ _("Top plantas (g)") }}</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -95,7 +95,7 @@
                             <td>{{ s.plot_name }}</td>
                             <td>{{ s.campaign_total|format_eu(1) }}</td>
                             <td>{{ s.historical_total|format_eu(1) }}</td>
-                            <td>
+                            <td class="d-none d-md-table-cell">
                                 {% if s.top_plants %}
                                     {% for label, grams in s.top_plants %}
                                     <span class="badge text-bg-light border me-1">{{ label }}: {{ grams|format_eu(1) }} g</span>
@@ -107,7 +107,7 @@
                             <td class="text-end text-nowrap">
                                 {% if not read_only %}
                                 <a href="/plots/{{ s.plot_id }}/map" class="btn btn-sm btn-outline-success" title="{{ _('Añadir producción por planta') }}">
-                                    <i class="bi bi-plus-circle me-1"></i>{{ _("Añadir por planta") }}
+                                    <i class="bi bi-plus-circle"></i><span class="d-none d-sm-inline ms-1">{{ _("Añadir por planta") }}</span>
                                 </a>
                                 {% endif %}
                             </td>
@@ -124,10 +124,10 @@
                 <thead class="table-dark">
                     <tr>
                         <th class="sortable-th"><a href="{{ sort_url(request, 'date', sort_by, sort_order) }}">{{ _("Fecha") }}{% if sort_by == 'date' %}<i class="bi bi-arrow-{{ 'up' if sort_order == 'asc' else 'down' }}-short"></i>{% endif %}</a></th>
-                        <th class="sortable-th"><a href="{{ sort_url(request, 'plot', sort_by, sort_order) }}">{{ _("Parcela") }}{% if sort_by == 'plot' %}<i class="bi bi-arrow-{{ 'up' if sort_order == 'asc' else 'down' }}-short"></i>{% endif %}</a></th>
+                        <th class="sortable-th d-none d-sm-table-cell"><a href="{{ sort_url(request, 'plot', sort_by, sort_order) }}">{{ _("Parcela") }}{% if sort_by == 'plot' %}<i class="bi bi-arrow-{{ 'up' if sort_order == 'asc' else 'down' }}-short"></i>{% endif %}</a></th>
                         <th class="sortable-th"><a href="{{ sort_url(request, 'plant', sort_by, sort_order) }}">{{ _("Planta") }}{% if sort_by == 'plant' %}<i class="bi bi-arrow-{{ 'up' if sort_order == 'asc' else 'down' }}-short"></i>{% endif %}</a></th>
                         <th class="text-end sortable-th"><a href="{{ sort_url(request, 'weight', sort_by, sort_order) }}">{{ _("Peso (g)") }}{% if sort_by == 'weight' %}<i class="bi bi-arrow-{{ 'up' if sort_order == 'asc' else 'down' }}-short"></i>{% endif %}</a></th>
-                        <th class="sortable-th"><a href="{{ sort_url(request, 'source', sort_by, sort_order) }}">{{ _("Origen") }}{% if sort_by == 'source' %}<i class="bi bi-arrow-{{ 'up' if sort_order == 'asc' else 'down' }}-short"></i>{% endif %}</a></th>
+                        <th class="sortable-th d-none d-md-table-cell"><a href="{{ sort_url(request, 'source', sort_by, sort_order) }}">{{ _("Origen") }}{% if sort_by == 'source' %}<i class="bi bi-arrow-{{ 'up' if sort_order == 'asc' else 'down' }}-short"></i>{% endif %}</a></th>
                         <th class="text-center">{{ _("Acciones") }}</th>
                     </tr>
                 </thead>
@@ -135,10 +135,10 @@
                     {% for e in events %}
                     <tr>
                         <td>{{ e.created_at.strftime('%d/%m/%Y %H:%M:%S') if e.created_at else '—' }}</td>
-                        <td>{{ e.plot.name if e.plot else e.plot_id }}</td>
+                        <td class="d-none d-sm-table-cell">{{ e.plot.name if e.plot else e.plot_id }}</td>
                         <td>{{ e.plant.label if e.plant else e.plant_id }}</td>
                         <td>{{ e.estimated_weight_grams if e.estimated_weight_grams is defined and e.estimated_weight_grams is not none else 0.0|format_eu(1) }}</td>
-                        <td><span class="badge text-bg-secondary">{{ e.source }}</span></td>
+                        <td class="d-none d-md-table-cell"><span class="badge text-bg-secondary">{{ e.source }}</span></td>
                         <td class="text-center">
                             {% if not read_only %}
                             <form method="post"

@@ -37,7 +37,7 @@
                             <tr>
                                 <th>{{ _("Bancal") }}</th>
                                 <th style="min-width: 160px;">{{ _("Gramos cosechados") }}</th>
-                                <th>{{ _("Notas") }}</th>
+                                <th class="d-none d-sm-table-cell">{{ _("Notas") }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -50,12 +50,13 @@
                                                class="form-control text-end"
                                                placeholder="0"
                                                inputmode="decimal"
+                                               enterkeyhint="done"
                                                autocomplete="off"
                                                {% if selected_plot_id == plot.id %}autofocus{% endif %}>
                                         <span class="input-group-text">g</span>
                                     </div>
                                 </td>
-                                <td>
+                                <td class="d-none d-sm-table-cell">
                                     <input type="text" name="notes_{{ plot.id }}"
                                            class="form-control form-control-sm"
                                            placeholder="{{ _('Opcional') }}"

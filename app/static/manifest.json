@@ -1,0 +1,33 @@
+{
+  "name": "Trufiq",
+  "short_name": "Trufiq",
+  "description": "Gestión de explotación trufícola",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f3efe7",
+  "theme_color": "#261c13",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "/static/img/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Mapa de plantas",
+      "short_name": "Mapa",
+      "url": "/maps/",
+      "icons": [{ "src": "/static/img/favicon.svg", "type": "image/svg+xml", "sizes": "any" }]
+    },
+    {
+      "name": "Registrar cosecha",
+      "short_name": "Cosechar",
+      "url": "/harvests/new",
+      "icons": [{ "src": "/static/img/favicon.svg", "type": "image/svg+xml", "sizes": "any" }]
+    }
+  ]
+}
