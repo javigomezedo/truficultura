@@ -441,3 +441,41 @@ def test_admin_lluvia_importar_ibericam_form_sitemap_error_graceful(
         app.dependency_overrides.clear()
 
     assert response.status_code == 200
+
+
+def test_admin_onboarding_sessions_list_renders() -> None:
+    """Admin onboarding overview should render rows from the service."""
+    from types import SimpleNamespace
+    from unittest.mock import patch
+
+    db = _fake_db()
+    fake_session = SimpleNamespace(
+        id=42,
+        tenant_id=7,
+        original_filename="gastos.csv",
+        entity_type="expense",
+        status="imported",
+        state_json={"validation_errors": [], "help_requested_at": None},
+        created_at=datetime.datetime(2026, 5, 1, 12, 0, 0),
+        updated_at=datetime.datetime(2026, 5, 1, 12, 30, 0),
+    )
+
+    async def _fake_list(*args, **kwargs):
+        return [(fake_session, "Acme Truffles", "premium")]
+
+    app.dependency_overrides[require_admin] = _admin_user
+    app.dependency_overrides[get_db] = lambda: db
+    try:
+        with patch(
+            "app.services.onboarding_service.list_all_sessions_admin",
+            new=_fake_list,
+        ):
+            client = TestClient(app)
+            response = client.get("/admin/onboarding?status=imported")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert "gastos.csv" in response.text
+    assert "Acme Truffles" in response.text
+    assert "premium" in response.text

@@ -263,6 +263,55 @@ async def test_import_incomes_csv_parse_error_warns():
     assert "error al parsear" in warnings[0]
 
 
+@pytest.mark.asyncio
+async def test_import_incomes_csv_normalises_letter_grade_quality():
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+    db.add_all = MagicMock()
+
+    rows, warnings = await import_incomes_csv(
+        db,
+        _incomes_csv(
+            [
+                "05/12/2025;;1,000;A;100,00",
+                "06/12/2025;;1,000;B;90,00",
+                "07/12/2025;;1,000;C;80,00",
+                "08/12/2025;;1,000;D;70,00",
+                "09/12/2025;;1,000;Extra;120,00",
+            ]
+        ),
+        tenant_id=1,
+    )
+
+    assert warnings == []
+    assert [r.category for r in rows] == [
+        "extra",
+        "primera",
+        "segunda",
+        "blanda",
+        "extra",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_import_incomes_csv_unknown_quality_warns_and_drops_category():
+    db = MagicMock()
+    db.execute = AsyncMock(return_value=result([]))
+    db.add_all = MagicMock()
+
+    rows, warnings = await import_incomes_csv(
+        db,
+        _incomes_csv(["05/12/2025;;1,000;ZZZ;100,00"]),
+        tenant_id=1,
+    )
+
+    assert len(rows) == 1
+    assert rows[0].category is None
+    assert len(warnings) == 1
+    assert "ZZZ" in warnings[0]
+    assert "no reconocida" in warnings[0]
+
+
 # ---------------------------------------------------------------------------
 # import_plots_csv — has_irrigation column
 # ---------------------------------------------------------------------------

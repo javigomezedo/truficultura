@@ -16,6 +16,7 @@ from app.models.recurring_expense import RecurringExpense
 from app.models.brule import BruleRecord
 from app.models.lead_capture import LeadCapture
 from app.models.notification import Notification, NotificationPreference
+from app.models.onboarding import OnboardingSession
 
 __all__ = [
     "User",
@@ -39,4 +40,5 @@ __all__ = [
     "LeadCapture",
     "Notification",
     "NotificationPreference",
+    "OnboardingSession",
 ]
