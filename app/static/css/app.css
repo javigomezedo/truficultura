@@ -1841,3 +1841,90 @@ footer.tf-footer {
     font-size: .85rem;
     color: var(--bs-success, #198754);
 }
+
+/* Tarjetas de acción rápida del dashboard */
+.tf-quick-actions .tf-quick-card {
+    transition: transform .15s ease, box-shadow .15s ease;
+    color: inherit;
+    background: var(--tf-surface, #fff);
+}
+.tf-quick-actions .tf-quick-card:hover,
+.tf-quick-actions .tf-quick-card:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: var(--tf-shadow-md, 0 .5rem 1.25rem rgba(0,0,0,.08)) !important;
+    color: inherit;
+    text-decoration: none;
+}
+.tf-quick-actions .tf-quick-card .bi {
+    line-height: 1;
+}
+
+/* Búsqueda global / paleta de comandos */
+.tf-global-search-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .35rem .75rem;
+    border-radius: .5rem;
+    border: 1px solid var(--tf-border, rgba(88, 67, 45, 0.2));
+    background: transparent;
+    color: var(--tf-text-soft, #6f6254);
+    font-size: .85rem;
+    line-height: 1;
+    cursor: pointer;
+}
+.tf-global-search-trigger:hover,
+.tf-global-search-trigger:focus-visible {
+    background: var(--tf-surface-strong, #f5efe6);
+    color: var(--tf-heading, #24180f);
+}
+.tf-global-search-trigger kbd {
+    font-size: .7rem;
+    padding: .1rem .35rem;
+    background: rgba(0,0,0,.06);
+    color: inherit;
+    border-radius: .25rem;
+    border: 1px solid rgba(0,0,0,.08);
+}
+#tf-global-search-modal .modal-dialog {
+    margin-top: 6vh;
+}
+#tf-global-search-modal .form-control-lg {
+    border: none;
+    box-shadow: none;
+    font-size: 1.1rem;
+}
+#tf-global-search-modal .form-control-lg:focus {
+    box-shadow: none;
+}
+.tf-search-result {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .55rem .9rem;
+    border-radius: .5rem;
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+}
+.tf-search-result:hover,
+.tf-search-result.is-active {
+    background: var(--tf-surface-strong, #f5efe6);
+    color: var(--tf-heading, #24180f);
+    text-decoration: none;
+}
+.tf-search-result .bi {
+    font-size: 1.1rem;
+    color: var(--tf-primary, #566b2f);
+    flex-shrink: 0;
+}
+.tf-search-result-meta {
+    font-size: .75rem;
+    color: var(--tf-text-soft, #6f6254);
+}
+.tf-search-empty {
+    padding: 1.5rem;
+    text-align: center;
+    color: var(--tf-text-soft, #6f6254);
+    font-size: .9rem;
+}

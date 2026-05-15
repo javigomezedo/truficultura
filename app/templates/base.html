@@ -293,6 +293,23 @@
                     {% endif %}
                 {% endif %}
                     {% if request.session.get("username") %}
+                    <!-- Búsqueda global / paleta de comandos -->
+                    <button type="button"
+                            class="tf-global-search-trigger d-none d-md-inline-flex"
+                            data-tf-global-search
+                            aria-label="{{ _('Buscar (Ctrl+K)') }}"
+                            title="{{ _('Buscar (Ctrl+K)') }}">
+                        <i class="bi bi-search"></i>
+                        <span>{{ _("Buscar…") }}</span>
+                        <kbd>⌘K</kbd>
+                    </button>
+                    <button type="button"
+                            class="btn btn-outline-light btn-sm d-md-none"
+                            data-tf-global-search
+                            aria-label="{{ _('Buscar') }}"
+                            title="{{ _('Buscar') }}">
+                        <i class="bi bi-search"></i>
+                    </button>
                     <!-- Bell notifications -->
                     <div class="position-relative d-inline-block">
                         <a href="/notifications/"
@@ -596,6 +613,9 @@
             integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2XoQrxeTUQyRjrOnlCoYta87iKBWq3EsdM2"
             crossorigin="anonymous"></script>
     <script src="/static/js/app.js"></script>
+    {% if request.session.get("username") %}
+    <script src="/static/js/global_search.js" defer></script>
+    {% endif %}
     <script>
     // Inicializar dropdowns de acciones con strategy: fixed para que no queden
     // recortados por contenedores con overflow o backdrop-filter.

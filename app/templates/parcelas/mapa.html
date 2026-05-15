@@ -164,6 +164,19 @@
         {{ _("No hay plantas configuradas para esta parcela. Configura el mapa para empezar.") }}
     </div>
     {% else %}
+    {# ===== Toggle Mapa / Lista ===== #}
+    <div class="btn-group btn-group-sm mb-3 tf-map-layout-switch" role="group" aria-label="{{ _('Vista de plantas') }}">
+        <input type="radio" class="btn-check" name="map-layout" id="map-layout-grid" autocomplete="off" checked>
+        <label class="btn btn-outline-secondary" for="map-layout-grid" data-tf-map-layout="grid">
+            <i class="bi bi-grid-3x3-gap me-1"></i>{{ _("Mapa") }}
+        </label>
+        <input type="radio" class="btn-check" name="map-layout" id="map-layout-list" autocomplete="off">
+        <label class="btn btn-outline-secondary" for="map-layout-list" data-tf-map-layout="list">
+            <i class="bi bi-list-ul me-1"></i>{{ _("Lista") }}
+        </label>
+    </div>
+
+    <div data-tf-map-view="grid">
     <div class="card tf-panel border-0 shadow-sm">
         {# Legend — shown above the grid so it's always visible #}
         <div class="card-header bg-transparent border-bottom small text-muted py-2">
@@ -326,6 +339,113 @@
             </div>
         </div>
     </div>
+    </div> {# /data-tf-map-view=grid #}
+
+    {# ===== Vista LISTA ===== #}
+    <div data-tf-map-view="list" class="d-none">
+        <div class="card tf-panel border-0 shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>{{ _("Planta") }}</th>
+                                <th>{{ _("Estado") }}</th>
+                                <th>{{ _("Especie") }}</th>
+                                <th class="text-end">
+                                    {% if map_view_mode == 'weight' %}{{ _("Peso (g)") }}
+                                    {% elif map_view_mode == 'presence' %}{{ _("Presencia") }}
+                                    {% elif map_view_mode == 'brule' %}{{ _("Brulé (cm)") }}
+                                    {% else %}{{ _("Peso (g)") }}
+                                    {% endif %}
+                                </th>
+                                <th class="text-end">{{ _("Acciones") }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set list_cells = rows|map(attribute='cells')|sum(start=[])|selectattr('plant')|sort(attribute='plant.label')|list %}
+                            {% for cell in list_cells %}
+                                {% set plant_status = cell.plant.status.value if cell.plant.status else 'viva' %}
+                                {% set sp = cell.plant.host_species.value if cell.plant.host_species else None %}
+                                <tr>
+                                    <td class="fw-semibold">{{ cell.plant.label }}</td>
+                                    <td>
+                                        {% if plant_status == 'muerta' %}
+                                            <span class="badge bg-secondary">{{ _("Muerta") }}</span>
+                                        {% elif plant_status == 'estresada' %}
+                                            <span class="badge bg-warning text-dark">{{ _("Estresada") }}</span>
+                                        {% elif plant_status == 'reemplazada' %}
+                                            <span class="badge bg-info text-dark">{{ _("Reemplazada") }}</span>
+                                        {% else %}
+                                            <span class="badge bg-success">{{ _("Viva") }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="small text-muted">{% if sp %}{{ _(sp) }}{% else %}—{% endif %}</td>
+                                    <td class="text-end">
+                                        {% if map_view_mode == 'presence' %}
+                                            {% if presence_by_plant.get(cell.plant.id, False) %}
+                                                <i class="bi bi-check-circle-fill text-success"></i>
+                                            {% else %}
+                                                <span class="text-muted">—</span>
+                                            {% endif %}
+                                        {% elif map_view_mode == 'brule' %}
+                                            {% set last_cm = last_brule_by_plant.get(cell.plant.id) %}
+                                            {% if last_cm is not none %}{{ last_cm|format_eu(1) }}{% else %}<span class="text-muted">—</span>{% endif %}
+                                        {% else %}
+                                            {% set dw = cell.campaign_weight_grams if selected_campaign is not none else cell.total_weight_grams %}
+                                            {% if dw and dw > 0 %}{{ dw|format_eu(1) }}{% else %}<span class="text-muted">—</span>{% endif %}
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <a href="/plots/{{ plot.id }}/plants/{{ cell.plant.id }}/brule/"
+                                           class="btn btn-sm btn-outline-secondary"
+                                           title="{{ _('Ver/registrar brulé') }}">
+                                            <i class="bi bi-circle"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function () {
+        var STORAGE_KEY = "tf_map_layout";
+        var radios = document.querySelectorAll('input[name="map-layout"]');
+        var views = {
+            grid: document.querySelector('[data-tf-map-view="grid"]'),
+            list: document.querySelector('[data-tf-map-view="list"]'),
+        };
+        if (!views.grid || !views.list) return;
+
+        function applyLayout(mode) {
+            if (mode !== "grid" && mode !== "list") mode = "grid";
+            views.grid.classList.toggle("d-none", mode !== "grid");
+            views.list.classList.toggle("d-none", mode !== "list");
+            var input = document.getElementById("map-layout-" + mode);
+            if (input) input.checked = true;
+            try { localStorage.setItem(STORAGE_KEY, mode); } catch (e) {}
+        }
+
+        // Preferencia: localStorage, o lista por defecto en móvil pequeño
+        var saved = null;
+        try { saved = localStorage.getItem(STORAGE_KEY); } catch (e) {}
+        if (!saved && window.matchMedia("(max-width: 575.98px)").matches) {
+            saved = "list";
+        }
+        if (saved) applyLayout(saved);
+
+        radios.forEach(function (r) {
+            r.addEventListener("change", function () {
+                if (r.checked) applyLayout(r.id.replace("map-layout-", ""));
+            });
+        });
+    })();
+    </script>
 
     {% if show_plants_warning %}
     <div class="alert alert-warning mt-3" role="alert">
