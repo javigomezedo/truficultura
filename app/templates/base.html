@@ -195,7 +195,7 @@
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {% if '/charts' in request.url.path or '/import' in request.url.path or '/export' in request.url.path or '/kpis' in request.url.path or '/quality-analytics' in request.url.path %}active{% endif %}"
+                        <a class="nav-link dropdown-toggle {% if '/charts' in request.url.path or '/import' in request.url.path or '/export' in request.url.path or '/kpis' in request.url.path or '/quality-analytics' in request.url.path or '/onboarding' in request.url.path %}active{% endif %}"
                            href="#"
                            role="button"
                            data-bs-toggle="dropdown"
@@ -223,6 +223,11 @@
                             <li>
                                 <a class="dropdown-item {% if '/import' in request.url.path %}active{% endif %}" href="/import/">
                                     <i class="bi bi-upload me-1"></i> {{ _("Importar") }}
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if '/onboarding' in request.url.path %}active{% endif %}" href="/onboarding/">
+                                    <i class="bi bi-magic me-1"></i> {{ _("Importar con IA") }}
                                 </a>
                             </li>
                             <li>
@@ -255,6 +260,12 @@
                                 <a class="dropdown-item {% if '/admin/leads' in request.url.path %}active{% endif %}"
                                    href="/admin/leads">
                                     <i class="bi bi-person-lines-fill me-1"></i> Leads
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if '/admin/onboarding' in request.url.path %}active{% endif %}"
+                                   href="/admin/onboarding">
+                                    <i class="bi bi-robot me-1"></i> {{ _("Sesiones de onboarding") }}
                                 </a>
                             </li>
                         </ul>

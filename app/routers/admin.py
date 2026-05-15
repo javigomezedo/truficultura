@@ -447,3 +447,51 @@ async def mark_lead_contacted(
         lead.contacted_at = datetime.datetime.now(datetime.timezone.utc)
         await db.commit()
     return RedirectResponse(url="/admin/leads", status_code=303)
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Onboarding sessions (read-only admin view)
+# ──────────────────────────────────────────────────────────────────────────
+
+_ONBOARDING_STATUSES_FILTER = (
+    "uploaded",
+    "mapping",
+    "awaiting_user",
+    "transforming",
+    "previewing",
+    "imported",
+    "cancelled",
+    "error",
+)
+
+
+@router.get("/onboarding", response_class=HTMLResponse)
+async def list_onboarding_sessions(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+    status: str = Query(default="all"),
+    tenant_id: Optional[int] = Query(default=None),
+):
+    """Admin overview of onboarding sessions across all tenants."""
+    from app.services import onboarding_service
+
+    status_arg = status if status in _ONBOARDING_STATUSES_FILTER else None
+    rows = await onboarding_service.list_all_sessions_admin(
+        db,
+        status=status_arg,
+        tenant_id=tenant_id,
+        limit=200,
+    )
+    return templates.TemplateResponse(
+        request,
+        "admin/onboarding_sessions.html",
+        {
+            "request": request,
+            "rows": rows,
+            "status": status,
+            "tenant_id": tenant_id,
+            "statuses": _ONBOARDING_STATUSES_FILTER,
+            "current_user": current_user,
+        },
+    )

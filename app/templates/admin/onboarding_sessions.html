@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("Sesiones de onboarding") }} — Trufiq{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="tf-page-header">
+        <div>
+            <p class="tf-page-kicker">{{ _("Administración") }}</p>
+            <h1 class="tf-page-title mb-0">
+                <i class="bi bi-robot me-2"></i>{{ _("Sesiones de onboarding") }}
+            </h1>
+            <p class="tf-page-subtitle">{{ _("Histórico de sesiones del asistente IA en todos los tenants. Vista de sólo lectura.") }}</p>
+        </div>
+    </div>
+
+    {# ── Filtros de estado ── #}
+    {% set base_url = "/admin/onboarding" %}
+    <div class="mb-3 d-flex gap-2 flex-wrap align-items-center">
+        <a href="{{ base_url }}?status=all"
+           class="btn btn-sm {{ 'btn-secondary' if status == 'all' else 'btn-outline-secondary' }}">
+            <i class="bi bi-list-ul me-1"></i>{{ _("Todos") }}
+        </a>
+        {% for s in statuses %}
+        <a href="{{ base_url }}?status={{ s }}"
+           class="btn btn-sm {{ 'btn-primary' if status == s else 'btn-outline-primary' }}">
+            {{ s }}
+        </a>
+        {% endfor %}
+        <span class="ms-auto text-muted small">
+            {{ rows | length }} {{ _("sesión(es)") }}
+        </span>
+    </div>
+
+    <div class="card tf-panel border-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>{{ _("Tenant") }}</th>
+                        <th>{{ _("Plan") }}</th>
+                        <th>{{ _("Fichero") }}</th>
+                        <th>{{ _("Entidad") }}</th>
+                        <th>{{ _("Estado") }}</th>
+                        <th>{{ _("Errores") }}</th>
+                        <th>{{ _("Ayuda") }}</th>
+                        <th>{{ _("Creada") }}</th>
+                        <th>{{ _("Actualizada") }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for session, tenant_name, tenant_plan in rows %}
+                    {% set state = session.state_json or {} %}
+                    {% set err_count = (state.validation_errors | length) if state.validation_errors else 0 %}
+                    <tr>
+                        <td class="fw-semibold">{{ session.id }}</td>
+                        <td>
+                            <span class="text-muted small">#{{ session.tenant_id }}</span><br>
+                            {{ tenant_name or "—" }}
+                        </td>
+                        <td><span class="badge bg-light text-dark">{{ tenant_plan or "—" }}</span></td>
+                        <td class="small">{{ session.original_filename }}</td>
+                        <td><code class="small">{{ session.entity_type or "—" }}</code></td>
+                        <td>
+                            {% if session.status == "imported" %}
+                                <span class="badge bg-success">{{ session.status }}</span>
+                            {% elif session.status == "error" %}
+                                <span class="badge bg-danger">{{ session.status }}</span>
+                            {% elif session.status == "cancelled" %}
+                                <span class="badge bg-secondary">{{ session.status }}</span>
+                            {% else %}
+                                <span class="badge bg-info text-dark">{{ session.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if err_count %}<span class="badge bg-warning text-dark">{{ err_count }}</span>{% else %}—{% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if state.help_requested_at %}
+                                <i class="bi bi-life-preserver text-success" title="{{ state.help_requested_at }}"></i>
+                            {% else %}—{% endif %}
+                        </td>
+                        <td class="small text-muted">{{ session.created_at.strftime('%Y-%m-%d %H:%M') if session.created_at else '' }}</td>
+                        <td class="small text-muted">{{ session.updated_at.strftime('%Y-%m-%d %H:%M') if session.updated_at else '' }}</td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="10" class="text-center text-muted py-4">
+                            {{ _("No hay sesiones que coincidan con los filtros.") }}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

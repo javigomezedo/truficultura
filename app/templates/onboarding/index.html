@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("Onboarding de datos históricos") }} — Trufiq{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="tf-page-header">
+        <div>
+            <p class="tf-page-kicker">{{ _("Asistente IA") }}</p>
+            <h1 class="tf-page-title">{{ _("Importación inteligente de datos históricos") }}</h1>
+            <p class="tf-page-subtitle">{{ _("Sube tu Excel con datos antiguos (gastos, ingresos o parcelas) y el asistente intentará mapearlo automáticamente al formato de Trufiq. Antes de importar nada podrás revisar y confirmar el resultado.") }}</p>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}
+    </div>
+    {% endif %}
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h2 class="h5 mb-3">{{ _("Subir un fichero Excel") }}</h2>
+            {% if quota_limit is not none %}
+            {% set quota_left = quota_limit - quota_used %}
+            <div class="alert {% if quota_left <= 0 %}alert-warning{% else %}alert-info{% endif %} py-2 small mb-3">
+                <i class="bi bi-speedometer2 me-1"></i>
+                {{ _("Cuota mensual:") }} <strong>{{ quota_used }}/{{ quota_limit }}</strong> {{ _("sesiones usadas este mes") }}.
+                {% if quota_left <= 0 %}
+                    {{ _("Has agotado la cuota. Actualiza a Enterprise para sesiones ilimitadas.") }}
+                {% endif %}
+            </div>
+            {% endif %}
+            <form method="post" action="/onboarding/upload" enctype="multipart/form-data" data-busy-form>
+                <div class="mb-3">
+                    <input type="file" name="file" class="form-control" accept=".xlsx,.xls,.xlsm" required {% if quota_limit is not none and quota_used >= quota_limit %}disabled{% endif %}>
+                    <div class="form-text">{{ _("Formatos aceptados: .xlsx, .xls, .xlsm. Tamaño máximo 10 MB.") }}</div>
+                </div>
+                <button type="submit" class="btn btn-primary" data-busy-label="{{ _('Procesando…') }}" {% if quota_limit is not none and quota_used >= quota_limit %}disabled{% endif %}>
+                    <i class="bi bi-cloud-upload me-1"></i>{{ _("Analizar fichero") }}
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <h2 class="h5 mb-3">{{ _("Sesiones recientes") }}</h2>
+    {% if sessions %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>{{ _("Fichero") }}</th>
+                    <th>{{ _("Entidad") }}</th>
+                    <th>{{ _("Estado") }}</th>
+                    <th>{{ _("Creada") }}</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in sessions %}
+                <tr>
+                    <td><code>{{ s.original_filename }}</code></td>
+                    <td>{{ s.entity_type or "—" }}</td>
+                    <td><span class="badge bg-secondary">{{ s.status }}</span></td>
+                    <td>{{ s.created_at.strftime("%d/%m/%Y %H:%M") }}</td>
+                    <td><a href="/onboarding/{{ s.id }}" class="btn btn-sm btn-outline-primary">{{ _("Ver") }}</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-muted">{{ _("Todavía no has iniciado ninguna sesión de onboarding.") }}</p>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+    document.querySelectorAll('form[data-busy-form]').forEach(function (form) {
+        form.addEventListener('submit', function () {
+            if (form.dataset.busySubmitted === '1') { return; }
+            form.dataset.busySubmitted = '1';
+            form.querySelectorAll('button[type="submit"]').forEach(function (btn) {
+                btn.disabled = true;
+                var label = btn.getAttribute('data-busy-label');
+                if (label) {
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>' + label;
+                }
+            });
+        });
+    });
+})();
+</script>
+{% endblock %}

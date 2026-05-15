@@ -419,6 +419,8 @@
     display: flex; align-items: center; gap: 8px;
   }
   .pricing-features li::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); opacity: 0.6; flex-shrink: 0; }
+  .pricing-features li.muted { color: var(--text-muted); text-decoration: line-through; }
+  .pricing-features li.muted::before { background: transparent; border: 1px solid var(--text-muted); opacity: 0.6; }
   .pricing-btn {
     width: 100%; padding: 0.75rem;
     border-radius: var(--radius-sm); font-size: 0.9rem; font-weight: 600;
@@ -668,26 +670,33 @@
       <div class="diff-item fade-up">
         <div class="diff-num">02</div>
         <div>
+          <h3>Onboarding con IA</h3>
+          <p>Sube tus hojas de Excel hist&#243;ricas (gastos, ingresos, parcelas) y deja que el agente IA detecte la entidad, proponga el mapeo de columnas y transforme los datos al formato de Trufiq. T&#250; revisas y confirmas.</p>
+        </div>
+      </div>
+      <div class="diff-item fade-up">
+        <div class="diff-num">03</div>
+        <div>
           <h3>Integraci&#243;n con AEMET</h3>
           <p>Datos meteorol&#243;gicos oficiales integrados directamente en tu dashboard. Temperatura, precipitaci&#243;n y previsi&#243;n para tu zona.</p>
         </div>
       </div>
       <div class="diff-item fade-up">
-        <div class="diff-num">03</div>
+        <div class="diff-num">04</div>
         <div>
           <h3>Hecho por un truficultor</h3>
           <p>Desarrollado desde el conocimiento real del sector. Cada funcionalidad responde a un problema concreto del d&#237;a a d&#237;a.</p>
         </div>
       </div>
       <div class="diff-item fade-up">
-        <div class="diff-num">04</div>
+        <div class="diff-num">05</div>
         <div>
           <h3>Datos en la nube, seguros</h3>
           <p>Tu informaci&#243;n siempre disponible y protegida. Accede desde cualquier dispositivo, en cualquier momento.</p>
         </div>
       </div>
       <div class="diff-item fade-up">
-        <div class="diff-num">05</div>
+        <div class="diff-num">06</div>
         <div>
           <h3>Organizaciones y trabajo colaborativo</h3>
           <p>Invita a tu equipo a la misma organizaci&#243;n con un enlace por email. Roles diferenciados (propietario, administrador, miembro) y datos compartidos de forma segura.</p>
@@ -1034,45 +1043,49 @@
       <div class="pricing-card fade-up">
         <div class="pricing-name">B&#225;sico</div>
         <div>
-          <span class="pricing-price">Gratis</span>
+          <span class="pricing-price">Pr&#243;ximamente</span>
         </div>
         <ul class="pricing-features">
-          <li>Hasta 2 parcelas</li>
-          <li>Gastos e ingresos</li>
-          <li>Registro de producci&#243;n</li>
-          <li>Informes b&#225;sicos</li>
+          <li>Parcelas, gastos e ingresos</li>
+          <li>Riego y pozos</li>
+          <li>Registro de lluvia</li>
+          <li>Hasta 500 plantas</li>
+          <li>Importaci&#243;n y exportaci&#243;n</li>
+          <li class="muted">Tiempo meteorol&#243;gico</li>
+          <li class="muted">Anal&#237;tica de parcelas</li>
+          <li class="muted">Asistente IA</li>
+          <li class="muted">Onboarding con IA (importar Excel hist&#243;ricos)</li>
         </ul>
-        <a href="#contacto" class="pricing-btn outline">Empezar gratis</a>
+        <a href="#contacto" class="pricing-btn outline">Solicitar acceso</a>
       </div>
       <div class="pricing-card featured fade-up">
         <div class="pricing-badge">M&#225;s popular</div>
-        <div class="pricing-name">Profesional</div>
+        <div class="pricing-name">Premium</div>
         <div>
-          <span class="pricing-price">99&#8239;&#8364;</span>
-          <span class="pricing-period"> / a&#241;o</span>
+          <span class="pricing-price">Pr&#243;ximamente</span>
         </div>
         <ul class="pricing-features">
-          <li>Parcelas ilimitadas</li>
-          <li>Gesti&#243;n de riegos y pozos</li>
-          <li>Integraci&#243;n AEMET</li>
-          <li>Asistente de IA</li>
-          <li>Importaci&#243;n / exportaci&#243;n</li>
-          <li>Informes avanzados y KPIs</li>
-          <li>Gastos recurrentes y prorrateos</li>
-          <li>Organizaci&#243;n compartida con hasta 5 miembros</li>
+          <li>Todo lo de B&#225;sico</li>
+          <li>Plantas ilimitadas</li>
+          <li>Tiempo meteorol&#243;gico</li>
+          <li>Anal&#237;tica de parcelas</li>
+          <li>Simulador de riego</li>
+          <li>Asistente IA</li>
+          <li>Onboarding con IA: 5 importaciones/mes</li>
+          <li class="muted">Multi-usuario</li>
         </ul>
         <a href="#contacto" class="pricing-btn dark">Solicitar acceso</a>
       </div>
       <div class="pricing-card fade-up">
-        <div class="pricing-name">Cooperativas</div>
+        <div class="pricing-name">Enterprise</div>
         <div>
           <span class="pricing-price">A medida</span>
         </div>
         <ul class="pricing-features">
-          <li>Miembros ilimitados por organizaci&#243;n</li>
-          <li>Varias organizaciones independientes</li>
-          <li>Panel de administraci&#243;n centralizado</li>
-          <li>Formaci&#243;n incluida</li>
+          <li>Todo lo de Premium</li>
+          <li>Onboarding con IA ilimitado</li>
+          <li>Multi-usuario y roles</li>
+          <li>Gesti&#243;n de invitaciones</li>
           <li>Soporte prioritario</li>
         </ul>
         <a href="#contacto" class="pricing-btn outline">Contactar</a>

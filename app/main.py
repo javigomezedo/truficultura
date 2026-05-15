@@ -20,6 +20,7 @@ from app.plan_access import (
     WriteAccessDeniedException,
     PlanUpgradeRequiredException,
     PlantLimitExceededException,
+    OnboardingQuotaExceededException,
 )
 from app.config import settings
 from app.database import engine, get_db
@@ -54,6 +55,7 @@ from app.routers import (
     lluvia,
     maps,
     notifications,
+    onboarding,
     plot_analytics,
     plants,
     plot_events,
@@ -166,6 +168,7 @@ app.include_router(brule.router)
 app.include_router(maps.router)
 app.include_router(tenants.router)
 app.include_router(notifications.router)
+app.include_router(onboarding.router)
 app.include_router(profile.router)
 
 
@@ -317,6 +320,23 @@ async def plant_limit_exceeded_handler(
     )
     return RedirectResponse(
         url=f"/billing/subscribe?msg={msg}&msg_type=warning", status_code=303
+    )
+
+
+@app.exception_handler(OnboardingQuotaExceededException)
+async def onboarding_quota_exceeded_handler(
+    request: Request, exc: OnboardingQuotaExceededException
+):
+    from urllib.parse import quote_plus
+    from app.i18n import _
+
+    msg = quote_plus(
+        _(
+            "Has alcanzado el límite de {limit} sesiones de onboarding este mes para el plan {plan}. Actualiza para más capacidad."
+        ).format(limit=exc.limit, plan=exc.plan)
+    )
+    return RedirectResponse(
+        url=f"/onboarding/?msg={msg}&msg_type=warning", status_code=303
     )
 
 

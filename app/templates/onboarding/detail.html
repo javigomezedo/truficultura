@@ -1,0 +1,337 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("Sesión") }} #{{ session.id }} — Trufiq{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="tf-page-header">
+        <div>
+            <p class="tf-page-kicker">{{ _("Asistente IA · Sesión") }} #{{ session.id }}</p>
+            <h1 class="tf-page-title">{{ session.original_filename }}</h1>
+            <p class="tf-page-subtitle">
+                {{ _("Estado:") }} <span class="badge bg-secondary">{{ session.status }}</span>
+                {% if session.entity_type %}
+                · {{ _("Entidad:") }} <strong>{{ session.entity_type }}</strong>
+                {% endif %}
+            </p>
+        </div>
+        <a href="/onboarding/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>{{ _("Volver") }}</a>
+    </div>
+
+    {% if session.error_message %}
+    <div class="alert alert-danger">{{ session.error_message }}</div>
+    {% endif %}
+
+    {% if state.help_requested_at %}
+    <div class="alert alert-success d-flex align-items-start" role="alert">
+        <i class="bi bi-life-preserver me-2 mt-1"></i>
+        <div>
+            <strong>{{ _("Hemos recibido tu petición de ayuda.") }}</strong>
+            {{ _("Te contactaremos pronto por email para ayudarte con esta importación.") }}
+            <div class="small text-muted mt-1">
+                {{ _("Solicitada el") }} {{ state.help_requested_at[:10] }} {{ state.help_requested_at[11:16] }} UTC
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if state.missing_plots %}
+    <div class="alert alert-warning">
+        <h2 class="h6 mb-2">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            {{ _("Parcelas no encontradas") }}
+        </h2>
+        <p class="mb-2">
+            {{ _("Las siguientes parcelas se han inferido de los nombres de las hojas pero no existen en tu cuenta. No se importarán sus datos hasta que las crees o renombres las hojas:") }}
+        </p>
+        <ul class="mb-0">
+            {% for name in state.missing_plots %}
+            <li><strong>{{ name }}</strong></li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% if state.parsed_sheets and state.parsed_sheets|length > 1 %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <h2 class="h5 mb-3">
+                <i class="bi bi-files me-1"></i>
+                {{ _("Hojas detectadas") }} ({{ state.parsed_sheets|length }})
+            </h2>
+            <p class="text-muted small mb-2">
+                {{ _("El mapeo de columnas se aplicará a todas las hojas. La parcela y campaña se infieren del nombre de cada hoja.") }}
+            </p>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>{{ _("Hoja") }}</th>
+                            <th>{{ _("Parcela inferida") }}</th>
+                            <th>{{ _("Campaña") }}</th>
+                            <th class="text-end">{{ _("Filas") }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ps in state.parsed_sheets %}
+                        <tr>
+                            <td><code>{{ ps.sheet_name }}</code></td>
+                            <td>{{ ps.inferred_plot_name or "—" }}</td>
+                            <td>{{ ps.inferred_campaign_label or "—" }}</td>
+                            <td class="text-end">{{ ps.total_data_rows }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <h2 class="h5 mb-3">{{ _("Vista previa del fichero") }}</h2>
+            {% if state.headers %}
+            <p class="text-muted">
+                {{ _("Hoja:") }} <code>{{ state.sheet_name }}</code> ·
+                {{ state.total_rows }} {{ _("filas de datos detectadas") }}.
+            </p>
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm">
+                    <thead class="table-light">
+                        <tr>
+                            {% for h in state.headers %}<th>{{ h }}</th>{% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in state.sample_rows %}
+                        <tr>
+                            {% for cell in row %}<td>{{ cell if cell is not none else "" }}</td>{% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted">{{ _("Sin datos parseados.") }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if state.entity_type %}
+    {% set schema = entity_schemas.get(state.entity_type) %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <h2 class="h5 mb-3">{{ _("Propuesta del agente IA") }}</h2>
+            <p>
+                {{ _("Entidad detectada:") }}
+                <strong>{{ state.entity_type }}</strong>
+                {% if state.entity_confidence is not none %}
+                <span class="text-muted">
+                    ({{ _("confianza") }}: {{ "%.0f"|format(state.entity_confidence * 100) }}%)
+                </span>
+                {% endif %}
+            </p>
+
+            {% if state.proposed_mapping and session.status in ("awaiting_user",) %}
+            <form method="post" action="/onboarding/{{ session.id }}/resolve" data-busy-form>
+                <h3 class="h6 mt-3">{{ _("Revisa y confirma el mapeo") }}</h3>
+                <div class="mb-3">
+                    <label class="form-label">{{ _("Tipo de entidad") }}</label>
+                    <select name="entity_type" class="form-select form-select-sm" style="max-width: 240px;">
+                        {% for key, sch in entity_schemas.items() %}
+                        <option value="{{ key }}" {% if key == state.entity_type %}selected{% endif %}>{{ sch.label_es }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>{{ _("Columna del Excel") }}</th>
+                                <th>{{ _("Campo destino") }}</th>
+                                <th>{{ _("Confianza IA") }}</th>
+                                <th>{{ _("Notas") }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for m in state.proposed_mapping %}
+                            <tr {% if m.confidence < 0.7 %}class="table-warning"{% endif %}>
+                                <td><code>{{ m.source_column }}</code></td>
+                                <td>
+                                    <select name="target__{{ m.source_column }}" class="form-select form-select-sm">
+                                        <option value="IGNORE" {% if m.target_field == "IGNORE" %}selected{% endif %}>{{ _("(ignorar)") }}</option>
+                                        {% if schema %}
+                                        {% for f in schema.fields %}
+                                        <option value="{{ f.id }}" {% if m.target_field == f.id %}selected{% endif %}>
+                                            {{ f.label_es }}{% if f.required %} *{% endif %}
+                                        </option>
+                                        {% endfor %}
+                                        {% endif %}
+                                    </select>
+                                </td>
+                                <td>{{ "%.0f"|format(m.confidence * 100) }}%</td>
+                                <td class="text-muted small">{{ m.reason or "" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <button type="submit" class="btn btn-primary mt-2" data-busy-label="{{ _('Procesando…') }}">
+                    <i class="bi bi-check2-circle me-1"></i>{{ _("Confirmar mapeo") }}
+                </button>
+            </form>
+            {% elif state.proposed_mapping %}
+            <h3 class="h6 mt-3">{{ _("Mapeo confirmado") }}</h3>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>{{ _("Columna del Excel") }}</th>
+                            <th>{{ _("Campo destino") }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in (state.resolved_mapping or state.proposed_mapping) %}
+                        <tr>
+                            <td><code>{{ m.source_column }}</code></td>
+                            <td>
+                                {% if m.target_field == "IGNORE" %}
+                                <span class="badge bg-secondary">{{ _("Ignorar") }}</span>
+                                {% else %}
+                                <strong>{{ m.target_field }}</strong>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            {% if state.ambiguities and session.status == "awaiting_user" %}
+            <div class="alert alert-warning mt-3 mb-0">
+                <strong>{{ state.ambiguities|length }}</strong>
+                {{ _("columna(s) requieren tu confirmación. Las filas resaltadas en amarillo son las dudosas.") }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if session.status == "previewing" and state.csv_output %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <h2 class="h5 mb-3">{{ _("Previsualización del CSV") }}</h2>
+            <p class="text-muted">
+                {{ state.transformed_rows }} {{ _("filas listas para importar") }}.
+                {% if state.validation_errors %}
+                <span class="text-warning">
+                    · {{ state.validation_errors|length }} {{ _("errores de validación.") }}
+                </span>
+                {% endif %}
+            </p>
+            <pre class="bg-light p-2 small" style="max-height: 280px; overflow: auto;">{{ state.csv_output[:2000] }}{% if state.csv_output|length > 2000 %}
+…{% endif %}</pre>
+
+            {% if state.validation_errors %}
+            <h3 class="h6">{{ _("Errores de validación (filas omitidas)") }}</h3>
+            <ul class="small text-danger">
+                {% for err in state.validation_errors[:20] %}
+                <li>{{ _("Fila") }} {{ err.row_index }}{% if err.column %} · <code>{{ err.column }}</code>{% endif %}: {{ err.message }}</li>
+                {% endfor %}
+                {% if state.validation_errors|length > 20 %}
+                <li>… {{ _("y") }} {{ state.validation_errors|length - 20 }} {{ _("más") }}</li>
+                {% endif %}
+            </ul>
+            {% endif %}
+
+            <form method="post" action="/onboarding/{{ session.id }}/confirm" class="mt-3" data-busy-form>
+                <button type="submit" class="btn btn-success" data-busy-label="{{ _('Importando…') }}">
+                    <i class="bi bi-cloud-upload me-1"></i>{{ _("Importar a Trufiq") }}
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if session.status == "imported" %}
+    <div class="alert alert-success">
+        <i class="bi bi-check-circle me-1"></i>
+        {{ _("Importación completada:") }} <strong>{{ state.imported_count or 0 }}</strong> {{ _("filas importadas") }}.
+        {% if state.import_warnings %}
+        <ul class="mt-2 mb-0 small">
+            {% for w in state.import_warnings %}<li>{{ w }}</li>{% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if session.status in ("uploaded", "awaiting_user") %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-1"></i>
+        {% if state.entity_type %}
+        {{ _("Las fases de transformación, validación y confirmación se habilitarán a continuación.") }}
+        {% else %}
+        {{ _("La detección automática y el mapeo se ejecutarán en cuanto el agente IA esté disponible para esta sesión.") }}
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="d-flex gap-2 flex-wrap">
+    {% if session.status not in ("cancelled", "imported") %}
+        <form method="post" action="/onboarding/{{ session.id }}/run-agent" class="d-inline" data-busy-form>
+            <button type="submit" class="btn btn-outline-primary" data-busy-label="{{ _('Procesando…') }}">
+                <i class="bi bi-arrow-repeat me-1"></i>
+                {% if state.entity_type %}{{ _("Re-ejecutar agente IA") }}{% else %}{{ _("Ejecutar agente IA") }}{% endif %}
+            </button>
+        </form>
+    {% endif %}
+    {% if help_eligible %}
+        {% if stale_session %}
+        <span class="text-muted small align-self-center">
+            <i class="bi bi-clock-history me-1"></i>{{ _("Esta sesión lleva varios días sin avanzar.") }}
+        </span>
+        {% endif %}
+        {% if state.help_requested_at %}
+        <button type="button" class="btn btn-outline-success" disabled>
+            <i class="bi bi-check2-circle me-1"></i>{{ _("Ayuda solicitada") }}
+        </button>
+        {% else %}
+        <form method="post" action="/onboarding/{{ session.id }}/request-help" class="d-inline" data-busy-form>
+            <button type="submit" class="btn btn-outline-success" data-busy-label="{{ _('Enviando…') }}">
+                <i class="bi bi-life-preserver me-1"></i>{{ _("Solicitar ayuda con esta importación") }}
+            </button>
+        </form>
+        {% endif %}
+    {% endif %}
+    {% if session.status not in ("cancelled", "imported") %}
+        <form method="post" action="/onboarding/{{ session.id }}/cancel" class="d-inline">
+            <button type="submit" class="btn btn-outline-danger">
+                <i class="bi bi-x-circle me-1"></i>{{ _("Cancelar sesión") }}
+            </button>
+        </form>
+    {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+    document.querySelectorAll('form[data-busy-form]').forEach(function (form) {
+        form.addEventListener('submit', function () {
+            if (form.dataset.busySubmitted === '1') { return; }
+            form.dataset.busySubmitted = '1';
+            form.querySelectorAll('button[type="submit"]').forEach(function (btn) {
+                btn.disabled = true;
+                var label = btn.getAttribute('data-busy-label');
+                if (label) {
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>' + label;
+                }
+            });
+        });
+    });
+})();
+</script>
+{% endblock %}

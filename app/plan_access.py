@@ -23,11 +23,20 @@ _FEATURE_PLANS: dict[str, set[str]] = {
     "analitica_parcelas": {"premium", "enterprise"},
     "simulador_riego": {"premium", "enterprise"},
     "asistente_ia": {"premium", "enterprise"},
+    "onboarding_ia": {"premium", "enterprise"},
     "tenants": {"enterprise"},
 }
 
 # Plant limits per plan (None = unlimited). Only Basic is capped; Premium and Enterprise are not.
 PLANT_LIMIT_BASIC: int = 500
+
+# Monthly onboarding session limits per plan. None = unlimited.
+ONBOARDING_MONTHLY_LIMITS: dict[str, Optional[int]] = {
+    "trial": 3,
+    "basic": 0,  # blocked by feature gate, kept for completeness
+    "premium": 5,
+    "enterprise": None,
+}
 
 
 class WriteAccessDeniedException(Exception):
@@ -51,6 +60,18 @@ class PlantLimitExceededException(Exception):
         super().__init__(
             f"Has alcanzado el límite de {limit} plantas del plan Básico. "
             "Actualiza a Premium para plantas ilimitadas."
+        )
+
+
+class OnboardingQuotaExceededException(Exception):
+    """Raised when the tenant exceeds the monthly onboarding session quota."""
+
+    def __init__(self, limit: int, plan: str) -> None:
+        self.limit = limit
+        self.plan = plan
+        super().__init__(
+            f"Has alcanzado el límite de {limit} sesiones de onboarding "
+            f"este mes para el plan {plan}."
         )
 
 

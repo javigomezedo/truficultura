@@ -67,6 +67,30 @@ def _warning(message: str, **kwargs: object) -> str:
     return _(message, **kwargs)
 
 
+# Aliases for truffle quality categories (letter grades commonly used in
+# commercial workflows). Mapped to the canonical enum values.
+_QUALITY_ALIASES: dict[str, TruffleQuality] = {
+    "a": TruffleQuality.EXTRA,
+    "b": TruffleQuality.PRIMERA,
+    "c": TruffleQuality.SEGUNDA,
+    "d": TruffleQuality.BLANDA,
+}
+
+
+def _normalize_quality(raw: str) -> Optional[TruffleQuality]:
+    """Map a free-form quality label to a `TruffleQuality` value.
+
+    Returns None if the value cannot be recognised.
+    """
+    s = raw.strip().lower()
+    if not s:
+        return None
+    try:
+        return TruffleQuality(s)
+    except ValueError:
+        return _QUALITY_ALIASES.get(s)
+
+
 async def import_expenses_csv(
     db: AsyncSession, content: bytes, tenant_id: int
 ) -> tuple[list[Expense], list[str]]:
@@ -229,12 +253,26 @@ async def import_incomes_csv(
         try:
             kg = _parse_num(kg_s)
             euros_per_kg = _parse_num(euros_kg_s)
+            categoria_raw = categoria.strip()
+            category_value: Optional[str] = None
+            if categoria_raw:
+                quality = _normalize_quality(categoria_raw)
+                if quality is None:
+                    warnings.append(
+                        _warning(
+                            "Línea {line}: calidad '{val}' no reconocida — importada sin calidad",
+                            line=i,
+                            val=categoria_raw,
+                        )
+                    )
+                else:
+                    category_value = quality.value
             row = Income(
                 tenant_id=tenant_id,
                 date=_parse_date(fecha_s),
                 plot_id=plot_id,
                 amount_kg=kg,
-                category=categoria.strip() or None,
+                category=category_value,
                 euros_per_kg=euros_per_kg,
             )
             rows.append(row)
