@@ -603,6 +603,142 @@
         </div>
     </div>
 
+    {# Modal de bienvenida del onboarding guiado. Solo se muestra a usuarios
+       cuya cuenta aún no ha confirmado o saltado el tour. #}
+    {% if request.session.get("username")
+          and request.session.get("role") != "admin"
+          and request.session.get("onboarding_step") in (none, "welcome") %}
+    <div class="modal fade" id="tfWelcomeModal" tabindex="-1"
+         aria-labelledby="tfWelcomeModalLabel" aria-hidden="true"
+         data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title h4" id="tfWelcomeModalLabel">
+                        <i class="bi bi-stars text-warning me-1"></i>
+                        {{ _("Bienvenido a Trufiq") }}
+                    </h5>
+                    <button type="button" class="btn-close"
+                            data-tf-onboarding-step="skipped"
+                            data-bs-dismiss="modal"
+                            aria-label="{{ _('Cerrar') }}"></button>
+                </div>
+                <div class="modal-body pt-2">
+                    <p class="mb-2">
+                        {{ _("En menos de dos minutos te enseñamos cómo empezar.") }}
+                    </p>
+                    <p class="text-muted small mb-3">
+                        {{ _("¿Cuántas parcelas tienes ahora mismo?") }}
+                    </p>
+                    <div class="row g-2 mb-3">
+                        <div class="col-12 col-md-4">
+                            <a href="/plots/new"
+                               class="btn btn-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3"
+                               data-tf-onboarding-step="first_plot">
+                                <i class="bi bi-1-circle fs-4 mb-1"></i>
+                                <span>{{ _("Una parcela") }}</span>
+                                <small class="opacity-75">{{ _("Vamos a crearla") }}</small>
+                            </a>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <a href="/plots/new"
+                               class="btn btn-outline-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3"
+                               data-tf-onboarding-step="first_plot">
+                                <i class="bi bi-list-ol fs-4 mb-1"></i>
+                                <span>{{ _("Entre 2 y 5") }}</span>
+                                <small class="opacity-75">{{ _("Las creo una a una") }}</small>
+                            </a>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <a href="/onboarding/"
+                               class="btn btn-outline-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3"
+                               data-tf-onboarding-step="first_plot">
+                                <i class="bi bi-stack fs-4 mb-1"></i>
+                                <span>{{ _("Más de 5") }}</span>
+                                <small class="opacity-75">{{ _("Importar Excel") }}</small>
+                            </a>
+                        </div>
+                    </div>
+                    <hr class="my-3">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <span class="small text-muted me-1">
+                            {{ _("¿Prefieres explorar por tu cuenta?") }}
+                        </span>
+                        <a href="/ayuda/videos"
+                           class="btn btn-sm btn-outline-secondary"
+                           data-tf-onboarding-step="skipped">
+                            <i class="bi bi-play-circle me-1"></i>{{ _("Vídeos") }}
+                        </a>
+                        <a href="/ayuda/"
+                           class="btn btn-sm btn-outline-secondary"
+                           data-tf-onboarding-step="skipped">
+                            <i class="bi bi-life-preserver me-1"></i>{{ _("Ayuda") }}
+                        </a>
+                        <button type="button"
+                                class="btn btn-sm btn-link text-muted ms-auto"
+                                data-tf-onboarding-step="skipped"
+                                data-bs-dismiss="modal">
+                            {{ _("Saltar de momento") }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        (function () {
+            "use strict";
+            var modalEl = document.getElementById("tfWelcomeModal");
+            if (!modalEl) return;
+            // Auto-show on first paint after Bootstrap is ready.
+            window.addEventListener("load", function () {
+                if (typeof bootstrap === "undefined") return;
+                var modal = new bootstrap.Modal(modalEl);
+                modal.show();
+            });
+
+            function postStep(step) {
+                try {
+                    var form = new FormData();
+                    form.append("step", step);
+                    return fetch("/ayuda/onboarding-guide/step", {
+                        method: "POST",
+                        body: form,
+                        credentials: "same-origin",
+                        keepalive: true,
+                    });
+                } catch (_) {
+                    return Promise.resolve();
+                }
+            }
+
+            modalEl.addEventListener("click", function (ev) {
+                var target = ev.target.closest("[data-tf-onboarding-step]");
+                if (!target) return;
+                var step = target.getAttribute("data-tf-onboarding-step");
+                // Si es un enlace, esperamos a que el POST persista antes de
+                // navegar para evitar que la siguiente página vuelva a leer
+                // onboarding_step=NULL y reabra el modal.
+                var href = target.tagName === "A" ? target.getAttribute("href") : null;
+                if (href) {
+                    ev.preventDefault();
+                    var p = postStep(step);
+                    var go = function () { window.location.href = href; };
+                    if (p && typeof p.then === "function") {
+                        p.then(go, go);
+                        // Safety net: navigate anyway if the POST hangs.
+                        setTimeout(go, 1500);
+                    } else {
+                        go();
+                    }
+                    return;
+                }
+                postStep(step);
+            });
+        })();
+    </script>
+    {% endif %}
+
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
             integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"

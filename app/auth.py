@@ -127,6 +127,10 @@ async def get_current_user(
         else:
             request.session["subscription_days_left"] = None
 
+        # Expose the onboarding-guide step so the welcome modal in base.html
+        # can decide whether to render without an extra DB query per request.
+        request.session["onboarding_step"] = user.onboarding_step
+
     return user
 
 

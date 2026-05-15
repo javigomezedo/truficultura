@@ -1,0 +1,49 @@
+{# Macro: help_video(slug, label=None)
+   Renderiza un botón discreto que abre un modal Bootstrap con el vídeo.
+   Si el slug no está catalogado o no tiene fichero físico, el macro no
+   genera HTML (silent no-op), así podemos referenciarlo desde plantillas
+   sin checks externos. #}
+{% macro help_video(slug, label=None) -%}
+    {% set video = get_help_video(slug) %}
+    {% if video %}
+        {% set modal_id = "help-video-" ~ slug %}
+        <button type="button"
+                class="btn btn-sm btn-outline-secondary tf-help-video-btn"
+                data-bs-toggle="modal"
+                data-bs-target="#{{ modal_id }}"
+                aria-label="{{ _('Ver vídeo: %(title)s')|format(title=video.title) }}">
+            <i class="bi bi-play-circle-fill text-danger me-1"></i>
+            {{ label or _("Vídeo") }}
+            <span class="text-muted small">
+                ({{ ((video.duration_s + 30) // 60) }} min)
+            </span>
+        </button>
+        <div class="modal fade" id="{{ modal_id }}" tabindex="-1"
+             aria-labelledby="{{ modal_id }}-label" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="{{ modal_id }}-label">
+                            <i class="bi bi-play-circle-fill text-danger me-1"></i>
+                            {{ video.title }}
+                        </h5>
+                        <button type="button" class="btn-close"
+                                data-bs-dismiss="modal"
+                                aria-label="{{ _('Cerrar') }}"></button>
+                    </div>
+                    <div class="modal-body p-0 bg-dark">
+                        <video controls preload="metadata"
+                               class="w-100 d-block"
+                               poster="{{ video.poster }}">
+                            <source src="{{ video.src_1080p }}"
+                                    type="video/mp4"
+                                    media="(min-width: 768px)">
+                            <source src="{{ video.src_720p }}" type="video/mp4">
+                            {{ _("Tu navegador no puede reproducir este vídeo.") }}
+                        </video>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{%- endmacro %}

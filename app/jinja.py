@@ -8,6 +8,7 @@ from markupsafe import Markup
 from app.i18n import get_current_locale, gettext_func, ngettext_func
 from app.plan_access import PLAN_HIERARCHY, _FEATURE_PLANS
 from app.utils import campaign_label, campaign_months, format_eu
+from app.help_videos import get_video as _get_help_video
 
 templates = Jinja2Templates(directory="app/templates")
 templates.env.filters["campaign_label"] = campaign_label
@@ -89,3 +90,4 @@ def _session_has_feature(session: dict, feature: str) -> bool:
 
 templates.env.globals["session_plan_mode"] = _session_plan_mode
 templates.env.globals["session_has_feature"] = _session_has_feature
+templates.env.globals["get_help_video"] = _get_help_video
