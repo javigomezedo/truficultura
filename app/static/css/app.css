@@ -1777,3 +1777,67 @@ footer.tf-footer {
         bottom: calc(4.5rem + 0.75rem + env(safe-area-inset-bottom, 0px));
     }
 }
+
+/* ── Wizard de creación de parcela (Fase 2) ────────────────────────────── */
+.tf-wizard-stepper .tf-step-pill {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .5rem .75rem;
+    border-radius: .5rem;
+    background: var(--tf-surface-strong, #f1f3f5);
+    color: var(--bs-secondary-color, #6c757d);
+    border: 1px solid transparent;
+    transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+    min-width: 0;
+}
+.tf-wizard-stepper .tf-step-pill .tf-step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    background: var(--bs-secondary-bg, #e9ecef);
+    color: var(--bs-secondary-color, #6c757d);
+    font-weight: 600;
+    font-size: .8rem;
+    flex-shrink: 0;
+}
+.tf-wizard-stepper .tf-step-pill .tf-step-label {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.tf-wizard-stepper .tf-step-pill.is-active {
+    background: rgba(13, 110, 253, 0.1);
+    color: var(--bs-primary, #0d6efd);
+    border-color: rgba(13, 110, 253, 0.25);
+}
+.tf-wizard-stepper .tf-step-pill.is-active .tf-step-num {
+    background: var(--bs-primary, #0d6efd);
+    color: #fff;
+}
+.tf-wizard-stepper .tf-step-pill.is-done .tf-step-num {
+    background: var(--bs-success, #198754);
+    color: #fff;
+}
+.tf-wizard-stepper .tf-step-pill.is-done .tf-step-num::before {
+    content: "✓";
+}
+.tf-wizard-stepper .tf-step-pill.is-done .tf-step-num > * { display: none; }
+
+/* Wizard form: hide non-active steps + separators in wizard mode */
+.tf-wizard .tf-wizard-step:not(.is-active) { display: none; }
+.tf-wizard .tf-wizard-hr { display: none; }
+
+@media (max-width: 575.98px) {
+    .tf-wizard-stepper .tf-step-pill .tf-step-label { display: none; }
+}
+
+/* Autoguardado de formularios */
+.tf-autosave-toast {
+    font-size: .85rem;
+    color: var(--bs-success, #198754);
+}

@@ -26,7 +26,8 @@
         <div class="col-lg-9 col-xl-8">
     <div class="card tf-panel shadow-sm border-0">
         <div class="card-body p-4">
-            <form action="{{ action }}" method="{{ method }}" novalidate>
+            <form action="{{ action }}" method="{{ method }}" novalidate
+                  {% if not expense %}data-autosave-key="gasto_draft"{% endif %}>
                 {% if expense %}
                 <input type="hidden" name="_method" value="POST">
                 {% endif %}
@@ -161,9 +162,13 @@
                                 <div class="form-text">{{ _("Por defecto, el año de la fecha del gasto.") }}</div>
                             </div>
                             <div class="col-12">
-                                <div class="alert alert-info py-2 mb-0 small">
+                                <div class="alert alert-info py-2 mb-2 small">
                                     <i class="bi bi-info-circle me-1"></i>
                                     {{ _("Se crearán N entradas de 1 de enero de cada año, con el importe total repartido a partes iguales (el último registro absorbe el redondeo).") }}
+                                </div>
+                                <div id="proratePreview" class="alert alert-success py-2 mb-0 small d-none">
+                                    <i class="bi bi-calculator me-1"></i>
+                                    <span id="proratePreviewText"></span>
                                 </div>
                             </div>
                         </div>
@@ -302,12 +307,43 @@
     var dateInput = document.getElementById('date');
     var startYearInput = document.getElementById('start_year');
     var yearsInput = document.getElementById('prorate_years');
+    var amountInput = document.getElementById('amount');
+    var preview = document.getElementById('proratePreview');
+    var previewText = document.getElementById('proratePreviewText');
 
     function syncStartYear() {
         if (dateInput && dateInput.value && startYearInput && !startYearInput.value) {
             var d = new Date(dateInput.value + 'T00:00:00');
             startYearInput.value = d.getFullYear();
         }
+    }
+
+    function formatEur(n) {
+        return n.toLocaleString('es-ES', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }) + ' €';
+    }
+
+    function updatePreview() {
+        if (!preview || !previewText) return;
+        if (!toggle || !toggle.checked) {
+            preview.classList.add('d-none');
+            return;
+        }
+        var amount = parseFloat((amountInput && amountInput.value) || '0');
+        var years = parseInt((yearsInput && yearsInput.value) || '0', 10);
+        var startYear = parseInt((startYearInput && startYearInput.value) || '0', 10);
+        if (!amount || amount <= 0 || !years || years < 2 || !startYear) {
+            preview.classList.add('d-none');
+            return;
+        }
+        var perYear = amount / years;
+        var endYear = startYear + years - 1;
+        previewText.textContent =
+            'Resultado: ' + formatEur(amount) + ' ÷ ' + years + ' años = ' +
+            formatEur(perYear) + ' al año, desde ' + startYear + ' hasta ' + endYear + '.';
+        preview.classList.remove('d-none');
     }
 
     if (toggle) {
@@ -317,17 +353,25 @@
             if (yearsInput) { yearsInput.required = show; yearsInput.disabled = !show; }
             if (startYearInput) { startYearInput.required = show; startYearInput.disabled = !show; }
             if (show) syncStartYear();
+            updatePreview();
         });
     }
 
     if (dateInput) {
         dateInput.addEventListener('change', function () {
             if (toggle && toggle.checked) syncStartYear();
+            updatePreview();
         });
     }
 
+    [amountInput, yearsInput, startYearInput].forEach(function (el) {
+        if (el) el.addEventListener('input', updatePreview);
+    });
+
     syncStartYear();
+    updatePreview();
 })();
 </script>
+<script src="/static/js/form_autosave.js" defer></script>
 {% endif %}
 {% endblock %}

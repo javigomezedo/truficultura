@@ -26,16 +26,54 @@
         <div class="{% if not plot %}col-xl-8{% else %}col-xl-10{% endif %}">
     <div class="card tf-panel shadow-sm border-0">
         <div class="card-body p-4">
-            <form action="{{ action }}" method="{{ method }}" novalidate>
+
+            {% if not plot %}
+            {# ── Stepper visual (solo en creación) ─────────────────────────── #}
+            <div class="tf-wizard-stepper mb-4" id="tf-wizard-stepper" aria-label="{{ _('Progreso del formulario') }}">
+                <ol class="d-flex flex-wrap gap-2 list-unstyled mb-2 small">
+                    <li class="tf-step-pill is-active flex-grow-1" data-step-pill="1">
+                        <span class="tf-step-num">1</span>
+                        <span class="tf-step-label">{{ _("Ubicación") }}</span>
+                    </li>
+                    <li class="tf-step-pill flex-grow-1" data-step-pill="2">
+                        <span class="tf-step-num">2</span>
+                        <span class="tf-step-label">{{ _("Datos de la parcela") }}</span>
+                    </li>
+                    {% if current_user and current_user.comunidad_regantes %}
+                    <li class="tf-step-pill flex-grow-1" data-step-pill="3">
+                        <span class="tf-step-num">3</span>
+                        <span class="tf-step-label">{{ _("Riego") }}</span>
+                    </li>
+                    {% endif %}
+                </ol>
+                <div class="progress" style="height: 4px;">
+                    <div class="progress-bar bg-primary" role="progressbar" id="tf-wizard-progress" style="width: 33%;"></div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-2 small text-muted">
+                    <span id="tf-wizard-status" aria-live="polite">{{ _("Paso 1") }}</span>
+                    <span id="tf-autosave-status" class="text-success" aria-live="polite"></span>
+                </div>
+            </div>
+            {% endif %}
+
+            <form action="{{ action }}" method="{{ method }}"
+                  novalidate
+                  {% if not plot %}data-autosave-key="parcela_draft"{% endif %}
+                  class="{% if not plot %}tf-wizard{% endif %}"
+                  id="tf-plot-form">
                 {% if plot %}
                 <input type="hidden" name="_method" value="POST">
                 {% endif %}
 
                 {# ── SECCIÓN 1: Búsqueda SIGPAC ─────────────────────────────── #}
+                <div class="tf-wizard-step" data-step="1">
                 <h6 class="text-uppercase text-muted fw-semibold small mb-3">
                     <i class="bi bi-search me-1"></i>{{ _("Búsqueda SIGPAC") }}
                     {{ help_hint(_("SIGPAC"), _("Registro oficial español de parcelas agrícolas. Si conoces los datos catastrales, Trufiq puede autocompletar superficie y ubicación. Si no, déjalo en blanco."), "catastro") }}
                 </h6>
+                <p class="text-muted small mb-3">
+                    {{ _("Este paso es opcional: si no conoces los datos catastrales, pulsa «Siguiente» y los rellenas más tarde.") }}
+                </p>
                 <div class="row g-3 mb-2">
                     <!-- Provincia -->
                     <div class="col-md-4">
@@ -112,10 +150,12 @@
                         <div id="sigpac-status" class="d-none"></div>
                     </div>
                 </div>
+                </div> {# /tf-wizard-step 1 #}
 
-                <hr class="my-4">
+                <hr class="my-4 tf-wizard-hr">
 
                 {# ── SECCIÓN 2: Datos genéricos ──────────────────────────────── #}
+                <div class="tf-wizard-step" data-step="2">
                 <h6 class="text-uppercase text-muted fw-semibold small mb-3">
                     <i class="bi bi-card-text me-1"></i>{{ _("Datos de la parcela") }}
                 </h6>
@@ -230,10 +270,12 @@
                     </div>
                     {% endif %}
                 </div>
+                </div> {# /tf-wizard-step 2 #}
 
                 {# ── SECCIÓN 3: Comunidad de Regantes (condicional) ──────────── #}
                 {% if current_user and current_user.comunidad_regantes %}
-                <hr class="my-4">
+                <hr class="my-4 tf-wizard-hr">
+                <div class="tf-wizard-step" data-step="3">
                 <h6 class="text-uppercase text-muted fw-semibold small mb-3">
                     <i class="bi bi-droplet-fill me-1"></i>{{ _("Comunidad de Regantes de Sarrión") }}
                 </h6>
@@ -291,6 +333,7 @@
                         </div>
                     </div>
                 </div>
+                </div> {# /tf-wizard-step 3 #}
                 {% else %}
                 {# Hidden fields to preserve defaults when section is not shown #}
                 <input type="hidden" name="sector" value="{{ plot.sector if plot else '' }}">
@@ -301,15 +344,28 @@
 
                 <hr class="my-4">
 
-                <div class="d-flex gap-2 justify-content-end">
+                <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
                     <a href="/plots/" class="btn btn-outline-secondary">
                         <i class="bi bi-x-circle me-1"></i> {{ _("Cancelar") }}
                     </a>
                     {% if not read_only %}
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-check-circle me-1"></i>
-                        {% if plot %}{{ _("Guardar cambios") }}{% else %}{{ _("Crear parcela") }}{% endif %}
-                    </button>
+                    <div class="d-flex gap-2 ms-auto">
+                        {% if not plot %}
+                        <button type="button" class="btn btn-outline-secondary" id="tf-wizard-prev" disabled>
+                            <i class="bi bi-arrow-left me-1"></i> {{ _("Atrás") }}
+                        </button>
+                        <button type="button" class="btn btn-primary" id="tf-wizard-next">
+                            {{ _("Siguiente") }} <i class="bi bi-arrow-right ms-1"></i>
+                        </button>
+                        <button type="submit" class="btn btn-success d-none" id="tf-wizard-submit">
+                            <i class="bi bi-check-circle me-1"></i> {{ _("Crear parcela") }}
+                        </button>
+                        {% else %}
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle me-1"></i> {{ _("Guardar cambios") }}
+                        </button>
+                        {% endif %}
+                    </div>
                     {% endif %}
                 </div>
             </form>
@@ -608,4 +664,8 @@
     // (details button only shown after a fresh lookup in this session)
 })();
 </script>
+<script src="/static/js/form_autosave.js" defer></script>
+{% if not plot %}
+<script src="/static/js/parcela_wizard.js" defer></script>
+{% endif %}
 {% endblock %} {# extra_scripts #}

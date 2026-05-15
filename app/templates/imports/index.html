@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_partials/help_hint.html" import help_hint %}
 
 {% block title %}{{ _("Importar datos") }} — Trufiq{% endblock %}
 
@@ -9,9 +10,39 @@
         <div>
             <p class="tf-page-kicker">{{ _("Operaciones masivas") }}</p>
             <h1 class="tf-page-title">{{ _("Importar datos CSV") }}</h1>
-            <p class="tf-page-subtitle">{{ _("Carga parcelas, gastos, ingresos, riego, pozos y producción con una interfaz más clara y profesional. Los archivos se procesan puntualmente y no se almacenan en el servidor.") }}</p>
+            <p class="tf-page-subtitle">{{ _("Carga parcelas, gastos, ingresos, riego, pozos y producción de golpe desde un archivo. Comprobamos cada fila antes de guardarla; nada se almacena en el servidor.") }}</p>
         </div>
-        <div class="tf-tag"><i class="bi bi-shield-check"></i>{{ _("Validación en tiempo de importación") }}</div>
+        <div class="tf-tag"><i class="bi bi-shield-check"></i>{{ _("Validación fila a fila") }}</div>
+    </div>
+
+    {# Guía rápida del formato esperado #}
+    <div class="alert alert-info border-0 shadow-sm">
+        <div class="d-flex align-items-start gap-3">
+            <i class="bi bi-info-circle-fill fs-4 text-primary"></i>
+            <div class="flex-grow-1">
+                <h6 class="fw-semibold mb-2">{{ _("Antes de subir tu archivo, comprueba estos 3 puntos:") }}</h6>
+                <ol class="mb-2 small">
+                    <li>
+                        <strong>{{ _("Separador:") }}</strong>
+                        {{ _("punto y coma") }} (<code>;</code>).
+                        {{ help_hint(_("Separador"), _("Es lo que va entre cada columna. En España, Excel usa ; por defecto. Si tu archivo tiene comas, abre el CSV en Excel, exporta de nuevo y elige «delimitado por punto y coma».")) }}
+                    </li>
+                    <li>
+                        <strong>{{ _("Decimales:") }}</strong>
+                        {{ _("coma") }} (<code>,</code>).
+                        {{ _("Ejemplo:") }} <code>1.250,50</code>.
+                    </li>
+                    <li>
+                        <strong>{{ _("Fechas:") }}</strong> <code>dd/mm/yyyy</code>.
+                        {{ _("Ejemplo:") }} <code>15/11/2025</code>.
+                    </li>
+                </ol>
+                <p class="small mb-0 text-muted">
+                    <i class="bi bi-lightbulb me-1"></i>
+                    {{ _("Si te has confundido en una fila, no pasa nada: te la marcaremos como aviso y el resto se importará correctamente.") }}
+                </p>
+            </div>
+        </div>
     </div>
 
 {% if result %}
