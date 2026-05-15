@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Ayuda · Trufiq{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-3">Centro de ayuda</h1>
+    <p class="text-muted">
+        ¿No sabes por dónde empezar o tienes una duda concreta? Estás en el sitio.
+    </p>
+
+    <div class="row g-3 mt-3">
+        <div class="col-md-6 col-lg-4">
+            <a href="/ayuda/glosario" class="card h-100 text-decoration-none">
+                <div class="card-body">
+                    <h2 class="h5 card-title">
+                        <i class="bi bi-book me-2 text-primary"></i> Glosario
+                    </h2>
+                    <p class="card-text text-muted small mb-0">
+                        Las palabras de Trufiq explicadas en cristiano: brulé, campaña,
+                        SIGPAC, prorrateo, porcentaje de parcela…
+                    </p>
+                </div>
+            </a>
+        </div>
+
+        {# Las tarjetas de Vídeos y FAQ se rellenan en la Fase 4. #}
+    </div>
+</div>
+{% endblock %}

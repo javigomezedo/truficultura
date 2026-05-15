@@ -47,6 +47,7 @@ from app.routers import (
     expenses,
     exports,
     harvests,
+    help as help_router,
     imports,
     incomes,
     irrigation,
@@ -170,6 +171,7 @@ app.include_router(tenants.router)
 app.include_router(notifications.router)
 app.include_router(onboarding.router)
 app.include_router(profile.router)
+app.include_router(help_router.router)
 
 
 @app.get("/landing", response_class=HTMLResponse, include_in_schema=False)

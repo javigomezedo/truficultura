@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_partials/help_hint.html" import help_hint %}
 
 {% block title %}{% if plot %}{{ _("Editar Parcela") }}{% else %}{{ _("Nueva Parcela") }}{% endif %} &mdash; Trufiq{% endblock %}
 
@@ -33,6 +34,7 @@
                 {# ── SECCIÓN 1: Búsqueda SIGPAC ─────────────────────────────── #}
                 <h6 class="text-uppercase text-muted fw-semibold small mb-3">
                     <i class="bi bi-search me-1"></i>{{ _("Búsqueda SIGPAC") }}
+                    {{ help_hint(_("SIGPAC"), _("Registro oficial español de parcelas agrícolas. Si conoces los datos catastrales, Trufiq puede autocompletar superficie y ubicación. Si no, déjalo en blanco."), "catastro") }}
                 </h6>
                 <div class="row g-3 mb-2">
                     <!-- Provincia -->
@@ -59,7 +61,7 @@
 
                     <!-- Polígono -->
                     <div class="col-md-2">
-                        <label for="polygon" class="form-label fw-semibold">{{ _("Polígono") }}</label>
+                        <label for="polygon" class="form-label fw-semibold">{{ _("Polígono") }}{{ help_hint(_("Polígono"), _("Número del polígono catastral SIGPAC. Lo encuentras en cualquier documento de la finca o en el visor del SIGPAC."), "poligono") }}</label>
                         <input type="text"
                                class="form-control"
                                id="polygon"
@@ -81,7 +83,7 @@
 
                     <!-- Recinto -->
                     <div class="col-md-2">
-                        <label for="recinto" class="form-label fw-semibold">{{ _("Recinto") }}</label>
+                        <label for="recinto" class="form-label fw-semibold">{{ _("Recinto") }}{{ help_hint(_("Recinto"), _("Subdivisión de una parcela catastral. Si tu parcela está dividida en varios usos, cada trozo tiene un número de recinto. Si no lo sabes, prueba con 1."), "recinto") }}</label>
                         <input type="text"
                                class="form-control"
                                id="recinto"

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_partials/help_hint.html" import help_hint %}
 
 {% block title %}{{ _("Parcelas (Bancales)") }} &mdash; Trufiq{% endblock %}
 
@@ -36,7 +37,9 @@
                             <th>{{ _("F. Plantación") }}</th>
                             <th class="text-end">{{ _("Sup. (Ha)") }}</th>
                             <th>{{ _("Inicio Prod.") }}</th>
-                            <th class="text-end">%</th>
+                            <th class="text-end">%
+                                {{ help_hint(_("Porcentaje de parcela"), _("Proporción que esta parcela representa sobre tu explotación, medida en número de plantas. Se usa para repartir los gastos generales."), "porcentaje-parcela") }}
+                            </th>
                             <th class="text-center">{{ _("Acciones") }}</th>
                         </tr>
                     </thead>

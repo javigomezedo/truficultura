@@ -393,6 +393,11 @@
                                     <i class="bi bi-person-fill me-1"></i>{{ _("Mi perfil") }}
                                 </a>
                             </li>
+                            <li>
+                                <a class="dropdown-item {% if '/ayuda' in request.url.path %}active{% endif %}" href="/ayuda/">
+                                    <i class="bi bi-question-circle me-1"></i>{{ _("Ayuda y glosario") }}
+                                </a>
+                            </li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
                                 <form action="/logout" method="post" class="m-0">
@@ -598,6 +603,29 @@
         document.querySelectorAll('.tf-actions-dropdown').forEach(function (el) {
             new bootstrap.Dropdown(el, { popperConfig: { strategy: 'fixed' } });
         });
+
+        // Inicializar popovers de ayuda contextual (help_hint) en toda la app.
+        // Se buscan por selector estándar de Bootstrap para que cualquier
+        // [data-bs-toggle="popover"] añadido dinámicamente también funcione
+        // tras un MutationObserver mínimo.
+        function initPopovers(root) {
+            (root || document).querySelectorAll('[data-bs-toggle="popover"]').forEach(function (el) {
+                if (!bootstrap.Popover.getInstance(el)) {
+                    new bootstrap.Popover(el);
+                }
+            });
+        }
+        initPopovers();
+        if (window.MutationObserver) {
+            var observer = new MutationObserver(function (mutations) {
+                mutations.forEach(function (m) {
+                    m.addedNodes.forEach(function (node) {
+                        if (node.nodeType === 1) initPopovers(node);
+                    });
+                });
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+        }
     });
     </script>
     <!-- marked (Markdown → HTML en el asistente) -->
