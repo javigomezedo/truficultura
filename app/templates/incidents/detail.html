@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}Incidencia #{{ incident.id }} — Trufiq{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-8">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+      <ol class="breadcrumb">
+        {% if admin_view %}
+        <li class="breadcrumb-item"><a href="/incidents/admin/list">{{ _("Panel de incidencias") }}</a></li>
+        {% else %}
+        <li class="breadcrumb-item"><a href="/incidents/">{{ _("Mis incidencias") }}</a></li>
+        {% endif %}
+        <li class="breadcrumb-item active">{{ _("Incidencia #%(id)s", id=incident.id) }}</li>
+      </ol>
+    </nav>
+
+    {% if request.query_params.get('resolved') == '1' %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+      <i class="bi bi-check-circle-fill me-2"></i>{{ _("Incidencia marcada como resuelta.") }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ _('Cerrar') }}"></button>
+    </div>
+    {% endif %}
+
+    <!-- Cabecera -->
+    <div class="d-flex align-items-start justify-content-between gap-2 mb-3 flex-wrap">
+      <div>
+        <h1 class="h3 mb-1">
+          <i class="bi bi-bug-fill me-2 text-danger"></i>{{ incident.title }}
+        </h1>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+          <span class="badge bg-secondary">{{ incident.category_label }}</span>
+          {% if incident.severity == 'critica' %}
+            <span class="badge bg-danger">{{ incident.severity_label }}</span>
+          {% elif incident.severity == 'alta' %}
+            <span class="badge bg-warning text-dark">{{ incident.severity_label }}</span>
+          {% elif incident.severity == 'media' %}
+            <span class="badge bg-info text-dark">{{ incident.severity_label }}</span>
+          {% else %}
+            <span class="badge bg-light text-dark border">{{ incident.severity_label }}</span>
+          {% endif %}
+          {% if incident.resolved %}
+            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>{{ _("Resuelta") }}</span>
+          {% else %}
+            <span class="badge bg-secondary"><i class="bi bi-clock me-1"></i>{{ _("Abierta") }}</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Datos de la incidencia -->
+    <div class="card tf-card mb-3">
+      <div class="card-body">
+        <dl class="row mb-0">
+          {% if incident.user %}
+          <dt class="col-sm-3 text-muted small">{{ _("Reportado por") }}</dt>
+          <dd class="col-sm-9">{{ incident.user.first_name }} {{ incident.user.last_name }}
+            <small class="text-muted">({{ incident.user.email }})</small>
+          </dd>
+          {% endif %}
+          <dt class="col-sm-3 text-muted small">{{ _("Fecha") }}</dt>
+          <dd class="col-sm-9">{{ incident.created_at.strftime('%d/%m/%Y %H:%M') }}</dd>
+          {% if incident.resolved_at %}
+          <dt class="col-sm-3 text-muted small">{{ _("Resuelta el") }}</dt>
+          <dd class="col-sm-9">{{ incident.resolved_at.strftime('%d/%m/%Y %H:%M') }}</dd>
+          {% endif %}
+        </dl>
+        <hr>
+        <h6 class="text-muted small text-uppercase mb-2">{{ _("Descripción") }}</h6>
+        <p class="mb-0" style="white-space: pre-wrap;">{{ incident.description }}</p>
+      </div>
+    </div>
+
+    <!-- Adjunto -->
+    {% if incident.attachment_filename %}
+    <div class="card tf-card mb-3">
+      <div class="card-body">
+        <h6 class="text-muted small text-uppercase mb-2">{{ _("Adjunto") }}</h6>
+        {% set att_url = ('/incidents/admin/' ~ incident.id ~ '/attachment') if admin_view else ('/incidents/' ~ incident.id ~ '/attachment') %}
+        {% if incident.attachment_content_type and incident.attachment_content_type.startswith('image/') %}
+          <img src="{{ att_url }}" alt="{{ incident.attachment_filename }}"
+               class="img-fluid rounded mb-2" style="max-height: 400px;">
+          <br>
+        {% endif %}
+        <a href="{{ att_url }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-paperclip me-1"></i>{{ incident.attachment_filename }}
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Resolución del admin -->
+    {% if incident.resolved and incident.admin_response %}
+    <div class="card tf-card mb-3 border-success">
+      <div class="card-header bg-success bg-opacity-10 text-success fw-semibold">
+        <i class="bi bi-check-circle-fill me-2"></i>{{ _("Resolución") }}
+      </div>
+      <div class="card-body">
+        <p class="mb-0" style="white-space: pre-wrap;">{{ incident.admin_response }}</p>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Formulario de resolución (solo admin y no resuelta) -->
+    {% if admin_view and not incident.resolved %}
+    <div class="card tf-card mb-3">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-check2-circle me-2"></i>{{ _("Marcar como resuelta") }}
+      </div>
+      <div class="card-body">
+        <form method="post" action="/incidents/admin/{{ incident.id }}/resolve">
+          <div class="mb-3">
+            <label for="admin_response" class="form-label">{{ _("Respuesta / resolución") }} <span class="text-danger">*</span></label>
+            <textarea id="admin_response"
+                      name="admin_response"
+                      class="form-control"
+                      rows="4"
+                      required
+                      placeholder="{{ _('Explica cómo se ha resuelto el problema o qué se ha hecho...') }}"></textarea>
+          </div>
+          <button type="submit" class="btn btn-success">
+            <i class="bi bi-check-circle-fill me-1"></i>{{ _("Resolver incidencia") }}
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="mt-2">
+      {% if admin_view %}
+      <a href="/incidents/admin/list" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>{{ _("Volver al panel") }}
+      </a>
+      {% else %}
+      <a href="/incidents/" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>{{ _("Mis incidencias") }}
+      </a>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}

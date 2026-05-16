@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Nueva incidencia — Trufiq{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-8">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/incidents/">{{ _("Incidencias") }}</a></li>
+        <li class="breadcrumb-item active">{{ _("Nueva incidencia") }}</li>
+      </ol>
+    </nav>
+
+    <h1 class="h3 mb-1">
+      <i class="bi bi-bug-fill me-2 text-danger"></i>{{ _("Reportar una incidencia") }}
+    </h1>
+    <p class="text-muted mb-4">
+      {{ _("Describe el problema encontrado y nuestro equipo lo revisará lo antes posible.") }}
+    </p>
+
+    {% if error %}
+    <div class="alert alert-danger">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}
+    </div>
+    {% endif %}
+
+    <div class="card tf-card">
+      <div class="card-body">
+        <form method="post" action="/incidents/" enctype="multipart/form-data" novalidate>
+
+          <div class="mb-3">
+            <label for="title" class="form-label fw-semibold">{{ _("Título") }} <span class="text-danger">*</span></label>
+            <input type="text"
+                   id="title"
+                   name="title"
+                   class="form-control"
+                   maxlength="255"
+                   required
+                   value="{{ form.title if form else '' }}"
+                   placeholder="{{ _('Describe brevemente el problema') }}">
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-md-6">
+              <label for="category" class="form-label fw-semibold">{{ _("Categoría") }} <span class="text-danger">*</span></label>
+              <select id="category" name="category" class="form-select" required>
+                {% set category_labels = {
+                  'error_visual': _('Error visual'),
+                  'error_texto': _('Texto incorrecto'),
+                  'boton_roto': _('Botón roto'),
+                  'error_sistema': _('Error del sistema'),
+                  'otro': _('Otro')
+                } %}
+                {% for cat in categories %}
+                <option value="{{ cat }}"
+                  {% if form and form.category == cat %}selected{% endif %}>
+                  {{ category_labels.get(cat, cat) }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-12 col-md-6">
+              <label for="severity" class="form-label fw-semibold">{{ _("Severidad") }} <span class="text-danger">*</span></label>
+              <select id="severity" name="severity" class="form-select" required>
+                {% set severity_labels = {
+                  'baja': _('Baja'),
+                  'media': _('Media'),
+                  'alta': _('Alta'),
+                  'critica': _('Crítica')
+                } %}
+                {% for sev in severities %}
+                <option value="{{ sev }}"
+                  {% if form and form.severity == sev %}selected
+                  {% elif not form and sev == 'media' %}selected{% endif %}>
+                  {{ severity_labels.get(sev, sev) }}
+                </option>
+                {% endfor %}
+              </select>
+              <div class="form-text">
+                {{ _("Baja: estética. Media: dificulta el uso. Alta: bloquea funciones. Crítica: pérdida de datos.") }}
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="description" class="form-label fw-semibold">{{ _("Descripción") }} <span class="text-danger">*</span></label>
+            <textarea id="description"
+                      name="description"
+                      class="form-control"
+                      rows="5"
+                      required
+                      placeholder="{{ _('¿Qué ocurrió? ¿Cuándo? ¿Cómo reproducirlo?') }}">{{ form.description if form else '' }}</textarea>
+          </div>
+
+          <div class="mb-4">
+            <label for="attachment" class="form-label fw-semibold">{{ _("Adjunto") }}</label>
+            <input type="file"
+                   id="attachment"
+                   name="attachment"
+                   class="form-control"
+                   accept=".jpg,.jpeg,.png,.gif,.webp,.pdf">
+            <div class="form-text">{{ _("Opcional. Formatos permitidos: JPG, PNG, GIF, WEBP, PDF. Máximo 5 MB.") }}</div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-danger">
+              <i class="bi bi-send-fill me-1"></i>{{ _("Enviar incidencia") }}
+            </button>
+            <a href="/incidents/" class="btn btn-outline-secondary">{{ _("Cancelar") }}</a>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
