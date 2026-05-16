@@ -72,6 +72,16 @@ class Settings(BaseSettings):
 
     @property
     def smtp_configured(self) -> bool:
+        """
+        Indica si la configuración SMTP es suficiente para enviar emails.
+
+        - En entorno local (PRODUCTION=False), basta con definir SMTP_HOST (ideal para Mailhog, que no requiere autenticación).
+        - En producción (PRODUCTION=True), se exige SMTP_HOST, SMTP_USER y SMTP_PASSWORD para evitar configuraciones inseguras.
+        """
+        if not self.PRODUCTION:
+            # En local (desarrollo), solo se requiere el host para Mailhog.
+            return bool(self.SMTP_HOST)
+        # En producción, se requiere autenticación completa.
         return bool(self.SMTP_HOST and self.SMTP_USER and self.SMTP_PASSWORD)
 
     @property
