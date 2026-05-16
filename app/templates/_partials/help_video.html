@@ -11,7 +11,7 @@
                 class="btn btn-sm btn-outline-secondary tf-help-video-btn"
                 data-bs-toggle="modal"
                 data-bs-target="#{{ modal_id }}"
-                aria-label="{{ _('Ver vídeo: %(title)s')|format(title=video.title) }}">
+                aria-label="{{ _('Ver vídeo: {title}', title=video.title) }}">
             <i class="bi bi-play-circle-fill text-danger me-1"></i>
             {{ label or _("Vídeo") }}
             <span class="text-muted small">
@@ -45,5 +45,23 @@
                 </div>
             </div>
         </div>
+        <script>
+            (function () {
+                var modal = document.getElementById("{{ modal_id }}");
+                if (modal && modal.parentElement !== document.body) {
+                    document.body.appendChild(modal);
+                }
+                // Pausa y reinicia el vídeo al cerrar el modal
+                if (modal) {
+                    modal.addEventListener('hidden.bs.modal', function () {
+                        var video = modal.querySelector('video');
+                        if (video) {
+                            video.pause();
+                            video.currentTime = 0;
+                        }
+                    });
+                }
+            })();
+        </script>
     {% endif %}
 {%- endmacro %}

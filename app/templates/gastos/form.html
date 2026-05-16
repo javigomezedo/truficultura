@@ -58,6 +58,12 @@
                             </option>
                             {% endfor %}
                         </select>
+                        {% if plots %}
+                        <div id="generalExpenseHint" class="alert alert-warning py-2 mt-2 mb-0 small {% if expense and expense.plot_id %}d-none{% endif %}">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            {{ _("Al no asignar parcela, este gasto se repartirá entre tus {n} parcelas según su tamaño (número de plantas).", n=plots|length) }}
+                        </div>
+                        {% endif %}
                     </div>
 
                     <!-- Concepto -->
@@ -372,6 +378,22 @@
     updatePreview();
 })();
 </script>
-<script src="/static/js/form_autosave.js" defer></script>
 {% endif %}
+<script>
+(function () {
+    var plotSelect = document.getElementById('plot_id');
+    var hint = document.getElementById('generalExpenseHint');
+    if (!plotSelect || !hint) return;
+    function sync() {
+        if (plotSelect.value === '') {
+            hint.classList.remove('d-none');
+        } else {
+            hint.classList.add('d-none');
+        }
+    }
+    plotSelect.addEventListener('change', sync);
+    sync();
+})();
+</script>
+<script src="/static/js/form_autosave.js" defer></script>
 {% endblock %}

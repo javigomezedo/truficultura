@@ -536,6 +536,7 @@
             data-bs-toggle="offcanvas"
             data-bs-target="#assistantPanel"
             aria-controls="assistantPanel"
+            title="{{ _('Pregúntame lo que quieras') }}"
             aria-label="{{ _('Abrir asistente') }}">
         <i class="bi bi-chat-dots-fill me-1"></i>{{ _("Asistente") }}
     </button>
@@ -552,8 +553,14 @@
             <p class="tf-assistant-helper mb-2">
                 {{ _("Pregúntame sobre uso de la app y sobre tus datos (modo lectura).") }}
             </p>
+            <div class="tf-assistant-starters" id="assistantStarters" hidden>
+                <p class="tf-assistant-starters-label">
+                    <i class="bi bi-stars me-1"></i>{{ _("Prueba con una de estas preguntas:") }}
+                </p>
+                <div class="tf-assistant-starters-list" id="assistantStartersList"></div>
+            </div>
             <details class="tf-assistant-suggestions" id="assistantSuggestions">
-                <summary>{{ _("Ideas de preguntas") }}</summary>
+                <summary>{{ _("Más ideas de preguntas") }}</summary>
                 <div class="tf-assistant-suggestions-list" id="assistantSuggestionsList"></div>
             </details>
             <div class="tf-assistant-messages" id="assistantMessages" aria-live="polite"></div>

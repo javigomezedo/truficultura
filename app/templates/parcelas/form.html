@@ -69,7 +69,7 @@
                 <div class="tf-wizard-step" data-step="1">
                 <h6 class="text-uppercase text-muted fw-semibold small mb-3">
                     <i class="bi bi-search me-1"></i>{{ _("Búsqueda SIGPAC") }}
-                    {{ help_hint(_("SIGPAC"), _("Registro oficial español de parcelas agrícolas. Si conoces los datos catastrales, Trufiq puede autocompletar superficie y ubicación. Si no, déjalo en blanco."), "catastro") }}
+                    {{ help_hint(_("SIGPAC"), _("Registro oficial español de parcelas agrícolas. Si conoces los datos catastrales (provincia, municipio, polígono, parcela y recinto), Trufiq rellenará automáticamente la superficie en hectáreas y la referencia catastral. Pulsando «Ver datos SIGPAC» también podrás consultar usos, pendientes, incidencias y demás información oficial sin guardarla en la parcela."), "catastro") }}
                 </h6>
                 <p class="text-muted small mb-3">
                     {{ _("Este paso es opcional: si no conoces los datos catastrales, pulsa «Siguiente» y los rellenas más tarde.") }}
@@ -171,7 +171,7 @@
                                name="name"
                                value="{{ plot.name if plot else '' }}"
                                required
-                               placeholder="{{ _('Ej: Bancal Norte') }}">
+                               placeholder="{{ _('Ej: Parcela Norte') }}">
                     </div>
 
                     <!-- Referencia Catastral -->

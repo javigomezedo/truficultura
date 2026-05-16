@@ -44,11 +44,11 @@
                                required>
                     </div>
 
-                    <!-- Bancal (parcela) -->
+                    <!-- Parcela -->
                     <div class="col-md-6">
-                        <label for="plot_id" class="form-label fw-semibold">{{ _("Bancal") }}</label>
+                        <label for="plot_id" class="form-label fw-semibold">{{ _("Parcela") }}</label>
                         <select class="form-select" id="plot_id" name="plot_id">
-                            <option value="">{{ _("-- Sin bancal asignado --") }}</option>
+                            <option value="">{{ _("-- Sin parcela asignada --") }}</option>
                             {% for p in plots %}
                             <option value="{{ p.id }}"
                                     {% if income and income.plot_id == p.id %}selected{% endif %}>

@@ -8,8 +8,8 @@
     <div class="tf-page-header">
         <div>
             <p class="tf-page-kicker">{{ _("Producción") }}</p>
-            <h1 class="tf-page-title"><i class="bi bi-basket2-fill text-success me-2"></i>{{ _("Registrar cosecha por bancal") }}</h1>
-            <p class="tf-page-subtitle">{{ _("Introduce la fecha y los gramos cosechados en cada bancal (deja en blanco los bancales sin producción ese día).") }}</p>
+            <h1 class="tf-page-title"><i class="bi bi-basket2-fill text-success me-2"></i>{{ _("Registrar cosecha por parcela") }}</h1>
+            <p class="tf-page-subtitle">{{ _("Introduce la fecha y los gramos cosechados en cada parcela (deja en blanco las parcelas sin producción ese día).") }}</p>
         </div>
         <a href="/harvests/" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-1"></i>{{ _("Volver") }}
@@ -35,7 +35,7 @@
                     <table class="table table-hover align-middle">
                         <thead class="table-light">
                             <tr>
-                                <th>{{ _("Bancal") }}</th>
+                                <th>{{ _("Parcela") }}</th>
                                 <th style="min-width: 160px;">{{ _("Gramos cosechados") }}</th>
                                 <th class="d-none d-sm-table-cell">{{ _("Notas") }}</th>
                             </tr>
@@ -78,7 +78,7 @@
                 {% else %}
                 <div class="alert alert-warning">
                     <i class="bi bi-exclamation-triangle me-1"></i>
-                    {{ _("No tienes bancales configurados. Primero crea al menos una parcela.") }}
+                    {{ _("No tienes parcelas configuradas. Primero crea al menos una.") }}
                 </div>
                 <a href="/plots/new" class="btn btn-primary">
                     <i class="bi bi-plus-circle me-1"></i>{{ _("Crear parcela") }}

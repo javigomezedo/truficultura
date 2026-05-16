@@ -71,7 +71,7 @@
     <div>
         <p class="tf-page-kicker">{{ _("Indicadores clave") }}</p>
         <h1 class="tf-page-title">KPIs</h1>
-        <p class="tf-page-subtitle">{{ _("Rentabilidad, producción, eficiencia hídrica y comparativa entre bancales.") }}</p>
+        <p class="tf-page-subtitle">{{ _("Rentabilidad, producción, eficiencia hídrica y comparativa entre parcelas.") }}</p>
     </div>
     <div class="tf-tag"><i class="bi bi-speedometer2"></i>{{ _("Análisis global") }}</div>
 </div>
@@ -221,7 +221,7 @@
                 <div class="d-flex align-items-start gap-2 mb-1">
                     <span class="tf-help-tip">
                         <button type="button" class="btn btn-outline-secondary tf-help-tip-btn">?</button>
-                        <span class="tf-help-tip-text">{{ _("Kg físicamente recogidos: suma de pesos orientativos (por planta) y cosechas por bancal registradas.") }}</span>
+                        <span class="tf-help-tip-text">{{ _("Kg físicamente recogidos: suma de pesos orientativos (por planta) y cosechas por parcela registradas.") }}</span>
                     </span>
                     <div class="kpi-card-label mb-0">
                         <i class="bi bi-basket2 me-1"></i>{{ _("Kg recogidos") }}
@@ -236,7 +236,7 @@
                 <div class="kpi-card-value text-success">
                     {{ kpi_summary.physical_kg | format_eu(3) }} <small class="fs-5 fw-normal">kg</small>
                 </div>
-                <div class="kpi-card-sub text-muted mt-1">{{ _("peso orientativo + cosechas por bancal") }}</div>
+                <div class="kpi-card-sub text-muted mt-1">{{ _("peso orientativo + cosechas por parcela") }}</div>
                 {% else %}
                 <div class="kpi-card-value text-muted">—</div>
                 <div class="kpi-card-sub text-muted mt-1">{{ _("Sin datos físicos") }}</div>
@@ -361,10 +361,10 @@
         <div class="d-flex align-items-start gap-2">
             <span class="tf-help-tip">
                 <button type="button" class="btn btn-outline-secondary tf-help-tip-btn">?</button>
-                <span class="tf-help-tip-text">{{ _("Compara rendimiento y rentabilidad entre bancales para la campaña seleccionada o para el histórico completo.") }}</span>
+                <span class="tf-help-tip-text">{{ _("Compara rendimiento y rentabilidad entre parcelas para la campaña seleccionada o para el histórico completo.") }}</span>
             </span>
             <h5 class="mb-0">
-                <i class="bi bi-bar-chart me-2 text-info"></i>{{ _("Comparativa entre bancales") }}
+                <i class="bi bi-bar-chart me-2 text-info"></i>{{ _("Comparativa entre parcelas") }}
                 {% if selected_campaign %}
                 <span class="badge bg-secondary ms-2">{{ selected_campaign | campaign_label }}</span>
                 {% endif %}
@@ -377,9 +377,9 @@
                 <div class="d-flex align-items-start gap-2 mb-2">
                     <span class="tf-help-tip">
                         <button type="button" class="btn btn-outline-secondary tf-help-tip-btn">?</button>
-                        <span class="tf-help-tip-text">{{ _("Productividad por superficie en cada bancal (kg por hectárea). Facilita comparaciones entre bancales de distinto tamaño.") }}</span>
+                        <span class="tf-help-tip-text">{{ _("Productividad por superficie en cada parcela (kg por hectárea). Facilita comparaciones entre parcelas de distinto tamaño.") }}</span>
                     </span>
-                    <h6 class="text-muted mb-0 small text-uppercase">{{ _("kg/ha por bancal") }}</h6>
+                    <h6 class="text-muted mb-0 small text-uppercase">{{ _("kg/ha por parcela") }}</h6>
                 </div>
                 <div class="chart-container">
                     <canvas id="plotKgHaChart"></canvas>
@@ -389,9 +389,9 @@
                 <div class="d-flex align-items-start gap-2 mb-2">
                     <span class="tf-help-tip">
                         <button type="button" class="btn btn-outline-secondary tf-help-tip-btn">?</button>
-                        <span class="tf-help-tip-text">{{ _("ROI por bancal. Permite detectar qué bancales son más rentables y cuáles necesitan ajustes de costes o manejo.") }}</span>
+                        <span class="tf-help-tip-text">{{ _("ROI por parcela. Permite detectar qué parcelas son más rentables y cuáles necesitan ajustes de costes o manejo.") }}</span>
                     </span>
-                    <h6 class="text-muted mb-0 small text-uppercase">{{ _("ROI (%%) por bancal") }}</h6>
+                    <h6 class="text-muted mb-0 small text-uppercase">{{ _("ROI (%%) por parcela") }}</h6>
                 </div>
                 <div class="chart-container">
                     <canvas id="plotRoiChart"></canvas>
@@ -402,20 +402,20 @@
         <div class="d-flex align-items-start gap-2 mb-2">
             <span class="tf-help-tip">
                 <button type="button" class="btn btn-outline-secondary tf-help-tip-btn">?</button>
-                <span class="tf-help-tip-text">{{ _("Tabla detallada por bancal con métricas de producción, coste, rentabilidad y eficiencia hídrica. También puedes pasar el ratón por cada cabecera para ver su definición.") }}</span>
+                <span class="tf-help-tip-text">{{ _("Tabla detallada por parcela con métricas de producción, coste, rentabilidad y eficiencia hídrica. También puedes pasar el ratón por cada cabecera para ver su definición.") }}</span>
             </span>
-            <h6 class="text-muted mb-0 small text-uppercase">{{ _("Tabla de KPIs por bancal") }}</h6>
+            <h6 class="text-muted mb-0 small text-uppercase">{{ _("Tabla de KPIs por parcela") }}</h6>
         </div>
         <div class="table-responsive">
             <table class="table table-sm table-hover table-bordered mb-0">
                 <thead class="table-dark">
                     <tr>
-                        <th>{{ _("Bancal") }}</th>
+                        <th>{{ _("Parcela") }}</th>
                         <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Producción total cosechada en el periodo seleccionado.") }}">{{ _("kg totales") }} <i class="bi bi-info-circle"></i></th>
-                        <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Kg físicamente recogidos: peso orientativo + cosechas por bancal.") }}">{{ _("kg físicos") }} <i class="bi bi-info-circle"></i></th>
-                        <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("kg por hectárea. Permite comparar bancales de distinto tamaño.") }}">{{ _("kg/ha") }} <i class="bi bi-info-circle"></i></th>
+                        <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Kg físicamente recogidos: peso orientativo + cosechas por parcela.") }}">{{ _("kg físicos") }} <i class="bi bi-info-circle"></i></th>
+                        <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("kg por hectárea. Permite comparar parcelas de distinto tamaño.") }}">{{ _("kg/ha") }} <i class="bi bi-info-circle"></i></th>
                         <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Producción media por planta. Mide el vigor productivo.") }}">{{ _("kg/planta") }} <i class="bi bi-info-circle"></i></th>
-                        <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Gastos totales ÷ kg cosechados. Detecta bancales poco eficientes.") }}">{{ _("Coste/kg") }} <i class="bi bi-info-circle"></i></th>
+                        <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Gastos totales ÷ kg cosechados. Detecta parcelas poco eficientes.") }}">{{ _("Coste/kg") }} <i class="bi bi-info-circle"></i></th>
                         <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Ingresos ÷ Gastos. Positivo = rentable; negativo = pérdida.") }}">{{ _("ROI") }} <i class="bi bi-info-circle"></i></th>
                         <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Agua aplicada por kg producido. Menor = mejor eficiencia hídrica.") }}">{{ _("m³/kg") }} <i class="bi bi-info-circle"></i></th>
                         <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Consumo medio de agua por planta.") }}">{{ _("m³/planta") }} <i class="bi bi-info-circle"></i></th>
@@ -483,7 +483,7 @@
                     <tr>
                         <th>{{ _("Campaña") }}</th>
                         <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Producción total cosechada en la campaña.") }}">{{ _("kg") }} <i class="bi bi-info-circle"></i></th>
-                        <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Kg físicamente recogidos: peso orientativo por planta + cosechas por bancal.") }}">{{ _("kg físicos") }} <i class="bi bi-info-circle"></i></th>
+                        <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Kg físicamente recogidos: peso orientativo por planta + cosechas por parcela.") }}">{{ _("kg físicos") }} <i class="bi bi-info-circle"></i></th>
                         <th class="text-end">{{ _("Ingresos") }}</th>
                         <th class="text-end">{{ _("Gastos") }}</th>
                         <th class="text-end kpi-hint" data-bs-toggle="tooltip" data-bs-title="{{ _("Ingresos − Gastos.") }}">{{ _("Rentabilidad") }} <i class="bi bi-info-circle"></i></th>

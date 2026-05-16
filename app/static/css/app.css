@@ -1437,6 +1437,47 @@ footer.tf-footer {
     border-color: rgba(73, 111, 119, 0.3);
 }
 
+.tf-assistant-starters {
+    margin-bottom: 0.85rem;
+}
+
+.tf-assistant-starters-label {
+    font-size: 0.78rem;
+    color: var(--tf-text-muted, #6b7378);
+    margin: 0 0 0.4rem 0;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.tf-assistant-starters-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.tf-assistant-starter-btn {
+    border: 1px solid rgba(73, 111, 119, 0.35);
+    background: linear-gradient(180deg, rgba(73, 111, 119, 0.10), rgba(73, 111, 119, 0.04));
+    color: #2c4448;
+    border-radius: 0.6rem;
+    padding: 0.5rem 0.78rem;
+    font-size: 0.85rem;
+    line-height: 1.25;
+    text-align: left;
+    font-weight: 500;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+}
+
+.tf-assistant-starter-btn:hover,
+.tf-assistant-starter-btn:focus-visible {
+    background: rgba(73, 111, 119, 0.18);
+    border-color: rgba(73, 111, 119, 0.55);
+}
+
+.tf-assistant-starter-btn:active {
+    transform: translateY(1px);
+}
+
 .tf-assistant-messages {
     overflow-y: auto;
     border: 1px solid var(--tf-border);

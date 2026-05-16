@@ -18,7 +18,7 @@
         <div>
             <p class="tf-page-kicker">{{ _("Analítica") }}</p>
             <h1 class="tf-page-title"><i class="bi bi-graph-up-arrow me-2"></i>{{ _("Análisis de rendimiento") }}</h1>
-            <p class="tf-page-subtitle">{{ _("Dataset por campaña y bancal") }}</p>
+            <p class="tf-page-subtitle">{{ _("Dataset por campaña y parcela") }}</p>
         </div>
     </div>
 
@@ -99,7 +99,7 @@
                     </h3>
                     {% if plateau_ok %}
                     {% set plateau = irrigation_thresholds.plateau_start_m3 %}
-                    <p class="mb-3 small text-muted">{{ _("Basándonos en") }} <strong>{{ irrigation_thresholds.sample_size }} {{ _("registros (bancal × campaña)") }}</strong> {{ _("con datos de agua y producción:") }}
+                    <p class="mb-3 small text-muted">{{ _("Basándonos en") }} <strong>{{ irrigation_thresholds.sample_size }} {{ _("registros (parcela × campaña)") }}</strong> {{ _("con datos de agua y producción:") }}
                         {% if irrigation_thresholds.method == "median_of_plots" %}
                         <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle ms-1">{{ _("Mediana de") }} {{ irrigation_thresholds.contributing_plots }} {{ _("parcelas") }}</span>
                         {% endif %}
@@ -113,7 +113,7 @@
                         {{ _("Más de") }} <strong>{{ plateau }} m³</strong> — {{ _("regar más no mejoró la cosecha en campañas anteriores.") }}
                     </div>
                     {% elif irrigation_thresholds.sample_size >= 3 %}
-                    <p class="mb-2 text-muted">{{ _("Con") }} <strong>{{ irrigation_thresholds.sample_size }} {{ _("registros (bancal × campaña)") }}</strong> {{ _("analizados no se detecta un punto claro de saturación. Más datos mejorarán el análisis.") }}</p>
+                    <p class="mb-2 text-muted">{{ _("Con") }} <strong>{{ irrigation_thresholds.sample_size }} {{ _("registros (parcela × campaña)") }}</strong> {{ _("analizados no se detecta un punto claro de saturación. Más datos mejorarán el análisis.") }}</p>
                     {% else %}
                     <p class="mb-2 text-muted">{{ _("Aún no hay suficientes campañas con datos de agua y producción para detectar la meseta. Se necesitan al menos 3.") }}</p>
                     <p class="small text-muted">{{ _("Registros actuales con ambos datos:") }} {{ irrigation_thresholds.sample_size }}/3</p>

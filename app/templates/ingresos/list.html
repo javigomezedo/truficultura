@@ -53,7 +53,7 @@
                     <thead class="table-dark">
                         <tr>
                             <th class="sortable-th"><a href="{{ sort_url(request, 'date', sort_by, sort_order) }}">{{ _("Fecha") }}{% if sort_by == 'date' %}<i class="bi bi-arrow-{{ 'up' if sort_order == 'asc' else 'down' }}-short"></i>{% endif %}</a></th>
-                            <th class="sortable-th"><a href="{{ sort_url(request, 'plot', sort_by, sort_order) }}">{{ _("Bancal") }}{% if sort_by == 'plot' %}<i class="bi bi-arrow-{{ 'up' if sort_order == 'asc' else 'down' }}-short"></i>{% endif %}</a></th>
+                            <th class="sortable-th"><a href="{{ sort_url(request, 'plot', sort_by, sort_order) }}">{{ _("Parcela") }}{% if sort_by == 'plot' %}<i class="bi bi-arrow-{{ 'up' if sort_order == 'asc' else 'down' }}-short"></i>{% endif %}</a></th>
                             <th class="text-end sortable-th"><a href="{{ sort_url(request, 'amount_kg', sort_by, sort_order) }}">{{ _("Cantidad (kg)") }}{% if sort_by == 'amount_kg' %}<i class="bi bi-arrow-{{ 'up' if sort_order == 'asc' else 'down' }}-short"></i>{% endif %}</a></th>
                             <th class="sortable-th"><a href="{{ sort_url(request, 'category', sort_by, sort_order) }}">{{ _("Categoría") }}{% if sort_by == 'category' %}<i class="bi bi-arrow-{{ 'up' if sort_order == 'asc' else 'down' }}-short"></i>{% endif %}</a></th>
                             <th class="text-end sortable-th"><a href="{{ sort_url(request, 'euros_per_kg', sort_by, sort_order) }}">&euro;/kg{% if sort_by == 'euros_per_kg' %}<i class="bi bi-arrow-{{ 'up' if sort_order == 'asc' else 'down' }}-short"></i>{% endif %}</a></th>

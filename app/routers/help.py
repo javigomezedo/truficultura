@@ -1,3 +1,15 @@
+from __future__ import annotations
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import APIRouter, Depends, Form, Request
+from datetime import UTC, datetime
+from sqlalchemy import update
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.auth import require_user
+from app.database import get_db
+from app.help_videos import SECTION_LABELS, available_videos
+from app.jinja import templates
+from app.models.user import User
+
 """Páginas de ayuda y glosario.
 
 Acceso público (no requiere login) para que los enlaces de los `help_hint`
@@ -7,22 +19,17 @@ Excepción: `POST /ayuda/onboarding-guide/step` requiere sesión y
 actualiza el estado de onboarding del usuario.
 """
 
-from __future__ import annotations
-
-from datetime import UTC, datetime
-
-from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import HTMLResponse, JSONResponse
-from sqlalchemy import update
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.auth import require_user
-from app.database import get_db
-from app.help_videos import SECTION_LABELS, available_videos
-from app.jinja import templates
-from app.models.user import User
 
 router = APIRouter(prefix="/ayuda", tags=["ayuda"])
+
+"""Páginas de ayuda y glosario.
+
+Acceso público (no requiere login) para que los enlaces de los `help_hint`
+sean linkables desde cualquier sitio, incluyendo correos o landing.
+
+Excepción: `POST /ayuda/onboarding-guide/step` requiere sesión y
+actualiza el estado de onboarding del usuario.
+"""
 
 
 @router.get("/", response_class=HTMLResponse, include_in_schema=False)

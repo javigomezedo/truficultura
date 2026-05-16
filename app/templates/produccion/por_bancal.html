@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ _("Cosecha por bancal") }} &mdash; Trufiq{% endblock %}
+{% block title %}{{ _("Cosecha por parcela") }} &mdash; Trufiq{% endblock %}
 
 {% block content %}
 {% set read_only = session_plan_mode(request.session) == 'read_only' %}
@@ -8,7 +8,7 @@
     <div class="tf-page-header">
         <div>
             <p class="tf-page-kicker">{{ _("Registro de producción") }}</p>
-            <h1 class="tf-page-title"><i class="bi bi-basket2-fill text-success me-2"></i>{{ _("Cosecha por bancal") }}</h1>
+            <h1 class="tf-page-title"><i class="bi bi-basket2-fill text-success me-2"></i>{{ _("Cosecha por parcela") }}</h1>
         </div>
         {% if not read_only %}
         <a href="/harvests/new" class="btn btn-success">
@@ -31,7 +31,7 @@
         </li>
         <li class="nav-item">
             <a class="nav-link active" href="/harvests/{% if selected_campaign %}?camp={{ selected_campaign }}{% endif %}">
-                <i class="bi bi-basket2 me-1"></i>{{ _("Por bancal") }}
+                <i class="bi bi-basket2 me-1"></i>{{ _("Por parcela") }}
             </a>
         </li>
     </ul>

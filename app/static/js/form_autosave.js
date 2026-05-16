@@ -46,47 +46,141 @@
             if (el.name === "_method") return;
             // Saltar campos marcados explícitamente para no autosalvar
             if (el.hasAttribute("data-autosave-skip")) return;
-            // Saltar selects: dependen a menudo de datos cargados de forma
-            // asíncrona (provincia/municipio) y restaurarlos antes de tiempo
-            // puede dejar el valor en blanco. Que el usuario los re-seleccione.
-            if (el.tagName === "SELECT") return;
+            // Saltar readonly: suelen ser valores derivados (p. ej. porcentaje)
+            if (el.readOnly) return;
             if (el.type === "checkbox" || el.type === "radio") {
                 if (el.checked) data[el.name] = el.value;
-            } else if (el.value !== "") {
+            } else if (el.tagName === "SELECT") {
+                // Para selects, guardamos cualquier valor no vacío. Las opciones
+                // pueden cargarse de forma asíncrona (p. ej. municipios tras
+                // elegir provincia); en restore usamos un MutationObserver.
+                if (el.value !== "") data[el.name] = el.value;
+            } else if (el.value !== "" && el.value !== el.defaultValue) {
+                // Solo guardar lo que el usuario haya cambiado respecto al
+                // valor por defecto renderizado por el servidor.
                 data[el.name] = el.value;
             }
         });
         return data;
     }
 
+    function setSelectValue(sel, value) {
+        // Intenta seleccionar la opción con ese value. Si todavía no existe
+        // (opciones cargadas async), observa el select hasta que aparezca.
+        for (var i = 0; i < sel.options.length; i++) {
+            if (sel.options[i].value === value) {
+                sel.value = value;
+                sel.dispatchEvent(new Event("change", { bubbles: true }));
+                return;
+            }
+        }
+        var observer = new MutationObserver(function () {
+            for (var i = 0; i < sel.options.length; i++) {
+                if (sel.options[i].value === value) {
+                    sel.value = value;
+                    sel.dispatchEvent(new Event("change", { bubbles: true }));
+                    observer.disconnect();
+                    return;
+                }
+            }
+        });
+        observer.observe(sel, { childList: true });
+        // Auto-desconectar tras 10s para no quedar colgado
+        setTimeout(function () { observer.disconnect(); }, 10000);
+    }
+
     function applyData(form, data) {
+        // Aplicar primero inputs/textareas e ir dejando los selects para el
+        // final: así un select que dispara la carga de otro (provincia →
+        // municipios) tiene tiempo de poblar opciones antes de buscar el
+        // valor del dependiente.
+        var selectEntries = [];
         Object.keys(data).forEach(function (name) {
             var els = form.querySelectorAll('[name="' + CSS.escape(name) + '"]');
             els.forEach(function (el) {
-                if (el.type === "checkbox" || el.type === "radio") {
+                if (el.tagName === "SELECT") {
+                    selectEntries.push({ el: el, value: data[name] });
+                } else if (el.type === "checkbox" || el.type === "radio") {
                     el.checked = (el.value === data[name]);
+                    el.dispatchEvent(new Event("change", { bubbles: true }));
                 } else {
                     el.value = data[name];
+                    el.dispatchEvent(new Event("change", { bubbles: true }));
                 }
-                // Disparar change para que listeners (geo dropdowns, etc.) reaccionen
-                el.dispatchEvent(new Event("change", { bubbles: true }));
             });
+        });
+        selectEntries.forEach(function (entry) {
+            setSelectValue(entry.el, entry.value);
         });
     }
 
     function isFormPristine(form) {
-        // Considera "limpio" un form donde solo hay valores que el HTML traía
-        // por defecto. Como aproximación: si NINGÚN input rellenable tiene
-        // valor introducido por el usuario (más allá de defaults razonables),
-        // restauramos. Para el caso de creación de parcela esto se cumple.
-        var anyFilled = false;
+        // Considera "limpio" un form donde ningún input rellenable ha sido
+        // modificado respecto al valor por defecto renderizado por el HTML.
+        // Esto evita que valores como `num_plants=0` o `percentage=0,00`
+        // (defaults del servidor) impidan restaurar un borrador.
+        var anyEdited = false;
         form.querySelectorAll("input[name], textarea[name]").forEach(function (el) {
             if (el.type === "hidden" || el.type === "password") return;
-            if ((el.value || "").trim() && el.name !== "recinto") {
-                anyFilled = true;
+            if (el.readOnly) return;
+            if (el.name === "recinto") return;
+            if ((el.value || "") !== (el.defaultValue || "")) {
+                anyEdited = true;
             }
         });
-        return !anyFilled;
+        return !anyEdited;
+    }
+
+    function formatAge(ms) {
+        var minutes = Math.floor(ms / 60000);
+        if (minutes < 1) return "hace menos de 1 min";
+        if (minutes < 60) return "hace " + minutes + " min";
+        var hours = Math.floor(minutes / 60);
+        if (hours < 24) return "hace " + hours + " h";
+        var days = Math.floor(hours / 24);
+        return "hace " + days + " d";
+    }
+
+    function showRestoreBanner(form, payload, key) {
+        // Evitar duplicar banner si ya existe
+        if (form.querySelector(".tf-autosave-banner")) return;
+        var banner = document.createElement("div");
+        banner.className = "alert alert-warning d-flex flex-wrap align-items-center justify-content-between gap-2 tf-autosave-banner";
+        banner.setAttribute("role", "alert");
+
+        var msg = document.createElement("div");
+        msg.innerHTML = '<i class="bi bi-clock-history me-2"></i>' +
+            "<strong>Tienes datos sin guardar</strong> de " + formatAge(Date.now() - payload.savedAt) + ".";
+        banner.appendChild(msg);
+
+        var actions = document.createElement("div");
+        actions.className = "d-flex gap-2";
+
+        var btnRestore = document.createElement("button");
+        btnRestore.type = "button";
+        btnRestore.className = "btn btn-sm btn-warning";
+        btnRestore.innerHTML = '<i class="bi bi-arrow-counterclockwise me-1"></i>Restaurar';
+        btnRestore.addEventListener("click", function () {
+            applyData(form, payload.data || {});
+            setStatus("Borrador restaurado");
+            banner.remove();
+        });
+
+        var btnDiscard = document.createElement("button");
+        btnDiscard.type = "button";
+        btnDiscard.className = "btn btn-sm btn-outline-secondary";
+        btnDiscard.innerHTML = '<i class="bi bi-trash me-1"></i>Descartar';
+        btnDiscard.addEventListener("click", function () {
+            try { localStorage.removeItem(key); } catch (e) {}
+            setStatus("");
+            banner.remove();
+        });
+
+        actions.appendChild(btnRestore);
+        actions.appendChild(btnDiscard);
+        banner.appendChild(actions);
+
+        form.insertBefore(banner, form.firstChild);
     }
 
     function loadDraft(form) {
@@ -103,8 +197,8 @@
             return;
         }
         if (!isFormPristine(form)) return;
-        applyData(form, payload.data || {});
-        setStatus("Borrador restaurado");
+        if (!payload.data || Object.keys(payload.data).length === 0) return;
+        showRestoreBanner(form, payload, key);
     }
 
     function saveDraft(form) {

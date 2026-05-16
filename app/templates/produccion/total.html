@@ -25,7 +25,7 @@
         </li>
         <li class="nav-item">
             <a class="nav-link" href="/harvests/{% if selected_campaign %}?camp={{ selected_campaign }}{% endif %}">
-                <i class="bi bi-basket2 me-1"></i>{{ _("Por bancal") }}
+                <i class="bi bi-basket2 me-1"></i>{{ _("Por parcela") }}
             </a>
         </li>
     </ul>
@@ -76,7 +76,7 @@
                         <tr>
                             <th>{{ _("Parcela") }}</th>
                             <th class="text-end">{{ _("Por planta (g)") }}</th>
-                            <th class="text-end">{{ _("Por bancal (g)") }}</th>
+                            <th class="text-end">{{ _("Por parcela (g)") }}</th>
                             <th class="text-end fw-bold">{{ _("Total (g)") }}</th>
                         </tr>
                     </thead>
@@ -128,7 +128,7 @@
                             </span>
                             {% else %}
                             <span class="badge text-bg-warning text-dark">
-                                <i class="bi bi-basket2 me-1"></i>{{ _("Bancal") }}
+                                <i class="bi bi-basket2 me-1"></i>{{ _("Parcela") }}
                             </span>
                             {% endif %}
                         </td>
@@ -143,7 +143,7 @@
         <div class="card-body tf-empty-state">
             <i class="bi bi-layers display-4 d-block mb-3 opacity-50"></i>
             <p class="mb-1 fw-semibold">{{ _("Sin producción registrada") }}</p>
-            <p class="mb-0 small">{{ _("Registra producción por planta (mapa de parcela) o por bancal.") }}</p>
+            <p class="mb-0 small">{{ _("Registra producción por planta (mapa de parcela) o por parcela completa.") }}</p>
         </div>
         {% endif %}
     </div>

@@ -18,7 +18,7 @@
     <div>
         <p class="tf-page-kicker">{{ _("Visión analítica") }}</p>
         <h1 class="tf-page-title">{{ _("Gráficas") }}</h1>
-        <p class="tf-page-subtitle">{{ _("Análisis visual de producción, ingresos y gastos por campaña y bancal.") }}</p>
+        <p class="tf-page-subtitle">{{ _("Análisis visual de producción, ingresos y gastos por campaña y parcela.") }}</p>
     </div>
     <div class="tf-tag"><i class="bi bi-graph-up"></i>{{ _("Comparativa semanal") }}</div>
 </div>
@@ -29,7 +29,7 @@
 <div class="card tf-panel shadow-sm mb-4 border-0">
     <div class="card-header">
         <h5 class="mb-0">
-            <i class="bi bi-table me-2 text-success"></i>{{ _("Producción por Campaña y Bancal (kg/ha)") }}
+            <i class="bi bi-table me-2 text-success"></i>{{ _("Producción por Campaña y Parcela (kg/ha)") }}
         </h5>
     </div>
     <div class="card-body p-0">
@@ -115,10 +115,10 @@
                 </select>
             </div>
             <div class="tf-filter-item tf-filter-item--compact">
-                <label class="form-label">{{ _("Bancal") }}</label>
+                <label class="form-label">{{ _("Parcela") }}</label>
                 <select id="plotSelect" name="plot_id" class="form-select form-select-sm"
                         onchange="applyFilters()">
-                    <option value="">{{ _("Todos los bancales") }}</option>
+                    <option value="">{{ _("Todas las parcelas") }}</option>
                     {% for p in all_plots %}
                     <option value="{{ p.id }}"
                         {% if p.id == selected_plot_id %}selected{% endif %}>
@@ -215,7 +215,7 @@
         <div class="card tf-panel shadow-sm h-100 border-0">
             <div class="card-header">
                 <h6 class="mb-0">
-                    <i class="bi bi-bar-chart-grouped me-1 text-primary"></i>{{ _("Ingresos vs Gastos por Bancal (€)") }}
+                    <i class="bi bi-bar-chart-grouped me-1 text-primary"></i>{{ _("Ingresos vs Gastos por Parcela (€)") }}
                     {% if selected_campaign %}
                     <span class="badge bg-secondary ms-2 fw-normal">{{ selected_campaign | campaign_label }}</span>
                     {% else %}
