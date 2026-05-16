@@ -6,11 +6,15 @@ import pytest
 
 import httpx
 
+from types import SimpleNamespace
+
 from app.services.email_service import (
     _send_via_postmark,
     _send_via_smtp,
     send_confirmation_email,
     send_email,
+    send_incident_notification,
+    send_incident_resolved_email,
     send_password_reset_email,
     send_welcome_email,
 )
@@ -276,3 +280,194 @@ async def test_send_welcome_email_contains_first_name_and_dashboard_url(monkeypa
     assert "María" in sent_html[0]
     assert "https://app.example.com/" in sent_html[0]
     assert "https://app.example.com/plots/new" in sent_html[0]
+
+
+# ---------------------------------------------------------------------------
+# send_incident_notification
+# ---------------------------------------------------------------------------
+
+
+def _fake_incident_settings():
+    return type(
+        "S",
+        (),
+        {
+            "email_configured": True,
+            "postmark_configured": True,
+            "smtp_configured": False,
+            "effective_from": "noreply@example.com",
+            "CONTACT_EMAIL": "admin@example.com",
+            "APP_BASE_URL": "https://app.example.com",
+        },
+    )()
+
+
+def _fake_incident(incident_id: int = 1) -> SimpleNamespace:
+    return SimpleNamespace(
+        id=incident_id,
+        title="Error en el botón",
+        category_label="Botón roto",
+        severity_label="Alta",
+    )
+
+
+def _fake_user() -> SimpleNamespace:
+    return SimpleNamespace(
+        first_name="Juan",
+        last_name="García",
+        email="juan@example.com",
+    )
+
+
+@pytest.mark.asyncio
+async def test_send_incident_notification_skips_when_no_backend(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.services.email_service.settings",
+        type("S", (), {"email_configured": False, "CONTACT_EMAIL": None, "effective_from": "x@x.com"})(),
+    )
+    sent: list[str] = []
+
+    async def capture(to, subject, html_body):
+        sent.append(to)
+
+    monkeypatch.setattr("app.services.email_service.send_email", capture)
+    await send_incident_notification(incident=_fake_incident(), user=_fake_user())
+
+    assert sent == []
+
+
+@pytest.mark.asyncio
+async def test_send_incident_notification_sends_to_contact_email(monkeypatch) -> None:
+    monkeypatch.setattr("app.services.email_service.settings", _fake_incident_settings())
+
+    sent_to: list[str] = []
+    sent_subjects: list[str] = []
+    sent_bodies: list[str] = []
+
+    async def capture(to, subject, html_body):
+        sent_to.append(to)
+        sent_subjects.append(subject)
+        sent_bodies.append(html_body)
+
+    monkeypatch.setattr("app.services.email_service.send_email", capture)
+    await send_incident_notification(incident=_fake_incident(1), user=_fake_user())
+
+    assert sent_to == ["admin@example.com"]
+    assert "Error en el botón" in sent_subjects[0]
+    assert "Alta" in sent_subjects[0]
+    assert "https://app.example.com/incidents/admin/1" in sent_bodies[0]
+    assert "Botón roto" in sent_bodies[0]
+    assert "Juan" in sent_bodies[0]
+
+
+@pytest.mark.asyncio
+async def test_send_incident_notification_escapes_html(monkeypatch) -> None:
+    monkeypatch.setattr("app.services.email_service.settings", _fake_incident_settings())
+
+    sent_bodies: list[str] = []
+
+    async def capture(to, subject, html_body):
+        sent_bodies.append(html_body)
+
+    monkeypatch.setattr("app.services.email_service.send_email", capture)
+
+    malicious_incident = SimpleNamespace(
+        id=1,
+        title="<script>alert('xss')</script>",
+        category_label="<b>bold</b>",
+        severity_label="Alta",
+    )
+    malicious_user = SimpleNamespace(
+        first_name="<img src=x>",
+        last_name="",
+        email="bad@x.com",
+    )
+    await send_incident_notification(incident=malicious_incident, user=malicious_user)
+
+    assert "<script>" not in sent_bodies[0]
+    assert "&lt;script&gt;" in sent_bodies[0]
+
+
+# ---------------------------------------------------------------------------
+# send_incident_resolved_email
+# ---------------------------------------------------------------------------
+
+
+def _fake_resolved_incident() -> SimpleNamespace:
+    return SimpleNamespace(
+        id=5,
+        title="Error en el botón",
+        admin_response="Se ha corregido en la versión 1.2.",
+        user=SimpleNamespace(email="juan@example.com"),
+    )
+
+
+@pytest.mark.asyncio
+async def test_send_incident_resolved_email_no_user_skips(monkeypatch) -> None:
+    inc = _fake_resolved_incident()
+    inc.user = None
+
+    sent: list[str] = []
+
+    async def capture(to, subject, html_body):
+        sent.append(to)
+
+    monkeypatch.setattr("app.services.email_service.send_email", capture)
+    await send_incident_resolved_email(incident=inc)
+
+    assert sent == []
+
+
+@pytest.mark.asyncio
+async def test_send_incident_resolved_email_no_email_address_skips(monkeypatch) -> None:
+    inc = _fake_resolved_incident()
+    inc.user = SimpleNamespace(email=None)
+
+    sent: list[str] = []
+
+    async def capture(to, subject, html_body):
+        sent.append(to)
+
+    monkeypatch.setattr("app.services.email_service.send_email", capture)
+    await send_incident_resolved_email(incident=inc)
+
+    assert sent == []
+
+
+@pytest.mark.asyncio
+async def test_send_incident_resolved_email_skips_when_no_backend(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.services.email_service.settings",
+        type("S", (), {"email_configured": False, "APP_BASE_URL": "https://app.example.com"})(),
+    )
+    sent: list[str] = []
+
+    async def capture(to, subject, html_body):
+        sent.append(to)
+
+    monkeypatch.setattr("app.services.email_service.send_email", capture)
+    await send_incident_resolved_email(incident=_fake_resolved_incident())
+
+    assert sent == []
+
+
+@pytest.mark.asyncio
+async def test_send_incident_resolved_email_sends_to_user(monkeypatch) -> None:
+    monkeypatch.setattr("app.services.email_service.settings", _fake_incident_settings())
+
+    sent_to: list[str] = []
+    sent_subjects: list[str] = []
+    sent_bodies: list[str] = []
+
+    async def capture(to, subject, html_body):
+        sent_to.append(to)
+        sent_subjects.append(subject)
+        sent_bodies.append(html_body)
+
+    monkeypatch.setattr("app.services.email_service.send_email", capture)
+    await send_incident_resolved_email(incident=_fake_resolved_incident())
+
+    assert sent_to == ["juan@example.com"]
+    assert "Error en el botón" in sent_subjects[0]
+    assert "Se ha corregido en la versión 1.2." in sent_bodies[0]
+    assert "https://app.example.com/incidents/5" in sent_bodies[0]
