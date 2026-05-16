@@ -17,6 +17,7 @@ from app.models.brule import BruleRecord
 from app.models.lead_capture import LeadCapture
 from app.models.notification import Notification, NotificationPreference
 from app.models.onboarding import OnboardingSession
+from app.models.incident import Incident
 
 __all__ = [
     "User",
@@ -41,4 +42,5 @@ __all__ = [
     "Notification",
     "NotificationPreference",
     "OnboardingSession",
+    "Incident",
 ]

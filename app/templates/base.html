@@ -268,6 +268,12 @@
                                     <i class="bi bi-robot me-1"></i> {{ _("Sesiones de onboarding") }}
                                 </a>
                             </li>
+                            <li>
+                                <a class="dropdown-item {% if '/incidents/admin' in request.url.path %}active{% endif %}"
+                                   href="/incidents/admin/list">
+                                    <i class="bi bi-bug-fill me-1 text-danger"></i> {{ _("Incidencias") }}
+                                </a>
+                            </li>
                         </ul>
                     </li>
                     {% endif %}
@@ -413,6 +419,11 @@
                             <li>
                                 <a class="dropdown-item {% if '/ayuda' in request.url.path %}active{% endif %}" href="/ayuda/">
                                     <i class="bi bi-question-circle me-1"></i>{{ _("Ayuda y glosario") }}
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if '/incidents' in request.url.path %}active{% endif %}" href="/incidents/">
+                                    <i class="bi bi-bug me-1"></i>{{ _("Incidencias") }}
                                 </a>
                             </li>
                             <li><hr class="dropdown-divider"></li>

@@ -367,6 +367,106 @@ async def send_payment_failed_email(to_email: str) -> None:
     await send_email(to_email, "Problema con tu pago en Trufiq", html_body)
 
 
+async def send_incident_notification(incident: "Incident", user: "User") -> None:  # noqa: F821
+    """Notifica al administrador cuando se crea una nueva incidencia."""
+    contact_email = settings.CONTACT_EMAIL or settings.effective_from
+    if not settings.email_configured:
+        logger.info(
+            "[incident] Sin backend de email — incidencia #%s guardada pero no se envió email.",
+            incident.id,
+        )
+        return
+
+    incident_url = f"{settings.APP_BASE_URL}/incidents/admin/{incident.id}"
+    safe_title = html.escape(incident.title)
+    safe_category = html.escape(incident.category_label)
+    safe_severity = html.escape(incident.severity_label)
+    safe_user = html.escape(f"{user.first_name} {user.last_name}".strip() or user.email)
+
+    html_body = f"""
+<!DOCTYPE html>
+<html lang="es">
+<body style="font-family: sans-serif; max-width: 540px; margin: 0 auto; padding: 24px; color: #2f261d;">
+  <h2 style="font-family: Georgia, serif; color: #5a3e1b;">Nueva incidencia reportada</h2>
+  <table style="width:100%; border-collapse: collapse; margin-top: 1rem;">
+    <tr>
+      <td style="padding: 8px; font-weight: 600; border-bottom: 1px solid #e5e0d8; width: 110px;">Título</td>
+      <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;">{safe_title}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; font-weight: 600; border-bottom: 1px solid #e5e0d8;">Categoría</td>
+      <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;">{safe_category}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; font-weight: 600; border-bottom: 1px solid #e5e0d8;">Severidad</td>
+      <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;">{safe_severity}</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px; font-weight: 600; border-bottom: 1px solid #e5e0d8;">Usuario</td>
+      <td style="padding: 8px; border-bottom: 1px solid #e5e0d8;">{safe_user}</td>
+    </tr>
+  </table>
+  <p style="margin-top: 1.5rem;">
+    <a href="{incident_url}"
+       style="background: #5a3e1b; color: #fff; padding: 10px 20px; border-radius: 8px;
+              text-decoration: none; font-weight: 600;">
+      Ver incidencia en el panel
+    </a>
+  </p>
+</body>
+</html>
+"""
+    await send_email(
+        contact_email,
+        f"[Trufiq] Nueva incidencia: {incident.title} [{incident.severity_label}]",
+        html_body,
+    )
+
+
+async def send_incident_resolved_email(incident: "Incident") -> None:  # noqa: F821
+    """Notifica al usuario que su incidencia ha sido resuelta."""
+    if not incident.user or not incident.user.email:
+        return
+    if not settings.email_configured:
+        logger.info(
+            "[incident] Sin backend de email — resolución de incidencia #%s no notificada.",
+            incident.id,
+        )
+        return
+
+    incident_url = f"{settings.APP_BASE_URL}/incidents/{incident.id}"
+    safe_title = html.escape(incident.title)
+    safe_response = html.escape(incident.admin_response or "")
+
+    html_body = f"""
+<!DOCTYPE html>
+<html lang="es">
+<body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #333;">
+  <h2 style="color: #5a3e1b;">Tu incidencia ha sido resuelta — Trufiq</h2>
+  <p>Hola,</p>
+  <p>La incidencia <strong>&ldquo;{safe_title}&rdquo;</strong> que reportaste en Trufiq ha sido revisada y marcada como resuelta.</p>
+  <div style="background: #f0f7f0; border-left: 4px solid #28a745; padding: 16px; border-radius: 4px; margin: 24px 0;">
+    <strong>Respuesta del equipo:</strong>
+    <p style="margin: 8px 0 0; white-space: pre-wrap;">{safe_response}</p>
+  </div>
+  <p style="margin: 32px 0;">
+    <a href="{incident_url}"
+       style="background: #5a3e1b; color: #fff; padding: 12px 24px;
+              text-decoration: none; border-radius: 6px; font-weight: bold;">
+      Ver incidencia
+    </a>
+  </p>
+  <p style="color: #999; font-size: 0.85em;">Si el problema persiste, puedes abrir una nueva incidencia desde la sección de Ayuda.</p>
+</body>
+</html>
+"""
+    await send_email(
+        incident.user.email,
+        f'[Trufiq] Tu incidencia "{incident.title}" ha sido resuelta',
+        html_body,
+    )
+
+
 async def send_subscription_canceled_email(
     to_email: str, ends_at: str | None = None
 ) -> None:

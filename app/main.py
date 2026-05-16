@@ -49,6 +49,7 @@ from app.routers import (
     harvests,
     help as help_router,
     imports,
+    incidents,
     incomes,
     irrigation,
     kpis,
@@ -138,6 +139,7 @@ brule.templates = templates
 tenants.templates = templates
 notifications.templates = templates
 profile.templates = templates
+incidents.templates = templates
 
 # Include routers
 app.include_router(auth.router)
@@ -172,6 +174,7 @@ app.include_router(notifications.router)
 app.include_router(onboarding.router)
 app.include_router(profile.router)
 app.include_router(help_router.router)
+app.include_router(incidents.router)
 
 
 @app.get("/landing", response_class=HTMLResponse, include_in_schema=False)
