@@ -42,6 +42,12 @@ class User(Base):
     last_seen_at: Mapped[Optional[datetime.datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    onboarding_step: Mapped[Optional[str]] = mapped_column(
+        String(32), nullable=True
+    )
+    onboarding_completed_at: Mapped[Optional[datetime.datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Relationship to tenant membership (each user belongs to exactly one tenant)
     membership: Mapped[Optional["TenantMembership"]] = relationship(

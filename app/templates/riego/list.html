@@ -21,7 +21,7 @@
             <i class="bi bi-plus-circle me-1"></i> {{ _("Nuevo registro") }}
         </a>
         <a href="/irrigation/bulk-new" class="btn btn-outline-primary">
-            <i class="bi bi-table me-1"></i> {{ _("Registrar factura (todos los bancales)") }}
+            <i class="bi bi-table me-1"></i> {{ _("Registrar factura (todas las parcelas)") }}
         </a>
         {% endif %}
     </div>
@@ -81,7 +81,7 @@
                     <select id="simPlotId"
                             class="form-select form-select-sm border-0 text-white"
                             style="background: rgba(255,255,255,0.15); width: auto; max-width: 180px; font-size: 0.75rem;">
-                        <option value="" style="color: #333; background: #fff;">{{ _("Elige bancal…") }}</option>
+                        <option value="" style="color: #333; background: #fff;">{{ _("Elige parcela…") }}</option>
                         {% for p in plots %}
                         <option value="{{ p.id }}" style="color: #333; background: #fff;">{{ p.name }}</option>
                         {% endfor %}
@@ -90,7 +90,7 @@
                 <div class="card-body p-3" id="simResult">
                     <div class="text-muted text-center py-3 small">
                         <i class="bi bi-water fs-2 d-block mb-2 opacity-25"></i>
-                        {{ _("Selecciona un bancal para ver la simulación de riego.") }}
+                        {{ _("Selecciona una parcela para ver la simulación de riego.") }}
                     </div>
                 </div>
             </div>
@@ -251,7 +251,7 @@
 
     const EMPTY_STATE = `<div class="text-muted text-center py-3 small">
         <i class="bi bi-water fs-2 d-block mb-2 opacity-25"></i>
-        {{ _("Selecciona un bancal para ver la simulación de riego.") }}
+        {{ _("Selecciona una parcela para ver la simulación de riego.") }}
     </div>`;
 
     function fmt(val, decimals) {

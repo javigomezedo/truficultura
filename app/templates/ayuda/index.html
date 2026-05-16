@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% block title %}Ayuda · Trufiq{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-3">Centro de ayuda</h1>
+    <p class="text-muted">
+        ¿No sabes por dónde empezar o tienes una duda concreta? Estás en el sitio.
+    </p>
+
+    <div class="row g-3 mt-3">
+        <div class="col-md-6 col-lg-4">
+            <a href="/ayuda/glosario" class="card h-100 text-decoration-none">
+                <div class="card-body">
+                    <h2 class="h5 card-title">
+                        <i class="bi bi-book me-2 text-primary"></i> Glosario
+                    </h2>
+                    <p class="card-text text-muted small mb-0">
+                        Las palabras de Trufiq explicadas en cristiano: brulé, campaña,
+                        SIGPAC, prorrateo, porcentaje de parcela…
+                    </p>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <a href="/ayuda/videos" class="card h-100 text-decoration-none">
+                <div class="card-body">
+                    <h2 class="h5 card-title">
+                        <i class="bi bi-play-circle me-2 text-danger"></i> Vídeos
+                    </h2>
+                    <p class="card-text text-muted small mb-0">
+                        {% if videos %}
+                            {{ videos|length }} {% if videos|length == 1 %}vídeo corto{% else %}vídeos cortos{% endif %} de
+                            1 minuto que enseñan lo esencial.
+                        {% else %}
+                            Cortos de 1 minuto. Estamos grabándolos; vuelve pronto.
+                        {% endif %}
+                    </p>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <a href="#faq" class="card h-100 text-decoration-none">
+                <div class="card-body">
+                    <h2 class="h5 card-title">
+                        <i class="bi bi-question-circle me-2 text-success"></i>
+                        Preguntas frecuentes
+                    </h2>
+                    <p class="card-text text-muted small mb-0">
+                        Lo que más nos preguntáis: campañas, reparto de gastos,
+                        contraseñas, exportar a tu gestor…
+                    </p>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <hr class="my-5">
+
+    <h2 id="faq" class="h3 mb-3">
+        <i class="bi bi-question-circle me-2"></i> Preguntas frecuentes
+    </h2>
+
+    <div class="accordion" id="trufiq-faq">
+        <div class="accordion-item">
+            <h3 class="accordion-header" id="faq-h-campana">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#faq-c-campana"
+                        aria-expanded="false" aria-controls="faq-c-campana">
+                    ¿Qué es una campaña en Trufiq?
+                </button>
+            </h3>
+            <div id="faq-c-campana" class="accordion-collapse collapse"
+                 aria-labelledby="faq-h-campana" data-bs-parent="#trufiq-faq">
+                <div class="accordion-body">
+                    En truficultura usamos el ciclo agrícola, no el año natural. Una
+                    campaña va <strong>de mayo a abril del año siguiente</strong>. Por
+                    eso "2025/26" significa mayo 2025 → abril 2026. Todos los gastos,
+                    ingresos y cosechas se agrupan según en qué campaña caen.
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h3 class="accordion-header" id="faq-h-reparto">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#faq-c-reparto"
+                        aria-expanded="false" aria-controls="faq-c-reparto">
+                    ¿Por qué se reparten los gastos sin parcela?
+                </button>
+            </h3>
+            <div id="faq-c-reparto" class="accordion-collapse collapse"
+                 aria-labelledby="faq-h-reparto" data-bs-parent="#trufiq-faq">
+                <div class="accordion-body">
+                    Hay gastos generales (gasoil, mantenimiento, una herramienta nueva)
+                    que sirven para toda la finca. Si no le pones parcela, Trufiq
+                    los reparte automáticamente entre todas tus parcelas
+                    <strong>proporcionalmente al número de plantas</strong> que tiene
+                    cada una. Así la rentabilidad de cada parcela es realista.
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h3 class="accordion-header" id="faq-h-borrar">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#faq-c-borrar"
+                        aria-expanded="false" aria-controls="faq-c-borrar">
+                    ¿Cómo borro una parcela?
+                </button>
+            </h3>
+            <div id="faq-c-borrar" class="accordion-collapse collapse"
+                 aria-labelledby="faq-h-borrar" data-bs-parent="#trufiq-faq">
+                <div class="accordion-body">
+                    Entra en <em>Parcelas</em>, abre la parcela y pulsa el botón rojo
+                    <strong>Eliminar</strong>. Te pedirá confirmación. Ojo: si la
+                    parcela tiene gastos, ingresos o plantas asociadas, tendrás que
+                    decidir qué hacer con ellos (Trufiq te avisa antes).
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h3 class="accordion-header" id="faq-h-datos">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#faq-c-datos"
+                        aria-expanded="false" aria-controls="faq-c-datos">
+                    ¿Mis datos son míos?
+                </button>
+            </h3>
+            <div id="faq-c-datos" class="accordion-collapse collapse"
+                 aria-labelledby="faq-h-datos" data-bs-parent="#trufiq-faq">
+                <div class="accordion-body">
+                    Sí, totalmente. Solo tú (y los administradores que tú añadas) veis
+                    tus datos. Puedes <strong>exportar todo</strong> en CSV cuando
+                    quieras desde <em>Análisis → Exportar</em>. Si te das de baja,
+                    eliminamos tu información.
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h3 class="accordion-header" id="faq-h-idioma">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#faq-c-idioma"
+                        aria-expanded="false" aria-controls="faq-c-idioma">
+                    ¿Cómo cambio el idioma?
+                </button>
+            </h3>
+            <div id="faq-c-idioma" class="accordion-collapse collapse"
+                 aria-labelledby="faq-h-idioma" data-bs-parent="#trufiq-faq">
+                <div class="accordion-body">
+                    Arriba a la derecha tienes un selector con la bandera del idioma
+                    actual. Pulsa y elige entre español, inglés o francés. La
+                    aplicación recuerda tu elección.
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h3 class="accordion-header" id="faq-h-password">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#faq-c-password"
+                        aria-expanded="false" aria-controls="faq-c-password">
+                    He perdido la contraseña
+                </button>
+            </h3>
+            <div id="faq-c-password" class="accordion-collapse collapse"
+                 aria-labelledby="faq-h-password" data-bs-parent="#trufiq-faq">
+                <div class="accordion-body">
+                    En la pantalla de inicio de sesión pulsa <strong>"¿Olvidaste tu
+                    contraseña?"</strong>. Te enviaremos un correo con un enlace para
+                    crear una nueva. Si no te llega en un par de minutos, mira la
+                    carpeta de Spam.
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h3 class="accordion-header" id="faq-h-asesor">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#faq-c-asesor"
+                        aria-expanded="false" aria-controls="faq-c-asesor">
+                    ¿Puedo dar acceso a mi asesor o socio?
+                </button>
+            </h3>
+            <div id="faq-c-asesor" class="accordion-collapse collapse"
+                 aria-labelledby="faq-h-asesor" data-bs-parent="#trufiq-faq">
+                <div class="accordion-body">
+                    Sí. En <em>Cuenta → Equipo</em> puedes invitar a otras personas a
+                    tu finca con su correo electrónico. Tú decides si tienen permiso
+                    de ver todo o también de editar. Pueden quitarse cuando quieras.
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h3 class="accordion-header" id="faq-h-export">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#faq-c-export"
+                        aria-expanded="false" aria-controls="faq-c-export">
+                    ¿Cómo exporto todo para mi gestor fiscal?
+                </button>
+            </h3>
+            <div id="faq-c-export" class="accordion-collapse collapse"
+                 aria-labelledby="faq-h-export" data-bs-parent="#trufiq-faq">
+                <div class="accordion-body">
+                    Ve a <em>Análisis → Exportar</em>. Allí puedes descargar en CSV
+                    todos tus gastos, ingresos y resumen de campaña, listos para
+                    abrir en Excel o pasar a tu gestoría. Es el formato estándar
+                    europeo: separador <code>;</code> y coma decimal.
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h3 class="accordion-header" id="faq-h-brule">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#faq-c-brule"
+                        aria-expanded="false" aria-controls="faq-c-brule">
+                    ¿Qué es el brulé y cómo se mide?
+                </button>
+            </h3>
+            <div id="faq-c-brule" class="accordion-collapse collapse"
+                 aria-labelledby="faq-h-brule" data-bs-parent="#trufiq-faq">
+                <div class="accordion-body">
+                    El <em>brulé</em> es el corro de tierra desnuda alrededor de una
+                    planta micorrizada: la marca visible de que la simbiosis funciona.
+                    Se mide en centímetros de radio. En Trufiq lo apuntas planta a
+                    planta y la evolución te ayuda a saber cuáles están más activas.
+                    <a href="/ayuda/glosario#brule">Más detalle en el glosario →</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h3 class="accordion-header" id="faq-h-movil">
+                <button class="accordion-button collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#faq-c-movil"
+                        aria-expanded="false" aria-controls="faq-c-movil">
+                    ¿Funciona bien en el móvil en el campo sin cobertura?
+                </button>
+            </h3>
+            <div id="faq-c-movil" class="accordion-collapse collapse"
+                 aria-labelledby="faq-h-movil" data-bs-parent="#trufiq-faq">
+                <div class="accordion-body">
+                    Trufiq es una aplicación web optimizada para móvil. Necesita
+                    conexión para guardar, pero está pensada para funcionar con poca
+                    cobertura: pantallas ligeras, autoguardado del formulario si la
+                    pestaña se cierra, y posibilidad de instalarla como app desde el
+                    navegador (PWA).
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

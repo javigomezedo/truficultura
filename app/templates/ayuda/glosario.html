@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}Glosario · Trufiq{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/ayuda/">Ayuda</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Glosario</li>
+        </ol>
+    </nav>
+
+    <h1 class="mb-3">Glosario</h1>
+    <p class="text-muted">
+        Si te encuentras con una palabra que no conoces mientras usas Trufiq,
+        aquí la tienes explicada en cristiano. También puedes pulsar el icono
+        <i class="bi bi-question-circle"></i> que aparece junto a los términos
+        en cada pantalla.
+    </p>
+
+    <div class="row">
+        <div class="col-lg-3 d-none d-lg-block">
+            <nav class="sticky-top" style="top:6rem;">
+                <ul class="list-unstyled small">
+                    <li><a href="#bancal">Bancal</a></li>
+                    <li><a href="#brule">Brulé</a></li>
+                    <li><a href="#campana">Campaña agrícola</a></li>
+                    <li><a href="#catastro">Catastro / SIGPAC</a></li>
+                    <li><a href="#cosecha">Cosecha vs Recolecta</a></li>
+                    <li><a href="#gastos-generales">Gastos generales</a></li>
+                    <li><a href="#host">Host (carrasca / roble)</a></li>
+                    <li><a href="#poligono">Polígono</a></li>
+                    <li><a href="#porcentaje-parcela">Porcentaje de parcela</a></li>
+                    <li><a href="#prorrateo">Prorrateo</a></li>
+                    <li><a href="#recinto">Recinto</a></li>
+                    <li><a href="#roi">ROI / Rentabilidad</a></li>
+                </ul>
+            </nav>
+        </div>
+
+        <div class="col-lg-9">
+            <article id="bancal" class="mb-4">
+                <h2 class="h5">Bancal</h2>
+                <p>
+                    Forma tradicional de llamar a una parcela en muchas zonas trufícolas
+                    (Teruel, Soria, Castellón). En Trufiq usamos siempre la palabra
+                    <strong>parcela</strong> en los menús, pero si en tu zona dices «bancal»,
+                    es exactamente lo mismo.
+                </p>
+            </article>
+
+            <article id="brule" class="mb-4">
+                <h2 class="h5">Brulé</h2>
+                <p>
+                    Es la zona quemada alrededor del árbol donde no crece hierba. Aparece
+                    cuando el hongo de la trufa está activo en las raíces. Un brulé bien
+                    formado suele ser señal de que esa planta producirá.
+                </p>
+                <p class="mb-0">
+                    En Trufiq puedes apuntar el estado del brulé planta por planta, y la
+                    aplicación lo cruza con tus cosechas para ayudarte a predecir
+                    producción.
+                </p>
+            </article>
+
+            <article id="campana" class="mb-4">
+                <h2 class="h5">Campaña agrícola</h2>
+                <p>
+                    No coincide con el año natural. En Trufiq una campaña va de
+                    <strong>mayo a abril</strong> del año siguiente. Por ejemplo, la campaña
+                    «2025/26» empieza el 1 de mayo de 2025 y termina el 30 de abril de 2026.
+                </p>
+                <p class="mb-0">
+                    Lo hacemos así porque la temporada de trufa (noviembre–marzo) cae
+                    siempre dentro de una sola campaña, igual que los gastos previos
+                    (laboreo, riego de verano).
+                </p>
+            </article>
+
+            <article id="catastro" class="mb-4">
+                <h2 class="h5">Catastro / SIGPAC</h2>
+                <p>
+                    El <strong>SIGPAC</strong> (Sistema de Información Geográfica de Parcelas
+                    Agrícolas) es el registro oficial español de parcelas. Identifica cada
+                    finca con: provincia, municipio, polígono, parcela y recinto.
+                </p>
+                <p class="mb-0">
+                    Si lo conoces, al crear una parcela en Trufiq puedes meter esos datos y
+                    la aplicación rellena el resto sola (superficie, ubicación). Si no, no
+                    pasa nada: lo dejas en blanco.
+                </p>
+            </article>
+
+            <article id="cosecha" class="mb-4">
+                <h2 class="h5">Cosecha vs Recolecta</h2>
+                <p>
+                    En Trufiq «cosecha» y «recolecta» se usan como sinónimos: cada vez que
+                    sacas trufas de la finca lo apuntas como cosecha (kilos + precio por kilo).
+                    La suma de todas las cosechas de una campaña te da la producción anual de
+                    esa parcela.
+                </p>
+            </article>
+
+            <article id="gastos-generales" class="mb-4">
+                <h2 class="h5">Gastos generales (sin parcela asignada)</h2>
+                <p>
+                    Hay gastos que no son de una parcela concreta: el seguro de la finca, el
+                    asesor, el gasoil del coche para ir al monte… En Trufiq los apuntas sin
+                    asignar parcela y la aplicación los <strong>reparte automáticamente</strong>
+                    entre todas tus parcelas según el tamaño de cada una (medido en número
+                    de plantas).
+                </p>
+                <p class="mb-0">
+                    Así, cuando miras la rentabilidad parcela a parcela, cada una carga con
+                    la parte proporcional de gastos generales que le toca.
+                </p>
+            </article>
+
+            <article id="host" class="mb-4">
+                <h2 class="h5">Host (carrasca, roble, etc.)</h2>
+                <p>
+                    El árbol bajo el que vive la trufa se llama <strong>hospedador</strong> o
+                    <em>host</em>. En España lo más habitual es <strong>carrasca</strong>
+                    (Quercus ilex) y <strong>roble</strong> (Quercus pubescens, Quercus faginea).
+                    En Trufiq puedes apuntar qué tipo de host tiene cada planta.
+                </p>
+            </article>
+
+            <article id="poligono" class="mb-4">
+                <h2 class="h5">Polígono (catastral)</h2>
+                <p>
+                    Es uno de los números que aparecen en la referencia catastral SIGPAC.
+                    Junto con la provincia, municipio, parcela y recinto, identifica
+                    inequívocamente tu finca. Lo puedes encontrar en la
+                    <a href="https://sigpac.mapa.gob.es/fega/visor/" target="_blank" rel="noopener">visor del SIGPAC</a>
+                    o en cualquier documento agrario.
+                </p>
+            </article>
+
+            <article id="porcentaje-parcela" class="mb-4">
+                <h2 class="h5">Porcentaje de parcela</h2>
+                <p>
+                    Es la proporción que esta parcela representa sobre el total de tu
+                    explotación, medida en <strong>número de plantas</strong>. Si tienes 1.000
+                    plantas en total y una parcela con 200, esa parcela tiene un 20% del peso.
+                </p>
+                <p class="mb-0">
+                    Lo usamos para repartir los <a href="#gastos-generales">gastos generales</a>
+                    de forma justa: cuanto más grande es una parcela, más le toca asumir.
+                </p>
+            </article>
+
+            <article id="prorrateo" class="mb-4">
+                <h2 class="h5">Prorrateo (inversiones plurianuales)</h2>
+                <p>
+                    Cuando compras algo grande que vas a usar durante varios años (un tractor,
+                    instalar riego, una nave…) no tiene sentido cargar todo el gasto a una
+                    sola campaña: te haría parecer que ese año fue ruinoso.
+                </p>
+                <p class="mb-0">
+                    En Trufiq puedes marcar la casilla <em>«¿Es una inversión grande que dura
+                    varios años?»</em> e indicar entre cuántas campañas se reparte. La
+                    aplicación contará una parte proporcional cada año.
+                </p>
+            </article>
+
+            <article id="recinto" class="mb-4">
+                <h2 class="h5">Recinto (catastral)</h2>
+                <p>
+                    Subdivisión de una parcela catastral SIGPAC. Si tu parcela está dividida
+                    en varios usos (parte de monte, parte de cultivo) cada trozo tiene su
+                    número de recinto. Si no sabes el tuyo, prueba con «1».
+                </p>
+            </article>
+
+            <article id="roi" class="mb-4">
+                <h2 class="h5">ROI / Rentabilidad</h2>
+                <p>
+                    El <strong>ROI</strong> («Return On Investment», retorno sobre la inversión)
+                    es un porcentaje que mide cuánto ganas respecto a lo que has gastado. Si
+                    has gastado 10.000 € e ingresado 12.000 €, has ganado 2.000 €, que sobre
+                    los 10.000 € de gasto es un 20% de ROI.
+                </p>
+                <p class="mb-0">
+                    En Trufiq lo verás en verde si es positivo (ganas dinero) y en rojo si
+                    es negativo (pierdes dinero), para cada parcela y para cada campaña.
+                </p>
+            </article>
+        </div>
+    </div>
+</div>
+{% endblock %}

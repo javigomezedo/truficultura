@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import datetime
 import io
+import re
 import zipfile
 from typing import Optional
 
@@ -67,6 +68,76 @@ def _warning(message: str, **kwargs: object) -> str:
     return _(message, **kwargs)
 
 
+def _data_parse_error(line_no: int, exc: Exception) -> str:
+    """Warning estándar para errores de parseo de filas CSV."""
+    detail = str(exc).strip() or exc.__class__.__name__
+    return _warning(
+        "Línea {line}: error al parsear los datos ({error}) — omitida",
+        line=line_no,
+        error=detail,
+    )
+
+
+# Patrón que sugiere decimales europeos: dígito + coma + 2-4 dígitos seguidos
+# por coma o fin de línea. Ej.: `0,5078,` o `1,25` al final de línea.
+_DECIMAL_COMMA_PATTERN = re.compile(r"\d,\d{2,4}(?:,|$)")
+_QUOTED_FIELD_PATTERN = re.compile(r'"[^"]*"')
+
+
+def _open_csv_reader(content: bytes, warnings: list[str]):
+    """Decode CSV bytes and return a `csv.reader` auto-detectando el separador.
+
+    Trufiq espera el formato europeo con `;` como separador. Si el fichero
+    parece usar `,` (caso típico de CSVs exportados por aplicaciones en
+    inglés), lo procesamos igualmente y añadimos un aviso amistoso.
+
+    Si detectamos que el fichero usa `,` como separador **y** además contiene
+    decimales con coma (estructura ambigua e imposible de parsear con
+    fiabilidad), abortamos la importación con un aviso bloqueante y
+    devolvemos un iterador vacío.
+    """
+    text = content.decode("utf-8")
+    delimiter = ";"
+    for raw_line in text.splitlines():
+        if not raw_line.strip():
+            continue
+        semis = raw_line.count(";")
+        commas = raw_line.count(",")
+        if commas > semis and commas > 0:
+            delimiter = ","
+        break
+
+    if delimiter == ",":
+        # Comprobamos si el fichero también usa coma como decimal (ambiguo).
+        # Ignoramos campos entre comillas (donde una coma es texto literal).
+        ambiguous = False
+        for raw_line in text.splitlines()[:10]:
+            if not raw_line.strip():
+                continue
+            stripped = _QUOTED_FIELD_PATTERN.sub("", raw_line)
+            if _DECIMAL_COMMA_PATTERN.search(stripped):
+                ambiguous = True
+                break
+
+        if ambiguous:
+            warnings.insert(
+                0,
+                _warning(
+                    "Tu CSV usa coma (,) como separador y también parece contener decimales con coma (ej.: «0,5078»). No podemos convertirlo automáticamente sin romper los datos. Por favor, vuelve a guardar el fichero usando punto y coma (;) como separador: en Excel, «Guardar como» → «CSV UTF-8 delimitado por punto y coma».",
+                ),
+            )
+            return iter([])
+
+        warnings.insert(
+            0,
+            _warning(
+                "Detectamos que el fichero usa coma (,) como separador en lugar de punto y coma (;). Lo hemos procesado igualmente, pero recomendamos guardar el CSV con punto y coma para evitar problemas con valores decimales.",
+            ),
+        )
+
+    return csv.reader(io.StringIO(text), delimiter=delimiter)
+
+
 # Aliases for truffle quality categories (letter grades commonly used in
 # commercial workflows). Mapped to the canonical enum values.
 _QUALITY_ALIASES: dict[str, TruffleQuality] = {
@@ -117,7 +188,7 @@ async def import_expenses_csv(
     ParsedLine = dict  # typing alias
     parsed: list[ParsedLine] = []
 
-    reader = csv.reader(io.StringIO(content.decode("utf-8")), delimiter=";")
+    reader = _open_csv_reader(content, warnings)
     for i, line in enumerate(reader, 1):
         if not any(line):
             continue
@@ -160,10 +231,8 @@ async def import_expenses_csv(
                     "grupo_key": grupo_key,
                 }
             )
-        except (ValueError, KeyError):
-            warnings.append(
-                _warning("Línea {line}: error al parsear los datos — omitida", line=i)
-            )
+        except (ValueError, KeyError) as _exc:
+            warnings.append(_data_parse_error(i, _exc))
 
     # Build proration groups for rows that share a grupo_key.
     proration_groups: dict[str, ExpenseProrationGroup] = {}
@@ -223,7 +292,7 @@ async def import_incomes_csv(
     rows: list[Income] = []
     warnings: list[str] = []
 
-    reader = csv.reader(io.StringIO(content.decode("utf-8")), delimiter=";")
+    reader = _open_csv_reader(content, warnings)
     for i, line in enumerate(reader, 1):
         if not any(line):
             continue
@@ -276,10 +345,8 @@ async def import_incomes_csv(
                 euros_per_kg=euros_per_kg,
             )
             rows.append(row)
-        except (ValueError, KeyError):
-            warnings.append(
-                _warning("Línea {line}: error al parsear los datos — omitida", line=i)
-            )
+        except (ValueError, KeyError) as _exc:
+            warnings.append(_data_parse_error(i, _exc))
 
     db.add_all(rows)
     return rows, warnings
@@ -317,7 +384,7 @@ async def import_plots_csv(
     pending_map_configs: list[tuple[Plot, str]] = []
     warnings: list[str] = []
 
-    reader = csv.reader(io.StringIO(content.decode("utf-8")), delimiter=";")
+    reader = _open_csv_reader(content, warnings)
     for i, line in enumerate(reader, 1):
         if not any(line):
             continue
@@ -372,10 +439,8 @@ async def import_plots_csv(
             map_config = col(11)
             if map_config:
                 pending_map_configs.append((row, map_config))
-        except (ValueError, KeyError):
-            warnings.append(
-                _warning("Línea {line}: error al parsear los datos — omitida", line=i)
-            )
+        except (ValueError, KeyError) as _exc:
+            warnings.append(_data_parse_error(i, _exc))
 
     if plant_limit is not None:
         from app.services.plots_service import _get_effective_plant_total
@@ -437,7 +502,7 @@ async def import_wells_csv(
     rows: list[Well] = []
     warnings: list[str] = []
 
-    reader = csv.reader(io.StringIO(content.decode("utf-8")), delimiter=";")
+    reader = _open_csv_reader(content, warnings)
     for i, line in enumerate(reader, 1):
         if not any(line):
             continue
@@ -484,10 +549,8 @@ async def import_wells_csv(
                 expense_id=None,
             )
             rows.append(row)
-        except (ValueError, KeyError):
-            warnings.append(
-                _warning("Línea {line}: error al parsear los datos — omitida", line=i)
-            )
+        except (ValueError, KeyError) as _exc:
+            warnings.append(_data_parse_error(i, _exc))
 
     _BATCH_SIZE = 50
     for i in range(0, len(rows), _BATCH_SIZE):
@@ -520,7 +583,7 @@ async def import_irrigation_csv(
     rows: list[IrrigationRecord] = []
     warnings: list[str] = []
 
-    reader = csv.reader(io.StringIO(content.decode("utf-8")), delimiter=";")
+    reader = _open_csv_reader(content, warnings)
     for i, line in enumerate(reader, 1):
         if not any(line):
             continue
@@ -577,10 +640,8 @@ async def import_irrigation_csv(
                 expense_id=None,
             )
             rows.append(row)
-        except (ValueError, KeyError):
-            warnings.append(
-                _warning("Línea {line}: error al parsear los datos — omitida", line=i)
-            )
+        except (ValueError, KeyError) as _exc:
+            warnings.append(_data_parse_error(i, _exc))
 
     _BATCH_SIZE = 50
     for i in range(0, len(rows), _BATCH_SIZE):
@@ -618,7 +679,7 @@ async def import_truffles_csv(
     _BATCH_SIZE = 50
     _flushed = 0
 
-    reader = csv.reader(io.StringIO(content.decode("utf-8")), delimiter=";")
+    reader = _open_csv_reader(content, warnings)
     for i, line in enumerate(reader, 1):
         if not any(line):
             continue
@@ -700,10 +761,8 @@ async def import_truffles_csv(
                 db.add_all(rows[_flushed:])
                 await db.flush()
                 _flushed = len(rows)
-        except (ValueError, KeyError):
-            warnings.append(
-                _warning("Línea {line}: error al parsear los datos — omitida", line=i)
-            )
+        except (ValueError, KeyError) as _exc:
+            warnings.append(_data_parse_error(i, _exc))
 
     if _flushed < len(rows):
         db.add_all(rows[_flushed:])
@@ -757,7 +816,7 @@ async def import_plot_events_csv(
     warnings: list[str] = []
     now = datetime.datetime.now(datetime.timezone.utc)
 
-    reader = csv.reader(io.StringIO(content.decode("utf-8")), delimiter=";")
+    reader = _open_csv_reader(content, warnings)
     for i, line in enumerate(reader, 1):
         if not any(line):
             continue
@@ -836,10 +895,8 @@ async def import_plot_events_csv(
                 updated_at=now,
             )
             rows.append(row)
-        except (ValueError, KeyError):
-            warnings.append(
-                _warning("Línea {line}: error al parsear los datos — omitida", line=i)
-            )
+        except (ValueError, KeyError) as _exc:
+            warnings.append(_data_parse_error(i, _exc))
 
     # Flush in batches to avoid a single massive INSERT statement that can
     # close the DB connection, and to prevent autoflush issues when the next
@@ -872,7 +929,7 @@ async def import_recurring_expenses_csv(
     rows: list[RecurringExpense] = []
     warnings: list[str] = []
 
-    reader = csv.reader(io.StringIO(content.decode("utf-8")), delimiter=";")
+    reader = _open_csv_reader(content, warnings)
     for i, line in enumerate(reader, 1):
         if not any(line):
             continue
@@ -973,7 +1030,7 @@ async def import_harvests_csv(
     rows: list[PlotHarvest] = []
     warnings: list[str] = []
 
-    reader = csv.reader(io.StringIO(content.decode("utf-8")), delimiter=";")
+    reader = _open_csv_reader(content, warnings)
     for i, line in enumerate(reader, 1):
         if not any(line):
             continue
@@ -1012,10 +1069,8 @@ async def import_harvests_csv(
                 notes=notas or None,
             )
             rows.append(row)
-        except (ValueError, KeyError):
-            warnings.append(
-                _warning("Línea {line}: error al parsear los datos — omitida", line=i)
-            )
+        except (ValueError, KeyError) as _exc:
+            warnings.append(_data_parse_error(i, _exc))
 
     db.add_all(rows)
     return rows, warnings
@@ -1049,7 +1104,7 @@ async def import_presences_csv(
     rows: list[PlantPresence] = []
     warnings: list[str] = []
 
-    reader = csv.reader(io.StringIO(content.decode("utf-8")), delimiter=";")
+    reader = _open_csv_reader(content, warnings)
     for i, line in enumerate(reader, 1):
         if not any(line):
             continue
@@ -1119,10 +1174,8 @@ async def import_presences_csv(
                 has_truffle=True,
             )
             rows.append(row)
-        except (ValueError, KeyError):
-            warnings.append(
-                _warning("Línea {line}: error al parsear los datos — omitida", line=i)
-            )
+        except (ValueError, KeyError) as _exc:
+            warnings.append(_data_parse_error(i, _exc))
 
     db.add_all(rows)
     return rows, warnings
@@ -1155,7 +1208,7 @@ async def import_plants_csv(
     updated: list[Plant] = []
     warnings: list[str] = []
 
-    reader = csv.reader(io.StringIO(content.decode("utf-8")), delimiter=";")
+    reader = _open_csv_reader(content, warnings)
     for i, line in enumerate(reader, 1):
         if not any(line):
             continue
@@ -1271,7 +1324,7 @@ async def import_brule_csv(
     rows: list[BruleRecord] = []
     warnings: list[str] = []
 
-    reader = csv.reader(io.StringIO(content.decode("utf-8")), delimiter=";")
+    reader = _open_csv_reader(content, warnings)
     for i, line in enumerate(reader, 1):
         if not any(line):
             continue
@@ -1322,10 +1375,8 @@ async def import_brule_csv(
         try:
             record_date = _parse_date(fecha_s)
             diameter_cm = int(_parse_int(diametro_s))
-        except (ValueError, KeyError):
-            warnings.append(
-                _warning("Línea {line}: error al parsear los datos — omitida", line=i)
-            )
+        except (ValueError, KeyError) as _exc:
+            warnings.append(_data_parse_error(i, _exc))
             continue
 
         key = (plant.id, record_date)
@@ -1376,7 +1427,7 @@ async def import_rainfall_csv(
     rows: list[RainfallRecord] = []
     warnings: list[str] = []
 
-    reader = csv.reader(io.StringIO(content.decode("utf-8")), delimiter=";")
+    reader = _open_csv_reader(content, warnings)
     for i, line in enumerate(reader, 1):
         if not any(line):
             continue
@@ -1417,10 +1468,8 @@ async def import_rainfall_csv(
                 notes=notas or None,
             )
             rows.append(row)
-        except (ValueError, KeyError):
-            warnings.append(
-                _warning("Línea {line}: error al parsear los datos — omitida", line=i)
-            )
+        except (ValueError, KeyError) as _exc:
+            warnings.append(_data_parse_error(i, _exc))
 
     db.add_all(rows)
     return rows, warnings

@@ -1,0 +1,27 @@
+{# Macro reutilizable para mostrar ayuda contextual junto a un término.
+
+Uso:
+    {% from "_partials/help_hint.html" import help_hint %}
+    {{ help_hint("Brulé", "Zona quemada alrededor del árbol donde no crece hierba: indica que el hongo está activo.", "brule") }}
+
+Parámetros:
+    term: nombre del concepto (usado en aria-label).
+    body: explicación breve (texto plano o HTML simple).
+    anchor: (opcional) ancla en /ayuda/glosario para "saber más".
+#}
+{% macro help_hint(term, body, anchor=None) -%}
+    {%- set extra_link = '<br><a href="/ayuda/glosario#' ~ anchor ~ '" class="small">Saber más →</a>' if anchor else '' -%}
+    <button type="button"
+            class="btn btn-link p-0 ms-1 align-baseline tf-help-hint"
+            data-bs-toggle="popover"
+            data-bs-trigger="focus"
+            data-bs-html="true"
+            data-bs-placement="top"
+            data-bs-title="{{ term }}"
+            data-bs-content="{{ (body ~ extra_link) | e }}"
+            aria-label="{{ _('Más información sobre') }} {{ term }}"
+            tabindex="0">
+        <i class="bi bi-question-circle text-muted" aria-hidden="true"></i>
+        <span class="visually-hidden">{{ _('Ayuda') }}</span>
+    </button>
+{%- endmacro %}

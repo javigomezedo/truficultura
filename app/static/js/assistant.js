@@ -71,6 +71,15 @@
         }
     ];
 
+    // Preguntas de arranque visibles cuando aún no hay conversación.
+    // Pensadas para principiantes: cortas, concretas y útiles desde la primera campaña.
+    var STARTER_QUESTIONS = [
+        '¿Cuánto he gastado en Riego este año?',
+        '¿Cuál ha sido mi mejor campaña?',
+        '¿Qué parcelas no tienen brulé apuntado este año?',
+        '¿Cuántas plantas tengo en total?'
+    ];
+
     function createMessageElement(role, text) {
         var el = document.createElement('div');
         el.classList.add('tf-assistant-msg');
@@ -212,6 +221,8 @@
         var messages = document.getElementById('assistantMessages');
         var suggestionsList = document.getElementById('assistantSuggestionsList');
         var suggestionsDetails = document.getElementById('assistantSuggestions');
+        var startersContainer = document.getElementById('assistantStarters');
+        var startersList = document.getElementById('assistantStartersList');
         var sendBtn = document.getElementById('assistantSendBtn');
         var cancelBtn = document.getElementById('assistantCancelBtn');
         var micBtn = document.getElementById('assistantMicBtn');
@@ -277,6 +288,37 @@
                 section.appendChild(list);
                 suggestionsList.appendChild(section);
             });
+        }
+
+        function renderStarters() {
+            if (!startersContainer || !startersList) {
+                return;
+            }
+            startersList.innerHTML = '';
+            STARTER_QUESTIONS.forEach(function (question) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.classList.add('tf-assistant-starter-btn');
+                btn.innerHTML = '<i class="bi bi-lightning-charge-fill me-1"></i>' + question;
+                btn.addEventListener('click', function () {
+                    input.value = question;
+                    hideStarters();
+                    // Disparar submit programáticamente para enviar al instante.
+                    if (typeof form.requestSubmit === 'function') {
+                        form.requestSubmit();
+                    } else {
+                        form.dispatchEvent(new Event('submit', { cancelable: true }));
+                    }
+                });
+                startersList.appendChild(btn);
+            });
+            startersContainer.hidden = false;
+        }
+
+        function hideStarters() {
+            if (startersContainer) {
+                startersContainer.hidden = true;
+            }
         }
 
         cancelBtn.addEventListener('click', function () {
@@ -386,6 +428,7 @@
                 return;
             }
 
+            hideStarters();
             pushMessage('user', question);
             input.value = '';
 
@@ -448,6 +491,7 @@
         });
 
         renderSuggestions();
+        renderStarters();
     }
 
     document.addEventListener('DOMContentLoaded', setupAssistant);

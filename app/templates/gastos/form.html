@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_partials/help_hint.html" import help_hint %}
 
 {% block title %}{% if expense %}{{ _("Editar Gasto") }}{% else %}{{ _("Nuevo Gasto") }}{% endif %} &mdash; Trufiq{% endblock %}
 
@@ -25,7 +26,8 @@
         <div class="col-lg-9 col-xl-8">
     <div class="card tf-panel shadow-sm border-0">
         <div class="card-body p-4">
-            <form action="{{ action }}" method="{{ method }}" novalidate>
+            <form action="{{ action }}" method="{{ method }}" novalidate
+                  {% if not expense %}data-autosave-key="gasto_draft"{% endif %}>
                 {% if expense %}
                 <input type="hidden" name="_method" value="POST">
                 {% endif %}
@@ -44,11 +46,11 @@
                                required>
                     </div>
 
-                    <!-- Bancal (parcela) -->
+                    <!-- Parcela -->
                     <div class="col-md-6">
-                        <label for="plot_id" class="form-label fw-semibold">{{ _("Bancal") }}</label>
+                        <label for="plot_id" class="form-label fw-semibold">{{ _("Parcela") }}{{ help_hint(_("Gasto sin parcela"), _("Si dejas este campo vacío, el gasto se considera general (seguro, asesor, gasoil del coche...) y se reparte automáticamente entre todas tus parcelas según su tamaño."), "gastos-generales") }}</label>
                         <select class="form-select" id="plot_id" name="plot_id">
-                            <option value="">{{ _("-- Sin bancal asignado --") }}</option>
+                            <option value="">{{ _("— Sin parcela (gasto general, se repartirá) —") }}</option>
                             {% for p in plots %}
                             <option value="{{ p.id }}"
                                     {% if expense and expense.plot_id == p.id %}selected{% endif %}>
@@ -56,6 +58,12 @@
                             </option>
                             {% endfor %}
                         </select>
+                        {% if plots %}
+                        <div id="generalExpenseHint" class="alert alert-warning py-2 mt-2 mb-0 small {% if expense and expense.plot_id %}d-none{% endif %}">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            {{ _("Al no asignar parcela, este gasto se repartirá entre tus {n} parcelas según su tamaño (número de plantas).", n=plots|length) }}
+                        </div>
+                        {% endif %}
                     </div>
 
                     <!-- Concepto -->
@@ -85,7 +93,7 @@
 
                     <!-- Categoría -->
                     <div class="col-md-4">
-                        <label for="category" class="form-label fw-semibold">{{ _("Categoría") }}</label>
+                        <label for="category" class="form-label fw-semibold">{{ _("Categoría") }}{{ help_hint(_("Categoría"), _("Sirve para agrupar gastos en informes (plantación, riego, laboreo, máquinas...). Si dudas, déjala vacía: siempre puedes añadirla luego.")) }}</label>
                         <select class="form-select" id="category" name="category">
                             <option value="">{{ _("-- Sin categoría --") }}</option>
                             {% for cat in categories %}
@@ -125,7 +133,8 @@
                             <input class="form-check-input" type="checkbox" id="prorateToggle">
                             <label class="form-check-label fw-semibold" for="prorateToggle">
                                 <i class="bi bi-calendar-range me-1"></i>
-                                {{ _("Prorratear en varios años") }}
+                                {{ _("¿Es una inversión grande que dura varios años?") }}
+                                {{ help_hint(_("Prorrateo"), _("Para tractores, riego, naves... no tiene sentido cargar todo el gasto a una sola campaña. Trufiq lo reparte en partes iguales entre los años que indiques."), "prorrateo") }}
                             </label>
                         </div>
                         <div id="prorateFields" class="row g-3 mt-1" style="display:none;">
@@ -159,9 +168,13 @@
                                 <div class="form-text">{{ _("Por defecto, el año de la fecha del gasto.") }}</div>
                             </div>
                             <div class="col-12">
-                                <div class="alert alert-info py-2 mb-0 small">
+                                <div class="alert alert-info py-2 mb-2 small">
                                     <i class="bi bi-info-circle me-1"></i>
                                     {{ _("Se crearán N entradas de 1 de enero de cada año, con el importe total repartido a partes iguales (el último registro absorbe el redondeo).") }}
+                                </div>
+                                <div id="proratePreview" class="alert alert-success py-2 mb-0 small d-none">
+                                    <i class="bi bi-calculator me-1"></i>
+                                    <span id="proratePreviewText"></span>
                                 </div>
                             </div>
                         </div>
@@ -300,12 +313,43 @@
     var dateInput = document.getElementById('date');
     var startYearInput = document.getElementById('start_year');
     var yearsInput = document.getElementById('prorate_years');
+    var amountInput = document.getElementById('amount');
+    var preview = document.getElementById('proratePreview');
+    var previewText = document.getElementById('proratePreviewText');
 
     function syncStartYear() {
         if (dateInput && dateInput.value && startYearInput && !startYearInput.value) {
             var d = new Date(dateInput.value + 'T00:00:00');
             startYearInput.value = d.getFullYear();
         }
+    }
+
+    function formatEur(n) {
+        return n.toLocaleString('es-ES', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }) + ' €';
+    }
+
+    function updatePreview() {
+        if (!preview || !previewText) return;
+        if (!toggle || !toggle.checked) {
+            preview.classList.add('d-none');
+            return;
+        }
+        var amount = parseFloat((amountInput && amountInput.value) || '0');
+        var years = parseInt((yearsInput && yearsInput.value) || '0', 10);
+        var startYear = parseInt((startYearInput && startYearInput.value) || '0', 10);
+        if (!amount || amount <= 0 || !years || years < 2 || !startYear) {
+            preview.classList.add('d-none');
+            return;
+        }
+        var perYear = amount / years;
+        var endYear = startYear + years - 1;
+        previewText.textContent =
+            'Resultado: ' + formatEur(amount) + ' ÷ ' + years + ' años = ' +
+            formatEur(perYear) + ' al año, desde ' + startYear + ' hasta ' + endYear + '.';
+        preview.classList.remove('d-none');
     }
 
     if (toggle) {
@@ -315,17 +359,41 @@
             if (yearsInput) { yearsInput.required = show; yearsInput.disabled = !show; }
             if (startYearInput) { startYearInput.required = show; startYearInput.disabled = !show; }
             if (show) syncStartYear();
+            updatePreview();
         });
     }
 
     if (dateInput) {
         dateInput.addEventListener('change', function () {
             if (toggle && toggle.checked) syncStartYear();
+            updatePreview();
         });
     }
 
+    [amountInput, yearsInput, startYearInput].forEach(function (el) {
+        if (el) el.addEventListener('input', updatePreview);
+    });
+
     syncStartYear();
+    updatePreview();
 })();
 </script>
 {% endif %}
+<script>
+(function () {
+    var plotSelect = document.getElementById('plot_id');
+    var hint = document.getElementById('generalExpenseHint');
+    if (!plotSelect || !hint) return;
+    function sync() {
+        if (plotSelect.value === '') {
+            hint.classList.remove('d-none');
+        } else {
+            hint.classList.add('d-none');
+        }
+    }
+    plotSelect.addEventListener('change', sync);
+    sync();
+})();
+</script>
+<script src="/static/js/form_autosave.js" defer></script>
 {% endblock %}

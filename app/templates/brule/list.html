@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_partials/help_hint.html" import help_hint %}
 
 {% block title %}{{ _("Brulé") }}{% endblock %}
 
@@ -8,7 +9,7 @@
         <div>
             <p class="tf-page-kicker">{{ _("Micorriza") }}</p>
             <h1 class="tf-page-title">
-                <i class="bi bi-circle text-warning me-2"></i>{{ _("Registros de brulé") }}
+                <i class="bi bi-circle text-warning me-2"></i>{{ _("Registros de brulé") }}{{ help_hint(_("Brulé"), _("Zona quemada alrededor del árbol donde no crece hierba: indica que el hongo de la trufa está activo. Un brulé bien formado suele ser señal de que esa planta producirá."), "brule") }}
             </h1>
             <p class="tf-page-subtitle">{{ _("Historial de mediciones del diámetro del brulé por planta.") }}</p>
         </div>

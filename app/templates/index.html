@@ -175,7 +175,7 @@
                 <i class="bi bi-question-circle me-1"></i>{{ _("Tour") }}
             </button>
             <a href="/plots/" class="btn btn-primary btn-sm">
-                <i class="bi bi-map-fill me-1"></i>{{ total_plots }} {{ _("bancal(es)") }}
+                <i class="bi bi-map-fill me-1"></i>{{ total_plots }} {{ _("parcela(s)") }}
             </a>
         </div>
     </div>
@@ -207,6 +207,63 @@
                 </div>
                 {% endfor %}
             </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ===== Acciones rápidas ===== #}
+    {% if total_plots > 0 %}
+    <h6 class="text-uppercase text-muted fw-semibold mb-2 small">
+        <i class="bi bi-lightning-charge-fill me-1"></i>{{ _("¿Qué quieres apuntar?") }}
+    </h6>
+    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-6 g-2 mb-4 tf-quick-actions">
+        <div class="col">
+            <a href="/expenses/new" class="card tf-quick-card h-100 border-0 shadow-sm text-decoration-none">
+                <div class="card-body text-center py-3">
+                    <i class="bi bi-arrow-down-circle-fill text-danger fs-1 d-block mb-1"></i>
+                    <div class="fw-semibold small">{{ _("Apuntar gasto") }}</div>
+                </div>
+            </a>
+        </div>
+        <div class="col">
+            <a href="/incomes/new" class="card tf-quick-card h-100 border-0 shadow-sm text-decoration-none">
+                <div class="card-body text-center py-3">
+                    <i class="bi bi-arrow-up-circle-fill text-success fs-1 d-block mb-1"></i>
+                    <div class="fw-semibold small">{{ _("Apuntar ingreso") }}</div>
+                </div>
+            </a>
+        </div>
+        <div class="col">
+            <a href="/harvests/new" class="card tf-quick-card h-100 border-0 shadow-sm text-decoration-none">
+                <div class="card-body text-center py-3">
+                    <i class="bi bi-basket-fill text-success fs-1 d-block mb-1"></i>
+                    <div class="fw-semibold small">{{ _("Apuntar cosecha") }}</div>
+                </div>
+            </a>
+        </div>
+        <div class="col">
+            <a href="/irrigation/new" class="card tf-quick-card h-100 border-0 shadow-sm text-decoration-none">
+                <div class="card-body text-center py-3">
+                    <i class="bi bi-droplet-fill text-primary fs-1 d-block mb-1"></i>
+                    <div class="fw-semibold small">{{ _("Apuntar riego") }}</div>
+                </div>
+            </a>
+        </div>
+        <div class="col">
+            <a href="/plot-events/new" class="card tf-quick-card h-100 border-0 shadow-sm text-decoration-none">
+                <div class="card-body text-center py-3">
+                    <i class="bi bi-tools text-secondary fs-1 d-block mb-1"></i>
+                    <div class="fw-semibold small">{{ _("Apuntar labor") }}</div>
+                </div>
+            </a>
+        </div>
+        <div class="col">
+            <a href="/reports/profitability" class="card tf-quick-card h-100 border-0 shadow-sm text-decoration-none">
+                <div class="card-body text-center py-3">
+                    <i class="bi bi-graph-up-arrow text-warning fs-1 d-block mb-1"></i>
+                    <div class="fw-semibold small">{{ _("Ver rentabilidad") }}</div>
+                </div>
+            </a>
         </div>
     </div>
     {% endif %}
@@ -438,9 +495,9 @@
     })();
     </script>
 
-    <!-- ===== SECCIÓN 3: Matriz campaña x bancal ===== -->
+    <!-- ===== SECCIÓN 3: Matriz campaña x parcela ===== -->
     <h6 class="text-uppercase text-muted fw-semibold mb-2 small">
-        <i class="bi bi-table me-1"></i>{{ _("Rentabilidad por bancal y campaña (€)") }}
+        <i class="bi bi-table me-1"></i>{{ _("Rentabilidad por parcela y campaña (€)") }}
     </h6>
     <div class="card tf-panel shadow-sm border-0">
         <div class="card-body p-0">
@@ -522,7 +579,7 @@
     {% else %}
     <div class="text-center py-5 text-muted">
         <i class="bi bi-map fs-1 d-block mb-3 opacity-50"></i>
-        <h5 class="mb-2">{{ _("Aún no hay bancales registrados") }}</h5>
+        <h5 class="mb-2">{{ _("Aún no hay parcelas registradas") }}</h5>
         <p class="text-muted mb-4" style="max-width:420px; margin: 0 auto 1.5rem;">
             {{ _("Crea tu primera parcela para empezar a registrar plantas, cosechas, gastos e ingresos.") }}
         </p>
@@ -567,7 +624,7 @@
             steps.push({
                 element: parcelasEl,
                 title: '{{ _("Parcelas") }}',
-                intro: '{{ _("Gestiona tus bancales: añade parcelas, configura el número de plantas y consulta el rendimiento individual de cada una.") }}',
+                intro: '{{ _("Gestiona tus parcelas: añade nuevas, configura el número de plantas y consulta el rendimiento individual de cada una.") }}',
             });
         }
 
